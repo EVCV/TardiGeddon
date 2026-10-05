@@ -9,6 +9,18 @@ game, the technical architecture, and the order we build it in.
 
 ---
 
+## 0. Decisions Log
+
+| Topic           | Decision                                                                 |
+| --------------- | ------------------------------------------------------------------------ |
+| Platform        | **Browser first**, wrapped with **Capacitor** for iOS & Android (desktop wrap later) |
+| Art             | Produced by AI: Claude (SVG / code-drawn sprites, VFX, UI) + ChatGPT image generation (raster illustrations, key art) — see §6 |
+| Online play     | **Required in v1**                                                       |
+| Tuning          | WA *play style* is the target; all values customisable via schemes        |
+| Monetisation    | **Free-to-play with in-game purchases** (cosmetic-first) — see §8         |
+
+---
+
 ## 1. Vision
 
 > "Worms Armageddon, but with tardigrades." Same tight turn-based chaos,
@@ -22,8 +34,10 @@ game, the technical architecture, and the order we build it in.
 2. **Destructible pixel terrain.** Every explosion carves the map.
 3. **Cartoon personality.** Squeaky voice banks, chunky hand-drawn sprites,
    silly weapon names, gravestones, bobbing water at the bottom of the map.
-4. **Couch first, online second.** Hot-seat multiplayer and AI from day one;
-   online play built on a deterministic simulation.
+4. **Play anywhere, with anyone.** Browser, phone and tablet; online,
+   hot-seat and vs AI all in v1, built on one deterministic simulation.
+5. **Fair free-to-play.** Purchases are cosmetic or convenience — never
+   pay-to-win in multiplayer.
 
 ### Legal / IP guardrails (important)
 
@@ -193,8 +207,12 @@ dedicated tuning milestone.
 ## 5. Game Modes & Schemes
 
 - **Quick Match** — vs AI or hot-seat, random map, default scheme.
-- **Multiplayer (local hot-seat)** — 2–6 teams on one machine.
-- **Online** — lockstep peer/host-relay (Phase 4).
+- **Multiplayer (local hot-seat)** — 2–6 teams on one device (pass-and-play
+  on mobile).
+- **Online (v1)** — private rooms via invite code/link, plus quick-play
+  matchmaking for 1v1 and up to 4 players. Ranked ladder post-v1.
+- **Asynchronous online (stretch)** — play your turn, close the app, get a
+  push notification when it's your turn again. Ideal for mobile.
 - **Training / Missions** — single-player challenges (target practice,
   rope races, survive-the-AI scenarios).
 - **Schemes** (like WA `.wsc`): a JSON file controlling turn time, round
@@ -209,11 +227,12 @@ dedicated tuning milestone.
 
 ## 6. Art & Audio Direction
 
-**Visual style:** bright, chunky, hand-drawn 2D cartoon, matching WA's
-readability at small sprite sizes.
+**Visual style:** bright, chunky 2D cartoon with bold outlines, matching
+WA's readability at small sprite sizes — and readable on a phone screen.
 
-- Logical resolution ~**1920×696 map** viewed through a scrolling,
-  zoomable camera; tardi sprites ~30×30 px.
+- Logical map size ~**1920×696**, viewed through a scrolling,
+  pinch-zoomable camera; tardi sprites ~30×30 px at 1× (authored at 4×
+  for retina/mobile).
 - Tardis: plump, translucent-pink/beige body, 8 stubby clawed legs,
   big expressive eyes, animated idle (blink, scratch, look around),
   hold-weapon poses, flying/tumble, drowning, victory dance.
@@ -223,36 +242,78 @@ readability at small sprite sizes.
 - Explosion VFX: circular bloom, smoke puffs, debris particles, "POW"
   word art on big hits.
 - UI: team-coloured name/HP labels over each tardi, wind bar, turn timer,
-  round timer, weapon grid panel (right-click), chunky comic font.
+  round timer, weapon grid panel, chunky comic font (open-licence font,
+  e.g. from Google Fonts).
 
-**Audio**
+### 6.1 AI art pipeline
 
-- Voice banks per team (8+ banks): "Fire!", "Coward!", "Oof", "Bye-bye",
-  "Revenge!", "Incoming!", "Watch this", etc. — recorded fresh, squeaky.
-- SFX per weapon, splash, crate drop, mine tick, fuse hiss.
-- Music: jaunty menu theme + ambient per landscape theme.
+Art is produced by AI, split by what each tool does best:
 
-Asset pipeline: Aseprite → spritesheets (PNG + JSON atlas); audio as
-OGG + MP3 fallback.
+| Asset type                                   | Produced by                            | Format                         |
+| -------------------------------------------- | -------------------------------------- | ------------------------------ |
+| Tardi character rig & animations             | **Claude** — layered SVG parts (body, 8 legs, eyes, mouth) animated in code | SVG → rasterised to atlas at build time |
+| Hats, gravestones, weapons, crates, props    | **Claude** — SVG                       | SVG → atlas                     |
+| VFX (explosions, smoke, fire, water)         | **Claude** — procedural particles/shaders | Code                         |
+| UI, icons, weapon panel, HUD                 | **Claude** — SVG/CSS                   | SVG                             |
+| Terrain textures & parallax backgrounds      | **ChatGPT image gen** (tileable textures, painted backdrops), cleaned up/tinted in pipeline | PNG/WebP |
+| Key art, store screenshots, app icon, splash | **ChatGPT image gen**                  | PNG                             |
+
+Why this split: a **code/SVG-built tardi rig** stays perfectly consistent
+across hundreds of frames and cosmetics (a hat is just another layer),
+which image generators struggle with; image generators are great for
+rich, one-off painted backgrounds and marketing art.
+
+Rules for consistency:
+
+- A **style guide** (`docs/STYLE_GUIDE.md`) with palette, outline weight,
+  lighting direction, and a reference sheet; every ChatGPT prompt starts
+  from a saved **master prompt** for the chosen look.
+- All generated assets stored in `assets/` with their prompt alongside
+  (`*.prompt.txt`) so they can be regenerated or varied.
+- Cosmetics (sold in the shop) are designed as attachable SVG layers
+  to the base rig so new items are cheap to make.
+
+> ⚠️ **Ownership note:** in some jurisdictions (e.g. the US) purely
+> AI-generated images may not be copyrightable, so others could reuse
+> them. Mitigation: meaningful human editing/arrangement of key assets
+> (logo, mascot, app icon), register the **TardiGeddon** name/logo as a
+> trademark, and check OpenAI's terms for commercial use (currently
+> allowed).
+
+### 6.2 Audio
+
+- **Voice banks** (8+ in v1, more sold as cosmetics): "Fire!", "Coward!",
+  "Oof", "Bye-bye", "Revenge!", "Incoming!", "Watch this"… Produced with
+  an AI voice / TTS service that licenses commercial use, pitched up and
+  processed to sound squeaky and tiny.
+- SFX per weapon, splash, crate drop, mine tick, fuse hiss — from CC0
+  libraries (e.g. freesound CC0, Kenney) or synthesised (jsfxr-style).
+- Music: jaunty menu theme + ambient loop per landscape theme
+  (AI music service with a commercial licence, or commissioned).
+- Delivered as audio sprites: OGG/WebM + AAC/M4A for iOS Safari.
 
 ---
 
 ## 7. Technical Architecture
 
-### 7.1 Stack (recommended)
+### 7.1 Stack
 
-| Concern     | Choice                                         | Why                                              |
-| ----------- | ---------------------------------------------- | ------------------------------------------------ |
-| Language    | **TypeScript**                                 | Type safety, single language client + server     |
-| Build       | **Vite**                                       | Fast dev server, simple bundling                 |
-| Rendering   | **PixiJS** (WebGL, Canvas fallback)            | Fast 2D sprites/particles; no forced physics     |
-| Physics     | **Custom**, fixed-step, pixel-mask collision   | WA physics are not rigid-body; Box2D-style would feel wrong |
-| Audio       | Howler.js                                      | Cross-browser audio sprites                      |
-| Testing     | Vitest + Playwright                            | Unit-test sim; smoke-test the browser build      |
-| Online      | Node + WebSocket relay (Phase 4)               | Lockstep input relay, no authoritative physics on server |
-| Desktop     | Tauri or Electron wrap (later)                 | Steam/itch distribution                          |
-
-Runs in a browser first: zero-install playtesting with a link.
+| Concern        | Choice                                          | Why                                              |
+| -------------- | ----------------------------------------------- | ------------------------------------------------ |
+| Language       | **TypeScript** (client + server)                | Type safety; shares sim code with the server     |
+| Build          | **Vite**                                        | Fast dev server, simple bundling                 |
+| Rendering      | **PixiJS** (WebGL, Canvas fallback)             | Fast 2D sprites/particles on mobile GPUs         |
+| Physics        | **Custom**, fixed-step, pixel-mask collision    | WA physics are not rigid-body                    |
+| Audio          | Howler.js                                       | Handles iOS audio unlock quirks                  |
+| UI / menus     | HTML/CSS overlay (Preact or plain TS)           | Easy responsive menus, shop, settings            |
+| Mobile wrap    | **Capacitor** (iOS + Android)                   | Same web build; native plugins for IAP, push, haptics |
+| Web install    | **PWA** (manifest + service worker)             | Installable from browser, offline vs-AI play     |
+| Backend        | **Supabase** (Auth + Postgres + Edge Functions) | Accounts, profiles, inventory, purchases, stats  |
+| Realtime       | **Node + WebSocket game server** (e.g. on Fly.io) | Room/match relay, matchmaking, turn validation |
+| Purchases      | **RevenueCat** (wraps Apple/Google IAP) + **Stripe** on web | One entitlement system across all stores |
+| Analytics/crash| PostHog (or similar) + Sentry                   | Funnel, retention, crash reports                 |
+| Testing        | Vitest + Playwright                             | Unit-test sim; smoke-test the browser build      |
+| Desktop (later)| Tauri wrap                                      | Steam / itch                                     |
 
 ### 7.2 Deterministic simulation (key decision)
 
@@ -308,13 +369,12 @@ TardiGeddon/
 │  │  ├─ rules/          # turn manager, scheme, sudden death, win check
 │  │  └─ world.ts        # tick(inputs) -> new state + events
 │  ├─ render/            # Pixi scene, camera, sprites, VFX, HUD
-│  ├─ input/             # keyboard/mouse/gamepad -> input commands
+│  ├─ input/             # keyboard/mouse/touch/gamepad -> input commands
 │  ├─ audio/             # sound + voice bank playback from sim events
 │  ├─ ai/                # CPU player (shot search on cloned sim)
 │  ├─ ui/                # menus, team editor, scheme editor, weapon panel
-│  ├─ net/               # lockstep client (Phase 4)
+│  ├─ net/               # online client: rooms, input relay, resync
 │  └─ main.ts
-├─ server/               # WebSocket relay (Phase 4)
 ├─ assets/               # sprites, audio, maps, fonts (all original)
 └─ tests/                # sim unit tests, replay determinism tests
 ```
@@ -327,7 +387,9 @@ TardiGeddon/
 - Difficulty = search breadth + random aim error.
 - Later: movement before firing, rope/teleport use, crate seeking.
 
-### 7.7 Controls (WA-style defaults, rebindable)
+### 7.7 Controls
+
+**Keyboard & mouse (WA-style defaults, rebindable)**
 
 | Action          | Key                       |
 | --------------- | ------------------------- |
@@ -341,98 +403,232 @@ TardiGeddon/
 | Camera          | Mouse to edge / drag      |
 | Select tardi    | Tab (if scheme allows)    |
 
-Gamepad support in Phase 3.
+**Touch (phones & tablets — v1 requirement)**
+
+| Action          | Gesture                                                   |
+| --------------- | --------------------------------------------------------- |
+| Walk            | Hold left/right pads (bottom-left)                        |
+| Jump / backflip | Jump button tap / double-tap                              |
+| Aim             | Drag the crosshair around the tardi (or aim slider)       |
+| Fire / charge   | Hold fire button (bottom-right), release to throw         |
+| Weapon panel    | Weapon button → full-screen grid                          |
+| Fuse / bounce   | Small chips beside the fire button when relevant          |
+| Targeted weapon | Tap the map                                               |
+| Camera          | One-finger drag on empty map, pinch to zoom; auto-follow  |
+| Rope            | Fire to attach, left/right to swing, up/down to climb, jump to release |
+
+Haptics on explosions/hits via Capacitor. Gamepad support in Phase 3.
+
+### 7.8 Mobile & browser specifics
+
+- Single codebase; layout adapts to landscape phone, tablet and desktop.
+  Game is **landscape-only** on phones.
+- Performance budget: 60 fps on a ~3-year-old mid-range Android; texture
+  atlases capped at 2048², terrain split into chunks, particles pooled.
+- Handle app backgrounding: pause local games; online games keep the
+  turn timer server-side and auto-skip on timeout.
+- Safe-area insets (notches), iOS audio unlock on first tap, wake lock
+  during matches.
+- Store compliance: full game (not a thin web wrapper) satisfies Apple
+  guideline 4.2; **all digital purchases on iOS/Android must go through
+  Apple/Google IAP** (handled by RevenueCat); web uses Stripe.
+
+### 7.9 Online multiplayer architecture (v1)
+
+Because the game is **turn-based**, online is much simpler than a
+real-time shooter: only one player acts at a time.
+
+```
+ Client A (active)            Game server (Node/WS)              Client B, C… (watching)
+ ───────────────              ─────────────────────              ───────────────────────
+ input commands ──────────▶  validate + timestamp + relay  ────▶  apply same inputs
+ local sim (deterministic)    own sim copy (authoritative       local sim → identical
+                              hash check, turn timer)            result
+```
+
+- **Input relay:** the active player's inputs (per tick) are streamed to
+  the server, which relays them to everyone. All clients run the same
+  deterministic sim, so everyone sees the same thing.
+- **Server runs the sim too** (headless — the `src/sim` folder has no
+  DOM/Pixi). It owns the turn timer, checks end-of-turn state hashes, and
+  is the authority if clients desync → it sends a state snapshot to
+  resync. This also stops cheating (e.g. fake damage, extra ammo).
+- **Rooms & matchmaking:** private room codes / share links; quick-play
+  queue (1v1, FFA up to 4); bots fill empty slots optionally.
+- **Reconnect:** rejoining clients receive a snapshot + inputs since.
+  Disconnected players' turns are skipped after timeout; bots can take over.
+- **Spectating & replays** come for free from the input log.
+- **Accounts:** guest play (device ID) with optional upgrade to
+  email / Apple / Google sign-in so purchases & stats follow the player.
+
+### 7.10 Repo layout additions
+
+```
+├─ server/               # WebSocket game server (rooms, matchmaking, headless sim)
+├─ supabase/             # DB migrations, edge functions (purchase webhooks, etc.)
+├─ mobile/               # Capacitor iOS/Android projects
+└─ src/
+   ├─ shop/              # store UI, entitlements, RevenueCat/Stripe client
+   └─ account/           # login, profile, inventory
+```
 
 ---
 
-## 8. Milestones / Roadmap
+## 8. Monetisation — Free-to-Play with In-Game Purchases
 
-Each phase ends with something playable.
+**Principle: never sell power in multiplayer.** Artillery games live or
+die on fairness; pay-to-win kills competitive communities and ratings.
 
-### Phase 0 — Foundations (≈1 week)
+### 8.1 What we sell
+
+| Category              | Examples                                                          |
+| --------------------- | ----------------------------------------------------------------- |
+| **Cosmetics**         | Hats, skins/colours, eyes, gravestones/husks, victory dances, fire trails, team flags |
+| **Voice banks**       | Pirate, Robot, Granny, Scientist, Space Cadet… (sample in shop)  |
+| **Forts & map themes**| New landscape themes usable in your hosted games                   |
+| **Bundles**           | Themed packs (e.g. "Deep Sea Pack": hat + voice + gravestone + theme) |
+| **Season Pass**       | Free + premium tracks of cosmetic rewards earned by playing        |
+| **Remove ads / Supporter pack** | One-off purchase; also unlocks extra save slots for teams/schemes |
+| **Single-player content** | Mission packs / challenge campaigns (gameplay sold only in PvE) |
+
+### 8.2 Currency & economy
+
+- Soft currency **"Moss"** — earned by playing (wins, daily challenges,
+  season pass). Buys standard cosmetics.
+- Premium currency **"Crystals"** — bought with real money; also small
+  amounts from the season pass. Buys premium cosmetics, bundles, pass.
+- Show real-money price equivalents; no loot boxes / random paid
+  rewards (avoids gambling regulation in e.g. Belgium/Netherlands and
+  App Store odds-disclosure rules). Rotating **daily shop** instead.
+- Optional **rewarded ads** (watch ad → Moss), never forced mid-match.
+
+### 8.3 Implementation
+
+- **RevenueCat** handles Apple/Google receipts; **Stripe Checkout** on web.
+  Both fire **webhooks → Supabase edge function** which grants items to
+  the player's inventory. **Server is the source of truth** — the client
+  never grants itself items.
+- Catalogue (items, prices, bundles, shop rotation) is data in the DB,
+  so new items ship without an app update.
+- Restore purchases, refunds/chargebacks revoke entitlements.
+- Platform fees: Apple/Google take 15–30%; Stripe ~3%.
+
+### 8.4 Compliance checklist
+
+- Age rating questionnaires (IARC / App Store) — cartoon violence,
+  in-app purchases, user chat.
+- Likely appeals to kids → COPPA (US) / GDPR-K / UK Age Appropriate Design
+  Code: age gate, no targeted ads for under-13s, parental purchase controls,
+  chat filtered or preset phrases only for young players.
+- Privacy policy, terms of service, account deletion in-app (Apple requirement).
+
+---
+
+## 9. Milestones / Roadmap
+
+Each phase ends with something playable. Online is built on the same
+sim from the start, so it's a layer on top, not a rewrite.
+
+### Phase 0 — Foundations (≈1–2 weeks)
 - Vite + TS + Pixi project, lint/format, Vitest, CI on GitHub Actions.
 - Fixed-step loop, seeded PRNG, fixed-point math helpers.
 - Determinism test harness (run N ticks twice → identical hash).
+- Style guide + first tardi rig (SVG) + one terrain theme.
 
-### Phase 1 — Vertical slice / MVP (≈4–6 weeks)
+### Phase 1 — Playable core (≈4–6 weeks)
 - Terrain mask + rendering + explosion carving; noise map generator.
 - Tardi movement: walk, jump, backflip, fall, fall damage, knockback.
-- Water death, map borders.
-- Turn manager: turn timer, retreat time, team rotation, win check.
+- Water death, map borders. Turn manager, timers, team rotation, win check.
 - Weapons: Spore Bazooka (with wind), Pebble Grenade, Algae Cluster,
-  Claw Shotgun, Fire Punch.
-- Utilities: Silk Rope (first pass), Parachute, Teleport, Girder.
-- HUD: HP labels, wind bar, timers, weapon panel.
-- Hot-seat for 2–4 teams. Placeholder art acceptable.
-- **Exit criteria:** a full 2-team match is fun to play start to finish.
+  Claw Shotgun, Fire Punch. Utilities: Silk Rope, Parachute, Teleport, Girder.
+- HUD; **keyboard + touch controls**; hot-seat for 2–4 teams.
+- Deploy to a web URL for playtesting on desktop & phones.
+- **Exit:** a full 2-team match is fun on both laptop and phone.
 
-### Phase 2 — Full arsenal & content (≈6–8 weeks)
-- Remaining P2 weapons & utilities; mines, oil drums, crates, poison, fire.
-- Sudden death. Scheme system + presets + scheme editor UI.
-- Team editor with persistence. Replays (record/playback).
-- AI opponent v1. Final art for 2 landscape themes, 2 voice banks.
-- Rope tuning milestone (side-by-side feel tests).
+### Phase 2 — Online & accounts (≈4–6 weeks)
+- Supabase auth (guest + sign-in), profiles, teams saved to cloud.
+- WebSocket game server: rooms, invite codes, input relay, headless sim,
+  hash checks, reconnect, turn timeout.
+- Quick-play matchmaking. Basic AI opponent v1 (also fills bots).
+- **Exit:** two people on different devices finish a match online.
 
-### Phase 3 — Polish & superweapons (≈4–6 weeks)
-- P3 superweapons. All landscape themes. 8 voice banks. Music.
-- Missions/training mode. Gamepad. Settings (audio, video, keybinds).
-- Performance pass (large maps, many particles), accessibility
-  (colour-blind team palettes, subtitles for voice lines).
+### Phase 3 — Full arsenal & content (≈6–8 weeks)
+- Remaining P2 weapons & utilities; mines, drums, crates, poison, fire.
+- Sudden death. Schemes + presets + scheme editor. Replays.
+- 4 landscape themes, 8 voice banks, music. Rope tuning milestone.
+- Team editor, cosmetics system (layered hats/gravestones etc.).
 
-### Phase 4 — Online multiplayer (≈4–6 weeks)
-- WebSocket relay server, lobby, room codes.
-- Lockstep input exchange per turn, desync detection via state hashes.
-- Reconnect, spectating, chat.
+### Phase 4 — Monetisation & mobile apps (≈4–6 weeks)
+- Inventory, shop UI, Moss/Crystals, daily shop, season pass framework.
+- RevenueCat + Stripe + webhook entitlement granting.
+- Capacitor iOS/Android builds, push notifications (your turn / friend
+  invites), haptics, store listings, privacy/age compliance.
+- Analytics, crash reporting.
+- **Exit:** closed beta on TestFlight / Play internal testing + web.
 
-### Phase 5 — Release
-- Desktop wrapper (Tauri/Electron), itch.io / Steam builds.
-- Map editor & PNG map import UI, scheme sharing.
+### Phase 5 — v1 Launch
+- P3 superweapons, missions/training mode, settings, accessibility
+  (colour-blind palettes, subtitles), performance pass on low-end phones.
+- Soft launch in a few countries → tune economy & retention → global launch.
+
+### Post-v1
+- Ranked ladder & seasons, clans/friends, async (play-by-notification)
+  online, map editor & PNG import, desktop (Steam) build, gamepad.
 
 ---
 
-## 9. Testing Strategy
+## 10. Testing Strategy
 
-- **Sim unit tests:** projectile trajectories, explosion damage falloff,
-  terrain carving, turn transitions, scheme rules.
+- **Sim unit tests:** trajectories, damage falloff, terrain carving,
+  turn transitions, scheme rules.
 - **Determinism tests:** replay recorded inputs → identical final state
-  hash; run in CI on every push (critical for replays & online).
-- **Golden replays:** a set of recorded matches re-run after physics
-  changes to flag behaviour drift.
-- **Browser smoke test** (Playwright): game boots, a turn can be played.
-- **Playtests** each phase; WA veterans compare feel for rope, bazooka
-  arc and grenade bounce.
+  hash, in CI on every push — **critical for online play**. Also run the
+  same replay in Node (server) and the browser and compare hashes.
+- **Golden replays** re-run after physics changes to flag drift.
+- **Network tests:** simulated latency/packet loss, disconnect/reconnect.
+- **Browser smoke tests** (Playwright) incl. mobile viewports.
+- **Purchase tests:** sandbox Apple/Google/Stripe, webhook replay,
+  refund revocation.
+- **Playtests** each phase on real phones and desktops.
 
 ---
 
-## 10. Risks & Mitigations
+## 11. Risks & Mitigations
 
 | Risk                                          | Mitigation                                             |
 | --------------------------------------------- | ------------------------------------------------------ |
 | IP / trademark complaints                     | Original assets & names only (§1); legal review before release |
-| "Feel" doesn't match WA (rope especially)     | Dedicated tuning milestone; constants in scheme/config; veteran playtests |
-| Float non-determinism breaks replays/online   | Fixed-point sim from day one + CI determinism tests     |
-| Terrain perf on large maps                    | Bit-packed mask, dirty-rect texture uploads, chunked textures |
-| Scope creep (WA has ~60 weapons)              | Strict P1/P2/P3 tiers; MVP ships with 5 weapons + 4 utilities |
-| Art/audio volume                              | Placeholder-first pipeline; commission/produce per phase |
+| AI art inconsistency / weak ownership         | SVG rig for characters, master prompts, style guide, human-edited key assets, trademark the name/logo |
+| "Feel" doesn't match WA (rope especially)     | Dedicated tuning milestone; constants in schemes; veteran playtests |
+| Float non-determinism → online desyncs        | Fixed-point sim from day one, CI determinism tests, server snapshot resync |
+| Mobile performance                            | Perf budget, chunked terrain, pooled particles, test on low-end Android early |
+| App Store rejection (IAP / wrapper rules)     | Native IAP via RevenueCat, full offline-capable game, account deletion |
+| Cheating online                               | Server runs authoritative sim, validates inputs & ammo |
+| Server costs                                  | Turn-based relay is light; scale rooms horizontally; costs covered by IAP |
+| Pay-to-win backlash                           | Cosmetic-only in PvP (§8)                              |
+| Scope creep (WA has ~60 weapons)              | Strict P1/P2/P3 tiers; online & shop before extra weapons |
 
 ---
 
-## 11. Open Questions
+## 12. Open Questions
 
-1. Platform priority: browser-only first (recommended) or desktop/Steam
-   from the start? Mobile/touch support at all?
-2. Art: in-house pixel art, commissioned artist, or hi-res vector style?
-3. Online: is it required for v1, or can v1 ship as hot-seat + AI?
-4. How strict on WA parity — exact WA constants (turn times, damage
-   values) as defaults, or our own tuned values?
-5. Monetisation (free / paid / donations) — affects distribution choices.
+1. **Art look:** pick one — (a) crisp vector cartoon (closest to how WA
+   reads, easiest for SVG rig), or (b) painterly/hand-drawn. Recommend (a).
+2. **Voices:** which TTS/AI voice service (commercial licence needed)?
+3. **Accounts:** require sign-in for online, or allow guest online play?
+   (Recommend guest allowed, sign-in to buy.)
+4. **Ads:** rewarded ads at all, or IAP-only?
+5. **Business setup:** Apple/Google developer accounts, Stripe account,
+   company entity for payouts & privacy policy.
 
 ---
 
-## 12. Immediate Next Steps
+## 13. Immediate Next Steps
 
-1. Confirm the stack (§7.1) and answer the open questions (§11).
-2. Scaffold Phase 0: Vite + TS + Pixi, CI, deterministic loop + tests.
-3. Build the terrain mask + bazooka + explosion carving prototype —
-   the first "it feels like Worms" moment.
-4. Start concept art for the tardi character (idle, aim, tumble).
+1. Scaffold Phase 0: Vite + TS + Pixi, CI, deterministic loop + tests.
+2. Draft `docs/STYLE_GUIDE.md` and the first SVG tardi rig + a few
+   ChatGPT background concepts to lock the look.
+3. Build the terrain mask + bazooka + explosion carving prototype with
+   touch + keyboard controls — the first "it feels like Worms" moment.
+4. Register developer accounts (Apple, Google, Stripe) early — approvals
+   take time.
