@@ -17,7 +17,11 @@ game, the technical architecture, and the order we build it in.
 | Art             | Produced by AI: Claude (SVG / code-drawn sprites, VFX, UI) + ChatGPT image generation (raster illustrations, key art) — see §6 |
 | Online play     | **Required in v1**                                                       |
 | Tuning          | WA *play style* is the target; all values customisable via schemes        |
-| Monetisation    | **Free-to-play with in-game purchases** (cosmetic-first) — see §8         |
+| Monetisation    | **Free-to-play, cosmetic purchases only** (skins, hats, voices…). **No ads. No buyable power** — see §8 |
+| Art look        | **Vector cartoon** (bold outlines, flat colour + simple shading)          |
+| Accounts        | **Free account required for online play**; offline (vs AI / hot-seat) works without one |
+| Voices          | Service not chosen yet — evaluation in §6.3                                |
+| Business setup  | Owner researching Apple / Google / Stripe accounts (guidance on request)   |
 
 ---
 
@@ -36,8 +40,8 @@ game, the technical architecture, and the order we build it in.
    silly weapon names, gravestones, bobbing water at the bottom of the map.
 4. **Play anywhere, with anyone.** Browser, phone and tablet; online,
    hot-seat and vs AI all in v1, built on one deterministic simulation.
-5. **Fair free-to-play.** Purchases are cosmetic or convenience — never
-   pay-to-win in multiplayer.
+5. **Fair free-to-play.** Purchases are cosmetic only — nobody can buy
+   power, and there are no ads.
 
 ### Legal / IP guardrails (important)
 
@@ -227,7 +231,8 @@ dedicated tuning milestone.
 
 ## 6. Art & Audio Direction
 
-**Visual style:** bright, chunky 2D cartoon with bold outlines, matching
+**Visual style (decided): vector cartoon** — bright, chunky 2D shapes with bold outlines,
+flat colour plus simple cel shading, matching
 WA's readability at small sprite sizes — and readable on a phone screen.
 
 - Logical map size ~**1920×696**, viewed through a scrolling,
@@ -291,6 +296,22 @@ Rules for consistency:
 - Music: jaunty menu theme + ambient loop per landscape theme
   (AI music service with a commercial licence, or commissioned).
 - Delivered as audio sprites: OGG/WebM + AAC/M4A for iOS Safari.
+
+### 6.3 Voice service evaluation (to do)
+
+Needed: ~30 short lines × 8+ voice banks at launch, more sold later as
+cosmetics. Shortlist to evaluate (check current pricing & terms first):
+
+| Option                                   | Notes                                                    |
+| ---------------------------------------- | -------------------------------------------------------- |
+| ElevenLabs                               | High quality, voice design from text prompt; paid plans grant commercial use |
+| OpenAI text-to-speech                    | Simple API, set voices; pitch-shift for squeakiness      |
+| Open-source TTS (e.g. Piper, Coqui XTTS) | Free, runs locally; quality varies; check each model's licence |
+| Human voice actors (e.g. Fiverr / Voices.com) | Most character; one-off cost per bank; buy-out licence |
+
+Evaluation: generate the same 10 lines in each, pitch-shift + process
+them the same way, pick by character/fun, licence terms and cost per bank.
+Whatever is chosen, keep the licence/terms copy in `assets/audio/LICENSES.md`.
 
 ---
 
@@ -458,8 +479,10 @@ real-time shooter: only one player acts at a time.
 - **Reconnect:** rejoining clients receive a snapshot + inputs since.
   Disconnected players' turns are skipped after timeout; bots can take over.
 - **Spectating & replays** come for free from the input log.
-- **Accounts:** guest play (device ID) with optional upgrade to
-  email / Apple / Google sign-in so purchases & stats follow the player.
+- **Accounts:** a **free account is required for online play** (email,
+  Apple or Google sign-in). This gives every player a persistent name,
+  stats, friends and inventory across devices, and makes it possible to
+  ban cheaters/abusers. Offline modes (vs AI, hot-seat) need no account.
 
 ### 7.10 Repo layout additions
 
@@ -476,8 +499,11 @@ real-time shooter: only one player acts at a time.
 
 ## 8. Monetisation — Free-to-Play with In-Game Purchases
 
-**Principle: never sell power in multiplayer.** Artillery games live or
-die on fairness; pay-to-win kills competitive communities and ratings.
+**Principle: never sell power.** Nothing you can buy changes how strong
+you are — no weapons, ammo, power-ups, extra health or stat boosts. Every
+player has the same arsenal; purchases only change how you *look and
+sound*. Losing to someone because they paid more is exactly what we
+are avoiding. All gameplay content (weapons, modes, missions) is free.
 
 ### 8.1 What we sell
 
@@ -488,8 +514,7 @@ die on fairness; pay-to-win kills competitive communities and ratings.
 | **Forts & map themes**| New landscape themes usable in your hosted games                   |
 | **Bundles**           | Themed packs (e.g. "Deep Sea Pack": hat + voice + gravestone + theme) |
 | **Season Pass**       | Free + premium tracks of cosmetic rewards earned by playing        |
-| **Remove ads / Supporter pack** | One-off purchase; also unlocks extra save slots for teams/schemes |
-| **Single-player content** | Mission packs / challenge campaigns (gameplay sold only in PvE) |
+| **Supporter pack**    | One-off purchase: exclusive cosmetic set + extra save slots for teams/schemes |
 
 ### 8.2 Currency & economy
 
@@ -500,7 +525,7 @@ die on fairness; pay-to-win kills competitive communities and ratings.
 - Show real-money price equivalents; no loot boxes / random paid
   rewards (avoids gambling regulation in e.g. Belgium/Netherlands and
   App Store odds-disclosure rules). Rotating **daily shop** instead.
-- Optional **rewarded ads** (watch ad → Moss), never forced mid-match.
+- **No ads** of any kind.
 
 ### 8.3 Implementation
 
@@ -546,7 +571,7 @@ sim from the start, so it's a layer on top, not a rewrite.
 - **Exit:** a full 2-team match is fun on both laptop and phone.
 
 ### Phase 2 — Online & accounts (≈4–6 weeks)
-- Supabase auth (guest + sign-in), profiles, teams saved to cloud.
+- Supabase auth (free account: email / Apple / Google), profiles, teams saved to cloud.
 - WebSocket game server: rooms, invite codes, input relay, headless sim,
   hash checks, reconnect, turn timeout.
 - Quick-play matchmaking. Basic AI opponent v1 (also fills bots).
@@ -605,21 +630,19 @@ sim from the start, so it's a layer on top, not a rewrite.
 | App Store rejection (IAP / wrapper rules)     | Native IAP via RevenueCat, full offline-capable game, account deletion |
 | Cheating online                               | Server runs authoritative sim, validates inputs & ammo |
 | Server costs                                  | Turn-based relay is light; scale rooms horizontally; costs covered by IAP |
-| Pay-to-win backlash                           | Cosmetic-only in PvP (§8)                              |
+| Pay-to-win backlash                           | Cosmetics only, everywhere; all gameplay free (§8)     |
 | Scope creep (WA has ~60 weapons)              | Strict P1/P2/P3 tiers; online & shop before extra weapons |
 
 ---
 
 ## 12. Open Questions
 
-1. **Art look:** pick one — (a) crisp vector cartoon (closest to how WA
-   reads, easiest for SVG rig), or (b) painterly/hand-drawn. Recommend (a).
-2. **Voices:** which TTS/AI voice service (commercial licence needed)?
-3. **Accounts:** require sign-in for online, or allow guest online play?
-   (Recommend guest allowed, sign-in to buy.)
-4. **Ads:** rewarded ads at all, or IAP-only?
-5. **Business setup:** Apple/Google developer accounts, Stripe account,
-   company entity for payouts & privacy policy.
+1. **Voices:** pick a service after the evaluation in §6.3.
+2. **Business setup** (owner researching): Apple/Google developer
+   accounts, Stripe account, company entity for payouts & privacy policy.
+
+Resolved: art look (vector cartoon), accounts (free account for online),
+monetisation (cosmetics only, no ads, no power for sale).
 
 ---
 
