@@ -12,6 +12,10 @@ import { Hud } from './ui/hud';
 import { CpuPlayer } from './ai/cpu';
 import { sfx, setMuted, unlockAudio } from './audio/sfx';
 import { showMenu, type MatchSetup } from './ui/menu';
+import { loadRejoin, showOnline } from './ui/online';
+import { NetClient } from './net/client';
+import type { Lockstep } from './net/lockstep';
+import { toWire, type ServerMsg } from './net/protocol';
 import { presetScheme } from './sim/schemes';
 import { ANGLE_FULL } from './sim/math/trig';
 
@@ -42,27 +46,55 @@ async function boot(): Promise<void> {
   const menu = () => {
     current?.destroy();
     current = null;
-    showMenu(ui, (setup) => start(setup));
+    showMenu(ui, (setup) => start(setup), () => online());
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
     ui.innerHTML = '';
     unlockAudio();
-    current = new Match(app, ui, setup, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
+    current = new Match(app, ui, { kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
   };
+  const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
+    current?.destroy();
+    current = null;
+    showOnline(ui, { onBack: menu, onStart: startOnline }, opts);
+  };
+  const startOnline = (client: NetClient, ls: Lockstep) => {
+    current?.destroy();
+    ui.innerHTML = '';
+    unlockAudio();
+    const m: Match = new Match(
+      app,
+      ui,
+      { kind: 'online', client, ls },
+      () => {
+        client.close();
+        menu();
+      },
+      () => online({ client, room: m.lastRoom ?? undefined }),
+    );
+    current = m;
+  };
+  const params = new URLSearchParams(location.search);
   // Debug/test hook: ?autostart=cpu skips the menu.
-  const auto = new URLSearchParams(location.search).get('autostart');
+  const auto = params.get('autostart');
+  const room = params.get('room');
   if (auto) {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
-    const n = Number(new URLSearchParams(location.search).get('players')) || 2;
+    const n = Number(params.get('players')) || 2;
     const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
     start({ players, teams: loadProfiles().slice(0, n), scheme: presetScheme('standard'), seed: 12345 });
-  }
-  else menu();
+  } else if (room) {
+    // Invite link: ?room=CODE
+    online({ code: room.toUpperCase() });
+  } else menu();
 }
 
+type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'online'; client: NetClient; ls: Lockstep };
+
 class Match {
-  private state: WorldState;
+  private local: WorldState | null = null;
+  private net: { client: NetClient; ls: Lockstep } | null = null;
   private renderer: GameRenderer;
   private input = new InputCollector();
   private hud: Hud;
@@ -76,24 +108,34 @@ class Match {
   private muted = false;
   private over = false;
   private tickerFn = () => this.frame();
+  // Online bookkeeping
+  private offNet: (() => void) | null = null;
+  private sentHeld = 0;
+  private sentTurn = -1;
+  private resyncAsked = false;
+  private reconnecting = false;
+  /** Latest lobby state from the server (for "Back to room" after the match). */
+  lastRoom: Extract<ServerMsg, { t: 'room' }> | null = null;
 
   constructor(
     private app: Application,
     private ui: HTMLElement,
-    setup: MatchSetup,
+    mode: MatchMode,
     private onMenu: () => void,
     private onAgain: () => void,
   ) {
-    const teams: TeamConfig[] = setup.players.map((cpu, i) => {
-      const p = setup.teams[i];
-      return { name: p.name, color: p.color, hat: p.hat, names: matchNames(p, i), cpu };
-    });
-    this.state = createWorld({
-      seed: setup.seed,
-      teams,
-      scheme: setup.scheme,
-    });
-    for (const t of this.state.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer());
+    if (mode.kind === 'local') {
+      const setup = mode.setup;
+      const teams: TeamConfig[] = setup.players.map((cpu, i) => {
+        const p = setup.teams[i];
+        return { name: p.name, color: p.color, hat: p.hat, names: matchNames(p, i), cpu };
+      });
+      this.local = createWorld({ seed: setup.seed, teams, scheme: setup.scheme });
+      for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer());
+    } else {
+      this.net = { client: mode.client, ls: mode.ls };
+      this.listenNet();
+    }
 
     this.renderer = new GameRenderer(app, this.state);
     this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => this.toggleMute() }, touchMode);
@@ -108,8 +150,52 @@ class Match {
     (window as unknown as { __tardi: unknown }).__tardi = this; // for e2e tests
   }
 
+  get state(): WorldState {
+    return this.net ? this.net.ls.state : this.local!;
+  }
+
   get world(): WorldState {
     return this.state;
+  }
+
+  private listenNet(): void {
+    const net = this.net!;
+    this.offNet = net.client.on((msg) => {
+      switch (msg.t) {
+        case 'frames': net.ls.onFrames(msg.from, msg.f); break;
+        case 'hash': net.ls.onHash(msg.tick, msg.h); break;
+        case 'snapshot':
+          net.ls.onSnapshot(msg.state, msg.you);
+          this.resyncAsked = false;
+          // The world was replaced wholesale: redraw it from scratch.
+          this.renderer.destroy();
+          this.renderer = new GameRenderer(this.app, this.state);
+          break;
+        case 'room': this.lastRoom = msg; break;
+        case 'error': this.hud.showBanner(msg.msg, 0xe04848, 3); break;
+      }
+    });
+    net.client.onDrop = () => void this.reconnect();
+  }
+
+  /** Lost the server: keep trying to get back into our slot. */
+  private async reconnect(): Promise<void> {
+    if (this.reconnecting || !this.net) return;
+    this.reconnecting = true;
+    const re = loadRejoin();
+    for (let i = 0; i < 15 && this.net && re; i++) {
+      this.hud.showBanner('Reconnecting…', 0x7d8a99, 2.2);
+      try {
+        await this.net.client.connect();
+        this.net.client.join(re.code, { name: '', color: 0, hat: '', names: [] }, re.token);
+        this.reconnecting = false;
+        return;
+      } catch {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+    this.reconnecting = false;
+    if (this.net) this.hud.showBanner('Disconnected', 0xe04848, 5);
   }
 
   private toggleMute(): boolean {
@@ -119,6 +205,7 @@ class Match {
   }
 
   private isHumanTurn(): boolean {
+    if (this.net) return this.net.ls.myTurn;
     const team = this.state.teams[this.state.turn.teamIdx];
     return !team.cpu && this.state.turn.phase !== 'gameover';
   }
@@ -128,20 +215,60 @@ class Match {
     const dt = Math.min(250, now - this.last);
     this.last = now;
     this.acc += dt;
-    while (this.acc >= TICK_MS) {
-      this.acc -= TICK_MS;
-      const team = this.state.teams[this.state.turn.teamIdx];
-      const human = this.isHumanTurn();
-      const humanInput = this.input.frame(); // always drain
-      const input = team.cpu ? this.cpu.get(team.id)!.next(this.state) : human ? humanInput : EMPTY_INPUT;
-      this.renderer.capturePrev(this.state);
-      tick(this.state, input, this.events);
+    if (this.net) this.netFrame();
+    else {
+      const s = this.local!;
+      while (this.acc >= TICK_MS) {
+        this.acc -= TICK_MS;
+        const team = s.teams[s.turn.teamIdx];
+        const human = this.isHumanTurn();
+        const humanInput = this.input.frame(); // always drain
+        const input = team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
+        this.renderer.capturePrev(s);
+        tick(s, input, this.events);
+      }
     }
     this.renderer.handleEvents(this.events);
     this.playSounds(this.events);
     this.events.length = 0;
-    this.renderer.render(this.state, this.acc / TICK_MS, dt / 1000, true);
+    this.renderer.render(this.state, Math.min(1, this.acc / TICK_MS), dt / 1000, true);
     this.hud.update(this.state, this.isHumanTurn());
+  }
+
+  /** Online: send our inputs on our turn, and play the frames the server sends. */
+  private netFrame(): void {
+    const { client, ls } = this.net!;
+    while (this.acc >= TICK_MS) {
+      this.acc -= TICK_MS;
+      const f = this.input.frame();
+      if (ls.myTurn) {
+        // The server forgets held buttons when a turn starts.
+        if (ls.state.turn.turnNumber !== this.sentTurn) {
+          this.sentTurn = ls.state.turn.turnNumber;
+          this.sentHeld = 0;
+        }
+        if (f.held !== this.sentHeld || f.pressed !== 0 || f.cmd) {
+          client.send({ t: 'input', f: toWire(f) });
+          this.sentHeld = f.held;
+        }
+      }
+      if (ls.buffered > 0) {
+        this.renderer.capturePrev(ls.state);
+        ls.step(this.events);
+      } else {
+        // Waiting on the server: don't bank time we'd then rush through.
+        this.acc = Math.min(this.acc, TICK_MS);
+      }
+    }
+    // Fell behind (slow device or a burst of frames): catch up quickly.
+    while (ls.buffered > 6) {
+      this.renderer.capturePrev(ls.state);
+      ls.step(this.events);
+    }
+    if (ls.desynced && !this.resyncAsked) {
+      this.resyncAsked = true;
+      client.send({ t: 'resync' });
+    }
   }
 
   private playSounds(events: SimEvent[]): void {
@@ -175,7 +302,8 @@ class Match {
         case 'gameover':
           if (!this.over) {
             this.over = true;
-            setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu), 1200);
+            const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
+            setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 1200);
           }
           break;
       }
@@ -282,6 +410,9 @@ class Match {
   }
 
   destroy(): void {
+    this.offNet?.();
+    if (this.net) this.net.client.onDrop = null;
+    this.net = null;
     this.app.ticker.remove(this.tickerFn);
     this.detachKeys();
     const c = this.app.canvas;

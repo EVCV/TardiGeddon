@@ -6,6 +6,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 ## Commands
 
 - `npm run dev` — dev server (add `?autostart=cpu` or `?autostart=hotseat` to skip the menu, `&players=N` for 2–10 teams, `?touch` to force touch controls)
+- `npm run server` — online game server on :8787 (`npm run dev` on localhost connects to it; see `docs/ONLINE.md`)
 - `npm test` — unit + soak tests (Vitest)
 - `npm run typecheck`, `npm run build`
 - `npm run e2e` — Playwright smoke tests (desktop + phone). In sandboxes with a
@@ -21,6 +22,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
   replays, the CPU's look-ahead and online lockstep play possible.
 - `src/render/` — PixiJS view of the state; reads state, never writes it. Interpolates between ticks.
 - `src/ui/` — DOM menus/HUD/touch controls. `src/input/` — keyboard/touch → `InputFrame`.
+- `server/` + `src/net/` — online play: the server runs the sim and streams lockstep input frames; clients replay them.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
   Runs on one machine only (host), so it may use non-deterministic code.
 - Weapons are data in `src/sim/weapons.ts`.

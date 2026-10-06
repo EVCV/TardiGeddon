@@ -1,0 +1,50 @@
+import { expect, test, type Page } from '@playwright/test';
+
+// Two players in separate browsers: one creates a room, the other joins by
+// code, and both see the same match once the host starts it.
+
+type Tardi = { world: { tick: number; turn: { teamIdx: number; phase: string; turnNumber: number } } };
+const world = (p: Page) => p.evaluate(() => (window as unknown as { __tardi?: Tardi }).__tardi?.world ?? null);
+
+test('two players can play an online match', async ({ browser }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one run is enough');
+  const errors: string[] = [];
+  const a = await (await browser.newContext()).newPage();
+  const b = await (await browser.newContext()).newPage();
+  for (const p of [a, b]) {
+    p.on('pageerror', (e) => errors.push(e.message));
+    p.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  }
+
+  await a.goto('/');
+  await a.getByRole('button', { name: 'Play online' }).click();
+  await a.getByRole('button', { name: 'Create a room' }).click();
+  const code = (await a.locator('.room-code').textContent())!.trim();
+  expect(code).toMatch(/^[A-Z2-9]{5}$/);
+
+  // The second player uses the invite link.
+  await b.goto(`/?room=${code}`);
+  await expect(b.getByText('Waiting for the host')).toBeVisible();
+  await expect(a.locator('.lobby-slot')).toHaveCount(2);
+
+  await a.getByRole('button', { name: 'Start match' }).click();
+  for (const p of [a, b]) await expect(p.locator('.hud-timer')).toBeVisible();
+
+  // Both clients follow the server's simulation.
+  await a.waitForFunction(() => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.tick ?? 0) > 150);
+  const [wa, wb] = [await world(a), await world(b)];
+  expect(Math.abs(wa!.tick - wb!.tick)).toBeLessThan(30);
+  expect(wa!.turn.teamIdx).toBe(wb!.turn.teamIdx);
+
+  // Whoever's turn it is skips it; the other browser sees the turn pass.
+  const active = wa!.turn.teamIdx === 0 ? a : b;
+  const other = active === a ? b : a;
+  await active.waitForFunction(() => (window as unknown as { __tardi?: Tardi }).__tardi?.world.turn.phase === 'aim');
+  const turn = wa!.turn.turnNumber;
+  await active.evaluate(() => {
+    const m = (window as unknown as { __tardi: { input: { command: (c: unknown) => void } } }).__tardi;
+    m.input.command({ t: 'skip' });
+  });
+  await other.waitForFunction((n) => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.turn.turnNumber ?? 0) > n, turn, { timeout: 15_000 });
+  expect(errors).toEqual([]);
+});
