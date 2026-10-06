@@ -1,4 +1,5 @@
-// Destructible terrain: one byte per pixel (1 = solid, 0 = air).
+// Destructible terrain: one byte per pixel.
+// 0 = air, 1 = soil, 2 = girder (solid, drawn as a twig).
 
 export interface Terrain {
   w: number;
@@ -21,7 +22,7 @@ export function isSolid(t: Terrain, x: number, y: number): boolean {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
   if (ix < 0 || ix >= t.w || iy < 0 || iy >= t.h) return false;
-  return t.mask[iy * t.w + ix] === 1;
+  return t.mask[iy * t.w + ix] !== 0;
 }
 
 // Integer offsets inside circles of each radius, cached.
@@ -50,7 +51,7 @@ export function circleCollides(t: Terrain, x: number, y: number, r: number): boo
     const px = cx + o[i];
     const py = cy + o[i + 1];
     if (px < 0 || px >= t.w || py < 0 || py >= t.h) continue;
-    if (t.mask[py * t.w + px] === 1) return true;
+    if (t.mask[py * t.w + px] !== 0) return true;
   }
   return false;
 }
@@ -69,7 +70,7 @@ export function normalAt(t: Terrain, x: number, y: number, r: number): { nx: num
     const px = cx + o[i];
     const py = cy + o[i + 1];
     if (px < 0 || px >= t.w || py < 0 || py >= t.h) continue;
-    if (t.mask[py * t.w + px] === 1) {
+    if (t.mask[py * t.w + px] !== 0) {
       sx += o[i];
       sy += o[i + 1];
     }
@@ -104,7 +105,47 @@ export function surfaceBelow(t: Terrain, x: number, startY: number): number {
   const ix = Math.floor(x);
   if (ix < 0 || ix >= t.w) return -1;
   for (let y = Math.max(0, Math.floor(startY)); y < t.h; y++) {
-    if (t.mask[y * t.w + ix] === 1) return y;
+    if (t.mask[y * t.w + ix] !== 0) return y;
   }
   return -1;
+}
+
+/**
+ * Place a girder (a solid bar) centred on (cx, cy) along unit vector (ux, uy).
+ * Fails (returns null) if any of it would overlap existing terrain.
+ */
+export function placeGirder(
+  t: Terrain,
+  cx: number,
+  cy: number,
+  ux: number,
+  uy: number,
+  len: number,
+  thick: number,
+  commit = true,
+): Rect | null {
+  const half = len / 2;
+  const ht = thick / 2;
+  const ex = Math.ceil(Math.abs(ux) * half + Math.abs(uy) * ht);
+  const ey = Math.ceil(Math.abs(uy) * half + Math.abs(ux) * ht);
+  const x0 = Math.floor(cx) - ex;
+  const y0 = Math.floor(cy) - ey;
+  const x1 = Math.floor(cx) + ex;
+  const y1 = Math.floor(cy) + ey;
+  if (x0 < 0 || y0 < 0 || x1 >= t.w || y1 >= t.h) return null;
+  const cells: number[] = [];
+  for (let py = y0; py <= y1; py++) {
+    for (let px = x0; px <= x1; px++) {
+      const dx = px + 0.5 - cx;
+      const dy = py + 0.5 - cy;
+      const along = dx * ux + dy * uy;
+      const across = dy * ux - dx * uy;
+      if (Math.abs(along) <= half && Math.abs(across) <= ht) {
+        if (t.mask[py * t.w + px] !== 0) return null;
+        cells.push(py * t.w + px);
+      }
+    }
+  }
+  if (commit) for (const i of cells) t.mask[i] = 2;
+  return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }

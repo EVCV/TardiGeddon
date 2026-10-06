@@ -60,6 +60,10 @@ export interface Tardi {
   /** Launched by an explosion (bounces, no fall damage). */
   knocked: boolean;
   fallStartY: number;
+  /** Silk Rope anchor and length while swinging. */
+  rope: { x: number; y: number; len: number } | null;
+  /** Leaf Parachute open. */
+  chute: boolean;
 }
 
 export interface Projectile {
@@ -134,5 +138,9 @@ export type SimEvent =
   | { t: 'jump'; id: number }
   | { t: 'teleport'; id: number; x: number; y: number }
   | { t: 'bounce'; x: number; y: number }
+  | { t: 'rope'; id: number; x: number; y: number }
+  | { t: 'punch'; id: number; x: number; y: number }
+  | { t: 'chute'; id: number }
+  | { t: 'terrain'; rect: Rect }
   | { t: 'turnStart'; team: number; tardi: number }
   | { t: 'gameover'; winner: number };

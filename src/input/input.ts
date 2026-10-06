@@ -6,11 +6,18 @@ export class InputCollector {
   // Each source (key code or touch button id) holds a bit while down.
   private sources = new Map<string, number>();
   private pressed = 0;
+  // Buttons pressed since the last frame, so a tap shorter than one tick
+  // still registers as held for a tick.
+  private latched = 0;
   private cmds: Command[] = [];
 
   hold(source: string, bit: number, down: boolean): void {
-    if (down) this.sources.set(source, bit);
-    else this.sources.delete(source);
+    if (down) {
+      this.sources.set(source, bit);
+      this.latched |= bit;
+    } else {
+      this.sources.delete(source);
+    }
   }
 
   press(bit: number): void {
@@ -23,12 +30,14 @@ export class InputCollector {
 
   releaseAll(): void {
     this.sources.clear();
+    this.latched = 0;
   }
 
   /** Build the frame for the next tick and clear one-shot inputs. */
   frame(): InputFrame {
-    let held = 0;
+    let held = this.latched;
     for (const bit of this.sources.values()) held |= bit;
+    this.latched = 0;
     const f: InputFrame = { held, pressed: this.pressed };
     const cmd = this.cmds.shift();
     if (cmd) f.cmd = cmd;

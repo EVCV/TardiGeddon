@@ -18,6 +18,9 @@ const GRASS_LIGHT = rgb(PALETTE.grass[2]);
 const SOIL = rgb(PALETTE.soil[1]);
 const PEBBLE = rgb(PALETTE.soil[2]);
 const PEBBLE_LIGHT = rgb(PALETTE.soil[3]);
+const WOOD = rgb(0xc08a4a);
+const WOOD_DARK = rgb(0x8f5f2e);
+const WOOD_LIGHT = rgb(0xdcae6e);
 
 function hash(x: number, y: number): number {
   let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
@@ -79,6 +82,13 @@ export class TerrainView {
     this.texture.source.update();
   }
 
+  /** Repaint after terrain was added (e.g. a girder). */
+  repaint(rect: Rect): void {
+    const m = GRASS_DEPTH + 4;
+    this.paint({ x: rect.x - m, y: rect.y - m, w: rect.w + m * 2, h: rect.h + m * 2 });
+    this.texture.source.update();
+  }
+
   private paint(r: Rect): void {
     const t = this.terrain;
     const x0 = Math.max(0, r.x);
@@ -90,7 +100,7 @@ export class TerrainView {
     const d = img.data;
     const m = t.mask;
     const w = t.w;
-    const solid = (x: number, y: number) => x >= 0 && x < w && y >= 0 && y < t.h && m[y * w + x] === 1;
+    const solid = (x: number, y: number) => x >= 0 && x < w && y >= 0 && y < t.h && m[y * w + x] !== 0;
 
     for (let y = y0; y < y1; y++) {
       for (let x = x0; x < x1; x++) {
@@ -100,11 +110,23 @@ export class TerrainView {
           continue;
         }
         let c: [number, number, number];
+        const edge =
+          !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y + 1) || !solid(x - 2, y) || !solid(x + 2, y) || !solid(x, y + 2);
+        if (m[y * w + x] === 2) {
+          // Twig girder: wood with grain flecks and a bold outline.
+          const top = !solid(x, y - 1) || !solid(x, y - 2);
+          if (edge || top) c = OUTLINE;
+          else if (!solid(x, y - 3)) c = WOOD_LIGHT;
+          else c = hash(x >> 2, y) % 5 === 0 ? WOOD_DARK : WOOD;
+          d[o] = c[0];
+          d[o + 1] = c[1];
+          d[o + 2] = c[2];
+          d[o + 3] = 255;
+          continue;
+        }
         // Distance to air straight above (for the moss band).
         let up = 0;
         while (up < GRASS_DEPTH && solid(x, y - up - 1)) up++;
-        const edge =
-          !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y + 1) || !solid(x - 2, y) || !solid(x + 2, y) || !solid(x, y + 2);
         if (up < GRASS_DEPTH) {
           if (up < 2) c = GRASS_DARK;
           else if (up < 4) c = GRASS_LIGHT;

@@ -65,4 +65,11 @@ export const sfx = {
   teleport: () => tone(400, 1600, 0.3, 0.06, 'sine'),
   turn: () => tone(660, 880, 0.15, 0.05, 'triangle'),
   tick: () => tone(1200, 1100, 0.04, 0.04, 'square'),
+  rope: () => tone(900, 1500, 0.08, 0.05, 'sawtooth'),
+  chute: () => noise(0.3, 900, 0.12),
+  punch: () => {
+    noise(0.15, 1500, 0.35);
+    tone(220, 90, 0.15, 0.08);
+  },
+  build: () => tone(180, 140, 0.12, 0.1, 'square'),
 };

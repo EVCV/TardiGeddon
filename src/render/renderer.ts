@@ -2,7 +2,7 @@
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import type { SimEvent, WorldState } from '../sim/types';
-import { aimVector, activeTardi } from '../sim/world';
+import { aimVector, activeTardi, girderFits } from '../sim/world';
 import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
 import { TardiView } from './tardiView';
@@ -150,6 +150,20 @@ export class GameRenderer {
           if (t) this.markers.addChild(makeHusk(t.x, t.y, this.state.teams[t.team].color));
           break;
         }
+        case 'terrain':
+          this.terrainView.repaint(e.rect);
+          break;
+        case 'punch':
+          this.particles.push({ x: e.x, y: e.y, vx: 0, vy: 0, life: 0.2, max: 0.2, r: 14, color: 0xfff6c2, kind: 'flash' });
+          for (let i = 0; i < 12; i++) {
+            const a = -Math.PI * Math.random();
+            this.particles.push({
+              x: e.x, y: e.y, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3,
+              life: 0.5, max: 0.5, r: 1.5, color: 0xff9a3b, kind: 'spark',
+            });
+          }
+          this.floatText('POW!', e.x, e.y - 24, 0xff9a3b);
+          break;
         case 'teleport':
           for (let i = 0; i < 20; i++) {
             const a = Math.random() * Math.PI * 2;
@@ -253,14 +267,37 @@ export class GameRenderer {
       }
     }
 
-    // Aim overlay
+    // Silk ropes
     const ov = this.overlay;
     ov.clear();
-    if (active && showAim && s.turn.phase === 'aim' && !active.airborne) {
-      const def = WEAPONS[s.turn.weapon];
+    for (const t of s.tardis) {
+      if (!t.rope) continue;
+      const p = this.lerpPos(t.id, t.x, t.y, alpha);
+      ov.moveTo(t.rope.x, t.rope.y).lineTo(p.x, p.y).stroke({ width: 3.2, color: PALETTE.outline });
+      ov.moveTo(t.rope.x, t.rope.y).lineTo(p.x, p.y).stroke({ width: 1.6, color: 0xf4f1ff });
+      ov.circle(t.rope.x, t.rope.y, 3).fill(0xf4f1ff).stroke({ width: 1.2, color: PALETTE.outline });
+    }
+
+    // Aim overlay
+    const def = WEAPONS[s.turn.weapon];
+    const canAimNow = active && !active.rope && (!active.airborne || def.kind === 'rope' || def.kind === 'parachute');
+    if (active && showAim && s.turn.phase === 'aim' && canAimNow) {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
       const color = s.teams[active.team].color;
-      if (def.kind === 'charge' || def.kind === 'hitscan') {
+      if (def.girder && s.turn.target) {
+        // Ghost girder at the target, rotated by the aim.
+        const { dx, dy } = aimVector(active.facing, s.turn.aim);
+        const { x, y } = s.turn.target;
+        const hl = def.girder.len / 2;
+        const ht = def.girder.thick / 2;
+        ov.poly([
+          x - dx * hl - dy * ht, y - dy * hl + dx * ht,
+          x + dx * hl - dy * ht, y + dy * hl + dx * ht,
+          x + dx * hl + dy * ht, y + dy * hl - dx * ht,
+          x - dx * hl + dy * ht, y - dy * hl - dx * ht,
+        ]).fill({ color: girderFits(s) ? 0xc08a4a : 0xe04848, alpha: 0.55 }).stroke({ width: 2, color: PALETTE.outline, alpha: 0.8 });
+      }
+      if (def.kind === 'charge' || def.kind === 'hitscan' || def.kind === 'rope' || def.girder) {
         const { dx, dy } = aimVector(active.facing, s.turn.aim);
         const cx = ap.x + dx * 46;
         const cy = ap.y + dy * 46;
@@ -284,7 +321,7 @@ export class GameRenderer {
           ]).fill({ color: col, alpha: 0.9 }).stroke({ width: 1.5, color: PALETTE.outline });
         }
       }
-      if (s.turn.target) {
+      if (s.turn.target && !def.girder) {
         const { x, y } = s.turn.target;
         ov.circle(x, y, 12).stroke({ width: 3, color: PALETTE.outline });
         ov.circle(x, y, 12).stroke({ width: 2, color });
@@ -295,7 +332,7 @@ export class GameRenderer {
     if (active && (s.turn.phase === 'start' || s.turn.phase === 'aim')) {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
       const b = Math.abs(Math.sin(this.time * 5)) * 6;
-      const ay = ap.y - 52 - b;
+      const ay = ap.y - 52 - b - (active.chute ? 34 : 0);
       ov.poly([ap.x - 7, ay - 8, ap.x + 7, ay - 8, ap.x, ay]).fill(s.teams[active.team].color).stroke({ width: 2, color: PALETTE.outline });
     }
 
