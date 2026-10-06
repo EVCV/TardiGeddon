@@ -340,9 +340,12 @@ Whatever is chosen, keep the licence/terms copy in `assets/audio/LICENSES.md`.
 
 Separate **simulation** from **presentation**:
 
-- Simulation runs at a **fixed 50 ticks/s** using **fixed-point or
-  integer math** (no `Math.sin` / floats in the sim path — use lookup
-  tables) and a seeded PRNG.
+- Simulation runs at a **fixed 50 ticks/s** using a seeded PRNG and a
+  **deterministic float subset**: only IEEE-754 operations that are
+  correctly rounded on every engine (+ − × ÷, `sqrt`, floor/round…).
+  Trig uses integer angles and a lookup table built from basic
+  arithmetic; `Math.sin`, `pow`, `random` etc. are banned from `src/sim`
+  (enforced by a test). Simpler than full fixed-point, same guarantee.
 - Inputs are the only thing that drives the sim → enables:
   - **Replays** (store seed + scheme + input log, like WA `.WAgame`).
   - **Lockstep online play** (send inputs only, tiny bandwidth).
@@ -625,7 +628,7 @@ sim from the start, so it's a layer on top, not a rewrite.
 | IP / trademark complaints                     | Original assets & names only (§1); legal review before release |
 | AI art inconsistency / weak ownership         | SVG rig for characters, master prompts, style guide, human-edited key assets, trademark the name/logo |
 | "Feel" doesn't match WA (rope especially)     | Dedicated tuning milestone; constants in schemes; veteran playtests |
-| Float non-determinism → online desyncs        | Fixed-point sim from day one, CI determinism tests, server snapshot resync |
+| Float non-determinism → online desyncs        | Deterministic float subset enforced by tests, CI determinism tests, server snapshot resync |
 | Mobile performance                            | Perf budget, chunked terrain, pooled particles, test on low-end Android early |
 | App Store rejection (IAP / wrapper rules)     | Native IAP via RevenueCat, full offline-capable game, account deletion |
 | Cheating online                               | Server runs authoritative sim, validates inputs & ammo |
@@ -646,12 +649,31 @@ monetisation (cosmetics only, no ads, no power for sale).
 
 ---
 
-## 13. Immediate Next Steps
+## 13. Progress
 
-1. Scaffold Phase 0: Vite + TS + Pixi, CI, deterministic loop + tests.
-2. Draft `docs/STYLE_GUIDE.md` and the first SVG tardi rig + a few
-   ChatGPT background concepts to lock the look.
-3. Build the terrain mask + bazooka + explosion carving prototype with
-   touch + keyboard controls — the first "it feels like Worms" moment.
-4. Register developer accounts (Apple, Google, Stripe) early — approvals
-   take time.
+### Done (Phase 0 + first slice of Phase 1)
+
+- Vite + TypeScript + PixiJS project, CI (typecheck, unit, soak, build,
+  Playwright desktop + phone), GitHub Pages deploy workflow.
+- Deterministic sim with purity test, state hashing, cloning, replay tests.
+- Seeded island/cavern map generator; destructible terrain with cartoon
+  moss/soil painting and scorch marks.
+- Tardi movement: walk with slopes, jump, backflip, fall damage,
+  knockback, drowning, falling off the map.
+- Turn flow: start banner, turn timer, retreat, settling, end-of-turn
+  damage, death explosions, win/draw, per-team weapon memory, wind.
+- Weapons: Spore Bazooka, Pebble Grenade (fuse 1–5), Algae Cluster, Claw
+  Shotgun (2 shots), Raindrop Strike, Teleport, Skip Go.
+- CPU opponent (simulates shots, presses buttons like a player).
+- Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
+  controls, pinch/drag camera, synthesised placeholder SFX, death husks.
+- Hot-seat and vs-CPU modes; installable PWA manifest; bundled fonts.
+
+### Next
+
+1. Silk Rope (ninja rope) + Leaf Parachute + Twig Girder + Fire Punch
+   (completes Phase 1 weapon list).
+2. Mines, oil (brine) drums, crates; sudden death.
+3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
+4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
+5. Owner: register developer accounts (Apple, Google, Stripe) early.

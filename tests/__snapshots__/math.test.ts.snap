@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`prng > produces a known sequence 1`] = `
+[
+  2693262067,
+  11749833,
+  2265367787,
+]
+`;
