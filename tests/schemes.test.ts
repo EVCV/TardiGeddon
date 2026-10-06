@@ -86,8 +86,10 @@ describe('CPU across styles', () => {
       const cpus = [new CpuPlayer(1), new CpuPlayer(1)];
       for (let i = 0; i < 50 * 60 * 4 && s.turn.phase !== 'gameover'; i++) tick(s, cpus[s.turn.teamIdx].next(s), []);
       // Either someone won, or turns kept flowing (no soft-lock).
+      // (A superweapon can legitimately win on the very first turn.)
       expect(s.turn.phase === 'gameover' || s.turn.turnNumber > 3).toBe(true);
-      expect(s.turn.turnNumber).toBeGreaterThan(1);
+      if (s.turn.phase === 'gameover') expect(s.turn.winner).toBeGreaterThanOrEqual(0);
+      else expect(s.turn.turnNumber).toBeGreaterThan(1);
     }, 60_000);
   }
 });

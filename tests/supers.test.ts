@@ -3,6 +3,7 @@ import { activeTardi, activeTeam, createWorld, tick, TARDI_R } from '../src/sim/
 import { BTN_FIRE, type SimEvent, type WorldState } from '../src/sim/types';
 import { presetScheme } from '../src/sim/schemes';
 import { makeWorld, run, runUntilPhase } from './helpers';
+import { CpuPlayer } from '../src/ai/cpu';
 
 function arena(): WorldState {
   const s = makeWorld();
@@ -92,5 +93,39 @@ describe('Microscope Slide Slam', () => {
     const ev = runUntilPhase(s, 'start', 3000);
     expect(ev.filter((e) => e.t === 'explosion').length).toBeGreaterThanOrEqual(10);
     expect(s.turn.teamIdx).not.toBe(turnTeam);
+  });
+});
+
+describe('CPU and superweapons', () => {
+  // Leave the CPU only the given superweapon (plus Skip Go) and let it play the turn.
+  const cpuTurn = (id: string) => {
+    const s = arena();
+    const team = activeTeam(s);
+    for (const k of Object.keys(team.ammo)) if (k !== 'skip') team.ammo[k] = 0;
+    team.ammo[id] = 1;
+    const victim = s.tardis.find((t) => t.team !== team.id)!;
+    victim.x = 1300;
+    // Outnumbered: only the active tardi is left, so a map-wide strike pays off.
+    for (const t of s.tardis) if (t.team === team.id && t !== activeTardi(s)) t.alive = false;
+    const cpu = new CpuPlayer(1);
+    const ev: SimEvent[] = [];
+    for (let i = 0; i < 600 && s.turn.phase === 'aim'; i++) tick(s, cpu.next(s), ev);
+    return { s, team, ev };
+  };
+
+  it('holds back the Slide Slam when it would hurt its own team as much', () => {
+    const s = arena();
+    const team = activeTeam(s);
+    for (const k of Object.keys(team.ammo)) if (k !== 'skip') team.ammo[k] = 0;
+    team.ammo.slideslam = 1;
+    const cpu = new CpuPlayer(1);
+    for (let i = 0; i < 600 && s.turn.phase === 'aim'; i++) tick(s, cpu.next(s), []);
+    expect(team.ammo.slideslam).toBe(1);
+  });
+
+  it.each(['holywater', 'tun', 'slideslam'])('the CPU fires %s when it is worth it', (id) => {
+    const { team, ev } = cpuTurn(id);
+    expect(ev.some((e) => e.t === 'fire' && e.weapon === id)).toBe(true);
+    expect(team.ammo[id]).toBe(0);
   });
 });

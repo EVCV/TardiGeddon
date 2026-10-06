@@ -12,6 +12,8 @@ interface Plan {
   aim: number;
   power: number;
   fuse: number;
+  /** Map target for targeted weapons (Concrete Tun). */
+  target?: { x: number; y: number };
 }
 
 export class CpuPlayer {
@@ -63,6 +65,15 @@ export class CpuPlayer {
           this.tapped = !this.tapped;
           return this.tapped ? { held: BTN_FIRE, pressed: 0 } : EMPTY_INPUT;
         }
+        if (WEAPONS[p.weapon].kind === 'target' && p.target) {
+          if (!turn.target) return { held: 0, pressed: 0, cmd: { t: 'target', x: p.target.x, y: p.target.y } };
+          this.step = 'done';
+          return { held: BTN_FIRE, pressed: 0 };
+        }
+        if (WEAPONS[p.weapon].kind === 'instant') {
+          this.step = 'done';
+          return { held: BTN_FIRE, pressed: 0 };
+        }
         if (turn.charging && turn.power >= p.power) {
           this.step = 'done';
           return EMPTY_INPUT; // release
@@ -84,7 +95,7 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
   const ammo = s.teams[me.team].ammo;
   const usable = (w: string) => ammo[w] !== 0;
   // Thrown weapons the CPU can plan: simulate each candidate throw.
-  for (const weapon of ['bazooka', 'grenade', 'cluster', 'mortar'].filter(usable)) {
+  for (const weapon of ['bazooka', 'grenade', 'cluster', 'mortar', 'holywater'].filter(usable)) {
     const spec = WEAPONS[weapon].projectile!;
     for (const facing of [1, -1] as const) {
       // Aim is reached in AIM_STEP increments from the turn's start aim.
@@ -119,7 +130,28 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
       }
     }
   }
-  if (best && accuracy < 1) {
+  // Concrete Tun: dropped straight onto an enemy, slamming it several times.
+  if (usable('tun')) {
+    const spec = WEAPONS.tun.projectile!;
+    for (const e of s.tardis) {
+      if (!e.alive || e.team === me.team) continue;
+      const score = scoreHit(s, e.x, e.y, spec.radius, spec.damage * 2, me.team);
+      if (score > bestScore) {
+        bestScore = score;
+        best = { weapon: 'tun', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3, target: { x: Math.round(e.x), y: Math.round(e.y) } };
+      }
+    }
+  }
+  // Microscope Slide Slam: worth it when there are lots of enemies to rain on.
+  if (usable('slideslam')) {
+    let score = 0;
+    for (const t of s.tardis) if (t.alive) score += t.team === me.team ? -15 : 12;
+    if (score > bestScore) {
+      bestScore = score;
+      best = { weapon: 'slideslam', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3 };
+    }
+  }
+  if (best && accuracy < 1 && WEAPONS[best.weapon].kind === 'charge') {
     // Humanise: wobble the power a little.
     const wobble = Math.round((1 - accuracy) * 200 * (Math.random() - 0.5));
     best.power = Math.max(100, Math.min(1000, best.power + wobble));
@@ -140,7 +172,7 @@ function predict(
 ): { x: number; y: number } | null {
   const spec = WEAPONS[weapon].projectile!;
   const { vx, vy } = launchVelocity(spec, facing, aim, power);
-  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : -1, owner, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
+  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : (spec.fuseTicks ?? -1), owner, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
   for (let i = 0; i < 400; i++) {
     const r = stepProjectile(s, p, null);
     if (r.k === 'gone') return null;
