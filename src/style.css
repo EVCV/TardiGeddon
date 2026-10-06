@@ -58,14 +58,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .menu {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex; /* + margin:auto on the card: centred, but never clipped when taller than the screen */
   padding: 16px;
   background: radial-gradient(circle at 50% 30%, #d9f3ff 0%, var(--sky) 60%, #4fb3e0 100%);
   overflow-y: auto;
   pointer-events: auto;
 }
 .menu-card {
+  margin: auto;
   width: min(520px, 100%);
   text-align: center;
   background: var(--paper);
@@ -88,15 +88,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .title span { color: var(--accent); }
 .tagline { margin: 6px 0 16px; font-weight: 800; }
 .menu-buttons { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
-.menu-options { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; font-weight: 800; }
-.menu-options label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
-.menu-options select {
-  font: inherit;
-  padding: 6px 10px;
-  border: 3px solid var(--ink);
-  border-radius: 10px;
-  background: #fff;
-}
 .controls-help { margin-top: 14px; font-size: 13px; text-align: left; }
 .controls-help summary { cursor: pointer; font-weight: 800; text-align: center; }
 
@@ -324,3 +315,35 @@ button { font: inherit; color: inherit; cursor: pointer; }
   white-space: nowrap;
 }
 .hud-round.sd { background: var(--red); animation: pulse .6s infinite alternate; }
+
+/* Game style picker */
+.style-row { display: flex; gap: 10px; justify-content: center; align-items: flex-end; flex-wrap: wrap; font-weight: 800; }
+.style-row label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; text-align: left; }
+.style-row select, .custom-panel select {
+  font: inherit;
+  padding: 6px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+}
+.style-blurb { margin: 8px 0 0; font-size: 13px; min-height: 2.6em; }
+.custom-panel {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  text-align: left;
+  font-weight: 800;
+  font-size: 12px;
+  border-top: 3px dashed var(--ink);
+  padding-top: 12px;
+}
+.custom-panel label { display: flex; flex-direction: column; gap: 3px; }
+.custom-note { grid-column: 1 / -1; margin: 0; font-size: 12px; opacity: .8; }
+
+@media (max-height: 450px) {
+  .mascot svg { width: 90px; }
+  .title { font-size: 38px; }
+  .tagline { margin: 2px 0 10px; }
+  .big-btn { padding: 8px 18px; font-size: 19px; }
+}

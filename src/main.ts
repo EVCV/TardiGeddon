@@ -12,6 +12,7 @@ import { Hud } from './ui/hud';
 import { CpuPlayer } from './ai/cpu';
 import { sfx, setMuted, unlockAudio } from './audio/sfx';
 import { showMenu, type MatchSetup } from './ui/menu';
+import { presetScheme } from './sim/schemes';
 
 const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
@@ -48,7 +49,7 @@ async function boot(): Promise<void> {
   };
   // Debug/test hook: ?autostart=cpu skips the menu.
   const auto = new URLSearchParams(location.search).get('autostart');
-  if (auto) start({ mode: auto === 'hotseat' ? 'hotseat' : 'cpu', tardis: 4, turnTime: 45, roundTime: 10, seed: 12345 });
+  if (auto) start({ mode: auto === 'hotseat' ? 'hotseat' : 'cpu', scheme: presetScheme('standard'), seed: 12345 });
   else menu();
 }
 
@@ -88,7 +89,7 @@ class Match {
     this.state = createWorld({
       seed: setup.seed,
       teams,
-      scheme: { tardisPerTeam: setup.tardis, turnTime: setup.turnTime, roundTime: setup.roundTime },
+      scheme: setup.scheme,
     });
     for (const t of this.state.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer());
 

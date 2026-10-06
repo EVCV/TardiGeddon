@@ -134,7 +134,11 @@ export function createWorld(cfg: WorldConfig): WorldState {
 
     cfg.teams.forEach((tc, ti) => {
       const ammo: Record<string, number> = {};
-      for (const def of Object.values(WEAPONS)) ammo[def.id] = def.ammo;
+      for (const def of Object.values(WEAPONS)) {
+        // A scheme weapon list restricts the arsenal; Skip Go is always allowed.
+        const listed = scheme.weapons?.[def.id];
+        ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? def.ammo : (listed ?? 0);
+      }
       const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', ammo };
       s.teams.push(team);
     });
@@ -359,7 +363,8 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   }
 
   // Jump / backflip: a second press within the delay turns a jump into a backflip.
-  if ((input.pressed & PRESS_JUMP) !== 0 && !t.airborne && !turn.charging) {
+  const canMove = s.scheme.movement;
+  if (canMove && (input.pressed & PRESS_JUMP) !== 0 && !t.airborne && !turn.charging) {
     if (turn.jumpTimer > 0) {
       turn.jumpTimer = 0;
       launchJump(t, -t.facing * 1.1, -6.6, events);
@@ -375,7 +380,7 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   const dir = ((held & BTN_RIGHT) !== 0 ? 1 : 0) - ((held & BTN_LEFT) !== 0 ? 1 : 0);
   if (dir !== 0 && !t.airborne && !turn.charging && turn.jumpTimer === 0) {
     t.facing = dir as 1 | -1;
-    walk(s, t, dir);
+    if (canMove) walk(s, t, dir); // without movement you can still turn round
   }
 
   if (!aiming) return;
@@ -910,11 +915,13 @@ function dropCrate(s: WorldState, events: SimEvent[]): void {
     const o = newObject(s, 'crate', x, -20);
     o.airborne = true;
     o.chute = true;
-    if (rngInt(s.rng, 0, 2) === 0) {
+    // Weapon crates only hold weapons this scheme allows.
+    const allowed = CRATE_WEAPONS.filter((w) => !s.scheme.weapons || w in s.scheme.weapons);
+    if (allowed.length === 0 || rngInt(s.rng, 0, 2) === 0) {
       o.contents = 'health';
       o.amount = 25;
     } else {
-      o.contents = CRATE_WEAPONS[rngInt(s.rng, 0, CRATE_WEAPONS.length - 1)];
+      o.contents = allowed[rngInt(s.rng, 0, allowed.length - 1)];
       o.amount = 1;
     }
     events.push({ t: 'crateDrop', id: o.id });

@@ -75,7 +75,8 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
   let best: Plan | null = null;
   let bestScore = 0;
 
-  for (const weapon of ['bazooka', 'grenade']) {
+  const ammo = s.teams[me.team].ammo;
+  for (const weapon of ['bazooka', 'grenade'].filter((w) => ammo[w] !== 0)) {
     const spec = WEAPONS[weapon].projectile!;
     for (const facing of [1, -1] as const) {
       // Aim is reached in AIM_STEP increments from the turn's start aim.

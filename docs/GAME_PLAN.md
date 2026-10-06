@@ -673,6 +673,9 @@ monetisation (cosmetics only, no ads, no power for sale).
   supply crates (parachute in between turns; health +25 or a weapon).
 - Sudden death after the round time (5/10/15 min, menu option): everyone
   drops to 1 HP, then the water rises every turn. Round clock in the HUD.
+- Game styles (schemes): Standard, Quick, Pro, Chaos, Bazookas & Grenades,
+  Artillery (no walking), plus a Customise panel; last choice remembered
+  on the device. Schemes can limit the arsenal (`weapons`) and movement.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -681,7 +684,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. Scheme presets + scheme editor (mines/crates/drums/round time on/off).
+2. Team editor (names, hats/colours) — the first cosmetics slot.
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
 5. Owner: register developer accounts (Apple, Google, Stripe) early.

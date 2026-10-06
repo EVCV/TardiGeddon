@@ -39,6 +39,10 @@ export interface Scheme {
   crateChance: number; // 0..1 per turn
   roundTime: number; // minutes until sudden death
   waterRise: number; // px per turn in sudden death
+  /** false = no walking or jumping (Artillery style). */
+  movement: boolean;
+  /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
+  weapons?: Record<string, number>;
 }
 
 export const DEFAULT_SCHEME: Scheme = {
@@ -54,6 +58,7 @@ export const DEFAULT_SCHEME: Scheme = {
   crateChance: 0.5,
   roundTime: 10,
   waterRise: 24,
+  movement: true,
 };
 
 export interface Tardi {
