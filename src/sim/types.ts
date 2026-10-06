@@ -41,6 +41,8 @@ export interface Scheme {
   waterRise: number; // px per turn in sudden death
   /** false = no walking or jumping (Artillery style). */
   movement: boolean;
+  /** Starting ammo of each superweapon (0 = crates only). */
+  supers: number;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
 }
@@ -59,6 +61,7 @@ export const DEFAULT_SCHEME: Scheme = {
   roundTime: 10,
   waterRise: 24,
   movement: true,
+  supers: 0,
 };
 
 export interface Tardi {
@@ -137,6 +140,8 @@ export interface Projectile {
   ty: number;
   /** Walking direction (Rotifer Roller): 1, -1, or 0 for other projectiles. */
   dir: number;
+  /** Slams so far (Concrete Tun). */
+  hits: number;
 }
 
 export type Phase = 'start' | 'aim' | 'retreat' | 'settle' | 'gameover';

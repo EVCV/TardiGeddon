@@ -32,8 +32,8 @@ export const SCHEME_PRESETS: SchemePreset[] = [
   {
     id: 'chaos',
     name: 'Chaos',
-    blurb: 'Mines everywhere, drums galore and a crate every turn.',
-    scheme: { mines: 16, drums: 8, crateChance: 1, startHp: 150, roundTime: 10 },
+    blurb: 'Mines everywhere, drums galore, a crate every turn and a superweapon each.',
+    scheme: { mines: 16, drums: 8, crateChance: 1, startHp: 150, roundTime: 10, supers: 1 },
   },
   {
     id: 'bng',

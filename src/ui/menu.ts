@@ -66,6 +66,7 @@ const FIELDS: Field[] = [
   { key: 'mines', label: 'Mines', options: [['None', 0], ['Few', 4], ['Normal', 8], ['Lots', 16]] },
   { key: 'drums', label: 'Brine drums', options: [['None', 0], ['Few', 3], ['Lots', 8]] },
   { key: 'crateChance', label: 'Crates', options: [['Off', 0], ['Rare', 0.25], ['Normal', 0.5], ['Every turn', 1]] },
+  { key: 'supers', label: 'Superweapons', options: [['Crates only', 0], ['1 each', 1]] },
   { key: 'windMax', label: 'Wind', options: [['Off', 0], ['Light', 0.5], ['Normal', 1]] },
   { key: 'fallDamage', label: 'Fall damage', options: [['On', true], ['Off', false]] },
   { key: 'movement', label: 'Walking', options: [['On', true], ['Off (Artillery)', false]] },

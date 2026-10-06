@@ -21,7 +21,7 @@ function arena(): WorldState {
   return s;
 }
 const fireAt = (s: WorldState, weapon: string, x: number, y: number) =>
-  s.projectiles.push({ id: s.nextId++, weapon, x, y, vx: 0, vy: 0, fuse: 1, owner: -1, age: 0, tx: 0, ty: 0, dir: 0 });
+  s.projectiles.push({ id: s.nextId++, weapon, x, y, vx: 0, vy: 0, fuse: 1, owner: -1, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 });
 
 describe('fire', () => {
   it('a Hot Sap Bomb spills flames that settle and burn a tardi standing in them', () => {
