@@ -33,6 +33,12 @@ export interface Scheme {
   tardisPerTeam: number;
   fallDamage: boolean;
   windMax: number; // 0..1
+  mines: number; // placed at the start
+  mineFuse: number; // seconds
+  drums: number; // brine drums placed at the start
+  crateChance: number; // 0..1 per turn
+  roundTime: number; // minutes until sudden death
+  waterRise: number; // px per turn in sudden death
 }
 
 export const DEFAULT_SCHEME: Scheme = {
@@ -42,6 +48,12 @@ export const DEFAULT_SCHEME: Scheme = {
   tardisPerTeam: 4,
   fallDamage: true,
   windMax: 1,
+  mines: 8,
+  mineFuse: 3,
+  drums: 3,
+  crateChance: 0.5,
+  roundTime: 10,
+  waterRise: 24,
 };
 
 export interface Tardi {
@@ -64,6 +76,29 @@ export interface Tardi {
   rope: { x: number; y: number; len: number } | null;
   /** Leaf Parachute open. */
   chute: boolean;
+}
+
+export type ObjectKind = 'mine' | 'drum' | 'crate';
+
+/** Map objects: mines, brine drums and supply crates. */
+export interface MapObject {
+  id: number;
+  kind: ObjectKind;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  airborne: boolean;
+  /** Mines: -1 idle, >0 ticks to detonation, -2 dud. Unused otherwise. */
+  fuse: number;
+  dud: boolean;
+  /** Drums: damage left before bursting. */
+  hp: number;
+  /** Crates: still under their parachute. */
+  chute: boolean;
+  /** Crates: 'health' or a weapon id. */
+  contents: string;
+  amount: number;
 }
 
 export interface Projectile {
@@ -120,7 +155,11 @@ export interface WorldState {
   wind: number; // -1..1
   tardis: Tardi[];
   projectiles: Projectile[];
+  objects: MapObject[];
   teams: Team[];
+  /** Ticks played this round (drives sudden death). */
+  roundTicks: number;
+  suddenDeath: boolean;
   turn: TurnState;
   nextId: number;
   prevHeld: number;
@@ -143,4 +182,10 @@ export type SimEvent =
   | { t: 'chute'; id: number }
   | { t: 'terrain'; rect: Rect }
   | { t: 'turnStart'; team: number; tardi: number }
+  | { t: 'mineArmed'; id: number }
+  | { t: 'dud'; id: number }
+  | { t: 'crateDrop'; id: number }
+  | { t: 'collect'; id: number; tardi: number; contents: string; amount: number }
+  | { t: 'suddenDeath' }
+  | { t: 'waterRise'; y: number }
   | { t: 'gameover'; winner: number };

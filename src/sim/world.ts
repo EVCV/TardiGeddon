@@ -20,6 +20,8 @@ import {
   PRESS_JUMP,
   TICK_RATE,
   type InputFrame,
+  type MapObject,
+  type ObjectKind,
   type Projectile,
   type Scheme,
   type SimEvent,
@@ -48,6 +50,13 @@ const ROPE_MIN = 14;
 const ROPE_REEL = 1.6;
 const ROPE_SWING = 0.12;
 const CHUTE_FALL = 1.3;
+const MINE_R = 4;
+const DRUM_R = 8;
+const CRATE_R = 8;
+const MINE_TRIGGER = 26;
+const CRATE_FALL = 1.5;
+/** Crate contents: weapon ids weighted by how often they appear. */
+const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade'];
 /** Hard cap on end-of-turn settling so a turn can never soft-lock. */
 const SETTLE_MAX = 20 * TICK_RATE;
 
@@ -96,7 +105,10 @@ export function createWorld(cfg: WorldConfig): WorldState {
       wind: 0,
       tardis: [],
       projectiles: [],
+      objects: [],
       teams: [],
+      roundTicks: 0,
+      suddenDeath: false,
       turn: {
         phase: 'start',
         timer: START_TICKS,
@@ -154,11 +166,46 @@ export function createWorld(cfg: WorldConfig): WorldState {
         team.tardiIds.push(t.id);
       }
     }
+    placeObjects(s, 'mine', scheme.mines);
+    placeObjects(s, 'drum', scheme.drums);
     s.turn.teamIdx = rngInt(rng, 0, s.teams.length - 1);
     beginTurn(s, s.turn.teamIdx, []);
     return s;
   }
   throw new Error('Could not generate a map with enough room');
+}
+
+function newObject(s: WorldState, kind: ObjectKind, x: number, y: number): MapObject {
+  const o: MapObject = {
+    id: s.nextId++, kind, x, y, vx: 0, vy: 0, airborne: false,
+    fuse: -1, dud: false, hp: 25, chute: false, contents: '', amount: 0,
+  };
+  s.objects.push(o);
+  return o;
+}
+
+/** Scatter mines/drums on the ground, keeping clear of tardis. */
+function placeObjects(s: WorldState, kind: ObjectKind, count: number): void {
+  const r = kind === 'mine' ? MINE_R : DRUM_R;
+  let placed = 0;
+  for (let tries = 0; tries < 600 && placed < count; tries++) {
+    const x = rngInt(s.rng, 40, s.terrain.w - 40);
+    const sy = surfaceBelow(s.terrain, x, 0);
+    if (sy < 0 || sy > s.waterY - 30) continue;
+    // Lift off sloped ground until the object fits.
+    let y = sy - r - 1;
+    while (circleCollides(s.terrain, x, y, r) && y > sy - r - 16) y--;
+    if (circleCollides(s.terrain, x, y, r)) continue;
+    if (s.tardis.some((t) => Math.abs(t.x - x) < 60 && Math.abs(t.y - y) < 60)) continue;
+    if (s.objects.some((o) => Math.abs(o.x - x) < 30 && Math.abs(o.y - y) < 30)) continue;
+    const o = newObject(s, kind, x, y);
+    if (kind === 'mine') o.dud = rngInt(s.rng, 0, 9) === 0;
+    placed++;
+  }
+}
+
+function objectRadius(o: MapObject): number {
+  return o.kind === 'mine' ? MINE_R : o.kind === 'drum' ? DRUM_R : CRATE_R;
 }
 
 function findSpawns(
@@ -242,7 +289,9 @@ export function tick(s: WorldState, input: InputFrame, events: SimEvent[]): void
   }
   s.prevHeld = inControl(s) ? input.held : 0;
 
+  if (turn.phase !== 'start') s.roundTicks++;
   updateProjectiles(s, events);
+  updateObjects(s, events);
   for (const t of s.tardis) if (t.alive) updateTardi(s, t, events);
 
   if (turn.phase === 'settle') updateSettle(s, events);
@@ -640,6 +689,12 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
         const dy = o.y - ny;
         if (dx * dx + dy * dy < (TARDI_R + 2) * (TARDI_R + 2)) return { k: 'explode', x: nx, y: ny };
       }
+      for (const o of s.objects) {
+        if (o.kind === 'mine') continue;
+        const dx = o.x - nx;
+        const dy = o.y - ny;
+        if (dx * dx + dy * dy < (CRATE_R + 2) * (CRATE_R + 2)) return { k: 'explode', x: nx, y: ny };
+      }
     }
     if (circleCollides(s.terrain, nx, ny, 2)) {
       if (spec.bounce === null) return { k: 'explode', x: nx, y: ny };
@@ -710,6 +765,36 @@ export function explode(
     t.chute = false;
     t.pendingDmg += dmg;
     if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
+  }
+  const hit = s.objects.slice();
+  for (const o of hit) {
+    if (!s.objects.includes(o)) continue;
+    const dx = o.x - x;
+    const dy = o.y - y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    const oreach = radius + objectRadius(o);
+    if (d >= oreach) continue;
+    const f = 1 - d / oreach;
+    if (o.kind === 'crate') {
+      // Crates break open; weapon crates go off with a small bang.
+      s.objects.splice(s.objects.indexOf(o), 1);
+      if (o.contents !== 'health') explode(s, o.x, o.y, 18, 15, events);
+      continue;
+    }
+    if (o.kind === 'drum') {
+      o.hp -= Math.round(damage * (0.25 + 0.75 * f));
+      if (o.hp <= 0) {
+        burstDrum(s, o, events);
+        continue;
+      }
+    }
+    if (o.kind === 'mine' && o.fuse === -1 && !o.dud) {
+      o.fuse = 1; // chain reaction: blast sets mines off at once
+    }
+    const imp = f * damage * 0.1;
+    o.vx += (d < 1 ? 0 : dx / d) * imp;
+    o.vy += (d < 1 ? -1 : dy / d) * imp - imp * 0.35;
+    o.airborne = true;
   }
   for (const p of s.projectiles) {
     const dx = p.x - x;
@@ -800,6 +885,133 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
   }
 }
 
+// ---------------------------------------------------------------- map objects
+
+function burstDrum(s: WorldState, o: MapObject, events: SimEvent[]): void {
+  s.objects.splice(s.objects.indexOf(o), 1);
+  explode(s, o.x, o.y, 36, 40, events);
+  // Spray salty brine blobs that pop where they land.
+  for (let i = 0; i < 6; i++) {
+    const vx = (rngFloat(s.rng) - 0.5) * 7;
+    const vy = -3 - rngFloat(s.rng) * 4;
+    spawnProjectile(s, 'brine', o.x, o.y - 6, vx, vy, -1, -1);
+  }
+}
+
+function dropCrate(s: WorldState, events: SimEvent[]): void {
+  if (s.objects.filter((o) => o.kind === 'crate').length >= 5) return;
+  for (let tries = 0; tries < 50; tries++) {
+    const x = rngInt(s.rng, 60, s.terrain.w - 60);
+    const sy = surfaceBelow(s.terrain, x, 0);
+    if (sy < 40 || sy > s.waterY - 30) continue;
+    const o = newObject(s, 'crate', x, -20);
+    o.airborne = true;
+    o.chute = true;
+    if (rngInt(s.rng, 0, 2) === 0) {
+      o.contents = 'health';
+      o.amount = 25;
+    } else {
+      o.contents = CRATE_WEAPONS[rngInt(s.rng, 0, CRATE_WEAPONS.length - 1)];
+      o.amount = 1;
+    }
+    events.push({ t: 'crateDrop', id: o.id });
+    return;
+  }
+}
+
+function updateObjects(s: WorldState, events: SimEvent[]): void {
+  for (const o of s.objects.slice()) {
+    if (!s.objects.includes(o)) continue;
+    const r = objectRadius(o);
+
+    // Mines: arm when a tardi comes close, then count down.
+    if (o.kind === 'mine') {
+      if (o.fuse === -1 && !o.airborne) {
+        for (const t of s.tardis) {
+          if (!t.alive) continue;
+          const dx = t.x - o.x;
+          const dy = t.y - o.y;
+          if (dx * dx + dy * dy < MINE_TRIGGER * MINE_TRIGGER) {
+            o.fuse = s.scheme.mineFuse * TICK_RATE;
+            events.push({ t: 'mineArmed', id: o.id });
+            break;
+          }
+        }
+      }
+      if (o.fuse > 0 && --o.fuse === 0) {
+        if (o.dud) {
+          o.fuse = -2;
+          events.push({ t: 'dud', id: o.id });
+        } else {
+          s.objects.splice(s.objects.indexOf(o), 1);
+          explode(s, o.x, o.y, 30, 45, events);
+          continue;
+        }
+      }
+    }
+
+    // Crates: collected by whoever walks into them.
+    if (o.kind === 'crate' && !o.chute) {
+      const taker = s.tardis.find((t) => {
+        if (!t.alive) return false;
+        const dx = t.x - o.x;
+        const dy = t.y - o.y;
+        return dx * dx + dy * dy < (TARDI_R + CRATE_R + 2) * (TARDI_R + CRATE_R + 2);
+      });
+      if (taker) {
+        s.objects.splice(s.objects.indexOf(o), 1);
+        if (o.contents === 'health') taker.hp += o.amount;
+        else {
+          const ammo = s.teams[taker.team].ammo;
+          if (ammo[o.contents] >= 0) ammo[o.contents] += o.amount;
+        }
+        events.push({ t: 'collect', id: o.id, tardi: taker.id, contents: o.contents, amount: o.amount });
+        continue;
+      }
+    }
+
+    // Physics
+    if (!o.airborne && !circleCollides(s.terrain, o.x, o.y + 1, r)) o.airborne = true;
+    if (o.airborne) {
+      if (o.chute) {
+        o.vy = CRATE_FALL;
+        o.vx = s.wind * 0.6;
+      } else {
+        o.vy = Math.min(MAX_FALL_SPEED, o.vy + GRAVITY);
+      }
+      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(o.vx), Math.abs(o.vy))));
+      for (let i = 0; i < steps; i++) {
+        const nx = o.x + o.vx / steps;
+        const ny = o.y + o.vy / steps;
+        if (!circleCollides(s.terrain, nx, ny, r)) {
+          o.x = nx;
+          o.y = ny;
+          continue;
+        }
+        const n = normalAt(s.terrain, nx, ny, r + 2);
+        const speed = Math.sqrt(o.vx * o.vx + o.vy * o.vy);
+        if ((n.ny < -0.5 && speed < 2.5) || speed < 1.2 || o.chute) {
+          o.airborne = false;
+          o.chute = false;
+          o.vx = 0;
+          o.vy = 0;
+        } else {
+          const dot = o.vx * n.nx + o.vy * n.ny;
+          if (dot < 0) {
+            o.vx = (o.vx - 2 * dot * n.nx) * 0.3;
+            o.vy = (o.vy - 2 * dot * n.ny) * 0.3;
+          }
+        }
+        break;
+      }
+    }
+    if (o.y > s.waterY + 2 || o.x < -60 || o.x > s.terrain.w + 60) {
+      s.objects.splice(s.objects.indexOf(o), 1);
+      events.push({ t: 'splash', x: o.x });
+    }
+  }
+}
+
 function updateRope(s: WorldState, t: Tardi): void {
   const terrain = s.terrain;
   const rope = t.rope!;
@@ -872,7 +1084,10 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     s.projectiles.length = 0;
     for (const t of s.tardis) if (t.alive && t.airborne) land(s, t);
   }
-  const moving = s.projectiles.length > 0 || s.tardis.some((t) => t.alive && t.airborne);
+  const moving =
+    s.projectiles.length > 0 ||
+    s.tardis.some((t) => t.alive && t.airborne) ||
+    s.objects.some((o) => (o.airborne && !o.chute) || o.fuse > 0);
   if (moving) {
     turn.settleTimer = 0;
     return;
@@ -939,6 +1154,16 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
   turn.aim = 256;
   s.wind = (rngInt(s.rng, -100, 100) / 100) * s.scheme.windMax;
   events.push({ t: 'turnStart', team: team.id, tardi: tardiId });
+
+  if (!s.suddenDeath && s.roundTicks >= s.scheme.roundTime * 60 * TICK_RATE) {
+    s.suddenDeath = true;
+    for (const t of s.tardis) if (t.alive) t.hp = 1;
+    events.push({ t: 'suddenDeath' });
+  } else if (s.suddenDeath) {
+    s.waterY = Math.max(60, s.waterY - s.scheme.waterRise);
+    events.push({ t: 'waterRise', y: s.waterY });
+  }
+  if (turn.turnNumber > 1 && rngFloat(s.rng) < s.scheme.crateChance) dropCrate(s, events);
 }
 
 // ---------------------------------------------------------------- hashing
@@ -968,6 +1193,10 @@ export function hashWorld(s: WorldState): number {
   for (const p of s.projectiles) {
     mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse);
   }
+  for (const o of s.objects) {
+    mix(o.id); mix(o.x); mix(o.y); mix(o.vx); mix(o.vy); mix(o.fuse); mix(o.hp);
+  }
+  mix(s.waterY); mix(s.roundTicks);
   const tr = s.turn;
   mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);
   const m = s.terrain.mask;

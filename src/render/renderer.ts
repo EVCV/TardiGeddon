@@ -6,6 +6,7 @@ import { aimVector, activeTardi, girderFits } from '../sim/world';
 import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
 import { TardiView } from './tardiView';
+import { ObjectView } from './objectView';
 import { PALETTE, hex } from './palette';
 
 interface Particle {
@@ -48,6 +49,8 @@ export class GameRenderer {
   private floatLayer = new Container();
   private markers = new Container();
   private tardiViews = new Map<number, TardiView>();
+  private objectViews = new Map<number, ObjectView>();
+  private objectLayer = new Container();
   private particles: Particle[] = [];
   private floats: FloatText[] = [];
   private tracers: { x0: number; y0: number; x1: number; y1: number; life: number }[] = [];
@@ -68,6 +71,7 @@ export class GameRenderer {
       this.waterBack,
       this.terrainView.sprite,
       this.markers,
+      this.objectLayer,
       this.entities,
       this.projectiles,
       this.fx,
@@ -99,6 +103,7 @@ export class GameRenderer {
   capturePrev(s: WorldState): void {
     for (const t of s.tardis) this.prev.set(t.id, { x: t.x, y: t.y });
     for (const p of s.projectiles) this.prev.set(p.id, { x: p.x, y: p.y });
+    for (const o of s.objects) this.prev.set(o.id, { x: o.x, y: o.y });
   }
 
   private lerpPos(id: number, x: number, y: number, a: number): { x: number; y: number } {
@@ -133,6 +138,17 @@ export class GameRenderer {
             });
           }
           break;
+        case 'dud': {
+          const o = this.state.objects.find((x) => x.id === e.id);
+          if (o) this.floatText('Dud', o.x, o.y - 16, 0xcccccc);
+          break;
+        }
+        case 'collect': {
+          const t = this.state.tardis.find((x) => x.id === e.tardi);
+          const label = e.contents === 'health' ? `+${e.amount}` : (WEAPONS[e.contents]?.name ?? e.contents);
+          if (t) this.floatText(label, t.x, t.y - 40, e.contents === 'health' ? 0x5cff7a : 0xffd84a);
+          break;
+        }
         case 'damage': {
           const t = this.state.tardis.find((x) => x.id === e.id);
           if (t) this.floatText(`-${e.amount}`, t.x, t.y - 34, this.state.teams[t.team].color);
@@ -236,29 +252,57 @@ export class GameRenderer {
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', true);
     }
 
-    // Projectiles
+    // Map objects
+    const live = new Set<number>();
+    for (const o of s.objects) {
+      live.add(o.id);
+      let v = this.objectViews.get(o.id);
+      if (!v) {
+        v = new ObjectView(o);
+        this.objectViews.set(o.id, v);
+        this.objectLayer.addChild(v.root);
+      }
+      const p = this.lerpPos(o.id, o.x, o.y, alpha);
+      v.update(o, p.x, p.y, this.time);
+    }
+    for (const [id, v] of this.objectViews) {
+      if (!live.has(id)) {
+        v.root.destroy({ children: true });
+        this.objectViews.delete(id);
+      }
+    }
+
+    // Projectiles, plus countdown numbers over grenades and armed mines
     const pg = this.projectiles;
     pg.clear();
     const seen = new Set<number>();
+    const fuses: { id: number; x: number; y: number; ticks: number }[] = [];
     for (const pr of s.projectiles) {
       const p = this.lerpPos(pr.id, pr.x, pr.y, alpha);
       drawProjectile(pg, pr.weapon, p.x, p.y, pr.vx, pr.vy);
-      if (pr.fuse > 0) {
-        seen.add(pr.id);
-        let ft = this.fuseTexts.get(pr.id);
-        if (!ft) {
-          ft = new Text({
-            text: '',
-            style: { fontFamily: 'Luckiest Guy, Arial Black, sans-serif', fontSize: 12, fill: '#ffffff', stroke: { color: '#1b1016', width: 3, join: 'round' } },
-          });
-          ft.resolution = 3;
-          ft.anchor.set(0.5);
-          this.floatLayer.addChild(ft);
-          this.fuseTexts.set(pr.id, ft);
-        }
-        ft.text = String(Math.ceil(pr.fuse / 50));
-        ft.position.set(p.x, p.y - 14);
+      if (pr.fuse > 0) fuses.push({ id: pr.id, x: p.x, y: p.y, ticks: pr.fuse });
+    }
+    for (const o of s.objects) {
+      if (o.kind === 'mine' && o.fuse > 0) {
+        const p = this.lerpPos(o.id, o.x, o.y, alpha);
+        fuses.push({ id: o.id, x: p.x, y: p.y - 4, ticks: o.fuse });
       }
+    }
+    for (const pr of fuses) {
+      seen.add(pr.id);
+      let ft = this.fuseTexts.get(pr.id);
+      if (!ft) {
+        ft = new Text({
+          text: '',
+          style: { fontFamily: 'Luckiest Guy, Arial Black, sans-serif', fontSize: 12, fill: '#ffffff', stroke: { color: '#1b1016', width: 3, join: 'round' } },
+        });
+        ft.resolution = 3;
+        ft.anchor.set(0.5);
+        this.floatLayer.addChild(ft);
+        this.fuseTexts.set(pr.id, ft);
+      }
+      ft.text = String(Math.ceil(pr.ticks / 50));
+      ft.position.set(pr.x, pr.y - 14);
     }
     for (const [id, ft] of this.fuseTexts) {
       if (!seen.has(id)) {

@@ -48,7 +48,7 @@ async function boot(): Promise<void> {
   };
   // Debug/test hook: ?autostart=cpu skips the menu.
   const auto = new URLSearchParams(location.search).get('autostart');
-  if (auto) start({ mode: auto === 'hotseat' ? 'hotseat' : 'cpu', tardis: 4, turnTime: 45, seed: 12345 });
+  if (auto) start({ mode: auto === 'hotseat' ? 'hotseat' : 'cpu', tardis: 4, turnTime: 45, roundTime: 10, seed: 12345 });
   else menu();
 }
 
@@ -85,7 +85,11 @@ class Match {
             { name: 'Red Squad', color: TEAM_COLORS[0], cpu: false },
             { name: 'Blue Squad', color: TEAM_COLORS[1], cpu: false },
           ];
-    this.state = createWorld({ seed: setup.seed, teams, scheme: { tardisPerTeam: setup.tardis, turnTime: setup.turnTime } });
+    this.state = createWorld({
+      seed: setup.seed,
+      teams,
+      scheme: { tardisPerTeam: setup.tardis, turnTime: setup.turnTime, roundTime: setup.roundTime },
+    });
     for (const t of this.state.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer());
 
     this.renderer = new GameRenderer(app, this.state);
@@ -151,6 +155,15 @@ class Match {
         case 'chute': sfx.chute(); break;
         case 'punch': sfx.punch(); break;
         case 'terrain': sfx.build(); break;
+        case 'mineArmed': sfx.tick(); break;
+        case 'crateDrop': sfx.chute(); break;
+        case 'collect': sfx.collect(); break;
+        case 'dud': sfx.bounce(); break;
+        case 'suddenDeath':
+          sfx.suddenDeath();
+          setTimeout(() => this.hud.showBanner('SUDDEN DEATH!', 0xe04848, 2.5), 2100);
+          break;
+        case 'waterRise': sfx.splash(); break;
         case 'turnStart':
           sfx.turn();
           this.announceTurn();

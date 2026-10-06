@@ -14,6 +14,7 @@ function arena(): WorldState {
   t.mask.fill(0);
   for (let y = 600; y < t.h; y++) for (let x = 100; x < 1900; x++) t.mask[y * t.w + x] = 1;
   for (let y = 300; y < 320; y++) for (let x = 900; x < 1100; x++) t.mask[y * t.w + x] = 1;
+  s.objects = [];
   // Place everyone on the new floor before any ticks run.
   const me = activeTardi(s)!;
   s.tardis.forEach((o, i) => {

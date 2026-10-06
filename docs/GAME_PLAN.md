@@ -668,6 +668,11 @@ monetisation (cosmetics only, no ads, no power for sale).
   anchor is blown away), Leaf Parachute (steerable, no fall damage), Twig
   Girder (rotate with aim, red ghost when it won't fit).
 - Input fix: taps shorter than one game tick are never lost (slow phones).
+- Map objects: mines (arm when approached, 3 s fuse, 1-in-10 duds, chain
+  reactions), Brine Drums (burst into a big blast plus brine blobs),
+  supply crates (parachute in between turns; health +25 or a weapon).
+- Sudden death after the round time (5/10/15 min, menu option): everyone
+  drops to 1 HP, then the water rises every turn. Round clock in the HUD.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -676,7 +681,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. Mines, oil (brine) drums, crates; sudden death.
+2. Scheme presets + scheme editor (mines/crates/drums/round time on/off).
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
 5. Owner: register developer accounts (Apple, Google, Stripe) early.

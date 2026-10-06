@@ -312,3 +312,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .touch-btn.fire { width: 70px; height: 70px; }
   .hud-timer { height: 44px; min-width: 48px; font-size: 24px; }
 }
+
+.hud-clock { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.hud-round {
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(43, 27, 36, .8);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.hud-round.sd { background: var(--red); animation: pulse .6s infinite alternate; }

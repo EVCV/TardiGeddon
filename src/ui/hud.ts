@@ -22,6 +22,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 export class Hud {
   readonly root = el('div', 'hud');
   private timer = el('div', 'hud-timer');
+  private round = el('div', 'hud-round');
   private wind = el('div', 'hud-wind');
   private windFill = el('div', 'hud-wind-fill');
   private teams = el('div', 'hud-teams');
@@ -60,7 +61,9 @@ export class Hud {
     const bottom = el('div', 'hud-bottom');
     const tools = el('div', 'hud-tools');
     tools.append(this.fuseBtn, this.weaponBtn);
-    bottom.append(this.timer, this.teams, tools);
+    const clock = el('div', 'hud-clock');
+    clock.append(this.timer, this.round);
+    bottom.append(clock, this.teams, tools);
 
     this.buildPanel();
     this.root.append(top, this.banner, this.hint, bottom, this.panel, this.gameOver);
@@ -164,13 +167,21 @@ export class Hud {
 
     // Only touch the DOM when something visible changed.
     const key = [
-      secs, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0,
+      secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
     ].join('|');
     if (key === this.lastKey) return;
     this.lastKey = key;
 
     this.timer.textContent = String(secs);
+    if (s.suddenDeath) {
+      this.round.textContent = 'SUDDEN DEATH';
+      this.round.classList.add('sd');
+    } else {
+      const left = Math.max(0, s.scheme.roundTime * 60 - Math.floor(s.roundTicks / TICK_RATE));
+      this.round.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+      this.round.classList.remove('sd');
+    }
     this.timer.style.background = hex(team.color);
     this.timer.classList.toggle('retreat', turn.phase === 'retreat');
     this.timer.classList.toggle('urgent', turn.phase === 'aim' && secs <= 5);
