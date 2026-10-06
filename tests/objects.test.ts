@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeTardi, explode, tick, TARDI_R } from '../src/sim/world';
+import { activeTardi, explode, hashWorld, tick, TARDI_R } from '../src/sim/world';
 import { TICK_RATE, type MapObject, type WorldState } from '../src/sim/types';
 import { makeWorld, run, runUntilPhase } from './helpers';
 
@@ -132,5 +132,36 @@ describe('sudden death', () => {
     const ev2 = runUntilPhase(s, 'start');
     expect(ev2.some((e) => e.t === 'waterRise')).toBe(true);
     expect(s.waterY).toBe(water - s.scheme.waterRise);
+  });
+});
+
+describe('sudden death water', () => {
+  it('drowns tardis standing on ground below the new water line', () => {
+    const s = flat();
+    const me = activeTardi(s)!;
+    const victim = s.tardis.find((t) => t !== me)!;
+    expect(victim.airborne).toBe(false);
+    s.waterY = 560; // above the floor at y=600
+    const ev = run(s, 1);
+    expect(ev.some((e) => e.t === 'drown' && e.id === victim.id)).toBe(true);
+    expect(victim.alive).toBe(false);
+  });
+});
+
+describe('state hash', () => {
+  it('covers object details that change future play', () => {
+    const a = flat();
+    const mine = addObject(a, { kind: 'mine', x: 1500, y: 595 });
+    const h = hashWorld(a);
+    mine.dud = true;
+    expect(hashWorld(a)).not.toBe(h);
+    mine.dud = false;
+    a.suddenDeath = true;
+    expect(hashWorld(a)).not.toBe(h);
+    a.suddenDeath = false;
+    const crate = addObject(a, { kind: 'crate', x: 1600, y: 590, contents: 'health', amount: 25 });
+    const h2 = hashWorld(a);
+    crate.contents = 'airstrike';
+    expect(hashWorld(a)).not.toBe(h2);
   });
 });

@@ -818,7 +818,10 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
     t.vy = 0;
     t.fallStartY = t.y;
   }
-  if (!t.airborne) return;
+  if (!t.airborne) {
+    checkOutOfBounds(s, t, events); // rising water reaches grounded tardis too
+    return;
+  }
 
   if (t.rope && !circleCollides(terrain, t.rope.x, t.rope.y, 2)) releaseRope(t); // anchor blown away
   if (t.rope) {
@@ -1182,12 +1185,17 @@ export function hashWorld(s: WorldState): number {
     mixInt(u32[0]);
     mixInt(u32[1]);
   };
+  const mixStr = (v: string) => {
+    mixInt(v.length);
+    for (let i = 0; i < v.length; i++) mixInt(v.charCodeAt(i));
+  };
   mix(s.tick);
   mixInt(s.rng.a);
   mix(s.wind);
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
+    mix(t.knocked ? 1 : 0); mix(t.fallStartY);
     if (t.rope) { mix(t.rope.x); mix(t.rope.y); mix(t.rope.len); }
   }
   for (const p of s.projectiles) {
@@ -1195,8 +1203,10 @@ export function hashWorld(s: WorldState): number {
   }
   for (const o of s.objects) {
     mix(o.id); mix(o.x); mix(o.y); mix(o.vx); mix(o.vy); mix(o.fuse); mix(o.hp);
+    mixStr(o.kind); mix(o.dud ? 1 : 0); mix(o.airborne ? 1 : 0); mix(o.chute ? 1 : 0);
+    mixStr(o.contents); mix(o.amount);
   }
-  mix(s.waterY); mix(s.roundTicks);
+  mix(s.waterY); mix(s.roundTicks); mix(s.suddenDeath ? 1 : 0); mix(s.nextId);
   const tr = s.turn;
   mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);
   const m = s.terrain.mask;
