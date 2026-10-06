@@ -3,9 +3,12 @@
 import { MASCOT_SVG } from './mascot';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
+import { MAX_TEAMS } from '../sim/world';
+import { TEAM_COLORS, TEAM_NAMES, hex } from '../render/palette';
 
 export interface MatchSetup {
-  mode: 'cpu' | 'hotseat';
+  /** One entry per team: true = CPU, false = human. */
+  players: boolean[];
   scheme: Scheme;
   seed: number;
 }
@@ -15,7 +18,11 @@ const STORE_KEY = 'tardigeddon.menu';
 interface Saved {
   style: string;
   custom: Scheme;
+  players: boolean[];
 }
+
+const PLAYER_COUNTS = [2, 3, 4, 6, 8, 10];
+const DEFAULT_PLAYERS = [false, true];
 
 // Per-device convenience only: storage can be missing or blocked.
 function load(): Saved {
@@ -23,12 +30,13 @@ function load(): Saved {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const v = JSON.parse(raw) as Saved;
-      return { style: v.style ?? 'standard', custom: { ...DEFAULT_SCHEME, ...v.custom } };
+      const players = Array.isArray(v.players) && v.players.length >= 2 && v.players.length <= MAX_TEAMS ? v.players : DEFAULT_PLAYERS;
+      return { style: v.style ?? 'standard', custom: { ...DEFAULT_SCHEME, ...v.custom }, players };
     }
   } catch {
     /* ignore */
   }
-  return { style: 'standard', custom: { ...DEFAULT_SCHEME } };
+  return { style: 'standard', custom: { ...DEFAULT_SCHEME }, players: DEFAULT_PLAYERS };
 }
 
 function save(v: Saved): void {
@@ -68,9 +76,15 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
         <div class="mascot">${MASCOT_SVG}</div>
         <h1 class="title">Tardi<span>Geddon</span></h1>
         <p class="tagline">Tiny. Indestructible. Armed.</p>
+        <div class="players-row">
+          <label>Players
+            <select name="players">${PLAYER_COUNTS.map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
+          </label>
+          <p class="players-hint">Tap a team to switch between Human and CPU. Humans share this device and take turns.</p>
+        </div>
+        <div class="slots"></div>
         <div class="menu-buttons">
-          <button class="big-btn" data-mode="cpu">Play vs CPU</button>
-          <button class="big-btn secondary" data-mode="hotseat">2 Players (same device)</button>
+          <button class="big-btn play">Play</button>
         </div>
         <div class="style-row">
           <label>Game style
@@ -94,6 +108,36 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
   const panel = root.querySelector<HTMLDivElement>('.custom-panel')!;
   const customiseBtn = root.querySelector<HTMLButtonElement>('.customise')!;
   let custom: Scheme = { ...saved.custom };
+  let players = [...saved.players];
+  const countSel = root.querySelector<HTMLSelectElement>('select[name=players]')!;
+  const slots = root.querySelector<HTMLDivElement>('.slots')!;
+
+  const renderSlots = () => {
+    slots.innerHTML = '';
+    players.forEach((cpu, i) => {
+      const b = document.createElement('button');
+      b.className = 'slot' + (cpu ? ' cpu' : '');
+      b.style.setProperty('--team', hex(TEAM_COLORS[i]));
+      b.innerHTML = `<span class="dot"></span><span class="slot-name">${TEAM_NAMES[i]}</span><span class="slot-kind">${cpu ? '🤖 CPU' : '👤 Human'}</span>`;
+      b.onclick = () => {
+        players[i] = !players[i];
+        renderSlots();
+        persist();
+      };
+      slots.append(b);
+    });
+  };
+  const persist = () => save({ style: styleSel.value, custom, players });
+  countSel.value = String(PLAYER_COUNTS.includes(players.length) ? players.length : 2);
+  if (players.length !== Number(countSel.value)) players = players.slice(0, Number(countSel.value));
+  countSel.onchange = () => {
+    const n = Number(countSel.value);
+    // Keep existing choices; new slots default to CPU.
+    players = Array.from({ length: n }, (_, i) => players[i] ?? true);
+    renderSlots();
+    persist();
+  };
+  renderSlots();
 
   const current = (): Scheme => (styleSel.value === 'custom' ? { ...custom } : presetScheme(styleSel.value));
 
@@ -139,7 +183,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
     blurb.textContent =
       id === 'custom' ? 'Your own rules: change anything below.' : (SCHEME_PRESETS.find((p) => p.id === id)?.blurb ?? '');
     if (rebuild || !panel.classList.contains('hidden')) renderPanel();
-    save({ style: id, custom });
+    persist();
   };
 
   styleSel.value = saved.style;
@@ -151,9 +195,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
   };
   refresh();
 
-  for (const b of root.querySelectorAll<HTMLButtonElement>('[data-mode]')) {
-    b.onclick = () => {
-      onStart({ mode: b.dataset.mode as MatchSetup['mode'], scheme: current(), seed: (Math.random() * 1e9) | 0 });
-    };
-  }
+  root.querySelector<HTMLButtonElement>('.play')!.onclick = () => {
+    onStart({ players: [...players], scheme: current(), seed: (Math.random() * 1e9) | 0 });
+  };
 }

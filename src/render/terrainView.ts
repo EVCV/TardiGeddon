@@ -2,11 +2,21 @@
 // bold dark outline, a grassy moss band on top, pebbly soil below and
 // scorch marks around craters.
 
-import { Sprite, Texture } from 'pixi.js';
+import { Container, Sprite, Texture } from 'pixi.js';
 import type { Rect, Terrain } from '../sim/terrain/terrain';
 import { PALETTE } from './palette';
 
 const GRASS_DEPTH = 10;
+/** Max texture width per tile: big maps exceed phone GPU texture limits. */
+const TILE_W = 1024;
+
+interface Tile {
+  x: number;
+  w: number;
+  ctx: CanvasRenderingContext2D;
+  texture: Texture;
+  dirty: boolean;
+}
 
 function rgb(c: number): [number, number, number] {
   return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
@@ -45,21 +55,36 @@ function pebble(x: number, y: number): 0 | 1 | 2 {
 }
 
 export class TerrainView {
-  readonly sprite: Sprite;
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private texture: Texture;
+  readonly root = new Container();
+  private tiles: Tile[] = [];
   private scorch: Uint8Array;
 
   constructor(private terrain: Terrain) {
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = terrain.w;
-    this.canvas.height = terrain.h;
-    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
     this.scorch = new Uint8Array(terrain.w * terrain.h);
-    this.paint({ x: 0, y: 0, w: terrain.w, h: terrain.h });
-    this.texture = Texture.from(this.canvas);
-    this.sprite = new Sprite(this.texture);
+    for (let x = 0; x < terrain.w; x += TILE_W) {
+      const w = Math.min(TILE_W, terrain.w - x);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = terrain.h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      const tile: Tile = { x, w, ctx, texture: Texture.EMPTY, dirty: false };
+      this.tiles.push(tile);
+      this.paint({ x, y: 0, w, h: terrain.h });
+      tile.texture = Texture.from(canvas);
+      tile.dirty = false;
+      const sprite = new Sprite(tile.texture);
+      sprite.x = x;
+      this.root.addChild(sprite);
+    }
+  }
+
+  private flush(): void {
+    for (const t of this.tiles) {
+      if (t.dirty) {
+        t.texture.source.update();
+        t.dirty = false;
+      }
+    }
   }
 
   /** Called after an explosion carved a crater. */
@@ -79,24 +104,33 @@ export class TerrainView {
     // Repaint a margin around the crater so outlines/grass update.
     const m = GRASS_DEPTH + 8;
     this.paint({ x: rect.x - m, y: rect.y - m, w: rect.w + m * 2, h: rect.h + m * 2 });
-    this.texture.source.update();
+    this.flush();
   }
 
   /** Repaint after terrain was added (e.g. a girder). */
   repaint(rect: Rect): void {
     const m = GRASS_DEPTH + 4;
     this.paint({ x: rect.x - m, y: rect.y - m, w: rect.w + m * 2, h: rect.h + m * 2 });
-    this.texture.source.update();
+    this.flush();
   }
 
+  /** Repaint a region, split across the tiles it overlaps. */
   private paint(r: Rect): void {
+    for (const tile of this.tiles) {
+      const x0 = Math.max(r.x, tile.x);
+      const x1 = Math.min(r.x + r.w, tile.x + tile.w);
+      if (x1 > x0) this.paintTile(tile, { x: x0, y: r.y, w: x1 - x0, h: r.h });
+    }
+  }
+
+  private paintTile(tile: Tile, r: Rect): void {
     const t = this.terrain;
     const x0 = Math.max(0, r.x);
     const y0 = Math.max(0, r.y);
     const x1 = Math.min(t.w, r.x + r.w);
     const y1 = Math.min(t.h, r.y + r.h);
     if (x1 <= x0 || y1 <= y0) return;
-    const img = this.ctx.createImageData(x1 - x0, y1 - y0);
+    const img = tile.ctx.createImageData(x1 - x0, y1 - y0);
     const d = img.data;
     const m = t.mask;
     const w = t.w;
@@ -148,6 +182,7 @@ export class TerrainView {
         d[o + 3] = 255;
       }
     }
-    this.ctx.putImageData(img, x0, y0);
+    tile.ctx.putImageData(img, x0 - tile.x, y0);
+    tile.dirty = true;
   }
 }

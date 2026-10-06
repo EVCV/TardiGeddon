@@ -347,3 +347,39 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tagline { margin: 2px 0 10px; }
   .big-btn { padding: 8px 18px; font-size: 19px; }
 }
+
+/* Player slots */
+.players-row { display: flex; gap: 12px; align-items: center; justify-content: center; font-weight: 800; text-align: left; }
+.players-row label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.players-row select { font: inherit; padding: 6px 10px; border: 3px solid var(--ink); border-radius: 10px; background: #fff; }
+.players-hint { margin: 0; font-size: 12px; max-width: 260px; font-weight: 600; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 10px 0 14px; }
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 3px solid var(--ink);
+  border-left: 10px solid var(--team);
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  text-align: left;
+}
+.slot .dot { display: none; }
+.slot-name { flex: 1; }
+.slot-kind { font-size: 11px; white-space: nowrap; }
+.slot.cpu { background: #f1ece3; }
+
+/* Compact team health for 5+ teams */
+.hud-teams.many { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; max-width: 420px; }
+.hud-teams.many .team-row { font-size: 10px; gap: 4px; }
+.hud-teams.many .team-name { min-width: 70px; }
+.hud-teams.many .team-bar { height: 8px; border-width: 1.5px; }
+@media (max-height: 450px) {
+  /* Phones: many teams become a strip of name-less bars (colour = team). */
+  .hud-teams.many { grid-template-columns: repeat(5, 1fr); gap: 3px; max-width: 38vw; margin: 0 0 0 4px; }
+  .hud-teams.many .team-name { display: none; }
+  .hud-teams.many .team-row.active .team-bar { outline: 2px solid #fff; }
+}

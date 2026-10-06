@@ -78,14 +78,31 @@ export interface WorldConfig {
 const DEFAULT_NAMES = [
   'Waddles', 'Tun', 'Mossy', 'Pudge', 'Cuticle', 'Stylet', 'Bubbles', 'Nibs',
   'Squish', 'Clawdia', 'Dewdrop', 'Gristle', 'Puddles', 'Lichen', 'Bramble', 'Pip',
+  'Sprout', 'Gloop', 'Pebble', 'Fuzz', 'Dumpling', 'Biscuit', 'Wiggles', 'Plop',
+  'Nugget', 'Snoot', 'Tater', 'Bean', 'Mochi', 'Crumb', 'Sludge', 'Zippy',
+  'Barnacle', 'Muffin', 'Scoot', 'Gumdrop', 'Toggle', 'Blip', 'Ripple', 'Puff',
 ];
+
+/** Most teams a match supports. */
+export const MAX_TEAMS = 10;
+
+/**
+ * Map size for a match: 2000x1000 for the classic 2 teams of 4, growing with
+ * the number of tardis so bigger games still have room to move.
+ */
+export function mapSizeFor(totalTardis: number): { w: number; h: number } {
+  const w = Math.max(2000, Math.min(6000, Math.round((800 + totalTardis * 150) / 100) * 100));
+  return { w, h: w > 2500 ? 1200 : 1000 };
+}
 
 // ---------------------------------------------------------------- creation
 
 export function createWorld(cfg: WorldConfig): WorldState {
   const scheme: Scheme = { ...DEFAULT_SCHEME, ...cfg.scheme };
-  const w = cfg.mapW ?? 2000;
-  const h = cfg.mapH ?? 1000;
+  if (cfg.teams.length < 2 || cfg.teams.length > MAX_TEAMS) throw new Error(`Need 2-${MAX_TEAMS} teams`);
+  const size = mapSizeFor(cfg.teams.length * scheme.tardisPerTeam);
+  const w = cfg.mapW ?? size.w;
+  const h = cfg.mapH ?? size.h;
   const waterY = h - 70;
   const needed = cfg.teams.length * scheme.tardisPerTeam;
 
@@ -170,8 +187,10 @@ export function createWorld(cfg: WorldConfig): WorldState {
         team.tardiIds.push(t.id);
       }
     }
-    placeObjects(s, 'mine', scheme.mines);
-    placeObjects(s, 'drum', scheme.drums);
+    // Bigger maps get proportionally more mines and drums.
+    const scale = w / 2000;
+    placeObjects(s, 'mine', Math.round(scheme.mines * scale));
+    placeObjects(s, 'drum', Math.round(scheme.drums * scale));
     s.turn.teamIdx = rngInt(rng, 0, s.teams.length - 1);
     beginTurn(s, s.turn.teamIdx, []);
     return s;
@@ -192,7 +211,7 @@ function newObject(s: WorldState, kind: ObjectKind, x: number, y: number): MapOb
 function placeObjects(s: WorldState, kind: ObjectKind, count: number): void {
   const r = kind === 'mine' ? MINE_R : DRUM_R;
   let placed = 0;
-  for (let tries = 0; tries < 600 && placed < count; tries++) {
+  for (let tries = 0; tries < 600 + count * 80 && placed < count; tries++) {
     const x = rngInt(s.rng, 40, s.terrain.w - 40);
     const sy = surfaceBelow(s.terrain, x, 0);
     if (sy < 0 || sy > s.waterY - 30) continue;
@@ -219,7 +238,7 @@ function findSpawns(
   rng: WorldState['rng'],
 ): { x: number; y: number }[] | null {
   const spots: { x: number; y: number }[] = [];
-  for (let tries = 0; tries < 2000 && spots.length < count; tries++) {
+  for (let tries = 0; tries < 2000 + count * 200 && spots.length < count; tries++) {
     const x = rngInt(rng, 40, terrain.w - 40);
     const sy = surfaceBelow(terrain, x, 0);
     if (sy < 0 || sy > waterY - 30) continue;
@@ -907,7 +926,7 @@ function burstDrum(s: WorldState, o: MapObject, events: SimEvent[]): void {
 }
 
 function dropCrate(s: WorldState, events: SimEvent[]): void {
-  if (s.objects.filter((o) => o.kind === 'crate').length >= 5) return;
+  if (s.objects.filter((o) => o.kind === 'crate').length >= Math.round((5 * s.terrain.w) / 2000)) return;
   for (let tries = 0; tries < 50; tries++) {
     const x = rngInt(s.rng, 60, s.terrain.w - 60);
     const sy = surfaceBelow(s.terrain, x, 0);

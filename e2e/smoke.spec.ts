@@ -7,7 +7,7 @@ test('menu loads and a CPU match can be played', async ({ page }) => {
 
   await page.goto('/');
   await expect(page.locator('.title')).toBeVisible();
-  await page.getByRole('button', { name: 'Play vs CPU' }).click();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(page.locator('.hud-timer')).toBeVisible();
 
   // Let a couple of turns play out (the CPU and timers drive the game).

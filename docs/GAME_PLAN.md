@@ -211,10 +211,10 @@ dedicated tuning milestone.
 ## 5. Game Modes & Schemes
 
 - **Quick Match** — vs AI or hot-seat, random map, default scheme.
-- **Multiplayer (local hot-seat)** — 2–6 teams on one device (pass-and-play
-  on mobile).
+- **Multiplayer (local hot-seat)** — 2–10 teams on one device (pass-and-play
+  on mobile), any mix of humans and CPUs.
 - **Online (v1)** — private rooms via invite code/link, plus quick-play
-  matchmaking for 1v1 and up to 4 players. Ranked ladder post-v1.
+  matchmaking for 1v1 and free-for-alls of up to 10 players. Ranked ladder post-v1.
 - **Asynchronous online (stretch)** — play your turn, close the app, get a
   push notification when it's your turn again. Ideal for mobile.
 - **Training / Missions** — single-player challenges (target practice,
@@ -676,6 +676,11 @@ monetisation (cosmetics only, no ads, no power for sale).
 - Game styles (schemes): Standard, Quick, Pro, Chaos, Bazookas & Grenades,
   Artillery (no walking), plus a Customise panel; last choice remembered
   on the device. Schemes can limit the arsenal (`weapons`) and movement.
+- 2–10 players per match, each slot Human or CPU (humans share the device).
+  Maps grow with the number of tardis (2000×1000 for 8, up to 6000×1200
+  for 40), with mines/drums/crates scaled to match; terrain is drawn in
+  1024 px texture tiles so big maps work on phone GPUs. Ten team colours
+  and names; compact health bars for 5+ teams.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
