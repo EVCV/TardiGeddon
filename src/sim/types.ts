@@ -16,6 +16,8 @@ export type Command =
   | { t: 'weapon'; id: string }
   | { t: 'fuse'; s: number }
   | { t: 'target'; x: number; y: number }
+  /** Set the aim directly (drag-to-aim on touch screens). */
+  | { t: 'aim'; facing: number; aim: number }
   | { t: 'skip' };
 
 export interface InputFrame {
@@ -80,8 +82,9 @@ export interface Tardi {
   /** Launched by an explosion (bounces, no fall damage). */
   knocked: boolean;
   fallStartY: number;
-  /** Silk Rope anchor and length while swinging. */
-  rope: { x: number; y: number; len: number } | null;
+  /** Silk Rope while swinging: the pivot it swings from, the free length
+   *  below that pivot, and earlier pivots where it wrapped round corners. */
+  rope: { x: number; y: number; len: number; bends: RopeBend[] } | null;
   /** Leaf Parachute open. */
   chute: boolean;
   /** Poisoned by a Cyanobloom Cloud: loses health each turn until cured. */
@@ -122,6 +125,14 @@ export interface Flame {
   life: number;
   resting: boolean;
   acid: boolean;
+}
+
+/** A corner the Silk Rope wrapped round. `side` is the winding direction,
+ *  so the rope unwraps when it swings back the other way. */
+export interface RopeBend {
+  x: number;
+  y: number;
+  side: number;
 }
 
 export interface Projectile {

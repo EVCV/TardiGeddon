@@ -341,9 +341,15 @@ export class GameRenderer {
     for (const t of s.tardis) {
       if (!t.rope) continue;
       const p = this.lerpPos(t.id, t.x, t.y, alpha);
-      ov.moveTo(t.rope.x, t.rope.y).lineTo(p.x, p.y).stroke({ width: 3.2, color: PALETTE.outline });
-      ov.moveTo(t.rope.x, t.rope.y).lineTo(p.x, p.y).stroke({ width: 1.6, color: 0xf4f1ff });
-      ov.circle(t.rope.x, t.rope.y, 3).fill(0xf4f1ff).stroke({ width: 1.2, color: PALETTE.outline });
+      // Through every corner it has wrapped round, then the pivot, then the tardi.
+      const pts = [...t.rope.bends, { x: t.rope.x, y: t.rope.y }, p];
+      for (const [w, c] of [[3.2, PALETTE.outline], [1.6, 0xf4f1ff]] as const) {
+        ov.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ov.lineTo(pts[i].x, pts[i].y);
+        ov.stroke({ width: w, color: c });
+      }
+      const a = pts[0];
+      ov.circle(a.x, a.y, 3).fill(0xf4f1ff).stroke({ width: 1.2, color: PALETTE.outline });
     }
 
     // Aim overlay

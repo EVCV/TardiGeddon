@@ -25,6 +25,8 @@ export class InputCollector {
   }
 
   command(cmd: Command): void {
+    // Only the latest drag-aim matters: don't let a fast drag queue up a backlog.
+    if (cmd.t === 'aim') this.cmds = this.cmds.filter((c) => c.t !== 'aim');
     this.cmds.push(cmd);
   }
 

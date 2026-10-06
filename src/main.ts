@@ -13,6 +13,7 @@ import { CpuPlayer } from './ai/cpu';
 import { sfx, setMuted, unlockAudio } from './audio/sfx';
 import { showMenu, type MatchSetup } from './ui/menu';
 import { presetScheme } from './sim/schemes';
+import { ANGLE_FULL } from './sim/math/trig';
 
 const TICK_MS = 1000 / TICK_RATE;
 /** Far enough out to see most of a big 10-player map. */
@@ -70,7 +71,7 @@ class Match {
   private acc = 0;
   private last = performance.now();
   private detachKeys: () => void;
-  private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean }>();
+  private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean; aim: boolean }>();
   private pinchDist = 0;
   private muted = false;
   private over = false;
@@ -200,7 +201,9 @@ class Match {
       unlockAudio();
       if (e.button === 2) return;
       c.setPointerCapture(e.pointerId);
-      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false });
+      // A drag that starts on your own tardi aims instead of moving the camera.
+      const aim = this.pointers.size === 0 && this.nearActiveTardi(e.clientX, e.clientY);
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, aim });
       if (this.pointers.size === 2) this.pinchDist = this.pointerSpread();
     };
     c.onpointermove = (e) => {
@@ -222,6 +225,10 @@ class Match {
       p.x = e.clientX;
       p.y = e.clientY;
       if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) p.moved = true;
+      if (p.aim) {
+        if (p.moved) this.dragAim(e.clientX, e.clientY);
+        return;
+      }
       if (p.moved) {
         cam.x -= dx / cam.zoom;
         cam.y -= dy / cam.zoom;
@@ -244,6 +251,29 @@ class Match {
       const cam = this.renderer.camera;
       cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
     };
+  }
+
+  /** Is this screen point on (or close to) the tardi whose turn it is? */
+  private nearActiveTardi(sx: number, sy: number): boolean {
+    const s = this.state;
+    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
+    if (!t || !this.isHumanTurn() || s.turn.phase !== 'aim' || t.rope) return false;
+    const w = this.renderer.screenToWorld(sx, sy);
+    return Math.hypot(w.x - t.x, w.y - t.y) * this.renderer.camera.zoom < 48;
+  }
+
+  /** Point the crosshair from the active tardi towards a screen point. */
+  private dragAim(sx: number, sy: number): void {
+    const s = this.state;
+    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
+    if (!t || !this.isHumanTurn()) return;
+    const w = this.renderer.screenToWorld(sx, sy);
+    const dx = w.x - t.x;
+    const dy = w.y - t.y;
+    if (Math.hypot(dx, dy) < 6) return;
+    const facing = Math.abs(dx) < 2 ? t.facing : dx > 0 ? 1 : -1;
+    const aim = (Math.atan2(-dy, Math.abs(dx)) * ANGLE_FULL) / (2 * Math.PI);
+    this.input.command({ t: 'aim', facing, aim: Math.round(aim) });
   }
 
   private pointerSpread(): number {

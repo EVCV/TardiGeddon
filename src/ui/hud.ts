@@ -40,7 +40,7 @@ export class Hud {
   constructor(
     private input: InputCollector,
     hooks: HudHooks,
-    touchMode: boolean,
+    private touchMode: boolean,
   ) {
     this.wind.append(this.windFill);
     const top = el('div', 'hud-top');
@@ -167,7 +167,7 @@ export class Hud {
 
     // Only touch the DOM when something visible changed.
     const key = [
-      secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0, s.projectiles.some((p) => p.dir !== 0) ? 1 : 0,
+      secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, turn.charging ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0, s.projectiles.some((p) => p.dir !== 0) ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
     ].join('|');
     if (key === this.lastKey) return;
@@ -231,6 +231,7 @@ export class Hud {
       else if (def.kind === 'walker') hint = 'Fire to release the Rotifer Roller';
       else if (def.kind === 'drop') hint = 'Fire to drop it, then run!';
       else if (def.shower) hint = 'Fire to bring the slides crashing down!';
+      else if (this.touchMode && (def.kind === 'charge' || def.kind === 'hitscan') && !turn.charging) hint = 'Drag from your tardi to aim';
     } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
       hint = 'Press Fire to set it off!';
     } else if (!humanTurn && turn.phase === 'aim') {
