@@ -681,6 +681,11 @@ monetisation (cosmetics only, no ads, no power for sale).
   for 40), with mines/drums/crates scaled to match; terrain is drawn in
   1024 px texture tiles so big maps work on phone GPUs. Ten team colours
   and names; compact health bars for 5+ teams.
+- Team editor (✎ on each player slot): team name, colour (unique per
+  team; picking a taken colour swaps), hat, and the 4 tardi names, with
+  a live preview; saved per device. Hats are the first cosmetic slot:
+  each is data (`src/render/hats.ts`) drawn identically in game and in
+  SVG previews, so shop hats later are just new entries.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -689,7 +694,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. Team editor (names, hats/colours) — the first cosmetics slot.
+2. More weapons (Homing Spore, Mortar Pod, Rotifer Roller), fire spread.
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
 5. Owner: register developer accounts (Apple, Google, Stripe) early.

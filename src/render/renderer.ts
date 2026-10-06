@@ -81,7 +81,7 @@ export class GameRenderer {
     );
     app.stage.addChild(this.world);
     for (const t of state.tardis) {
-      const v = new TardiView(t, state.teams[t.team].color);
+      const v = new TardiView(t, state.teams[t.team].color, state.teams[t.team].hat);
       this.tardiViews.set(t.id, v);
       this.entities.addChild(v.root);
     }

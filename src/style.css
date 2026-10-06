@@ -383,3 +383,82 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .hud-teams.many .team-name { display: none; }
   .hud-teams.many .team-row.active .team-bar { outline: 2px solid #fff; }
 }
+
+/* Slots with an edit button */
+.slot { padding: 0; overflow: hidden; }
+.slot-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  min-width: 0;
+}
+.slot-main .slot-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-edit {
+  border: 0;
+  border-left: 2px solid var(--ink);
+  background: var(--accent);
+  font-size: 15px;
+  width: 34px;
+  align-self: stretch;
+}
+
+/* Team editor */
+.editor-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto; /* #ui lets taps through by default */
+  display: flex;
+  padding: 12px;
+  background: rgba(43, 27, 36, .5);
+  overflow-y: auto;
+  z-index: 10;
+}
+.editor {
+  margin: auto;
+  width: min(460px, 100%);
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 6px 0 var(--ink);
+  padding: 14px 16px;
+  text-align: center;
+}
+.editor h3 { margin: 12px 0 6px; font-size: 13px; text-align: left; }
+.editor-preview svg { width: 120px; height: auto; }
+.editor-title { font-family: var(--title); font-weight: normal; margin: 0 0 6px; -webkit-text-stroke: 1px var(--ink); }
+.editor input {
+  font: inherit;
+  font-weight: 800;
+  width: 100%;
+  padding: 7px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+.editor-swatches { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+.swatch { aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 50%; padding: 0; }
+.swatch.on { outline: 3px solid var(--accent); outline-offset: 2px; }
+.editor-hats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.hat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  padding: 4px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.hat-btn svg { width: 64px; height: auto; }
+.hat-btn.on { background: var(--accent); }
+.editor-tardis { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.editor-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 14px; }
+.editor-actions .big-btn { padding: 8px 22px; font-size: 18px; }

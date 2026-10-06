@@ -149,6 +149,8 @@ export interface Team {
   nextIdx: number;
   /** Weapon this team last selected (restored at the start of its turns). */
   weapon: string;
+  /** Cosmetic only (never affects play). */
+  hat: string;
   ammo: Record<string, number>;
 }
 

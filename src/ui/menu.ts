@@ -4,11 +4,15 @@ import { MASCOT_SVG } from './mascot';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
 import { MAX_TEAMS } from '../sim/world';
-import { TEAM_COLORS, TEAM_NAMES, hex } from '../render/palette';
+import { hex } from '../render/palette';
+import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
+import { openTeamEditor } from './teamEditor';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
   players: boolean[];
+  /** Team profiles for the slots in play (same length as players). */
+  teams: TeamProfile[];
   scheme: Scheme;
   seed: number;
 }
@@ -112,19 +116,41 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
   const countSel = root.querySelector<HTMLSelectElement>('select[name=players]')!;
   const slots = root.querySelector<HTMLDivElement>('.slots')!;
 
+  let profiles = loadProfiles();
   const renderSlots = () => {
     slots.innerHTML = '';
     players.forEach((cpu, i) => {
-      const b = document.createElement('button');
-      b.className = 'slot' + (cpu ? ' cpu' : '');
-      b.style.setProperty('--team', hex(TEAM_COLORS[i]));
-      b.innerHTML = `<span class="dot"></span><span class="slot-name">${TEAM_NAMES[i]}</span><span class="slot-kind">${cpu ? '🤖 CPU' : '👤 Human'}</span>`;
-      b.onclick = () => {
+      const p = profiles[i];
+      const slot = document.createElement('div');
+      slot.className = 'slot' + (cpu ? ' cpu' : '');
+      slot.style.setProperty('--team', hex(p.color));
+      // Main area toggles Human/CPU; the pencil opens the team editor.
+      const toggle = document.createElement('button');
+      toggle.className = 'slot-main';
+      const name = document.createElement('span');
+      name.className = 'slot-name';
+      name.textContent = p.name; // player-entered text: never innerHTML
+      const kind = document.createElement('span');
+      kind.className = 'slot-kind';
+      kind.textContent = cpu ? '🤖 CPU' : '👤 Human';
+      toggle.append(name, kind);
+      toggle.onclick = () => {
         players[i] = !players[i];
         renderSlots();
         persist();
       };
-      slots.append(b);
+      const editBtn = document.createElement('button');
+      editBtn.className = 'slot-edit';
+      editBtn.textContent = '✎';
+      editBtn.setAttribute('aria-label', `Edit ${p.name}`);
+      editBtn.onclick = () =>
+        openTeamEditor(root, i, p, (next) => {
+          profiles = updateProfile(profiles, i, next);
+          saveProfiles(profiles);
+          renderSlots();
+        });
+      slot.append(toggle, editBtn);
+      slots.append(slot);
     });
   };
   const persist = () => save({ style: styleSel.value, custom, players });
@@ -196,6 +222,6 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
   refresh();
 
   root.querySelector<HTMLButtonElement>('.play')!.onclick = () => {
-    onStart({ players: [...players], scheme: current(), seed: (Math.random() * 1e9) | 0 });
+    onStart({ players: [...players], teams: profiles.slice(0, players.length), scheme: current(), seed: (Math.random() * 1e9) | 0 });
   };
 }

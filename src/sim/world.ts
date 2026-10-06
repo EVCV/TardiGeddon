@@ -65,6 +65,7 @@ export interface TeamConfig {
   color: number;
   cpu: boolean;
   names?: string[];
+  hat?: string;
 }
 
 export interface WorldConfig {
@@ -75,7 +76,7 @@ export interface WorldConfig {
   mapH?: number;
 }
 
-const DEFAULT_NAMES = [
+export const DEFAULT_NAMES = [
   'Waddles', 'Tun', 'Mossy', 'Pudge', 'Cuticle', 'Stylet', 'Bubbles', 'Nibs',
   'Squish', 'Clawdia', 'Dewdrop', 'Gristle', 'Puddles', 'Lichen', 'Bramble', 'Pip',
   'Sprout', 'Gloop', 'Pebble', 'Fuzz', 'Dumpling', 'Biscuit', 'Wiggles', 'Plop',
@@ -156,7 +157,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         const listed = scheme.weapons?.[def.id];
         ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? def.ammo : (listed ?? 0);
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map.
