@@ -147,6 +147,10 @@ class Match {
         case 'splash': sfx.splash(); break;
         case 'bounce': sfx.bounce(); break;
         case 'teleport': sfx.teleport(); break;
+        case 'rope': sfx.rope(); break;
+        case 'chute': sfx.chute(); break;
+        case 'punch': sfx.punch(); break;
+        case 'terrain': sfx.build(); break;
         case 'turnStart':
           sfx.turn();
           this.announceTurn();

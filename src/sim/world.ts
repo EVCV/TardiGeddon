@@ -9,7 +9,7 @@
 import { cosA, sinA, ANGLE_QUARTER } from './math/trig';
 import { createRng, rngFloat, rngInt } from './math/prng';
 import { generateMap } from './terrain/generate';
-import { carveCircle, circleCollides, isSolid, normalAt, surfaceBelow } from './terrain/terrain';
+import { carveCircle, circleCollides, isSolid, normalAt, placeGirder, surfaceBelow, type Rect } from './terrain/terrain';
 import {
   BTN_DOWN,
   BTN_FIRE,
@@ -43,6 +43,11 @@ const SETTLE_DELAY = 25;
 const SAFE_FALL = 90;
 const JUMP_DELAY = 10;
 const MAX_FALL_SPEED = 14;
+export const ROPE_MAX = 320;
+const ROPE_MIN = 14;
+const ROPE_REEL = 1.6;
+const ROPE_SWING = 0.12;
+const CHUTE_FALL = 1.3;
 /** Hard cap on end-of-turn settling so a turn can never soft-lock. */
 const SETTLE_MAX = 20 * TICK_RATE;
 
@@ -142,6 +147,8 @@ export function createWorld(cfg: WorldConfig): WorldState {
           airborne: false,
           knocked: false,
           fallStartY: p.y,
+          rope: null,
+          chute: false,
         };
         s.tardis.push(t);
         team.tardiIds.push(t.id);
@@ -207,6 +214,8 @@ function endTurnNow(s: WorldState): void {
   s.turn.settleTotal = 0;
   s.turn.charging = false;
   s.turn.jumpTimer = 0;
+  const t = activeTardi(s);
+  if (t?.rope) releaseRope(t);
 }
 
 // ---------------------------------------------------------------- tick
@@ -278,6 +287,28 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
     }
   }
 
+  // Swinging on the Silk Rope: left/right swing, up/down reel, jump or fire lets go.
+  if (t.rope) {
+    const dir = ((held & BTN_RIGHT) !== 0 ? 1 : 0) - ((held & BTN_LEFT) !== 0 ? 1 : 0);
+    if (dir !== 0) {
+      t.facing = dir as 1 | -1;
+      t.vx += dir * ROPE_SWING;
+    }
+    if ((held & BTN_UP) !== 0) t.rope.len = Math.max(ROPE_MIN, t.rope.len - ROPE_REEL);
+    if ((held & BTN_DOWN) !== 0) t.rope.len = Math.min(ROPE_MAX, t.rope.len + ROPE_REEL);
+    if ((input.pressed & PRESS_JUMP) !== 0 || fireEdge) releaseRope(t);
+    return;
+  }
+
+  // Leaf Parachute steering
+  if (t.chute) {
+    const dir = ((held & BTN_RIGHT) !== 0 ? 1 : 0) - ((held & BTN_LEFT) !== 0 ? 1 : 0);
+    if (dir !== 0) {
+      t.facing = dir as 1 | -1;
+      t.vx = Math.max(-1.6, Math.min(1.6, t.vx + dir * 0.1));
+    }
+  }
+
   // Jump / backflip: a second press within the delay turns a jump into a backflip.
   if ((input.pressed & PRESS_JUMP) !== 0 && !t.airborne && !turn.charging) {
     if (turn.jumpTimer > 0) {
@@ -303,6 +334,23 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   // Aiming
   if ((held & BTN_UP) !== 0) turn.aim = Math.min(AIM_MAX, turn.aim + AIM_STEP);
   if ((held & BTN_DOWN) !== 0) turn.aim = Math.max(-AIM_MAX, turn.aim - AIM_STEP);
+
+  // Utilities usable mid-air
+  if (team.ammo[def.id] !== 0 && fireEdge) {
+    if (def.kind === 'rope') {
+      castRope(s, t, events);
+      return;
+    }
+    if (def.kind === 'parachute') {
+      if (t.airborne && !t.chute && !t.knocked) {
+        t.chute = true;
+        t.vy = Math.min(t.vy, CHUTE_FALL);
+        if (team.ammo[def.id] > 0) team.ammo[def.id]--;
+        events.push({ t: 'chute', id: t.id });
+      }
+      return;
+    }
+  }
 
   // Firing
   if (t.airborne || turn.shotsLeft <= 0 || team.ammo[def.id] === 0) return;
@@ -331,10 +379,62 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
         if (fireTargeted(s, t, def, events)) afterShot(s, def);
       }
       break;
+    case 'melee':
+      if (fireEdge) {
+        firePunch(s, t, def, events);
+        afterShot(s, def);
+      }
+      break;
     case 'instant':
       if (fireEdge) afterShot(s, def);
       break;
   }
+}
+
+function castRope(s: WorldState, t: Tardi, events: SimEvent[]): void {
+  const { dx, dy } = aimVector(t.facing, s.turn.aim);
+  let x = t.x;
+  let y = t.y;
+  for (let i = 0; i < ROPE_MAX; i++) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx < 0 || nx >= s.terrain.w || ny < 0 || ny >= s.terrain.h) return;
+    if (isSolid(s.terrain, nx, ny)) {
+      const len = Math.max(ROPE_MIN, i);
+      t.rope = { x, y, len };
+      t.airborne = true;
+      t.knocked = false;
+      t.chute = false;
+      events.push({ t: 'rope', id: t.id, x, y });
+      return;
+    }
+    x = nx;
+    y = ny;
+  }
+}
+
+function releaseRope(t: Tardi): void {
+  t.rope = null;
+  t.fallStartY = t.y;
+}
+
+function firePunch(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
+  const m = def.melee!;
+  for (const o of s.tardis) {
+    if (!o.alive || o.id === t.id) continue;
+    const ahead = (o.x - t.x) * t.facing;
+    if (ahead > -4 && ahead < m.reach && Math.abs(o.y - t.y) < 16) {
+      o.pendingDmg += m.damage;
+      o.vx = t.facing * m.vx;
+      o.vy = m.vy;
+      o.airborne = true;
+      o.knocked = true;
+      o.rope = null;
+      o.chute = false;
+    }
+  }
+  launchJump(t, t.facing * 0.6, -4.6, events);
+  events.push({ t: 'punch', id: t.id, x: t.x + t.facing * 10, y: t.y });
 }
 
 function launchJump(t: Tardi, vx: number, vy: number, events: SimEvent[]): void {
@@ -465,6 +565,12 @@ function fireTargeted(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[
     events.push({ t: 'teleport', id: t.id, x, y });
     return true;
   }
+  if (def.girder) {
+    const rect = tryGirder(s, t, def, true);
+    if (!rect) return false;
+    events.push({ t: 'terrain', rect });
+    return true;
+  }
   if (def.strike) {
     const st = def.strike;
     const dir = target.x < t.x ? -1 : 1;
@@ -477,6 +583,32 @@ function fireTargeted(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[
     return true;
   }
   return false;
+}
+
+/** Place (or with commit=false, just test) the active girder at the turn's target. */
+function tryGirder(s: WorldState, t: Tardi, def: WeaponDef, commit: boolean): Rect | null {
+  const g = def.girder!;
+  const target = s.turn.target!;
+  const { dx, dy } = aimVector(t.facing, s.turn.aim);
+  // Never build a girder through a tardi.
+  for (const o of s.tardis) {
+    if (!o.alive) continue;
+    const rx = o.x - target.x;
+    const ry = o.y - target.y;
+    const along = Math.max(-g.len / 2, Math.min(g.len / 2, rx * dx + ry * dy));
+    const cx = rx - along * dx;
+    const cy = ry - along * dy;
+    if (cx * cx + cy * cy < (TARDI_R + g.thick / 2 + 1) * (TARDI_R + g.thick / 2 + 1)) return null;
+  }
+  return placeGirder(s.terrain, target.x, target.y, dx, dy, g.len, g.thick, commit);
+}
+
+/** Whether the selected girder would fit at the current target (for previews). */
+export function girderFits(s: WorldState): boolean {
+  const t = activeTardi(s);
+  const def = WEAPONS[s.turn.weapon];
+  if (!t || !def.girder || !s.turn.target) return false;
+  return tryGirder(s, t, def, false) !== null;
 }
 
 // ---------------------------------------------------------------- projectiles
@@ -574,6 +706,8 @@ export function explode(
     t.vy += ny * imp - imp * 0.35;
     t.airborne = true;
     t.knocked = true;
+    t.rope = null;
+    t.chute = false;
     t.pendingDmg += dmg;
     if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
   }
@@ -601,7 +735,21 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
   }
   if (!t.airborne) return;
 
-  t.vy = Math.min(MAX_FALL_SPEED, t.vy + GRAVITY);
+  if (t.rope && !circleCollides(terrain, t.rope.x, t.rope.y, 2)) releaseRope(t); // anchor blown away
+  if (t.rope) {
+    updateRope(s, t);
+    checkOutOfBounds(s, t, events);
+    return;
+  }
+
+  if (t.chute) {
+    // Drift gently with the wind; never builds up fall damage.
+    t.vy = Math.min(CHUTE_FALL, t.vy + GRAVITY * 0.3);
+    t.vx = Math.max(-2, Math.min(2, t.vx + s.wind * 0.02));
+    t.fallStartY = t.y;
+  } else {
+    t.vy = Math.min(MAX_FALL_SPEED, t.vy + GRAVITY);
+  }
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(t.vx), Math.abs(t.vy))));
   const sx = t.vx / steps;
   const sy = t.vy / steps;
@@ -637,8 +785,14 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
     break;
   }
 
-  if (t.y > s.waterY + 4 || t.x < -60 || t.x > terrain.w + 60) {
+  checkOutOfBounds(s, t, events);
+}
+
+function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
+  if (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60) {
     t.alive = false;
+    t.rope = null;
+    t.chute = false;
     t.hp = 0;
     t.pendingDmg = 0;
     events.push({ t: 'drown', id: t.id });
@@ -646,7 +800,57 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
   }
 }
 
+function updateRope(s: WorldState, t: Tardi): void {
+  const terrain = s.terrain;
+  const rope = t.rope!;
+  t.vy += GRAVITY;
+  t.vx *= 0.996;
+  t.vy *= 0.996;
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(t.vx), Math.abs(t.vy))));
+  const sx = t.vx / steps;
+  const sy = t.vy / steps;
+  for (let i = 0; i < steps; i++) {
+    const nx = t.x + sx;
+    const ny = t.y + sy;
+    if (!circleCollides(terrain, nx, ny, TARDI_R)) {
+      t.x = nx;
+      t.y = ny;
+      continue;
+    }
+    // Bump off walls while swinging.
+    const n = normalAt(terrain, nx, ny, TARDI_R + 2);
+    const dot = t.vx * n.nx + t.vy * n.ny;
+    if (dot < 0) {
+      t.vx = (t.vx - 2 * dot * n.nx) * 0.4;
+      t.vy = (t.vy - 2 * dot * n.ny) * 0.4;
+    }
+    break;
+  }
+  // Keep within rope length: pull back onto the circle and remove outward speed.
+  const dx = t.x - rope.x;
+  const dy = t.y - rope.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d > rope.len && d > 0) {
+    const ux = dx / d;
+    const uy = dy / d;
+    const px = rope.x + ux * rope.len;
+    const py = rope.y + uy * rope.len;
+    if (!circleCollides(terrain, px, py, TARDI_R)) {
+      t.x = px;
+      t.y = py;
+    } else {
+      rope.len = Math.min(ROPE_MAX, d); // blocked: let the rope pay out instead
+    }
+    const vr = t.vx * ux + t.vy * uy;
+    if (vr > 0) {
+      t.vx -= vr * ux;
+      t.vy -= vr * uy;
+    }
+  }
+}
+
 function land(s: WorldState, t: Tardi): void {
+  t.chute = false;
   if (!t.knocked && s.scheme.fallDamage) {
     const fall = t.y - t.fallStartY;
     if (fall > SAFE_FALL) {
@@ -758,7 +962,8 @@ export function hashWorld(s: WorldState): number {
   mix(s.wind);
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
-    mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0);
+    mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
+    if (t.rope) { mix(t.rope.x); mix(t.rope.y); mix(t.rope.len); }
   }
   for (const p of s.projectiles) {
     mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse);

@@ -3,7 +3,7 @@
 
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE, type WorldState } from '../sim/types';
 import { PANEL_WEAPONS, WEAPONS } from '../sim/weapons';
-import { activeTardi, activeTeam } from '../sim/world';
+import { activeTardi, activeTeam, girderFits } from '../sim/world';
 import type { InputCollector } from '../input/input';
 import { hex } from '../render/palette';
 
@@ -164,7 +164,7 @@ export class Hud {
 
     // Only touch the DOM when something visible changed.
     const key = [
-      secs, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0,
+      secs, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
     ].join('|');
     if (key === this.lastKey) return;
@@ -210,7 +210,11 @@ export class Hud {
 
     let hint = '';
     if (humanTurn && turn.phase === 'aim' && t) {
-      if (def.kind === 'target') hint = turn.target ? 'Press FIRE to confirm' : 'Tap / click the map to choose a target';
+      if (t.rope) hint = '←/→ swing · ↑/↓ climb · Jump or Fire to let go';
+      else if (def.kind === 'rope') hint = 'Aim, then Fire to shoot a silk line';
+      else if (def.kind === 'parachute') hint = t.chute ? '←/→ to steer' : t.airborne ? 'Fire to open the leaf!' : 'Jump off something, then Fire to open';
+      else if (def.girder) hint = !turn.target ? 'Tap / click where to build' : girderFits(s) ? '↑/↓ rotate · Fire to build' : 'Won’t fit there — move or rotate it';
+      else if (def.kind === 'target') hint = turn.target ? 'Press FIRE to confirm' : 'Tap / click the map to choose a target';
     } else if (!humanTurn && turn.phase === 'aim') {
       hint = `${team.name} is thinking…`;
     }

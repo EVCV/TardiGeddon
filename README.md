@@ -19,6 +19,7 @@ and open the network URL.
 **Keyboard:** ←/→ walk · ↑/↓ aim · Enter jump (twice = backflip) · hold Space to
 charge, release to fire · 1–5 grenade fuse · Tab / right-click weapons · click the
 map to target · drag to look around · mouse wheel to zoom.
+On the Silk Rope: ←/→ swing, ↑/↓ climb, Enter or Space to let go.
 
 **Touch:** on-screen pads, tap the map to target, drag to look, pinch to zoom.
 

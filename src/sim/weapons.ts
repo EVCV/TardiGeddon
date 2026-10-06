@@ -13,7 +13,7 @@ export interface ProjectileSpec {
   cluster?: { count: number; weapon: string };
 }
 
-export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant';
+export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee';
 
 export interface WeaponDef {
   id: string;
@@ -27,6 +27,8 @@ export interface WeaponDef {
   projectile?: ProjectileSpec;
   hitscan?: { radius: number; damage: number; range: number };
   strike?: { count: number; spacing: number; weapon: string };
+  girder?: { len: number; thick: number };
+  melee?: { damage: number; reach: number; vx: number; vy: number };
   /** Hidden from the weapon panel (sub-munitions). */
   hidden?: boolean;
   icon: string;
@@ -105,6 +107,40 @@ export const WEAPONS: Record<string, WeaponDef> = {
     hidden: true,
     icon: '•',
     projectile: { windFactor: 0.6, bounce: null, playerFuse: false, radius: 24, damage: 30, speed: 0 },
+  },
+  firepunch: {
+    id: 'firepunch',
+    name: 'Fire Punch',
+    kind: 'melee',
+    ammo: -1,
+    shots: 1,
+    icon: '👊',
+    melee: { damage: 30, reach: 22, vx: 2.2, vy: -7.5 },
+  },
+  rope: {
+    id: 'rope',
+    name: 'Silk Rope',
+    kind: 'rope',
+    ammo: -1,
+    shots: 1,
+    icon: '🕸️',
+  },
+  parachute: {
+    id: 'parachute',
+    name: 'Leaf Parachute',
+    kind: 'parachute',
+    ammo: 3,
+    shots: 1,
+    icon: '🍃',
+  },
+  girder: {
+    id: 'girder',
+    name: 'Twig Girder',
+    kind: 'target',
+    ammo: 3,
+    shots: 1,
+    icon: '🪵',
+    girder: { len: 70, thick: 7 },
   },
   teleport: {
     id: 'teleport',

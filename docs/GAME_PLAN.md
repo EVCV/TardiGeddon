@@ -663,7 +663,11 @@ monetisation (cosmetics only, no ads, no power for sale).
 - Turn flow: start banner, turn timer, retreat, settling, end-of-turn
   damage, death explosions, win/draw, per-team weapon memory, wind.
 - Weapons: Spore Bazooka, Pebble Grenade (fuse 1–5), Algae Cluster, Claw
-  Shotgun (2 shots), Raindrop Strike, Teleport, Skip Go.
+  Shotgun (2 shots), Fire Punch, Raindrop Strike, Teleport, Skip Go.
+- Utilities: Silk Rope (fire mid-air, swing, climb, let go; drops if its
+  anchor is blown away), Leaf Parachute (steerable, no fall damage), Twig
+  Girder (rotate with aim, red ghost when it won't fit).
+- Input fix: taps shorter than one game tick are never lost (slow phones).
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -671,8 +675,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 
 ### Next
 
-1. Silk Rope (ninja rope) + Leaf Parachute + Twig Girder + Fire Punch
-   (completes Phase 1 weapon list).
+1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
 2. Mines, oil (brine) drums, crates; sudden death.
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).

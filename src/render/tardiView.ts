@@ -34,6 +34,16 @@ export function drawTardiBody(g: Graphics, teamColor: number): void {
   g.circle(2.5, -11.2, 1.6).fill(0xffffff).stroke({ width: 1, color: O });
 }
 
+/** Leaf canopy with silk strings, drawn above the tardi's origin. */
+function drawLeafChute(g: Graphics): void {
+  g.moveTo(-8, -6).lineTo(-15, -26).moveTo(8, -6).lineTo(15, -26).moveTo(0, -8).lineTo(0, -28);
+  g.stroke({ width: 1, color: O, alpha: 0.7 });
+  g.moveTo(-24, -26).quadraticCurveTo(0, -52, 24, -26).quadraticCurveTo(0, -34, -24, -26).closePath();
+  g.fill(0x6fcf4a).stroke({ width: 1.6, color: O });
+  g.moveTo(-20, -28).quadraticCurveTo(0, -38, 20, -28).stroke({ width: 1, color: 0x2e5a1c });
+  for (const x of [-12, -4, 4, 12]) g.moveTo(x * 0.4, -36).lineTo(x, -30).stroke({ width: 0.9, color: 0x2e5a1c });
+}
+
 export class TardiView {
   readonly root = new Container();
   private body = new Container();
@@ -41,6 +51,7 @@ export class TardiView {
   private label: Text;
   private hpText: Text;
   private shownHp: number;
+  private chute = new Graphics();
 
   constructor(
     t: Tardi,
@@ -52,6 +63,9 @@ export class TardiView {
     // Lift the art so the claws rest on the physics circle's bottom.
     this.body.y = -2;
     this.root.addChild(this.body);
+    drawLeafChute(this.chute);
+    this.chute.visible = false;
+    this.root.addChild(this.chute);
     const style = {
       fontFamily: 'Luckiest Guy, Arial Black, sans-serif',
       fontSize: 12,
@@ -93,13 +107,16 @@ export class TardiView {
       g.moveTo(lx + 1 + sway, 8 - lift).lineTo(lx + 1.6 + sway, 9.2 - lift).stroke({ width: 0.9, color: O });
     });
 
+    this.chute.visible = t.chute;
+    if (t.chute) this.chute.rotation = Math.sin(time * 2.5 + t.id) * 0.12;
+
     if (this.shownHp !== t.hp) {
       this.shownHp = t.hp;
       this.hpText.text = String(t.hp);
     }
     this.label.visible = showLabels;
     this.hpText.visible = showLabels;
-    const bounce = active ? Math.abs(Math.sin(time * 4)) * 3 : 0;
+    const bounce = (active ? Math.abs(Math.sin(time * 4)) * 3 : 0) + (t.chute ? 34 : 0);
     this.label.y = -30 - bounce;
     this.hpText.y = -17 - bounce;
   }
