@@ -4,10 +4,11 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { Tardi } from '../sim/types';
 import { PALETTE, hex } from './palette';
+import { drawHatPixi } from './hats';
 
 const O = PALETTE.outline;
 
-export function drawTardiBody(g: Graphics, teamColor: number): void {
+export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie'): void {
   // Back legs (darker, behind the body)
   for (const lx of [-5, 4]) {
     g.roundRect(lx - 1.6, 1, 3.4, 6.5, 1.6).fill(PALETTE.tardiShade).stroke({ width: 1.2, color: O });
@@ -29,9 +30,8 @@ export function drawTardiBody(g: Graphics, teamColor: number): void {
   g.circle(5, -4.4, 1.1).fill(PALETTE.pupil);
   g.circle(8.3, -3.6, 1.4).fill(PALETTE.pupil);
   g.circle(8.7, -4.2, 0.5).fill(PALETTE.eyeWhite);
-  // Team beanie (first cosmetic slot)
-  g.moveTo(-1.5, -6.6).arc(2.5, -6.6, 4, Math.PI, 0).closePath().fill(teamColor).stroke({ width: 1.3, color: O });
-  g.circle(2.5, -11.2, 1.6).fill(0xffffff).stroke({ width: 1, color: O });
+  // Hat (first cosmetic slot)
+  drawHatPixi(g, hat, teamColor, 2.5, -6.6, 4);
 }
 
 /** Leaf canopy with silk strings, drawn above the tardi's origin. */
@@ -56,9 +56,10 @@ export class TardiView {
   constructor(
     t: Tardi,
     teamColor: number,
+    hat = 'beanie',
   ) {
     const g = new Graphics();
-    drawTardiBody(g, teamColor);
+    drawTardiBody(g, teamColor, hat);
     this.body.addChild(g, this.legs);
     // Lift the art so the claws rest on the physics circle's bottom.
     this.body.y = -2;

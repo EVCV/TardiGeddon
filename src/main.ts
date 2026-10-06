@@ -6,7 +6,7 @@ import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
-import { TEAM_COLORS, TEAM_NAMES } from './render/palette';
+import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard } from './input/input';
 import { Hud } from './ui/hud';
 import { CpuPlayer } from './ai/cpu';
@@ -55,7 +55,7 @@ async function boot(): Promise<void> {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
     const n = Number(new URLSearchParams(location.search).get('players')) || 2;
     const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
-    start({ players, scheme: presetScheme('standard'), seed: 12345 });
+    start({ players, teams: loadProfiles().slice(0, n), scheme: presetScheme('standard'), seed: 12345 });
   }
   else menu();
 }
@@ -83,7 +83,10 @@ class Match {
     private onMenu: () => void,
     private onAgain: () => void,
   ) {
-    const teams: TeamConfig[] = setup.players.map((cpu, i) => ({ name: TEAM_NAMES[i], color: TEAM_COLORS[i], cpu }));
+    const teams: TeamConfig[] = setup.players.map((cpu, i) => {
+      const p = setup.teams[i];
+      return { name: p.name, color: p.color, hat: p.hat, names: matchNames(p, i), cpu };
+    });
     this.state = createWorld({
       seed: setup.seed,
       teams,

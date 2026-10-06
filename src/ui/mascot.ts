@@ -1,6 +1,10 @@
 // The TardiGeddon mascot as inline SVG (same design as the in-game tardi).
 
-export const MASCOT_SVG = `
+import { hatSvg } from '../render/hats';
+
+/** A tardi in SVG wearing the given hat in the given team colour. */
+export function mascotSvg(teamColor = 0xe04848, hat = 'beanie'): string {
+  return `
 <svg viewBox="-40 -40 80 60" xmlns="http://www.w3.org/2000/svg" aria-label="Tardigrade mascot">
   <g stroke="#2b1b24" stroke-linejoin="round" stroke-linecap="round">
     <rect x="-17" y="2" width="7" height="15" rx="3.5" fill="#e3a98a" stroke-width="2"/>
@@ -19,7 +23,9 @@ export const MASCOT_SVG = `
     <circle cx="11" cy="-8.8" r="2.3" fill="#1d1420" stroke="none"/>
     <circle cx="19" cy="-7.5" r="3" fill="#1d1420" stroke="none"/>
     <circle cx="20" cy="-8.8" r="1.1" fill="#fff" stroke="none"/>
-    <path d="M-4 -15 a9 9 0 0 1 18 0 z" fill="#e04848" stroke-width="2.4"/>
-    <circle cx="5" cy="-25.5" r="3.4" fill="#fff" stroke-width="2"/>
   </g>
+  ${hatSvg(hat, teamColor, 5, -15, 9)}
 </svg>`;
+}
+
+export const MASCOT_SVG = mascotSvg();
