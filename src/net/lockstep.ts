@@ -2,9 +2,9 @@
 // advances it only with the frames the server streams. DOM-free, so the
 // same code runs in tests.
 
-import { createWorld, hashWorld, tick, type TeamConfig } from '../sim/world';
+import { createWorld, tick, type TeamConfig } from '../sim/world';
 import { DEFAULT_SCHEME, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../sim/types';
-import { decodeWorld } from './snapshot';
+import { decodeWorld, syncHash } from './snapshot';
 import { fromWire, type WireFrame } from './protocol';
 
 export class Lockstep {
@@ -50,7 +50,7 @@ export class Lockstep {
 
   onHash(tickNo: number, h: number): void {
     if (tickNo <= this.state.tick) {
-      if (tickNo === this.state.tick && hashWorld(this.state) !== h) this.desynced = true;
+      if (tickNo === this.state.tick && syncHash(this.state) !== h) this.desynced = true;
       return;
     }
     this.hashes.set(tickNo, h);
@@ -72,7 +72,7 @@ export class Lockstep {
     const want = this.hashes.get(this.state.tick);
     if (want !== undefined) {
       this.hashes.delete(this.state.tick);
-      if (hashWorld(this.state) !== want) this.desynced = true;
+      if (syncHash(this.state) !== want) this.desynced = true;
     }
     return true;
   }

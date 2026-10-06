@@ -3,6 +3,7 @@
 // runs of air or soil, so this keeps a snapshot to a few tens of KB.
 
 import type { WorldState } from '../sim/types';
+import { hashWorld } from '../sim/world';
 
 // JSON writes -0 as 0, which would change the world hash; keep it exact.
 const NEG_ZERO = '\u0000-0';
@@ -32,4 +33,21 @@ export function decodeWorld(json: string): WorldState {
     p += runs[k + 1];
   }
   return { ...o, terrain: { w, h, mask } };
+}
+
+/**
+ * Hash of everything a snapshot carries, for online desync checks. hashWorld
+ * covers terrain and physics; this adds every other field (ammo, turn state,
+ * projectile owners...) via the JSON form, which is identical on every client.
+ */
+export function syncHash(s: WorldState): number {
+  // Leave terrain out (not just null it): key order must match a decoded snapshot's.
+  const { terrain: _terrain, ...rest } = s;
+  const json = JSON.stringify(rest);
+  let h = hashWorld(s) ^ 0x811c9dc5;
+  for (let i = 0; i < json.length; i++) {
+    h ^= json.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cleanFrame, cleanScheme, cleanTeam, Room, type Member } from '../server/room';
 import { Lockstep } from '../src/net/lockstep';
-import { decodeWorld, encodeWorld } from '../src/net/snapshot';
+import { decodeWorld, encodeWorld, syncHash } from '../src/net/snapshot';
 import { hashWorld, tick } from '../src/sim/world';
 import { BTN_FIRE, BTN_RIGHT } from '../src/sim/types';
 import { toWire, type ServerMsg } from '../src/net/protocol';
@@ -150,6 +150,22 @@ describe('online room', () => {
     expect(hashWorld(b.ls!.state)).toBe(hashWorld(room.world!));
   });
 
+  it('spots a desync in non-physics state too (ammo)', () => {
+    const { room, a, b } = lobby();
+    room.handle(a, { t: 'start', scheme: {} });
+    for (let i = 0; i < 20; i++) room.step();
+    b.catchUp();
+    b.ls!.state.teams[0].ammo.bazooka = 5; // physics untouched, ammo differs
+    for (let i = 0; i < 100; i++) {
+      room.step();
+      b.catchUp();
+    }
+    expect(b.ls!.desynced).toBe(true);
+    room.handle(b, { t: 'resync' });
+    expect(b.ls!.state.teams[0].ammo.bazooka).toBe(-1);
+    expect(b.ls!.desynced).toBe(false);
+  });
+
   it('returns to the lobby when the match ends', () => {
     const { room, a } = lobby();
     room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
@@ -167,11 +183,12 @@ describe('snapshots', () => {
     run(s, 300, { held: BTN_RIGHT, pressed: 0 });
     const c = decodeWorld(encodeWorld(s));
     expect(hashWorld(c)).toBe(hashWorld(s));
+    expect(syncHash(c)).toBe(syncHash(s));
     for (let i = 0; i < 200; i++) {
       tick(s, { held: BTN_FIRE, pressed: 0 }, []);
       tick(c, { held: BTN_FIRE, pressed: 0 }, []);
     }
-    expect(hashWorld(c)).toBe(hashWorld(s));
+    expect(syncHash(c)).toBe(syncHash(s));
     expect(encodeWorld(s).length).toBeLessThan(400_000);
   });
 });

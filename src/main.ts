@@ -14,7 +14,7 @@ import { sfx, setMuted, unlockAudio } from './audio/sfx';
 import { showMenu, type MatchSetup } from './ui/menu';
 import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
-import type { Lockstep } from './net/lockstep';
+import { Lockstep } from './net/lockstep';
 import { toWire, type ServerMsg } from './net/protocol';
 import { presetScheme } from './sim/schemes';
 import { ANGLE_FULL } from './sim/math/trig';
@@ -73,6 +73,7 @@ async function boot(): Promise<void> {
       },
       () => online({ client, room: m.lastRoom ?? undefined }),
     );
+    m.onNetStart = (next) => startOnline(client, next);
     current = m;
   };
   const params = new URLSearchParams(location.search);
@@ -114,6 +115,8 @@ class Match {
   private sentTurn = -1;
   private resyncAsked = false;
   private reconnecting = false;
+  /** Called when the server starts a new match on this connection (a rematch). */
+  onNetStart: ((ls: Lockstep) => void) | null = null;
   /** Latest lobby state from the server (for "Back to room" after the match). */
   lastRoom: Extract<ServerMsg, { t: 'room' }> | null = null;
 
@@ -172,6 +175,10 @@ class Match {
           this.renderer = new GameRenderer(this.app, this.state);
           break;
         case 'room': this.lastRoom = msg; break;
+        case 'start':
+          // The host started a rematch while we were still on the results screen.
+          this.onNetStart?.(Lockstep.start(msg.seed, msg.scheme, msg.teams, msg.you));
+          break;
         case 'error': this.hud.showBanner(msg.msg, 0xe04848, 3); break;
       }
     });

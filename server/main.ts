@@ -14,6 +14,9 @@ const EMPTY_ROOM_MS = 2 * 60_000;
 /** Inputs allowed per second per connection (frames are 50/s; leave headroom). */
 const MSG_PER_SEC = 120;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/** Hard cap on rooms, and how often one connection may create one. */
+const MAX_ROOMS = 2000;
+const CREATE_COOLDOWN_MS = 5000;
 
 const rooms = new Map<string, Room>();
 
@@ -35,6 +38,7 @@ const wss = new WebSocketServer({ server: http, maxPayload: 16 * 1024 });
 
 wss.on('connection', (ws: WebSocket) => {
   let room: Room | null = null;
+  let lastCreate = 0;
   let budget = MSG_PER_SEC;
   const refill = setInterval(() => (budget = MSG_PER_SEC), 1000);
   const member: Member = {
@@ -43,6 +47,13 @@ wss.on('connection', (ws: WebSocket) => {
     },
   };
   const fail = (msg: string) => member.send({ t: 'error', msg });
+  // Lobbies nobody is in are dropped at once (started matches wait for rejoins).
+  const leaveRoom = () => {
+    if (!room) return;
+    room.leave(member);
+    if (room.humansConnected === 0 && !room.started) rooms.delete(room.code);
+    room = null;
+  };
 
   ws.on('message', (data) => {
     if (--budget < 0) return;
@@ -55,8 +66,12 @@ wss.on('connection', (ws: WebSocket) => {
     if (!msg || typeof msg !== 'object') return;
     if (msg.t === 'create' || msg.t === 'join') {
       if (msg.v !== PROTOCOL_VERSION) return fail('Please reload the page: the game has been updated.');
-      room?.leave(member);
-      room = null;
+      if (msg.t === 'create') {
+        if (Date.now() - lastCreate < CREATE_COOLDOWN_MS) return fail('Please wait a moment before making another room.');
+        if (rooms.size >= MAX_ROOMS) return fail('The server is full right now. Please try again soon.');
+        lastCreate = Date.now();
+      }
+      leaveRoom();
       if (msg.t === 'create') {
         const r = new Room(newCode());
         rooms.set(r.code, r);
@@ -72,6 +87,7 @@ wss.on('connection', (ws: WebSocket) => {
       }
       return;
     }
+    if (msg.t === 'leave') return leaveRoom();
     try {
       room?.handle(member, msg);
     } catch (e) {
@@ -82,7 +98,7 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('close', () => {
     clearInterval(refill);
-    room?.leave(member);
+    leaveRoom();
   });
 });
 
@@ -99,7 +115,7 @@ setInterval(() => {
     for (const r of rooms.values()) r.step();
   }
   for (const [code, r] of rooms) {
-    if (r.humansConnected === 0 && r.emptySince && Date.now() - r.emptySince > EMPTY_ROOM_MS) rooms.delete(code);
+    if (r.humansConnected === 0 && (!r.started || (r.emptySince && Date.now() - r.emptySince > EMPTY_ROOM_MS))) rooms.delete(code);
   }
 }, 10);
 

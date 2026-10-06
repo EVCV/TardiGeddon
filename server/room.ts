@@ -3,12 +3,12 @@
 // Transport-agnostic (members just have a send function), so it can be
 // unit-tested without sockets.
 
-import { createWorld, DEFAULT_NAMES, hashWorld, MAX_TEAMS, tick, type TeamConfig } from '../src/sim/world';
+import { createWorld, DEFAULT_NAMES, MAX_TEAMS, tick, type TeamConfig } from '../src/sim/world';
 import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type WorldState } from '../src/sim/types';
 import { WEAPONS } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { CpuPlayer } from '../src/ai/cpu';
-import { encodeWorld } from '../src/net/snapshot';
+import { encodeWorld, syncHash } from '../src/net/snapshot';
 import { fromWire, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
 
 /** Frames are sent in small batches to cut message count. */
@@ -239,7 +239,7 @@ export class Room {
     if (this.outbox.length >= FLUSH_EVERY) this.flush();
     if (s.tick % HASH_EVERY === 0) {
       this.flush();
-      this.broadcast({ t: 'hash', tick: s.tick, h: hashWorld(s) });
+      this.broadcast({ t: 'hash', tick: s.tick, h: syncHash(s) });
     }
     if (s.turn.phase === 'gameover') {
       this.flush();
