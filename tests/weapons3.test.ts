@@ -65,7 +65,7 @@ describe('Cyanobloom Cloud', () => {
     victim.hp = 12;
     const far = s.tardis.find((t) => t !== victim && t !== activeTardi(s))!;
     // Simulate the cloud's explosion right next to the victim.
-    s.projectiles.push({ id: 999, weapon: 'cyanobloom', x: 1500, y: 580, vx: 0, vy: 0, fuse: 1, owner: -1, age: 0, tx: 0, ty: 0, dir: 0 });
+    s.projectiles.push({ id: 999, weapon: 'cyanobloom', x: 1500, y: 580, vx: 0, vy: 0, fuse: 1, owner: -1, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 });
     const ev = run(s, 1);
     expect(ev.some((e) => e.t === 'gas')).toBe(true);
     expect(victim.poison).toBe(true);

@@ -21,6 +21,8 @@ export interface ProjectileSpec {
   poison?: number;
   /** Walks along the ground instead of flying (fired without charging). */
   walker?: { fuseTicks: number; speed: number };
+  /** Smashes down through the ground, exploding on each of this many hits. */
+  crusher?: { slams: number };
 }
 
 export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee' | 'walker' | 'drop';
@@ -39,6 +41,10 @@ export interface WeaponDef {
   strike?: { count: number; spacing: number; weapon: string };
   girder?: { len: number; thick: number };
   melee?: { damage: number; reach: number; vx: number; vy: number };
+  /** Rains this many projectiles per 1000 px of map width (map-wide strike). */
+  shower?: { per1000: number; weapon: string };
+  /** Superweapon: starting ammo comes from the scheme's `supers` setting. */
+  super?: boolean;
   /** Hidden from the weapon panel (sub-munitions). */
   hidden?: boolean;
   icon: string;
@@ -296,6 +302,46 @@ export const WEAPONS: Record<string, WeaponDef> = {
     shots: 1,
     endsTurn: true,
     icon: '✨',
+  },
+  holywater: {
+    id: 'holywater',
+    name: 'Holy Water Droplet',
+    kind: 'charge',
+    ammo: 0,
+    shots: 1,
+    super: true,
+    icon: '💦',
+    projectile: { windFactor: 0, bounce: 0.3, playerFuse: false, radius: 90, damage: 100, speed: 14, fuseTicks: 150 },
+  },
+  tun: {
+    id: 'tun',
+    name: 'Concrete Tun',
+    kind: 'target',
+    ammo: 0,
+    shots: 1,
+    super: true,
+    icon: '🗿',
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 36, damage: 40, speed: 0, crusher: { slams: 6 } },
+  },
+  slideslam: {
+    id: 'slideslam',
+    name: 'Microscope Slide Slam',
+    kind: 'instant',
+    ammo: 0,
+    shots: 1,
+    super: true,
+    icon: '🔬',
+    shower: { per1000: 8, weapon: 'shard' },
+  },
+  shard: {
+    id: 'shard',
+    name: 'Glass Shard',
+    kind: 'charge',
+    ammo: 0,
+    shots: 1,
+    hidden: true,
+    icon: '•',
+    projectile: { windFactor: 0.3, bounce: null, playerFuse: false, radius: 26, damage: 28, speed: 0 },
   },
   skip: {
     id: 'skip',

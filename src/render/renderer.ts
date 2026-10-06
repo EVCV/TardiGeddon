@@ -617,6 +617,33 @@ function drawProjectile(g: Graphics, weapon: string, x: number, y: number, vx: n
       g.circle(x + 2, y - 1, 1.1).fill(O);
       break;
     }
+    case 'holywater': {
+      // Glowing water droplet with a halo
+      g.ellipse(x, y - 9, 6, 2).stroke({ width: 1.6, color: 0xffd84a });
+      g.circle(x, y, 9).fill({ color: 0xbfe8ff, alpha: 0.35 });
+      g.poly([x, y - 8, x + 5.5, y + 1, x + 4, y + 5, x, y + 6.5, x - 4, y + 5, x - 5.5, y + 1]).fill(0x63b7ff).stroke({ width: 1.5, color: O });
+      g.circle(x - 1.8, y + 1, 1.5).fill(0xffffff);
+      break;
+    }
+    case 'tun': {
+      // Dried-up tardigrade "tun", cast in concrete
+      g.ellipse(x, y, 12, 10).fill(0xa7a39b).stroke({ width: 2, color: O });
+      for (const sx of [-5, 0, 5]) g.moveTo(x + sx, y - 9).quadraticCurveTo(x + sx - 2, y, x + sx, y + 9).stroke({ width: 1.2, color: 0x6f6b64 });
+      g.circle(x - 6, y - 4, 1.4).fill(0x6f6b64);
+      g.circle(x + 4, y + 4, 1).fill(0x6f6b64);
+      break;
+    }
+    case 'shard': {
+      // Spinning sliver of a glass microscope slide
+      const a = (x + y) * 0.08;
+      const c = Math.cos(a) * 7;
+      const sn = Math.sin(a) * 7;
+      g.poly([x + c, y + sn, x - sn * 0.4, y + c * 0.4, x - c, y - sn, x + sn * 0.4, y - c * 0.4])
+        .fill({ color: 0xd8f4ff, alpha: 0.85 })
+        .stroke({ width: 1.3, color: O });
+      g.moveTo(x - c * 0.5, y - sn * 0.5).lineTo(x + c * 0.3, y + sn * 0.3).stroke({ width: 1, color: 0xffffff });
+      break;
+    }
     default:
       g.circle(x, y, 3).fill(0xffffff).stroke({ width: 1, color: O });
   }

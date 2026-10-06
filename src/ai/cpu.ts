@@ -140,7 +140,7 @@ function predict(
 ): { x: number; y: number } | null {
   const spec = WEAPONS[weapon].projectile!;
   const { vx, vy } = launchVelocity(spec, facing, aim, power);
-  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : -1, owner, age: 0, tx: 0, ty: 0, dir: 0 };
+  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : -1, owner, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
   for (let i = 0; i < 400; i++) {
     const r = stepProjectile(s, p, null);
     if (r.k === 'gone') return null;

@@ -698,6 +698,10 @@ monetisation (cosmetics only, no ads, no power for sale).
   strike of 5 acid canisters). Flames fall, settle, slowly scorch the
   ground, singe tardis standing in them (ending your turn if it's you),
   burn out after ~4 s, and are put out by water.
+- Superweapons, crate-only by default (Chaos, or the "Superweapons: 1 each"
+  setting, gives one of each): Holy Water Droplet (3 s fuse, 90 px blast),
+  Concrete Tun (dropped on a target, smashes down through six explosions) and
+  Microscope Slide Slam (glass shards rain across the whole map).
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -706,7 +710,6 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. Superweapons (Holy Water Droplet, Concrete Tun, Microscope Slide Slam).
-3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
-4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
-5. Owner: register developer accounts (Apple, Google, Stripe) early.
+2. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
+3. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
+4. Owner: register developer accounts (Apple, Google, Stripe) early.

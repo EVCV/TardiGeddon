@@ -56,7 +56,7 @@ const CRATE_R = 8;
 const MINE_TRIGGER = 26;
 const CRATE_FALL = 1.5;
 /** Crate contents: weapon ids weighted by how often they appear. */
-const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer', 'bacteria', 'dynamite', 'cyanobloom', 'sapbomb', 'acidrain'];
+const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer', 'bacteria', 'dynamite', 'cyanobloom', 'sapbomb', 'acidrain', 'holywater', 'tun', 'slideslam'];
 const HOMING_START = 15;
 const POISON_DMG = 5;
 const FLAME_LIFE = 220;
@@ -64,6 +64,8 @@ const FLAME_BURN_EVERY = 10;
 /** Ground scorching is slower than burning tardis, so fire leaves dents, not pits. */
 const FLAME_CARVE_EVERY = 40;
 const FLAME_REACH = 9;
+/** Collision radius of the Concrete Tun. */
+const CRUSHER_R = 10;
 const FLAME_DMG = 2;
 const HOMING_TICKS = 120;
 const WALKER_R = 4;
@@ -166,7 +168,8 @@ export function createWorld(cfg: WorldConfig): WorldState {
       for (const def of Object.values(WEAPONS)) {
         // A scheme weapon list restricts the arsenal; Skip Go is always allowed.
         const listed = scheme.weapons?.[def.id];
-        ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? def.ammo : (listed ?? 0);
+        const base = def.super ? scheme.supers : def.ammo;
+        ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? base : (listed ?? 0);
       }
       const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', ammo };
       s.teams.push(team);
@@ -494,7 +497,10 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
       }
       break;
     case 'instant':
-      if (fireEdge) afterShot(s, def);
+      if (fireEdge) {
+        if (def.shower) slideShower(s, t, def.shower, events);
+        afterShot(s, def);
+      }
       break;
   }
 }
@@ -612,7 +618,7 @@ function spawnProjectile(
   fuse: number,
   owner: number,
 ): Projectile {
-  const p: Projectile = { id: s.nextId++, weapon, x, y, vx, vy, fuse, owner, age: 0, tx: 0, ty: 0, dir: 0 };
+  const p: Projectile = { id: s.nextId++, weapon, x, y, vx, vy, fuse, owner, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
   s.projectiles.push(p);
   return p;
 }
@@ -631,13 +637,24 @@ export function launchVelocity(
 function fireProjectile(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
   const spec = def.projectile!;
   const { vx, vy } = launchVelocity(spec, t.facing, s.turn.aim, s.turn.power);
-  const fuse = spec.playerFuse ? s.turn.fuseSeconds * TICK_RATE : -1;
+  const fuse = spec.playerFuse ? s.turn.fuseSeconds * TICK_RATE : (spec.fuseTicks ?? -1);
   const p = spawnProjectile(s, def.id, t.x, t.y, vx, vy, fuse, t.id);
   if (spec.homing && s.turn.target) {
     p.tx = s.turn.target.x;
     p.ty = s.turn.target.y;
   }
   events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
+}
+
+/** Microscope Slide Slam: glass shards rain down all over the map. */
+function slideShower(s: WorldState, t: Tardi, sh: { per1000: number; weapon: string }, events: SimEvent[]): void {
+  const n = Math.round((sh.per1000 * s.terrain.w) / 1000);
+  for (let i = 0; i < n; i++) {
+    const x = rngInt(s.rng, 30, s.terrain.w - 30);
+    const y = -40 - rngInt(s.rng, 0, 700);
+    spawnProjectile(s, sh.weapon, x, y, (rngFloat(s.rng) - 0.5) * 2, 6, -1, t.id);
+  }
+  events.push({ t: 'fire', weapon: 'slideslam', x: t.x, y: 0 });
 }
 
 function fireWalker(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
@@ -761,6 +778,12 @@ function fireTargeted(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[
     events.push({ t: 'terrain', rect });
     return true;
   }
+  if (def.projectile?.crusher) {
+    // Dropped from high above the target, straight down.
+    spawnProjectile(s, def.id, target.x, -60, 0, 4, -1, t.id);
+    events.push({ t: 'fire', weapon: def.id, x: target.x, y: 0 });
+    return true;
+  }
   if (def.strike) {
     const st = def.strike;
     const dir = target.x < t.x ? -1 : 1;
@@ -825,6 +848,8 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
     p.vy += GRAVITY;
   }
   p.vx += s.wind * WIND_ACCEL * spec.windFactor;
+  // The Concrete Tun is big: it hits things further from its centre.
+  const size = spec.crusher ? CRUSHER_R : 2;
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(p.vx), Math.abs(p.vy))));
   const sx = p.vx / steps;
   const sy = p.vy / steps;
@@ -841,16 +866,16 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
         if (!o.alive || (o.id === p.owner && p.age < 15)) continue;
         const dx = o.x - nx;
         const dy = o.y - ny;
-        if (dx * dx + dy * dy < (TARDI_R + 2) * (TARDI_R + 2)) return { k: 'explode', x: nx, y: ny };
+        if (dx * dx + dy * dy < (TARDI_R + size) * (TARDI_R + size)) return { k: 'explode', x: nx, y: ny };
       }
       for (const o of s.objects) {
         if (o.kind === 'mine') continue;
         const dx = o.x - nx;
         const dy = o.y - ny;
-        if (dx * dx + dy * dy < (CRATE_R + 2) * (CRATE_R + 2)) return { k: 'explode', x: nx, y: ny };
+        if (dx * dx + dy * dy < (CRATE_R + size) * (CRATE_R + size)) return { k: 'explode', x: nx, y: ny };
       }
     }
-    if (circleCollides(s.terrain, nx, ny, 2)) {
+    if (circleCollides(s.terrain, nx, ny, size)) {
       if (spec.bounce === null) return { k: 'explode', x: nx, y: ny };
       const n = normalAt(s.terrain, nx, ny, 4);
       const dot = p.vx * n.nx + p.vy * n.ny;
@@ -872,6 +897,17 @@ function updateProjectiles(s: WorldState, events: SimEvent[]): void {
   for (const p of list) {
     const r = stepProjectile(s, p, events);
     if (r.k === 'alive') continue;
+    const crusher = WEAPONS[p.weapon].projectile!.crusher;
+    if (r.k === 'explode' && crusher && ++p.hits < crusher.slams) {
+      // Concrete Tun: blast a hole and keep smashing down through it.
+      const spec = WEAPONS[p.weapon].projectile!;
+      explode(s, r.x, r.y, spec.radius, spec.damage, events);
+      p.x = r.x;
+      p.y = r.y;
+      p.vx = 0;
+      p.vy = 3;
+      continue;
+    }
     s.projectiles.splice(s.projectiles.indexOf(p), 1);
     if (p.dir !== 0 && s.turn.phase === 'retreat') {
       // Walker is done: the usual short retreat follows.
@@ -1448,7 +1484,7 @@ export function hashWorld(s: WorldState): number {
     if (t.rope) { mix(t.rope.x); mix(t.rope.y); mix(t.rope.len); }
   }
   for (const p of s.projectiles) {
-    mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse); mix(p.tx); mix(p.ty); mix(p.dir);
+    mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse); mix(p.tx); mix(p.ty); mix(p.dir); mix(p.hits);
   }
   for (const o of s.objects) {
     mix(o.id); mix(o.x); mix(o.y); mix(o.vx); mix(o.vy); mix(o.fuse); mix(o.hp);
