@@ -166,6 +166,9 @@ export class GameRenderer {
           if (t) this.markers.addChild(makeHusk(t.x, t.y, this.state.teams[t.team].color));
           break;
         }
+        case 'burn':
+          this.terrainView.crater(e.x, e.y, 2.5, e.rect);
+          break;
         case 'gas':
           // Lingering green cloud
           for (let i = 0; i < 26; i++) {
@@ -294,6 +297,14 @@ export class GameRenderer {
       const p = this.lerpPos(pr.id, pr.x, pr.y, alpha);
       drawProjectile(pg, pr.weapon, p.x, p.y, pr.vx, pr.vy);
       if (pr.fuse > 0) fuses.push({ id: pr.id, x: p.x, y: p.y, ticks: pr.fuse });
+    }
+    // Flames: flickering sap fire (orange) or acid (green)
+    for (const f of s.flames) {
+      const flick = Math.sin(this.time * 20 + f.id) * 0.8;
+      const k = Math.min(1, f.life / 60);
+      const [outer, inner] = f.acid ? [0x6fd84a, 0xd8ff9a] : [0xff7a1a, 0xffe14a];
+      pg.circle(f.x, f.y - 2 - flick, (3.4 + flick * 0.5) * k + 0.6).fill({ color: outer, alpha: 0.85 });
+      pg.circle(f.x, f.y - 2.6 - flick, 1.8 * k + 0.4).fill({ color: inner, alpha: 0.95 });
     }
     for (const o of s.objects) {
       if (o.kind === 'mine' && o.fuse > 0) {
@@ -552,6 +563,15 @@ function drawProjectile(g: Graphics, weapon: string, x: number, y: number, vx: n
       // Acorn-like seed pod
       g.ellipse(x, y + 1, 4.5, 5).fill(0xa0632f).stroke({ width: 1.4, color: O });
       g.ellipse(x, y - 3, 5, 2.4).fill(0x6b3f1c).stroke({ width: 1.2, color: O });
+      break;
+    case 'sapbomb':
+      // Jar of glowing amber sap
+      g.roundRect(x - 4, y - 5, 8, 10, 3).fill(0xf0a030).stroke({ width: 1.4, color: O });
+      g.rect(x - 2.5, y - 7, 5, 2.5).fill(0x8f5f2e).stroke({ width: 1, color: O });
+      g.circle(x - 1.5, y - 1, 1.2).fill(0xffe9a8);
+      break;
+    case 'aciddrop':
+      g.poly([x, y + 6, x - 4, y - 1, x, y - 7, x + 4, y - 1]).fill(0x7ad84a).stroke({ width: 1.3, color: O });
       break;
     case 'bacteria':
       // Chunky rod-shaped bacterium

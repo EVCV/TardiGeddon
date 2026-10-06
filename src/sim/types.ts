@@ -108,6 +108,19 @@ export interface MapObject {
   amount: number;
 }
 
+/** A burning blob of sap (fire) or acid. Falls, settles, burns what it touches. */
+export interface Flame {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  /** Ticks left before it burns out. */
+  life: number;
+  resting: boolean;
+  acid: boolean;
+}
+
 export interface Projectile {
   id: number;
   weapon: string;
@@ -170,6 +183,7 @@ export interface WorldState {
   tardis: Tardi[];
   projectiles: Projectile[];
   objects: MapObject[];
+  flames: Flame[];
   teams: Team[];
   /** Ticks played this round (drives sudden death). */
   roundTicks: number;
@@ -202,5 +216,6 @@ export type SimEvent =
   | { t: 'collect'; id: number; tardi: number; contents: string; amount: number }
   | { t: 'suddenDeath' }
   | { t: 'gas'; x: number; y: number; r: number }
+  | { t: 'burn'; x: number; y: number; rect: Rect }
   | { t: 'waterRise'; y: number }
   | { t: 'gameover'; winner: number };
