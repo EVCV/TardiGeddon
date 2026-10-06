@@ -706,6 +706,11 @@ monetisation (cosmetics only, no ads, no power for sale).
   back); if a corner is blown away the rope falls back to the one before.
 - Drag-to-aim: drag from your own tardi to point the crosshair (touch and
   mouse); other drags still pan the camera.
+- **Online play (Phase 2, part 1):** Node WebSocket server (`server/`) runs
+  the sim and streams lockstep input frames; room codes and invite links,
+  lobby with CPU slots and game style, rejoin with snapshot, hash-based
+  desync recovery, dropped players' turns played by the CPU. Deploy steps
+  for the owner in `docs/ONLINE.md` (Fly.io + `SERVER_URL` variable).
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -713,6 +718,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 
 ### Next
 
-1. Rope-only "rope race" scheme; crosshair/aim feel tuning against WA.
-2. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
-3. Owner: register developer accounts (Apple, Google, Stripe) early.
+1. Owner: deploy the game server (docs/ONLINE.md) so online works on the site.
+2. Phase 2, part 2: Supabase accounts (required for online), quick-play queue.
+3. Rope-only "rope race" scheme; crosshair/aim feel tuning against WA.
+4. Owner: register developer accounts (Apple, Google, Stripe) early.

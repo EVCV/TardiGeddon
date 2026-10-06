@@ -31,6 +31,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Address of the online game server (repo Settings → Secrets and
+          # variables → Actions → Variables → SERVER_URL, e.g. wss://tardigeddon-server.fly.dev).
+          # Leave unset and the game builds with online play switched off.
+          VITE_SERVER_URL: ${{ vars.SERVER_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

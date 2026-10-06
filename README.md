@@ -21,13 +21,20 @@ charge, release to fire · 1–5 grenade fuse · Tab / right-click weapons · cl
 map to target · drag to look around · mouse wheel to zoom.
 On the Silk Rope: ←/→ swing, ↑/↓ climb, Enter or Space to let go.
 
-**Touch:** on-screen pads, tap the map to target, drag to look, pinch to zoom.
+**Touch:** on-screen pads, drag from your tardi to aim, tap the map to target,
+drag elsewhere to look, pinch to zoom.
+
+### Online play locally
+
+Run `npm run server` alongside `npm run dev`, then choose **Play online** in two
+browser windows (or on a phone on the same Wi-Fi). See `docs/ONLINE.md` for how
+online works and how to put the server on the internet.
 
 ## Tests
 
 ```sh
 npm test          # simulation unit, determinism and CPU soak tests
-npm run e2e       # browser smoke tests (desktop + phone)
+npm run e2e       # browser smoke tests (desktop + phone) and a two-player online match
 ```
 
 ## Playable link

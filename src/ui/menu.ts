@@ -72,7 +72,13 @@ const FIELDS: Field[] = [
   { key: 'movement', label: 'Walking', options: [['On', true], ['Off (Artillery)', false]] },
 ];
 
-export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): void {
+/** The game style last chosen in the menu (used by the online lobby). */
+export function savedScheme(): { style: string; custom: Scheme } {
+  const v = load();
+  return { style: v.style, custom: v.custom };
+}
+
+export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, onOnline?: () => void): void {
   const saved = load();
   const styleOptions = SCHEME_PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
   root.innerHTML = `
@@ -90,6 +96,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
         <div class="slots"></div>
         <div class="menu-buttons">
           <button class="big-btn play">Play</button>
+          <button class="big-btn secondary online-btn">Play online</button>
         </div>
         <div class="style-row">
           <label>Game style
@@ -221,6 +228,10 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
     customiseBtn.textContent = panel.classList.contains('hidden') ? 'Customise' : 'Done';
   };
   refresh();
+
+  const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
+  if (onOnline) onlineBtn.onclick = onOnline;
+  else onlineBtn.remove();
 
   root.querySelector<HTMLButtonElement>('.play')!.onclick = () => {
     onStart({ players: [...players], teams: profiles.slice(0, players.length), scheme: current(), seed: (Math.random() * 1e9) | 0 });

@@ -135,15 +135,15 @@ export class Hud {
     this.bannerUntil = performance.now() + seconds * 1000;
   }
 
-  showGameOver(s: WorldState, onAgain: () => void, onMenu: () => void): void {
+  showGameOver(s: WorldState, onAgain: () => void, onMenu: () => void, labels: readonly [string, string] = ['Play again', 'Main menu']): void {
     const w = s.turn.winner;
     this.gameOver.innerHTML = '';
     const box = el('div', 'overlay-box');
     const title = el('h1', 'title-small', w >= 0 ? `${s.teams[w].name} wins!` : 'Draw!');
     if (w >= 0) title.style.color = hex(s.teams[w].color);
-    const again = el('button', 'big-btn', 'Play again');
+    const again = el('button', 'big-btn', labels[0]);
     again.onclick = onAgain;
-    const menu = el('button', 'big-btn secondary', 'Main menu');
+    const menu = el('button', 'big-btn secondary', labels[1]);
     menu.onclick = onMenu;
     box.append(title, again, menu);
     this.gameOver.append(box);
