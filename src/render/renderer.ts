@@ -166,6 +166,19 @@ export class GameRenderer {
           if (t) this.markers.addChild(makeHusk(t.x, t.y, this.state.teams[t.team].color));
           break;
         }
+        case 'gas':
+          // Lingering green cloud
+          for (let i = 0; i < 26; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const d = Math.random() * e.r * 0.7;
+            this.particles.push({
+              x: e.x + Math.cos(a) * d, y: e.y + Math.sin(a) * d * 0.6,
+              vx: (Math.random() - 0.5) * 0.3, vy: -0.1 - Math.random() * 0.2,
+              life: 2.5 + Math.random(), max: 3.5, r: 6 + Math.random() * 8, color: 0x7fd06a, kind: 'smoke',
+            });
+          }
+          this.floatText('Pee-yew!', e.x, e.y - e.r * 0.6, 0x9be06a);
+          break;
         case 'terrain':
           this.terrainView.repaint(e.rect);
           break;
@@ -539,6 +552,27 @@ function drawProjectile(g: Graphics, weapon: string, x: number, y: number, vx: n
       // Acorn-like seed pod
       g.ellipse(x, y + 1, 4.5, 5).fill(0xa0632f).stroke({ width: 1.4, color: O });
       g.ellipse(x, y - 3, 5, 2.4).fill(0x6b3f1c).stroke({ width: 1.2, color: O });
+      break;
+    case 'bacteria':
+      // Chunky rod-shaped bacterium
+      g.roundRect(x - 6, y - 3.5, 12, 7, 3.5).fill(0x5fd0a0).stroke({ width: 1.5, color: O });
+      g.circle(x - 2, y - 0.5, 1).fill(0x2f8f6a);
+      g.circle(x + 2.5, y + 0.8, 1).fill(0x2f8f6a);
+      break;
+    case 'bacterlet':
+      g.roundRect(x - 3.5, y - 2, 7, 4, 2).fill(0x5fd0a0).stroke({ width: 1, color: O });
+      break;
+    case 'dynamite': {
+      g.roundRect(x - 2.5, y - 6, 5, 11, 1.5).fill(0xe04848).stroke({ width: 1.3, color: O });
+      g.moveTo(x, y - 6).quadraticCurveTo(x + 3, y - 9, x + 2, y - 11).stroke({ width: 1, color: O });
+      const flick = Math.random() * 1.5;
+      g.circle(x + 2, y - 11.5, 1.6 + flick).fill({ color: 0xffd84a, alpha: 0.9 });
+      break;
+    }
+    case 'cyanobloom':
+      g.circle(x, y, 5).fill(0x4fc3b0).stroke({ width: 1.4, color: O });
+      g.circle(x - 2, y - 2, 1.4).fill(0xb8f2e6);
+      g.circle(x + 2.2, y + 1.5, 1).fill(0x2a8f80);
       break;
     case 'mortarlet':
       g.circle(x, y, 2.2).fill(0xa0632f).stroke({ width: 1, color: O });

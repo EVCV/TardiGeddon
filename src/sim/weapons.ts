@@ -13,11 +13,15 @@ export interface ProjectileSpec {
   cluster?: { count: number; weapon: string };
   /** Steers towards the turn's target after launch (needs a target). */
   homing?: boolean;
+  /** Fixed fuse in ticks (for dropped weapons like dynamite). */
+  fuseTicks?: number;
+  /** On explosion, poisons tardis within this radius. */
+  poison?: number;
   /** Walks along the ground instead of flying (fired without charging). */
   walker?: { fuseTicks: number; speed: number };
 }
 
-export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee' | 'walker';
+export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee' | 'walker' | 'drop';
 
 export interface WeaponDef {
   id: string;
@@ -136,6 +140,51 @@ export const WEAPONS: Record<string, WeaponDef> = {
       speed: 0,
       walker: { fuseTicks: 400, speed: 1.4 },
     },
+  },
+  bacteria: {
+    id: 'bacteria',
+    name: 'Bacteria Bomb',
+    kind: 'charge',
+    ammo: 1,
+    shots: 1,
+    icon: '🦠',
+    projectile: {
+      windFactor: 0,
+      bounce: 0.5,
+      playerFuse: true,
+      radius: 34,
+      damage: 45,
+      speed: 15,
+      cluster: { count: 5, weapon: 'bacterlet' },
+    },
+  },
+  bacterlet: {
+    id: 'bacterlet',
+    name: 'Bacterium',
+    kind: 'charge',
+    ammo: 0,
+    shots: 1,
+    hidden: true,
+    icon: '•',
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 28, damage: 35, speed: 0 },
+  },
+  dynamite: {
+    id: 'dynamite',
+    name: 'Sticky Dynamite',
+    kind: 'drop',
+    ammo: 1,
+    shots: 1,
+    icon: '🧨',
+    projectile: { windFactor: 0, bounce: 0.05, playerFuse: false, radius: 52, damage: 75, speed: 0, fuseTicks: 250 },
+  },
+  cyanobloom: {
+    id: 'cyanobloom',
+    name: 'Cyanobloom Cloud',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    icon: '☁️',
+    projectile: { windFactor: 0, bounce: 0.5, playerFuse: true, radius: 10, damage: 5, speed: 15, poison: 60 },
   },
   shotgun: {
     id: 'shotgun',

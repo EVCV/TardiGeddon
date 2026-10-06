@@ -81,6 +81,8 @@ export interface Tardi {
   rope: { x: number; y: number; len: number } | null;
   /** Leaf Parachute open. */
   chute: boolean;
+  /** Poisoned by a Cyanobloom Cloud: loses health each turn until cured. */
+  poison: boolean;
 }
 
 export type ObjectKind = 'mine' | 'drum' | 'crate';
@@ -199,5 +201,6 @@ export type SimEvent =
   | { t: 'crateDrop'; id: number }
   | { t: 'collect'; id: number; tardi: number; contents: string; amount: number }
   | { t: 'suddenDeath' }
+  | { t: 'gas'; x: number; y: number; r: number }
   | { t: 'waterRise'; y: number }
   | { t: 'gameover'; winner: number };

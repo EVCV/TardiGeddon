@@ -690,6 +690,10 @@ monetisation (cosmetics only, no ads, no power for sale).
   Spore (pick a target, it curves in after launch), Rotifer Roller
   (walking bomb that hops walls; Fire again to set it off, or 8 s fuse).
   The CPU also uses the Mortar Pod.
+- Bacteria Bomb (bouncing bomb splitting into 5 heavy bomblets), Sticky
+  Dynamite (dropped at your feet, 5 s fuse, big blast), Cyanobloom Cloud
+  (poison gas: poisoned tardis lose 5 HP each turn, never below 1, until
+  a health crate cures them).
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -698,7 +702,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. More weapons (Bacteria Bomb, Sticky Dynamite, Cyanobloom Cloud poison), fire spread.
+2. Fire spread (Ice Shard Petrol Bomb, burning drums), Acid Rain strike.
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
 5. Owner: register developer accounts (Apple, Google, Stripe) early.

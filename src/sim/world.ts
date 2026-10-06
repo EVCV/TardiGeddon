@@ -56,8 +56,9 @@ const CRATE_R = 8;
 const MINE_TRIGGER = 26;
 const CRATE_FALL = 1.5;
 /** Crate contents: weapon ids weighted by how often they appear. */
-const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer'];
+const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer', 'bacteria', 'dynamite', 'cyanobloom'];
 const HOMING_START = 15;
+const POISON_DMG = 5;
 const HOMING_TICKS = 120;
 const WALKER_R = 4;
 /** Hard cap on end-of-turn settling so a turn can never soft-lock. */
@@ -186,6 +187,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
           fallStartY: p.y,
           rope: null,
           chute: false,
+          poison: false,
         };
         s.tardis.push(t);
         team.tardiIds.push(t.id);
@@ -461,6 +463,14 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
     case 'target':
       if (fireEdge && turn.target) {
         if (fireTargeted(s, t, def, events)) afterShot(s, def);
+      }
+      break;
+    case 'drop':
+      if (fireEdge) {
+        const spec = def.projectile!;
+        spawnProjectile(s, def.id, t.x + t.facing * 4, t.y, t.facing * 0.4, -0.5, spec.fuseTicks ?? 150, t.id);
+        events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
+        afterShot(s, def);
       }
       break;
     case 'walker':
@@ -862,6 +872,7 @@ function updateProjectiles(s: WorldState, events: SimEvent[]): void {
     if (r.k === 'explode') {
       const spec = WEAPONS[p.weapon].projectile!;
       explode(s, r.x, r.y, spec.radius, spec.damage, events);
+      if (spec.poison) poisonCloud(s, r.x, r.y, spec.poison, events);
       if (spec.cluster) {
         for (let i = 0; i < spec.cluster.count; i++) {
           const vx = (rngFloat(s.rng) - 0.5) * 6;
@@ -1030,6 +1041,17 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
 
 // ---------------------------------------------------------------- map objects
 
+/** Poison gas: every tardi within the radius (with no wall check) gets poisoned. */
+function poisonCloud(s: WorldState, x: number, y: number, r: number, events: SimEvent[]): void {
+  for (const t of s.tardis) {
+    if (!t.alive) continue;
+    const dx = t.x - x;
+    const dy = t.y - y;
+    if (dx * dx + dy * dy < r * r) t.poison = true;
+  }
+  events.push({ t: 'gas', x, y, r });
+}
+
 function burstDrum(s: WorldState, o: MapObject, events: SimEvent[]): void {
   s.objects.splice(s.objects.indexOf(o), 1);
   explode(s, o.x, o.y, 36, 40, events);
@@ -1105,7 +1127,10 @@ function updateObjects(s: WorldState, events: SimEvent[]): void {
       });
       if (taker) {
         s.objects.splice(s.objects.indexOf(o), 1);
-        if (o.contents === 'health') taker.hp += o.amount;
+        if (o.contents === 'health') {
+          taker.hp += o.amount;
+          taker.poison = false; // health crates cure poison
+        }
         else {
           const ammo = s.teams[taker.team].ammo;
           if (ammo[o.contents] >= 0) ammo[o.contents] += o.amount;
@@ -1300,6 +1325,16 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
   s.wind = (rngInt(s.rng, -100, 100) / 100) * s.scheme.windMax;
   events.push({ t: 'turnStart', team: team.id, tardi: tardiId });
 
+  // Poison bites at the start of every turn, but never kills on its own.
+  for (const t of s.tardis) {
+    if (!t.alive || !t.poison) continue;
+    const dmg = Math.min(POISON_DMG, t.hp - 1);
+    if (dmg > 0) {
+      t.hp -= dmg;
+      events.push({ t: 'damage', id: t.id, amount: dmg });
+    }
+  }
+
   if (!s.suddenDeath && s.roundTicks >= s.scheme.roundTime * 60 * TICK_RATE) {
     s.suddenDeath = true;
     for (const t of s.tardis) if (t.alive) t.hp = 1;
@@ -1337,7 +1372,7 @@ export function hashWorld(s: WorldState): number {
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
-    mix(t.knocked ? 1 : 0); mix(t.fallStartY);
+    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0);
     if (t.rope) { mix(t.rope.x); mix(t.rope.y); mix(t.rope.len); }
   }
   for (const p of s.projectiles) {
