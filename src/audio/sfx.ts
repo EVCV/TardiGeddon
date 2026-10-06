@@ -72,4 +72,9 @@ export const sfx = {
     tone(220, 90, 0.15, 0.08);
   },
   build: () => tone(180, 140, 0.12, 0.1, 'square'),
+  collect: () => {
+    tone(660, 990, 0.1, 0.06, 'triangle');
+    setTimeout(() => tone(990, 1320, 0.12, 0.06, 'triangle'), 90);
+  },
+  suddenDeath: () => tone(300, 80, 1.2, 0.12, 'sawtooth'),
 };

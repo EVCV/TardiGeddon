@@ -6,6 +6,7 @@ export interface MatchSetup {
   mode: 'cpu' | 'hotseat';
   tardis: number;
   turnTime: number;
+  roundTime: number;
   seed: number;
 }
 
@@ -27,6 +28,9 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
           <label>Turn time
             <select name="turn"><option value="30">30s</option><option value="45" selected>45s</option><option value="60">60s</option></select>
           </label>
+          <label>Sudden death after
+            <select name="round"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option></select>
+          </label>
         </div>
         <details class="controls-help">
           <summary>Controls</summary>
@@ -40,7 +44,8 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void): v
     b.onclick = () => {
       const tardis = Number(root.querySelector<HTMLSelectElement>('select[name=tardis]')!.value);
       const turnTime = Number(root.querySelector<HTMLSelectElement>('select[name=turn]')!.value);
-      onStart({ mode: b.dataset.mode as MatchSetup['mode'], tardis, turnTime, seed: (Math.random() * 1e9) | 0 });
+      const roundTime = Number(root.querySelector<HTMLSelectElement>('select[name=round]')!.value);
+      onStart({ mode: b.dataset.mode as MatchSetup['mode'], tardis, turnTime, roundTime, seed: (Math.random() * 1e9) | 0 });
     };
   }
 }

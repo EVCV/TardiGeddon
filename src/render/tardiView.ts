@@ -35,7 +35,7 @@ export function drawTardiBody(g: Graphics, teamColor: number): void {
 }
 
 /** Leaf canopy with silk strings, drawn above the tardi's origin. */
-function drawLeafChute(g: Graphics): void {
+export function drawLeafChute(g: Graphics): void {
   g.moveTo(-8, -6).lineTo(-15, -26).moveTo(8, -6).lineTo(15, -26).moveTo(0, -8).lineTo(0, -28);
   g.stroke({ width: 1, color: O, alpha: 0.7 });
   g.moveTo(-24, -26).quadraticCurveTo(0, -52, 24, -26).quadraticCurveTo(0, -34, -24, -26).closePath();

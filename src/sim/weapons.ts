@@ -108,6 +108,16 @@ export const WEAPONS: Record<string, WeaponDef> = {
     icon: '•',
     projectile: { windFactor: 0.6, bounce: null, playerFuse: false, radius: 24, damage: 30, speed: 0 },
   },
+  brine: {
+    id: 'brine',
+    name: 'Brine Blob',
+    kind: 'charge',
+    ammo: 0,
+    shots: 1,
+    hidden: true,
+    icon: '•',
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 14, damage: 10, speed: 0 },
+  },
   firepunch: {
     id: 'firepunch',
     name: 'Fire Punch',
