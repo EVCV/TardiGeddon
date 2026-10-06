@@ -694,6 +694,10 @@ monetisation (cosmetics only, no ads, no power for sale).
   Dynamite (dropped at your feet, 5 s fuse, big blast), Cyanobloom Cloud
   (poison gas: poisoned tardis lose 5 HP each turn, never below 1, until
   a health crate cures them).
+- Fire: Hot Sap Bomb (bursts into 18 burning blobs) and Acid Rain (air
+  strike of 5 acid canisters). Flames fall, settle, slowly scorch the
+  ground, singe tardis standing in them (ending your turn if it's you),
+  burn out after ~4 s, and are put out by water.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -702,7 +706,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. Fire spread (Ice Shard Petrol Bomb, burning drums), Acid Rain strike.
+2. Superweapons (Holy Water Droplet, Concrete Tun, Microscope Slide Slam).
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
 5. Owner: register developer accounts (Apple, Google, Stripe) early.

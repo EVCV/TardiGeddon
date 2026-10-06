@@ -56,9 +56,15 @@ const CRATE_R = 8;
 const MINE_TRIGGER = 26;
 const CRATE_FALL = 1.5;
 /** Crate contents: weapon ids weighted by how often they appear. */
-const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer', 'bacteria', 'dynamite', 'cyanobloom'];
+const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer', 'bacteria', 'dynamite', 'cyanobloom', 'sapbomb', 'acidrain'];
 const HOMING_START = 15;
 const POISON_DMG = 5;
+const FLAME_LIFE = 220;
+const FLAME_BURN_EVERY = 10;
+/** Ground scorching is slower than burning tardis, so fire leaves dents, not pits. */
+const FLAME_CARVE_EVERY = 40;
+const FLAME_REACH = 9;
+const FLAME_DMG = 2;
 const HOMING_TICKS = 120;
 const WALKER_R = 4;
 /** Hard cap on end-of-turn settling so a turn can never soft-lock. */
@@ -128,6 +134,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
       tardis: [],
       projectiles: [],
       objects: [],
+      flames: [],
       teams: [],
       roundTicks: 0,
       suddenDeath: false,
@@ -321,6 +328,7 @@ export function tick(s: WorldState, input: InputFrame, events: SimEvent[]): void
   if (turn.phase !== 'start') s.roundTicks++;
   updateProjectiles(s, events);
   updateObjects(s, events);
+  updateFlames(s, events);
   for (const t of s.tardis) if (t.alive) updateTardi(s, t, events);
 
   if (turn.phase === 'settle') updateSettle(s, events);
@@ -873,6 +881,7 @@ function updateProjectiles(s: WorldState, events: SimEvent[]): void {
       const spec = WEAPONS[p.weapon].projectile!;
       explode(s, r.x, r.y, spec.radius, spec.damage, events);
       if (spec.poison) poisonCloud(s, r.x, r.y, spec.poison, events);
+      if (spec.fire) spillFlames(s, r.x, r.y, spec.fire.count, spec.fire.acid === true);
       if (spec.cluster) {
         for (let i = 0; i < spec.cluster.count; i++) {
           const vx = (rngFloat(s.rng) - 0.5) * 6;
@@ -1040,6 +1049,67 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
 }
 
 // ---------------------------------------------------------------- map objects
+
+// ---------------------------------------------------------------- fire
+
+function spillFlames(s: WorldState, x: number, y: number, count: number, acid: boolean): void {
+  for (let i = 0; i < count; i++) {
+    s.flames.push({
+      id: s.nextId++,
+      x,
+      y: y - 3,
+      vx: (rngFloat(s.rng) - 0.5) * 5,
+      vy: -1 - rngFloat(s.rng) * 3,
+      life: FLAME_LIFE - rngInt(s.rng, 0, 60),
+      resting: false,
+      acid,
+    });
+  }
+}
+
+/** Flames fall, settle, scorch the ground and hurt tardis standing in them. */
+function updateFlames(s: WorldState, events: SimEvent[]): void {
+  const terrain = s.terrain;
+  for (const f of s.flames.slice()) {
+    f.life--;
+    if (!f.resting || !circleCollides(terrain, f.x, f.y + 2, 1)) {
+      f.resting = false;
+      f.vy = Math.min(8, f.vy + GRAVITY);
+      f.vx += s.wind * WIND_ACCEL * 0.5;
+      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(f.vx), Math.abs(f.vy))));
+      for (let i = 0; i < steps; i++) {
+        const nx = f.x + f.vx / steps;
+        const ny = f.y + f.vy / steps;
+        if (circleCollides(terrain, nx, ny, 1)) {
+          f.resting = true;
+          f.vx = 0;
+          f.vy = 0;
+          break;
+        }
+        f.x = nx;
+        f.y = ny;
+      }
+    }
+    if (f.y >= s.waterY || f.x < -50 || f.x > terrain.w + 50) f.life = 0; // doused
+    if (f.resting && f.life > 0 && f.life % FLAME_CARVE_EVERY === 0) {
+      const rect = carveCircle(terrain, f.x, f.y + 2, 2.5);
+      events.push({ t: 'burn', x: f.x, y: f.y + 2, rect });
+    }
+    if (f.life > 0 && f.life % FLAME_BURN_EVERY === 0) {
+      // Singe nearby tardis.
+      for (const t of s.tardis) {
+        if (!t.alive) continue;
+        const dx = t.x - f.x;
+        const dy = t.y - f.y;
+        if (dx * dx + dy * dy < (FLAME_REACH + TARDI_R) * (FLAME_REACH + TARDI_R)) {
+          t.pendingDmg += FLAME_DMG;
+          if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
+        }
+      }
+    }
+    if (f.life <= 0) s.flames.splice(s.flames.indexOf(f), 1);
+  }
+}
 
 /** Poison gas: every tardi within the radius (with no wall check) gets poisoned. */
 function poisonCloud(s: WorldState, x: number, y: number, r: number, events: SimEvent[]): void {
@@ -1252,12 +1322,14 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   const turn = s.turn;
   if (++turn.settleTotal > SETTLE_MAX) {
     s.projectiles.length = 0;
+    s.flames.length = 0;
     for (const t of s.tardis) if (t.alive && t.airborne) land(s, t);
   }
   const moving =
     s.projectiles.length > 0 ||
     s.tardis.some((t) => t.alive && t.airborne) ||
-    s.objects.some((o) => (o.airborne && !o.chute) || o.fuse > 0);
+    s.objects.some((o) => (o.airborne && !o.chute) || o.fuse > 0) ||
+    s.flames.length > 0;
   if (moving) {
     turn.settleTimer = 0;
     return;
@@ -1382,6 +1454,9 @@ export function hashWorld(s: WorldState): number {
     mix(o.id); mix(o.x); mix(o.y); mix(o.vx); mix(o.vy); mix(o.fuse); mix(o.hp);
     mixStr(o.kind); mix(o.dud ? 1 : 0); mix(o.airborne ? 1 : 0); mix(o.chute ? 1 : 0);
     mixStr(o.contents); mix(o.amount);
+  }
+  for (const f of s.flames) {
+    mix(f.x); mix(f.y); mix(f.vx); mix(f.vy); mix(f.life); mix(f.resting ? 1 : 0); mix(f.acid ? 1 : 0);
   }
   mix(s.waterY); mix(s.roundTicks); mix(s.suddenDeath ? 1 : 0); mix(s.nextId);
   const tr = s.turn;

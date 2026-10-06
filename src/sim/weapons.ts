@@ -15,6 +15,8 @@ export interface ProjectileSpec {
   homing?: boolean;
   /** Fixed fuse in ticks (for dropped weapons like dynamite). */
   fuseTicks?: number;
+  /** On explosion, spills this many flames ('acid' makes them acid). */
+  fire?: { count: number; acid?: boolean };
   /** On explosion, poisons tardis within this radius. */
   poison?: number;
   /** Walks along the ground instead of flying (fired without charging). */
@@ -167,6 +169,34 @@ export const WEAPONS: Record<string, WeaponDef> = {
     hidden: true,
     icon: '•',
     projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 28, damage: 35, speed: 0 },
+  },
+  sapbomb: {
+    id: 'sapbomb',
+    name: 'Hot Sap Bomb',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    icon: '🔥',
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 8, damage: 5, speed: 15, fire: { count: 18 } },
+  },
+  acidrain: {
+    id: 'acidrain',
+    name: 'Acid Rain',
+    kind: 'target',
+    ammo: 1,
+    shots: 1,
+    icon: '🌧️',
+    strike: { count: 5, spacing: 28, weapon: 'aciddrop' },
+  },
+  aciddrop: {
+    id: 'aciddrop',
+    name: 'Acid Drop',
+    kind: 'charge',
+    ammo: 0,
+    shots: 1,
+    hidden: true,
+    icon: '•',
+    projectile: { windFactor: 0.6, bounce: null, playerFuse: false, radius: 10, damage: 8, speed: 0, fire: { count: 5, acid: true } },
   },
   dynamite: {
     id: 'dynamite',
