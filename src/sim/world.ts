@@ -1101,7 +1101,7 @@ function updateFlames(s: WorldState, events: SimEvent[]): void {
         if (!t.alive) continue;
         const dx = t.x - f.x;
         const dy = t.y - f.y;
-        if (dx * dx + dy * dy < FLAME_REACH * FLAME_REACH + TARDI_R * TARDI_R * 2) {
+        if (dx * dx + dy * dy < (FLAME_REACH + TARDI_R) * (FLAME_REACH + TARDI_R)) {
           t.pendingDmg += FLAME_DMG;
           if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
         }
