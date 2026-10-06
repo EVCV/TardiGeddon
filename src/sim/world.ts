@@ -78,14 +78,31 @@ export interface WorldConfig {
 const DEFAULT_NAMES = [
   'Waddles', 'Tun', 'Mossy', 'Pudge', 'Cuticle', 'Stylet', 'Bubbles', 'Nibs',
   'Squish', 'Clawdia', 'Dewdrop', 'Gristle', 'Puddles', 'Lichen', 'Bramble', 'Pip',
+  'Sprout', 'Gloop', 'Pebble', 'Fuzz', 'Dumpling', 'Biscuit', 'Wiggles', 'Plop',
+  'Nugget', 'Snoot', 'Tater', 'Bean', 'Mochi', 'Crumb', 'Sludge', 'Zippy',
+  'Barnacle', 'Muffin', 'Scoot', 'Gumdrop', 'Toggle', 'Blip', 'Ripple', 'Puff',
 ];
+
+/** Most teams a match supports. */
+export const MAX_TEAMS = 10;
+
+/**
+ * Map size for a match: 2000x1000 for the classic 2 teams of 4, growing with
+ * the number of tardis so bigger games still have room to move.
+ */
+export function mapSizeFor(totalTardis: number): { w: number; h: number } {
+  const w = Math.max(2000, Math.min(6000, Math.round((800 + totalTardis * 150) / 100) * 100));
+  return { w, h: w > 2500 ? 1200 : 1000 };
+}
 
 // ---------------------------------------------------------------- creation
 
 export function createWorld(cfg: WorldConfig): WorldState {
   const scheme: Scheme = { ...DEFAULT_SCHEME, ...cfg.scheme };
-  const w = cfg.mapW ?? 2000;
-  const h = cfg.mapH ?? 1000;
+  if (cfg.teams.length < 2 || cfg.teams.length > MAX_TEAMS) throw new Error(`Need 2-${MAX_TEAMS} teams`);
+  const size = mapSizeFor(cfg.teams.length * scheme.tardisPerTeam);
+  const w = cfg.mapW ?? size.w;
+  const h = cfg.mapH ?? size.h;
   const waterY = h - 70;
   const needed = cfg.teams.length * scheme.tardisPerTeam;
 
@@ -134,7 +151,11 @@ export function createWorld(cfg: WorldConfig): WorldState {
 
     cfg.teams.forEach((tc, ti) => {
       const ammo: Record<string, number> = {};
-      for (const def of Object.values(WEAPONS)) ammo[def.id] = def.ammo;
+      for (const def of Object.values(WEAPONS)) {
+        // A scheme weapon list restricts the arsenal; Skip Go is always allowed.
+        const listed = scheme.weapons?.[def.id];
+        ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? def.ammo : (listed ?? 0);
+      }
       const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', ammo };
       s.teams.push(team);
     });
@@ -166,8 +187,10 @@ export function createWorld(cfg: WorldConfig): WorldState {
         team.tardiIds.push(t.id);
       }
     }
-    placeObjects(s, 'mine', scheme.mines);
-    placeObjects(s, 'drum', scheme.drums);
+    // Bigger maps get proportionally more mines and drums.
+    const scale = w / 2000;
+    placeObjects(s, 'mine', Math.round(scheme.mines * scale));
+    placeObjects(s, 'drum', Math.round(scheme.drums * scale));
     s.turn.teamIdx = rngInt(rng, 0, s.teams.length - 1);
     beginTurn(s, s.turn.teamIdx, []);
     return s;
@@ -188,7 +211,7 @@ function newObject(s: WorldState, kind: ObjectKind, x: number, y: number): MapOb
 function placeObjects(s: WorldState, kind: ObjectKind, count: number): void {
   const r = kind === 'mine' ? MINE_R : DRUM_R;
   let placed = 0;
-  for (let tries = 0; tries < 600 && placed < count; tries++) {
+  for (let tries = 0; tries < 600 + count * 80 && placed < count; tries++) {
     const x = rngInt(s.rng, 40, s.terrain.w - 40);
     const sy = surfaceBelow(s.terrain, x, 0);
     if (sy < 0 || sy > s.waterY - 30) continue;
@@ -215,7 +238,7 @@ function findSpawns(
   rng: WorldState['rng'],
 ): { x: number; y: number }[] | null {
   const spots: { x: number; y: number }[] = [];
-  for (let tries = 0; tries < 2000 && spots.length < count; tries++) {
+  for (let tries = 0; tries < 2000 + count * 200 && spots.length < count; tries++) {
     const x = rngInt(rng, 40, terrain.w - 40);
     const sy = surfaceBelow(terrain, x, 0);
     if (sy < 0 || sy > waterY - 30) continue;
@@ -359,7 +382,8 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   }
 
   // Jump / backflip: a second press within the delay turns a jump into a backflip.
-  if ((input.pressed & PRESS_JUMP) !== 0 && !t.airborne && !turn.charging) {
+  const canMove = s.scheme.movement;
+  if (canMove && (input.pressed & PRESS_JUMP) !== 0 && !t.airborne && !turn.charging) {
     if (turn.jumpTimer > 0) {
       turn.jumpTimer = 0;
       launchJump(t, -t.facing * 1.1, -6.6, events);
@@ -375,7 +399,7 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   const dir = ((held & BTN_RIGHT) !== 0 ? 1 : 0) - ((held & BTN_LEFT) !== 0 ? 1 : 0);
   if (dir !== 0 && !t.airborne && !turn.charging && turn.jumpTimer === 0) {
     t.facing = dir as 1 | -1;
-    walk(s, t, dir);
+    if (canMove) walk(s, t, dir); // without movement you can still turn round
   }
 
   if (!aiming) return;
@@ -575,13 +599,19 @@ function fireProjectile(s: WorldState, t: Tardi, def: WeaponDef, events: SimEven
   events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
 }
 
-function fireHitscan(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
-  const hs = def.hitscan!;
-  const { dx, dy } = aimVector(t.facing, s.turn.aim);
+/** Trace an instant shot from a tardi along an aim. Read-only (used by the CPU too). */
+export function traceHitscan(
+  s: WorldState,
+  t: Tardi,
+  facing: number,
+  aim: number,
+  range: number,
+): { x: number; y: number; hit: boolean } {
+  const { dx, dy } = aimVector(facing, aim);
   let x = t.x;
   let y = t.y;
   let hit = false;
-  for (let i = 0; i < hs.range && !hit; i++) {
+  for (let i = 0; i < range && !hit; i++) {
     x += dx;
     y += dy;
     if (x < 0 || x >= s.terrain.w || y < 0 || y >= s.waterY) break;
@@ -593,6 +623,12 @@ function fireHitscan(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]
       if (ox * ox + oy * oy < TARDI_R * TARDI_R) hit = true;
     }
   }
+  return { x, y, hit };
+}
+
+function fireHitscan(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
+  const hs = def.hitscan!;
+  const { x, y, hit } = traceHitscan(s, t, t.facing, s.turn.aim, hs.range);
   events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
   events.push({ t: 'shot', x0: t.x, y0: t.y, x1: x, y1: y });
   if (hit) explode(s, x, y, hs.radius, hs.damage, events);
@@ -902,7 +938,7 @@ function burstDrum(s: WorldState, o: MapObject, events: SimEvent[]): void {
 }
 
 function dropCrate(s: WorldState, events: SimEvent[]): void {
-  if (s.objects.filter((o) => o.kind === 'crate').length >= 5) return;
+  if (s.objects.filter((o) => o.kind === 'crate').length >= Math.round((5 * s.terrain.w) / 2000)) return;
   for (let tries = 0; tries < 50; tries++) {
     const x = rngInt(s.rng, 60, s.terrain.w - 60);
     const sy = surfaceBelow(s.terrain, x, 0);
@@ -910,11 +946,13 @@ function dropCrate(s: WorldState, events: SimEvent[]): void {
     const o = newObject(s, 'crate', x, -20);
     o.airborne = true;
     o.chute = true;
-    if (rngInt(s.rng, 0, 2) === 0) {
+    // Weapon crates only hold weapons this scheme allows.
+    const allowed = CRATE_WEAPONS.filter((w) => !s.scheme.weapons || w in s.scheme.weapons);
+    if (allowed.length === 0 || rngInt(s.rng, 0, 2) === 0) {
       o.contents = 'health';
       o.amount = 25;
     } else {
-      o.contents = CRATE_WEAPONS[rngInt(s.rng, 0, CRATE_WEAPONS.length - 1)];
+      o.contents = allowed[rngInt(s.rng, 0, allowed.length - 1)];
       o.amount = 1;
     }
     events.push({ t: 'crateDrop', id: o.id });

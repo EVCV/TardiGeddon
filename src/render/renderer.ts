@@ -69,7 +69,7 @@ export class GameRenderer {
       this.hills,
       this.hillsNear,
       this.waterBack,
-      this.terrainView.sprite,
+      this.terrainView.root,
       this.markers,
       this.objectLayer,
       this.entities,

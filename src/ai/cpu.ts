@@ -2,7 +2,7 @@
 // current state, then "presses buttons" through the normal input path.
 // Runs only on one machine (host) — its inputs are what get replayed.
 
-import { cloneWorld, launchVelocity, stepProjectile, activeTardi, TARDI_R, AIM_STEP } from '../sim/world';
+import { cloneWorld, launchVelocity, stepProjectile, activeTardi, traceHitscan, TARDI_R, AIM_STEP } from '../sim/world';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type Projectile, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
 
@@ -19,6 +19,7 @@ export class CpuPlayer {
   private planTurn = -1;
   private think = 0;
   private step: 'face' | 'weapon' | 'aim' | 'charge' | 'done' = 'face';
+  private tapped = false;
 
   constructor(private readonly accuracy = 0.85) {}
 
@@ -57,6 +58,11 @@ export class CpuPlayer {
         return { held: 0, pressed: 0, cmd: { t: 'fuse', s: p.fuse } };
       }
       case 'charge':
+        if (WEAPONS[p.weapon].kind === 'hitscan') {
+          // Tap fire for each shot (the shotgun has two), releasing in between.
+          this.tapped = !this.tapped;
+          return this.tapped ? { held: BTN_FIRE, pressed: 0 } : EMPTY_INPUT;
+        }
         if (turn.charging && turn.power >= p.power) {
           this.step = 'done';
           return EMPTY_INPUT; // release
@@ -75,7 +81,10 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
   let best: Plan | null = null;
   let bestScore = 0;
 
-  for (const weapon of ['bazooka', 'grenade']) {
+  const ammo = s.teams[me.team].ammo;
+  const usable = (w: string) => ammo[w] !== 0;
+  // Thrown weapons the CPU can plan: simulate each candidate throw.
+  for (const weapon of ['bazooka', 'grenade', 'cluster'].filter(usable)) {
     const spec = WEAPONS[weapon].projectile!;
     for (const facing of [1, -1] as const) {
       // Aim is reached in AIM_STEP increments from the turn's start aim.
@@ -90,6 +99,22 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
             bestScore = score;
             best = { weapon, facing, aim, power, fuse };
           }
+        }
+      }
+    }
+  }
+  // Instant-shot weapons: trace the line for each aim.
+  for (const weapon of ['shotgun'].filter(usable)) {
+    const hs = WEAPONS[weapon].hitscan!;
+    for (const facing of [1, -1] as const) {
+      for (let aim = s.turn.aim - AIM_STEP * 80; aim <= s.turn.aim + AIM_STEP * 50; aim += AIM_STEP * 2) {
+        if (aim < -1024 || aim > 1024) continue;
+        const shot = traceHitscan(sim, me, facing, aim, hs.range);
+        if (!shot.hit) continue;
+        const score = scoreHit(s, shot.x, shot.y, hs.radius, hs.damage, me.team) * WEAPONS[weapon].shots;
+        if (score > bestScore) {
+          bestScore = score;
+          best = { weapon, facing, aim, power: 0, fuse: 3 };
         }
       }
     }

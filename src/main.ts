@@ -6,14 +6,17 @@ import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
-import { TEAM_COLORS } from './render/palette';
+import { TEAM_COLORS, TEAM_NAMES } from './render/palette';
 import { InputCollector, attachKeyboard } from './input/input';
 import { Hud } from './ui/hud';
 import { CpuPlayer } from './ai/cpu';
 import { sfx, setMuted, unlockAudio } from './audio/sfx';
 import { showMenu, type MatchSetup } from './ui/menu';
+import { presetScheme } from './sim/schemes';
 
 const TICK_MS = 1000 / TICK_RATE;
+/** Far enough out to see most of a big 10-player map. */
+const MIN_ZOOM = 0.2;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 
 async function boot(): Promise<void> {
@@ -48,7 +51,12 @@ async function boot(): Promise<void> {
   };
   // Debug/test hook: ?autostart=cpu skips the menu.
   const auto = new URLSearchParams(location.search).get('autostart');
-  if (auto) start({ mode: auto === 'hotseat' ? 'hotseat' : 'cpu', tardis: 4, turnTime: 45, roundTime: 10, seed: 12345 });
+  if (auto) {
+    // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
+    const n = Number(new URLSearchParams(location.search).get('players')) || 2;
+    const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
+    start({ players, scheme: presetScheme('standard'), seed: 12345 });
+  }
   else menu();
 }
 
@@ -75,20 +83,11 @@ class Match {
     private onMenu: () => void,
     private onAgain: () => void,
   ) {
-    const teams: TeamConfig[] =
-      setup.mode === 'cpu'
-        ? [
-            { name: 'Water Bears', color: TEAM_COLORS[0], cpu: false },
-            { name: 'Moss Mob', color: TEAM_COLORS[1], cpu: true },
-          ]
-        : [
-            { name: 'Red Squad', color: TEAM_COLORS[0], cpu: false },
-            { name: 'Blue Squad', color: TEAM_COLORS[1], cpu: false },
-          ];
+    const teams: TeamConfig[] = setup.players.map((cpu, i) => ({ name: TEAM_NAMES[i], color: TEAM_COLORS[i], cpu }));
     this.state = createWorld({
       seed: setup.seed,
       teams,
-      scheme: { tardisPerTeam: setup.tardis, turnTime: setup.turnTime, roundTime: setup.roundTime },
+      scheme: setup.scheme,
     });
     for (const t of this.state.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer());
 
@@ -208,7 +207,7 @@ class Match {
         p.x = e.clientX;
         p.y = e.clientY;
         const d = this.pointerSpread();
-        if (this.pinchDist > 0) cam.zoom = Math.max(0.35, Math.min(3, cam.zoom * (d / this.pinchDist)));
+        if (this.pinchDist > 0) cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (d / this.pinchDist)));
         this.pinchDist = d;
         p.moved = true;
         cam.manualUntil = performance.now() + 3000;
@@ -239,7 +238,7 @@ class Match {
     c.onwheel = (e) => {
       e.preventDefault();
       const cam = this.renderer.camera;
-      cam.zoom = Math.max(0.35, Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
+      cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
     };
   }
 

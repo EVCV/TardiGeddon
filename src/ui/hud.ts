@@ -192,6 +192,7 @@ export class Hud {
     this.windFill.className = 'hud-wind-fill ' + (w < 0 ? 'left' : 'right');
 
     this.teams.innerHTML = '';
+    this.teams.classList.toggle('many', s.teams.length > 4);
     const maxHp = s.scheme.startHp * s.scheme.tardisPerTeam;
     for (const tm of s.teams) {
       const hp = s.tardis.filter((x) => x.team === tm.id && x.alive).reduce((a, x) => a + x.hp, 0);

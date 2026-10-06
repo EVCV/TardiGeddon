@@ -5,7 +5,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 
 ## Commands
 
-- `npm run dev` — dev server (add `?autostart=cpu` or `?autostart=hotseat` to skip the menu, `?touch` to force touch controls)
+- `npm run dev` — dev server (add `?autostart=cpu` or `?autostart=hotseat` to skip the menu, `&players=N` for 2–10 teams, `?touch` to force touch controls)
 - `npm test` — unit + soak tests (Vitest)
 - `npm run typecheck`, `npm run build`
 - `npm run e2e` — Playwright smoke tests (desktop + phone). In sandboxes with a

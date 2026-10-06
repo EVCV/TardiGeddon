@@ -17,7 +17,16 @@ export const PALETTE = {
   soil: [0x3b2416, 0x9c6438, 0x7f4d29, 0xb57d4c] as const,
 };
 
-export const TEAM_COLORS = [0xe04848, 0x3a7be0, 0x3cb34a, 0xe0a020];
+// Ten distinct team colours (one per player slot).
+export const TEAM_COLORS = [
+  0xe04848, 0x3a7be0, 0x3cb34a, 0xe0a020, 0x9b59d0,
+  0xf07a2a, 0x23b5c8, 0xe85fa8, 0x9a6b3f, 0x7d8a99,
+];
+
+export const TEAM_NAMES = [
+  'Water Bears', 'Moss Mob', 'Lichen Legion', 'Puddle Pack', 'Tun Troop',
+  'Spore Squad', 'Dew Crew', 'Cuticle Club', 'Algae Army', 'Brine Gang',
+];
 
 export function hex(c: number): string {
   return '#' + c.toString(16).padStart(6, '0');
