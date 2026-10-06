@@ -117,6 +117,11 @@ export interface Projectile {
   fuse: number;
   owner: number;
   age: number;
+  /** Homing target (Homing Spore). */
+  tx: number;
+  ty: number;
+  /** Walking direction (Rotifer Roller): 1, -1, or 0 for other projectiles. */
+  dir: number;
 }
 
 export type Phase = 'start' | 'aim' | 'retreat' | 'settle' | 'gameover';

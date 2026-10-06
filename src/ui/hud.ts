@@ -167,7 +167,7 @@ export class Hud {
 
     // Only touch the DOM when something visible changed.
     const key = [
-      secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0,
+      secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0, s.projectiles.some((p) => p.dir !== 0) ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
     ].join('|');
     if (key === this.lastKey) return;
@@ -227,6 +227,10 @@ export class Hud {
       else if (def.kind === 'parachute') hint = t.chute ? '←/→ to steer' : t.airborne ? 'Fire to open the leaf!' : 'Jump off something, then Fire to open';
       else if (def.girder) hint = !turn.target ? 'Tap / click where to build' : girderFits(s) ? '↑/↓ rotate · Fire to build' : 'Won’t fit there — move or rotate it';
       else if (def.kind === 'target') hint = turn.target ? 'Press FIRE to confirm' : 'Tap / click the map to choose a target';
+      else if (def.projectile?.homing) hint = turn.target ? 'Aim, then hold Fire to launch' : 'Tap / click a target for the spore first';
+      else if (def.kind === 'walker') hint = 'Fire to release the Rotifer Roller';
+    } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
+      hint = 'Press Fire to set it off!';
     } else if (!humanTurn && turn.phase === 'aim') {
       hint = `${team.name} is thinking…`;
     }

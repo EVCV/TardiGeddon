@@ -686,6 +686,10 @@ monetisation (cosmetics only, no ads, no power for sale).
   a live preview; saved per device. Hats are the first cosmetic slot:
   each is data (`src/render/hats.ts`) drawn identically in game and in
   SVG previews, so shop hats later are just new entries.
+- Weapons: Mortar Pod (wind-blown shell bursting into fragments), Homing
+  Spore (pick a target, it curves in after launch), Rotifer Roller
+  (walking bomb that hops walls; Fire again to set it off, or 8 s fuse).
+  The CPU also uses the Mortar Pod.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -694,7 +698,7 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. More weapons (Homing Spore, Mortar Pod, Rotifer Roller), fire spread.
+2. More weapons (Bacteria Bomb, Sticky Dynamite, Cyanobloom Cloud poison), fire spread.
 3. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
 4. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
 5. Owner: register developer accounts (Apple, Google, Stripe) early.

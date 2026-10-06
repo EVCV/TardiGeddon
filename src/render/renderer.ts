@@ -535,6 +535,34 @@ function drawProjectile(g: Graphics, weapon: string, x: number, y: number, vx: n
     case 'raindrop':
       g.poly([x, y + 6, x - 4, y - 1, x, y - 7, x + 4, y - 1]).fill(0x63b7ff).stroke({ width: 1.3, color: O });
       break;
+    case 'mortar':
+      // Acorn-like seed pod
+      g.ellipse(x, y + 1, 4.5, 5).fill(0xa0632f).stroke({ width: 1.4, color: O });
+      g.ellipse(x, y - 3, 5, 2.4).fill(0x6b3f1c).stroke({ width: 1.2, color: O });
+      break;
+    case 'mortarlet':
+      g.circle(x, y, 2.2).fill(0xa0632f).stroke({ width: 1, color: O });
+      break;
+    case 'homing': {
+      // Glowing pink spore with a sparkle trail
+      const len = Math.hypot(vx, vy) || 1;
+      g.circle(x - (vx / len) * 8, y - (vy / len) * 8, 2.5).fill({ color: 0xff9ad5, alpha: 0.5 });
+      g.circle(x, y, 6).fill({ color: 0xff7ac0, alpha: 0.35 });
+      g.circle(x, y, 4).fill(0xe85fa8).stroke({ width: 1.4, color: O });
+      g.circle(x - 1.2, y - 1.2, 1.2).fill(0xffffff);
+      break;
+    }
+    case 'rotifer': {
+      // Rotifer: stubby body with a spinning crown of cilia
+      g.roundRect(x - 5, y - 4, 10, 8, 4).fill(0xffe3a3).stroke({ width: 1.4, color: O });
+      const spin = (x * 0.4) % (Math.PI * 2);
+      for (let i = 0; i < 6; i++) {
+        const a = spin + (i * Math.PI) / 3;
+        g.moveTo(x, y - 5).lineTo(x + Math.cos(a) * 4, y - 6 + Math.sin(a) * 1.5).stroke({ width: 1, color: O });
+      }
+      g.circle(x + 2, y - 1, 1.1).fill(O);
+      break;
+    }
     default:
       g.circle(x, y, 3).fill(0xffffff).stroke({ width: 1, color: O });
   }
