@@ -31,7 +31,56 @@ function arena(): WorldState {
 
 const select = (s: WorldState, id: string) => tick(s, { held: 0, pressed: 0, cmd: { t: 'weapon', id } }, []);
 
+describe('drag-to-aim command', () => {
+  it('sets the aim and facing directly, clamped to straight up/down', () => {
+    const s = arena();
+    const me = activeTardi(s)!;
+    tick(s, { held: 0, pressed: 0, cmd: { t: 'aim', facing: -1, aim: 300.4 } }, []);
+    expect(s.turn.aim).toBe(300);
+    expect(me.facing).toBe(-1);
+    tick(s, { held: 0, pressed: 0, cmd: { t: 'aim', facing: 1, aim: 5000 } }, []);
+    expect(s.turn.aim).toBe(AIM_MAX);
+    expect(me.facing).toBe(1);
+    tick(s, { held: 0, pressed: 0, cmd: { t: 'aim', facing: 1, aim: -5000 } }, []);
+    expect(s.turn.aim).toBe(-AIM_MAX);
+  });
+});
+
 describe('Silk Rope', () => {
+  it('wraps round a corner it swings into, and unwraps on the way back', () => {
+    const s = arena();
+    const me = activeTardi(s)!;
+    // A small block hangs beside the rope, just right of the pivot.
+    const t = s.terrain;
+    for (let y = 400; y < 412; y++) for (let x = 1030; x < 1042; x++) t.mask[y * t.w + x] = 1;
+    me.rope = { x: 1000, y: 321, len: 200, bends: [] };
+    me.x = 1000;
+    me.y = 520;
+    me.vx = 5;
+    me.vy = 0;
+    me.airborne = true;
+    let wrapped = 0;
+    let unwrapped = false;
+    for (let i = 0; i < 400 && me.rope; i++) {
+      tick(s, { held: 0, pressed: 0 }, []);
+      if (!me.rope) break;
+      if (me.rope.bends.length > 0) {
+        wrapped++;
+        // Rope now pivots on the block's corner, and the tardi stays within the shorter length.
+        const d = Math.hypot(me.x - me.rope.x, me.y - me.rope.y);
+        expect(d).toBeLessThanOrEqual(me.rope.len + 0.5);
+        expect(me.rope.x).toBeGreaterThan(1025);
+        expect(me.rope.len).toBeLessThan(200);
+      } else if (wrapped > 0) {
+        unwrapped = true;
+        expect(me.rope.x).toBe(1000);
+        expect(me.rope.y).toBe(321);
+      }
+    }
+    expect(wrapped).toBeGreaterThan(0);
+    expect(unwrapped).toBe(true);
+  });
+
   it('attaches to a ceiling, reels in, swings and lets go', () => {
     const s = arena();
     const me = activeTardi(s)!;

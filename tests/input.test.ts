@@ -23,4 +23,13 @@ describe('InputCollector', () => {
     expect(input.frame().cmd).toEqual({ t: 'fuse', s: 2 });
     expect(input.frame().cmd).toBeUndefined();
   });
+
+  it('keeps only the latest drag-aim so a fast drag does not lag behind', () => {
+    const input = new InputCollector();
+    input.command({ t: 'fuse', s: 2 });
+    for (let a = 0; a < 10; a++) input.command({ t: 'aim', facing: 1, aim: a * 50 });
+    expect(input.frame().cmd).toEqual({ t: 'fuse', s: 2 });
+    expect(input.frame().cmd).toEqual({ t: 'aim', facing: 1, aim: 450 });
+    expect(input.frame().cmd).toBeUndefined();
+  });
 });

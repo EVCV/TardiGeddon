@@ -9,7 +9,7 @@
 import { cosA, sinA, ANGLE_QUARTER } from './math/trig';
 import { createRng, rngFloat, rngInt } from './math/prng';
 import { generateMap } from './terrain/generate';
-import { carveCircle, circleCollides, isSolid, normalAt, placeGirder, surfaceBelow, type Rect } from './terrain/terrain';
+import { carveCircle, circleCollides, isSolid, normalAt, placeGirder, surfaceBelow, type Rect, type Terrain } from './terrain/terrain';
 import {
   BTN_DOWN,
   BTN_FIRE,
@@ -49,6 +49,7 @@ export const ROPE_MAX = 320;
 const ROPE_MIN = 14;
 const ROPE_REEL = 1.6;
 const ROPE_SWING = 0.12;
+const ROPE_BENDS_MAX = 24;
 const CHUTE_FALL = 1.3;
 const MINE_R = 4;
 const DRUM_R = 8;
@@ -370,6 +371,11 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
       turn.fuseSeconds = Math.max(1, Math.min(5, Math.round(cmd.s)));
     } else if (cmd.t === 'target') {
       if (def.kind === 'target' || def.projectile?.homing) turn.target = { x: cmd.x, y: cmd.y };
+    } else if (cmd.t === 'aim') {
+      if (!t.rope) {
+        turn.aim = Math.max(-AIM_MAX, Math.min(AIM_MAX, Math.round(cmd.aim)));
+        if (!turn.charging && (cmd.facing === 1 || cmd.facing === -1)) t.facing = cmd.facing;
+      }
     } else if (cmd.t === 'skip') {
       endTurnNow(s);
       return;
@@ -515,7 +521,7 @@ function castRope(s: WorldState, t: Tardi, events: SimEvent[]): void {
     if (nx < 0 || nx >= s.terrain.w || ny < 0 || ny >= s.terrain.h) return;
     if (isSolid(s.terrain, nx, ny)) {
       const len = Math.max(ROPE_MIN, i);
-      t.rope = { x, y, len };
+      t.rope = { x, y, len, bends: [] };
       t.airborne = true;
       t.knocked = false;
       t.chute = false;
@@ -1019,7 +1025,19 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
     return;
   }
 
-  if (t.rope && !circleCollides(terrain, t.rope.x, t.rope.y, 2)) releaseRope(t); // anchor blown away
+  // Anchor blown away: a wrapped rope falls back to its previous corner, otherwise it's cut.
+  while (t.rope && !circleCollides(terrain, t.rope.x, t.rope.y, 2)) {
+    const prev = t.rope.bends.pop();
+    if (!prev) {
+      releaseRope(t);
+      break;
+    }
+    const dx = t.rope.x - prev.x;
+    const dy = t.rope.y - prev.y;
+    t.rope.len = Math.min(ROPE_MAX, t.rope.len + Math.sqrt(dx * dx + dy * dy));
+    t.rope.x = prev.x;
+    t.rope.y = prev.y;
+  }
   if (t.rope) {
     updateRope(s, t);
     checkOutOfBounds(s, t, events);
@@ -1314,6 +1332,7 @@ function updateRope(s: WorldState, t: Tardi): void {
     }
     break;
   }
+  wrapRope(terrain, t, rope);
   // Keep within rope length: pull back onto the circle and remove outward speed.
   const dx = t.x - rope.x;
   const dy = t.y - rope.y;
@@ -1334,6 +1353,54 @@ function updateRope(s: WorldState, t: Tardi): void {
       t.vx -= vr * ux;
       t.vy -= vr * uy;
     }
+  }
+}
+
+/** First solid point on the line a→b (skipping the ends), or null if clear. */
+function lineBlocked(terrain: Terrain, ax: number, ay: number, bx: number, by: number): { x: number; y: number; fx: number; fy: number } | null {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d < 6) return null;
+  const ux = dx / d;
+  const uy = dy / d;
+  for (let k = 3; k < d - 3; k++) {
+    const x = ax + ux * k;
+    const y = ay + uy * k;
+    if (isSolid(terrain, x, y)) return { x, y, fx: x - ux, fy: y - uy };
+  }
+  return null;
+}
+
+/** Wrap the Silk Rope round corners it swings into, and unwrap when it swings back. */
+function wrapRope(terrain: Terrain, t: Tardi, rope: NonNullable<Tardi['rope']>): void {
+  for (let n = 0; n < 3; n++) {
+    // Unwrap: the rope has swung back past the last corner and can see the pivot before it.
+    const prev = rope.bends[rope.bends.length - 1];
+    if (prev) {
+      const cross = (rope.x - prev.x) * (t.y - rope.y) - (rope.y - prev.y) * (t.x - rope.x);
+      if (cross * prev.side <= 0 && !lineBlocked(terrain, prev.x, prev.y, t.x, t.y)) {
+        const sx = rope.x - prev.x;
+        const sy = rope.y - prev.y;
+        rope.len = Math.min(ROPE_MAX, rope.len + Math.sqrt(sx * sx + sy * sy));
+        rope.x = prev.x;
+        rope.y = prev.y;
+        rope.bends.pop();
+        continue;
+      }
+    }
+    // Wrap: something is between the pivot and the tardi; the rope catches on it.
+    const hit = lineBlocked(terrain, rope.x, rope.y, t.x, t.y);
+    if (!hit || rope.bends.length >= ROPE_BENDS_MAX) return;
+    const sx = hit.fx - rope.x;
+    const sy = hit.fy - rope.y;
+    const used = Math.sqrt(sx * sx + sy * sy);
+    if (used < 2) return;
+    const side = (hit.fx - rope.x) * (t.y - hit.fy) - (hit.fy - rope.y) * (t.x - hit.fx);
+    rope.bends.push({ x: rope.x, y: rope.y, side: side < 0 ? -1 : 1 });
+    rope.x = hit.fx;
+    rope.y = hit.fy;
+    rope.len = Math.max(ROPE_MIN, rope.len - used);
   }
 }
 
@@ -1481,7 +1548,10 @@ export function hashWorld(s: WorldState): number {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
     mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0);
-    if (t.rope) { mix(t.rope.x); mix(t.rope.y); mix(t.rope.len); }
+    if (t.rope) {
+      mix(t.rope.x); mix(t.rope.y); mix(t.rope.len);
+      for (const b of t.rope.bends) { mix(b.x); mix(b.y); mix(b.side); }
+    }
   }
   for (const p of s.projectiles) {
     mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse); mix(p.tx); mix(p.ty); mix(p.dir); mix(p.hits);

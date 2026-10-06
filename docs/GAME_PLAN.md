@@ -702,6 +702,10 @@ monetisation (cosmetics only, no ads, no power for sale).
   setting, gives one of each): Holy Water Droplet (3 s fuse, 90 px blast),
   Concrete Tun (dropped on a target, smashes down through six explosions) and
   Microscope Slide Slam (glass shards rain across the whole map).
+- Silk Rope wraps round corners it swings into (and unwraps on the way
+  back); if a corner is blown away the rope falls back to the one before.
+- Drag-to-aim: drag from your own tardi to point the crosshair (touch and
+  mouse); other drags still pan the camera.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.
@@ -709,7 +713,6 @@ monetisation (cosmetics only, no ads, no power for sale).
 
 ### Next
 
-1. Rope polish: wrapping around corners, rope-only "rope race" scheme.
-2. Crosshair/aim feel tuning against WA reference; aim-drag on touch.
-3. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
-4. Owner: register developer accounts (Apple, Google, Stripe) early.
+1. Rope-only "rope race" scheme; crosshair/aim feel tuning against WA.
+2. Then Phase 2: accounts + online rooms (server reuses `src/sim`).
+3. Owner: register developer accounts (Apple, Google, Stripe) early.
