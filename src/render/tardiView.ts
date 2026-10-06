@@ -108,6 +108,8 @@ export class TardiView {
       g.moveTo(lx + 1 + sway, 8 - lift).lineTo(lx + 1.6 + sway, 9.2 - lift).stroke({ width: 0.9, color: O });
     });
 
+    // Poisoned tardis turn sickly green.
+    this.body.tint = t.poison ? 0xa8e890 : 0xffffff;
     this.chute.visible = t.chute;
     if (t.chute) this.chute.rotation = Math.sin(time * 2.5 + t.id) * 0.12;
 

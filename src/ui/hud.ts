@@ -229,6 +229,7 @@ export class Hud {
       else if (def.kind === 'target') hint = turn.target ? 'Press FIRE to confirm' : 'Tap / click the map to choose a target';
       else if (def.projectile?.homing) hint = turn.target ? 'Aim, then hold Fire to launch' : 'Tap / click a target for the spore first';
       else if (def.kind === 'walker') hint = 'Fire to release the Rotifer Roller';
+      else if (def.kind === 'drop') hint = 'Fire to drop it, then run!';
     } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
       hint = 'Press Fire to set it off!';
     } else if (!humanTurn && turn.phase === 'aim') {

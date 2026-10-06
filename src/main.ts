@@ -166,6 +166,7 @@ class Match {
           setTimeout(() => this.hud.showBanner('SUDDEN DEATH!', 0xe04848, 2.5), 2100);
           break;
         case 'waterRise': sfx.splash(); break;
+        case 'gas': sfx.chute(); break;
         case 'turnStart':
           sfx.turn();
           this.announceTurn();
