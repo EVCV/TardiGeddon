@@ -56,7 +56,10 @@ const CRATE_R = 8;
 const MINE_TRIGGER = 26;
 const CRATE_FALL = 1.5;
 /** Crate contents: weapon ids weighted by how often they appear. */
-const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade'];
+const CRATE_WEAPONS = ['cluster', 'cluster', 'airstrike', 'teleport', 'girder', 'parachute', 'grenade', 'mortar', 'homing', 'rotifer'];
+const HOMING_START = 15;
+const HOMING_TICKS = 120;
+const WALKER_R = 4;
 /** Hard cap on end-of-turn settling so a turn can never soft-lock. */
 const SETTLE_MAX = 20 * TICK_RATE;
 
@@ -353,7 +356,7 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
     } else if (cmd.t === 'fuse') {
       turn.fuseSeconds = Math.max(1, Math.min(5, Math.round(cmd.s)));
     } else if (cmd.t === 'target') {
-      if (def.kind === 'target') turn.target = { x: cmd.x, y: cmd.y };
+      if (def.kind === 'target' || def.projectile?.homing) turn.target = { x: cmd.x, y: cmd.y };
     } else if (cmd.t === 'skip') {
       endTurnNow(s);
       return;
@@ -403,6 +406,12 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
     if (canMove) walk(s, t, dir); // without movement you can still turn round
   }
 
+  // During retreat, Fire sets off your Rotifer Roller.
+  if (turn.phase === 'retreat' && fireEdge) {
+    const w = s.projectiles.find((p) => p.owner === t.id && p.dir !== 0);
+    if (w) w.fuse = 1;
+  }
+
   if (!aiming) return;
 
   // Aiming
@@ -430,6 +439,7 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   if (t.airborne || turn.shotsLeft <= 0 || team.ammo[def.id] === 0) return;
   switch (def.kind) {
     case 'charge':
+      if (def.projectile?.homing && !turn.target) break; // pick a target first
       if (fireEdge && !turn.charging) {
         turn.charging = true;
         turn.power = 0;
@@ -451,6 +461,12 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
     case 'target':
       if (fireEdge && turn.target) {
         if (fireTargeted(s, t, def, events)) afterShot(s, def);
+      }
+      break;
+    case 'walker':
+      if (fireEdge) {
+        fireWalker(s, t, def, events);
+        afterShot(s, def);
       }
       break;
     case 'melee':
@@ -562,7 +578,9 @@ function afterShot(s: WorldState, def: WeaponDef): void {
     endTurnNow(s);
   } else if (turn.shotsLeft <= 0 && turn.phase === 'aim') {
     turn.phase = 'retreat';
-    turn.timer = s.scheme.retreatTime * TICK_RATE;
+    // A walker keeps the turn going until it goes off (then normal retreat).
+    const walker = def.projectile?.walker;
+    turn.timer = (walker ? walker.fuseTicks : 0) + s.scheme.retreatTime * TICK_RATE;
   }
 }
 
@@ -576,7 +594,7 @@ function spawnProjectile(
   fuse: number,
   owner: number,
 ): Projectile {
-  const p: Projectile = { id: s.nextId++, weapon, x, y, vx, vy, fuse, owner, age: 0 };
+  const p: Projectile = { id: s.nextId++, weapon, x, y, vx, vy, fuse, owner, age: 0, tx: 0, ty: 0, dir: 0 };
   s.projectiles.push(p);
   return p;
 }
@@ -596,8 +614,76 @@ function fireProjectile(s: WorldState, t: Tardi, def: WeaponDef, events: SimEven
   const spec = def.projectile!;
   const { vx, vy } = launchVelocity(spec, t.facing, s.turn.aim, s.turn.power);
   const fuse = spec.playerFuse ? s.turn.fuseSeconds * TICK_RATE : -1;
-  spawnProjectile(s, def.id, t.x, t.y, vx, vy, fuse, t.id);
+  const p = spawnProjectile(s, def.id, t.x, t.y, vx, vy, fuse, t.id);
+  if (spec.homing && s.turn.target) {
+    p.tx = s.turn.target.x;
+    p.ty = s.turn.target.y;
+  }
   events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
+}
+
+function fireWalker(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
+  const w = def.projectile!.walker!;
+  // Start just in front of the tardi, or on top of it if a wall is in the way.
+  const x = circleCollides(s.terrain, t.x + t.facing * 10, t.y, WALKER_R) ? t.x : t.x + t.facing * 10;
+  const p = spawnProjectile(s, def.id, x, t.y, 0, 0, w.fuseTicks, t.id);
+  p.dir = t.facing;
+  events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
+}
+
+/** Rotifer Roller: walks along the ground, hops over steps it can't climb. */
+function stepWalker(s: WorldState, p: Projectile, speed: number, events: SimEvent[] | null): StepResult {
+  const terrain = s.terrain;
+  const grounded = circleCollides(terrain, p.x, p.y + 1, WALKER_R);
+  if (grounded && p.vy >= 0) {
+    p.vy = 0;
+    const nx = p.x + p.dir * speed;
+    let ny = -1;
+    for (let k = 0; k <= 5; k++) {
+      if (!circleCollides(terrain, nx, p.y - k, WALKER_R)) {
+        ny = p.y - k;
+        break;
+      }
+    }
+    if (ny < 0) {
+      p.vy = -4.5; // wall: hop
+    } else {
+      for (let k = 1; k <= 6; k++) {
+        if (circleCollides(terrain, nx, ny + k, WALKER_R)) {
+          ny = ny + k - 1;
+          break;
+        }
+        if (k === 6) ny = ny + k; // walked off a ledge: start falling
+      }
+      p.x = nx;
+      p.y = ny;
+    }
+  } else {
+    p.vy = Math.min(MAX_FALL_SPEED, p.vy + GRAVITY);
+    const vx = p.dir * speed * 0.8;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(vx), Math.abs(p.vy))));
+    for (let i = 0; i < steps; i++) {
+      const nx = p.x + vx / steps;
+      const ny = p.y + p.vy / steps;
+      if (!circleCollides(terrain, nx, ny, WALKER_R)) {
+        p.x = nx;
+        p.y = ny;
+        continue;
+      }
+      if (!circleCollides(terrain, p.x, ny, WALKER_R)) {
+        p.y = ny; // blocked sideways only: keep falling/rising
+        continue;
+      }
+      p.vy = 0; // landed or bumped head
+      break;
+    }
+  }
+  if (p.y >= s.waterY) {
+    events?.push({ t: 'splash', x: p.x });
+    return { k: 'gone' };
+  }
+  if (p.x < -60 || p.x > terrain.w + 60) return { k: 'gone' };
+  return { k: 'alive' };
 }
 
 /** Trace an instant shot from a tardi along an aim. Read-only (used by the CPU too). */
@@ -706,7 +792,20 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
   const spec = WEAPONS[p.weapon].projectile!;
   p.age++;
   if (p.fuse > 0 && --p.fuse === 0) return { k: 'explode', x: p.x, y: p.y };
-  p.vy += GRAVITY;
+  if (spec.walker) return stepWalker(s, p, spec.walker.speed, events);
+  if (spec.homing && p.age > HOMING_START && p.age < HOMING_START + HOMING_TICKS) {
+    // Steer towards the target instead of falling.
+    const dx = p.tx - p.x;
+    const dy = p.ty - p.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > 1) {
+      const speed = Math.max(8, Math.sqrt(p.vx * p.vx + p.vy * p.vy));
+      p.vx = p.vx * 0.85 + (dx / d) * speed * 0.15;
+      p.vy = p.vy * 0.85 + (dy / d) * speed * 0.15;
+    }
+  } else {
+    p.vy += GRAVITY;
+  }
   p.vx += s.wind * WIND_ACCEL * spec.windFactor;
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(p.vx), Math.abs(p.vy))));
   const sx = p.vx / steps;
@@ -756,6 +855,10 @@ function updateProjectiles(s: WorldState, events: SimEvent[]): void {
     const r = stepProjectile(s, p, events);
     if (r.k === 'alive') continue;
     s.projectiles.splice(s.projectiles.indexOf(p), 1);
+    if (p.dir !== 0 && s.turn.phase === 'retreat') {
+      // Walker is done: the usual short retreat follows.
+      s.turn.timer = Math.min(s.turn.timer, s.scheme.retreatTime * TICK_RATE);
+    }
     if (r.k === 'explode') {
       const spec = WEAPONS[p.weapon].projectile!;
       explode(s, r.x, r.y, spec.radius, spec.damage, events);
@@ -1238,7 +1341,7 @@ export function hashWorld(s: WorldState): number {
     if (t.rope) { mix(t.rope.x); mix(t.rope.y); mix(t.rope.len); }
   }
   for (const p of s.projectiles) {
-    mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse);
+    mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); mix(p.fuse); mix(p.tx); mix(p.ty); mix(p.dir);
   }
   for (const o of s.objects) {
     mix(o.id); mix(o.x); mix(o.y); mix(o.vx); mix(o.vy); mix(o.fuse); mix(o.hp);

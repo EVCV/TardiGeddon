@@ -84,7 +84,7 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
   const ammo = s.teams[me.team].ammo;
   const usable = (w: string) => ammo[w] !== 0;
   // Thrown weapons the CPU can plan: simulate each candidate throw.
-  for (const weapon of ['bazooka', 'grenade', 'cluster'].filter(usable)) {
+  for (const weapon of ['bazooka', 'grenade', 'cluster', 'mortar'].filter(usable)) {
     const spec = WEAPONS[weapon].projectile!;
     for (const facing of [1, -1] as const) {
       // Aim is reached in AIM_STEP increments from the turn's start aim.
@@ -140,7 +140,7 @@ function predict(
 ): { x: number; y: number } | null {
   const spec = WEAPONS[weapon].projectile!;
   const { vx, vy } = launchVelocity(spec, facing, aim, power);
-  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : -1, owner, age: 0 };
+  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : -1, owner, age: 0, tx: 0, ty: 0, dir: 0 };
   for (let i = 0; i < 400; i++) {
     const r = stepProjectile(s, p, null);
     if (r.k === 'gone') return null;

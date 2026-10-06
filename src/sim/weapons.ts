@@ -11,9 +11,13 @@ export interface ProjectileSpec {
   damage: number;
   speed: number;
   cluster?: { count: number; weapon: string };
+  /** Steers towards the turn's target after launch (needs a target). */
+  homing?: boolean;
+  /** Walks along the ground instead of flying (fired without charging). */
+  walker?: { fuseTicks: number; speed: number };
 }
 
-export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee';
+export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee' | 'walker';
 
 export interface WeaponDef {
   id: string;
@@ -79,6 +83,59 @@ export const WEAPONS: Record<string, WeaponDef> = {
     hidden: true,
     icon: '•',
     projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 16, damage: 18, speed: 0 },
+  },
+  mortar: {
+    id: 'mortar',
+    name: 'Mortar Pod',
+    kind: 'charge',
+    ammo: 3,
+    shots: 1,
+    icon: '🌰',
+    projectile: {
+      windFactor: 1,
+      bounce: null,
+      playerFuse: false,
+      radius: 22,
+      damage: 25,
+      speed: 17,
+      cluster: { count: 4, weapon: 'mortarlet' },
+    },
+  },
+  mortarlet: {
+    id: 'mortarlet',
+    name: 'Mortar Fragment',
+    kind: 'charge',
+    ammo: 0,
+    shots: 1,
+    hidden: true,
+    icon: '•',
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 14, damage: 12, speed: 0 },
+  },
+  homing: {
+    id: 'homing',
+    name: 'Homing Spore',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    icon: '🎯',
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 30, damage: 45, speed: 15, homing: true },
+  },
+  rotifer: {
+    id: 'rotifer',
+    name: 'Rotifer Roller',
+    kind: 'walker',
+    ammo: 1,
+    shots: 1,
+    icon: '🌀',
+    projectile: {
+      windFactor: 0,
+      bounce: null,
+      playerFuse: false,
+      radius: 48,
+      damage: 70,
+      speed: 0,
+      walker: { fuseTicks: 400, speed: 1.4 },
+    },
   },
   shotgun: {
     id: 'shotgun',
