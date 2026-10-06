@@ -599,13 +599,19 @@ function fireProjectile(s: WorldState, t: Tardi, def: WeaponDef, events: SimEven
   events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
 }
 
-function fireHitscan(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
-  const hs = def.hitscan!;
-  const { dx, dy } = aimVector(t.facing, s.turn.aim);
+/** Trace an instant shot from a tardi along an aim. Read-only (used by the CPU too). */
+export function traceHitscan(
+  s: WorldState,
+  t: Tardi,
+  facing: number,
+  aim: number,
+  range: number,
+): { x: number; y: number; hit: boolean } {
+  const { dx, dy } = aimVector(facing, aim);
   let x = t.x;
   let y = t.y;
   let hit = false;
-  for (let i = 0; i < hs.range && !hit; i++) {
+  for (let i = 0; i < range && !hit; i++) {
     x += dx;
     y += dy;
     if (x < 0 || x >= s.terrain.w || y < 0 || y >= s.waterY) break;
@@ -617,6 +623,12 @@ function fireHitscan(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]
       if (ox * ox + oy * oy < TARDI_R * TARDI_R) hit = true;
     }
   }
+  return { x, y, hit };
+}
+
+function fireHitscan(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
+  const hs = def.hitscan!;
+  const { x, y, hit } = traceHitscan(s, t, t.facing, s.turn.aim, hs.range);
   events.push({ t: 'fire', weapon: def.id, x: t.x, y: t.y });
   events.push({ t: 'shot', x0: t.x, y0: t.y, x1: x, y1: y });
   if (hit) explode(s, x, y, hs.radius, hs.damage, events);

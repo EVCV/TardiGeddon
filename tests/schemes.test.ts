@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { activeTardi, createWorld, tick } from '../src/sim/world';
 import { SCHEME_PRESETS, presetScheme } from '../src/sim/schemes';
 import { CpuPlayer } from '../src/ai/cpu';
-import { BTN_LEFT, BTN_RIGHT, PRESS_JUMP, type Scheme } from '../src/sim/types';
+import { BTN_LEFT, BTN_RIGHT, PRESS_JUMP, type Scheme, type SimEvent } from '../src/sim/types';
 import { run, runUntilPhase } from './helpers';
 
 const teams = [
@@ -90,4 +90,30 @@ describe('CPU across styles', () => {
       expect(s.turn.turnNumber).toBeGreaterThan(1);
     }, 60_000);
   }
+});
+
+describe('CPU with a non-thrown arsenal', () => {
+  it('uses the shotgun when that is all the style allows', () => {
+    const s = createWorld({
+      seed: 9,
+      teams: teams.map((t) => ({ ...t, cpu: true })),
+      scheme: { weapons: { shotgun: -1 }, mines: 0, drums: 0, crateChance: 0, tardisPerTeam: 1 },
+    });
+    // Flat arena with the two tardis facing off 120px apart.
+    const t = s.terrain;
+    t.mask.fill(0);
+    for (let y = 600; y < t.h; y++) for (let x = 100; x < 1900; x++) t.mask[y * t.w + x] = 1;
+    s.tardis[0].x = 900;
+    s.tardis[1].x = 1020;
+    for (const td of s.tardis) {
+      td.y = 592;
+      td.airborne = false;
+    }
+    const cpus = [new CpuPlayer(1), new CpuPlayer(1)];
+    const ev: SimEvent[] = [];
+    for (let i = 0; i < 600; i++) tick(s, cpus[s.turn.teamIdx].next(s), ev);
+    const shots = ev.filter((e) => e.t === 'shot').length;
+    expect(shots).toBeGreaterThanOrEqual(2); // shotgun fired (2 shots per turn), not skipped
+    expect(s.tardis.some((td) => td.hp < 100 || td.pendingDmg > 0)).toBe(true);
+  });
 });
