@@ -21,6 +21,8 @@ const OWN_GOAL = ['Oops.', 'Ow! My own fault.', 'I’ll pretend that didn’t ha
 const SMALL_HIT = ['Ow!', 'Hey!', 'Rude!', 'That tickled.', 'Just a scratch!'];
 const BIG_HIT = ['OUCH!', 'My cuticle!', 'Not the face!', 'I felt that in all eight legs!', 'Medic!', 'Revenge will be mine!'];
 const DROWN = ['Glub glub…', 'Wait, I’m a water bear!', 'Tell my team I was brave!'];
+const LAST_WORDS = ['I regret nothing!', 'Tell my mum I was brave!', 'Avenge meeee!', 'Not like this…', 'I’ll be back… in a million years.', 'Worth it.'];
+const VICTORY = ['Too easy!', 'Water bears rule!', 'Who’s indestructible now?', 'Dance party!', 'GG, no re.', 'Victory tastes like moss!'];
 
 const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
@@ -64,6 +66,15 @@ export class Banter {
           break;
         case 'drown':
           say(e.id, pick(DROWN));
+          break;
+        case 'death':
+          say(e.id, pick(LAST_WORDS));
+          break;
+        case 'gameover':
+          // The winners left standing gloat, a beat apart.
+          s.tardis
+            .filter((t) => t.alive && t.team === e.winner)
+            .forEach((t, i) => setTimeout(() => say(t.id, pick(VICTORY)), 600 + i * 450));
           break;
       }
     }

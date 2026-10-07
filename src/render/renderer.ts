@@ -1,13 +1,17 @@
 // Draws the simulation state. Reads WorldState; never writes to it.
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
-import type { SimEvent, WorldState } from '../sim/types';
-import { aimVector, activeTardi, girderFits } from '../sim/world';
+import type { SimEvent, Tardi, WorldState } from '../sim/types';
+import { aimVector, activeTardi, girderFits, TARDI_R } from '../sim/world';
+import { isSolid } from '../sim/terrain/terrain';
 import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
-import { TardiView } from './tardiView';
+import { TardiView, type Mood } from './tardiView';
 import { ObjectView } from './objectView';
 import { PALETTE, hex } from './palette';
+
+/** Seconds a dying tardi spends curling up before it pops. */
+const DEATH_CURL = 0.9;
 
 interface Particle {
   x: number;
@@ -18,7 +22,7 @@ interface Particle {
   max: number;
   r: number;
   color: number;
-  kind: 'flash' | 'smoke' | 'debris' | 'spark';
+  kind: 'flash' | 'smoke' | 'debris' | 'spark' | 'confetti';
 }
 
 interface FloatText {
@@ -57,6 +61,13 @@ export class GameRenderer {
   private prev = new Map<number, { x: number; y: number }>();
   private fuseTexts = new Map<number, Text>();
   private bubbles = new Map<number, { root: Container; until: number; x: number; y: number }>();
+  /** Tardis curling up before they pop: id -> start time. */
+  private dying = new Map<number, number>();
+  /** When each tardi last said "Whoa!", so it doesn't repeat itself. */
+  private teeterSaid = new Map<number, number>();
+  private confettiDone = false;
+  /** Cosmetic sound hook (set by the game). */
+  onSound: ((name: 'pop' | 'whoa') => void) | null = null;
   private time = 0;
 
   constructor(
@@ -160,13 +171,10 @@ export class GameRenderer {
           if (t) this.floatText('Bye-bye!', t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
           break;
         }
-        case 'death': {
-          this.tardiViews.get(e.id)?.root.destroy({ children: true });
-          this.tardiViews.delete(e.id);
-          const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.markers.addChild(makeHusk(t.x, t.y, this.state.teams[t.team].color));
+        case 'death':
+          // Comedy death: curl up into a tun, wobble, then pop (see render()).
+          if (this.tardiViews.has(e.id)) this.dying.set(e.id, this.time);
           break;
-        }
         case 'burn':
           this.terrainView.crater(e.x, e.y, 2.5, e.rect);
           break;
@@ -207,6 +215,65 @@ export class GameRenderer {
           }
           break;
       }
+    }
+  }
+
+  /** Victory dance or teetering on an edge: purely for show. */
+  private moodFor(s: WorldState, t: Tardi, v: TardiView): Mood {
+    if (!t.alive) return 'none';
+    if (s.turn.phase === 'gameover') return t.team === s.turn.winner ? 'dance' : 'none';
+    if (t.airborne || t.rope) return 'none';
+    // Teetering: ground under the middle, but a drop right beside one foot.
+    const ground = (x: number) => {
+      for (let y = t.y + TARDI_R; y < t.y + TARDI_R + 36; y += 2) if (isSolid(s.terrain, x, y)) return true;
+      return false;
+    };
+    if (!ground(t.x)) return 'none';
+    for (const dir of [-1, 1]) {
+      if (!ground(t.x + dir * 10)) {
+        v.teeterDir = dir;
+        const last = this.teeterSaid.get(t.id) ?? -99;
+        if (this.time - last > 10) {
+          this.teeterSaid.set(t.id, this.time);
+          if (Math.random() < 0.6) {
+            this.say(t.id, Math.random() < 0.5 ? 'Whoa!' : 'Whoa whoa WHOA!', 1.6);
+            this.onSound?.('whoa');
+          }
+        }
+        return 'teeter';
+      }
+    }
+    return 'none';
+  }
+
+  /** End of a comedy death: pop, leave a husk. */
+  private pop(id: number, x: number, y: number, color: number): void {
+    this.dying.delete(id);
+    this.tardiViews.get(id)?.root.destroy({ children: true });
+    this.tardiViews.delete(id);
+    this.spawnExplosion(x, y, 12);
+    for (let i = 0; i < 10; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.particles.push({ x, y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5 - 1.5, life: 0.9, max: 0.9, r: 2 + Math.random() * 2, color, kind: 'debris' });
+    }
+    this.floatText('POP!', x, y - 20, 0xffffff);
+    this.markers.addChild(makeHusk(x, y, color));
+    this.onSound?.('pop');
+  }
+
+  /** Confetti in the winners' colour. */
+  private confetti(s: WorldState): void {
+    const color = s.turn.winner >= 0 ? s.teams[s.turn.winner].color : 0xffffff;
+    const { width, height } = this.app.screen;
+    const z = this.camera.zoom;
+    for (let i = 0; i < 140; i++) {
+      this.particles.push({
+        x: this.camera.x + (Math.random() - 0.5) * (width / z),
+        y: this.camera.y - height / z / 2 - Math.random() * 200,
+        vx: 0, vy: 1 + Math.random() * 1.5,
+        life: 5 + Math.random() * 2, max: 7, r: Math.random(),
+        color: [color, 0xffd84a, 0xffffff, 0xff7ac0][i % 4], kind: 'confetti',
+      });
     }
   }
 
@@ -290,7 +357,15 @@ export class GameRenderer {
         continue;
       }
       const p = this.lerpPos(t.id, t.x, t.y, alpha);
-      v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', true);
+      v.mood = this.moodFor(s, t, v);
+      const dyingSince = this.dying.get(t.id);
+      v.dying = dyingSince === undefined ? -1 : Math.min(1, (this.time - dyingSince) / DEATH_CURL);
+      v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined);
+      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color);
+    }
+    if (s.turn.phase === 'gameover' && !this.confettiDone) {
+      this.confettiDone = true;
+      this.confetti(s);
     }
 
     // Map objects
@@ -469,18 +544,25 @@ export class GameRenderer {
     for (const p of this.particles) {
       p.life -= dt;
       const k = Math.max(0, p.life / p.max);
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.kind === 'debris') p.vy += 0.25;
+      // Speeds are "per 60 fps frame"; scale by elapsed time so motion is the
+      // same on slow and high-refresh screens.
+      const f = dt * 60;
+      p.x += p.vx * f;
+      p.y += p.vy * f;
+      if (p.kind === 'debris') p.vy += 0.25 * f;
+      if (p.kind === 'confetti') p.vx = Math.sin(this.time * 4 + p.r * 7) * 0.8;
       if (p.kind === 'smoke') {
-        p.vy -= 0.01;
-        p.vx *= 0.98;
+        p.vy -= 0.01 * f;
+        p.vx *= Math.pow(0.98, f);
       }
       if (p.kind === 'flash') {
         g.circle(p.x, p.y, p.r * (1.2 - k * 0.4)).fill({ color: 0xffb13b, alpha: k * 0.8 });
         g.circle(p.x, p.y, p.r * (0.8 - k * 0.3)).fill({ color: p.color, alpha: k });
       } else if (p.kind === 'smoke') {
         g.circle(p.x, p.y, p.r * (1.6 - k * 0.6)).fill({ color: p.color, alpha: k * 0.55 });
+      } else if (p.kind === 'confetti') {
+        const w = 5 * Math.abs(Math.sin(this.time * 6 + p.r * 11));
+        g.rect(p.x - w / 2, p.y - 2, w + 0.5, 4).fill({ color: p.color, alpha: Math.min(1, k * 3) });
       } else {
         g.circle(p.x, p.y, p.r).fill({ color: p.color, alpha: Math.min(1, k * 2) });
       }
@@ -534,7 +616,11 @@ export class GameRenderer {
     const now = performance.now();
     if (now > cam.manualUntil) {
       let target: { x: number; y: number } | null = null;
-      if (s.projectiles.length > 0) {
+      const champ = s.turn.phase === 'gameover' ? s.tardis.find((t) => t.alive && t.team === s.turn.winner) : undefined;
+      if (champ) {
+        // Game over: watch the winners dance.
+        target = this.lerpPos(champ.id, champ.x, champ.y, alpha);
+      } else if (s.projectiles.length > 0) {
         const p = s.projectiles[0];
         target = this.lerpPos(p.id, p.x, p.y, alpha);
       } else {
