@@ -6,10 +6,11 @@ import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
+import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard } from './input/input';
 import { Hud } from './ui/hud';
-import { CpuPlayer } from './ai/cpu';
+import { CpuPlayer, type CpuSkill } from './ai/cpu';
 import { sfx, setMuted, unlockAudio } from './audio/sfx';
 import { showMenu, type MatchSetup } from './ui/menu';
 import { loadRejoin, showOnline } from './ui/online';
@@ -84,7 +85,8 @@ async function boot(): Promise<void> {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
     const n = Number(params.get('players')) || 2;
     const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
-    start({ players, teams: loadProfiles().slice(0, n), scheme: presetScheme('standard'), seed: 12345 });
+    const skill = (params.get('skill') ?? 'normal') as CpuSkill;
+    start({ players, teams: loadProfiles().slice(0, n), scheme: presetScheme('standard'), seed: 12345, cpuSkill: skill });
   } else if (room) {
     // Invite link: ?room=CODE
     online({ code: room.toUpperCase() });
@@ -99,6 +101,7 @@ class Match {
   private renderer: GameRenderer;
   private input = new InputCollector();
   private hud: Hud;
+  private banter = new Banter();
   private cpu = new Map<number, CpuPlayer>();
   private events: SimEvent[] = [];
   private acc = 0;
@@ -134,7 +137,7 @@ class Match {
         return { name: p.name, color: p.color, hat: p.hat, names: matchNames(p, i), cpu };
       });
       this.local = createWorld({ seed: setup.seed, teams, scheme: setup.scheme });
-      for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer());
+      for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
     } else {
       this.net = { client: mode.client, ls: mode.ls };
       this.listenNet();
@@ -236,6 +239,7 @@ class Match {
       }
     }
     this.renderer.handleEvents(this.events);
+    this.banter.onEvents(this.state, this.events, (id, text) => this.renderer.say(id, text));
     this.playSounds(this.events);
     this.events.length = 0;
     this.renderer.render(this.state, Math.min(1, this.acc / TICK_MS), dt / 1000, true);

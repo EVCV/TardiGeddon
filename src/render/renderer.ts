@@ -56,6 +56,7 @@ export class GameRenderer {
   private tracers: { x0: number; y0: number; x1: number; y1: number; life: number }[] = [];
   private prev = new Map<number, { x: number; y: number }>();
   private fuseTexts = new Map<number, Text>();
+  private bubbles = new Map<number, { root: Container; until: number; x: number; y: number }>();
   private time = 0;
 
   constructor(
@@ -209,6 +210,30 @@ export class GameRenderer {
     }
   }
 
+  /** A speech bubble over a tardi for a couple of seconds (replaces any it already has). */
+  say(tardiId: number, text: string, seconds = 2.4): void {
+    this.bubbles.get(tardiId)?.root.destroy({ children: true });
+    const t = this.state.tardis.find((x) => x.id === tardiId);
+    if (!t) return;
+    const root = new Container();
+    const label = new Text({
+      text,
+      style: { fontFamily: 'Nunito, Arial, sans-serif', fontWeight: '800', fontSize: 13, fill: '#2b1b24', wordWrap: true, wordWrapWidth: 150, align: 'center' },
+    });
+    label.resolution = 3;
+    label.anchor.set(0.5, 1);
+    const w = label.width + 16;
+    const h = label.height + 10;
+    const g = new Graphics();
+    g.roundRect(-w / 2, -h - 8, w, h, 10).fill(0xffffff).stroke({ width: 2, color: PALETTE.outline });
+    g.poly([-6, -9, 6, -9, 0, 0]).fill(0xffffff).stroke({ width: 2, color: PALETTE.outline });
+    g.rect(-5, -11, 10, 4).fill(0xffffff); // hide the seam between bubble and tail
+    label.position.set(0, -13);
+    root.addChild(g, label);
+    this.floatLayer.addChild(root);
+    this.bubbles.set(tardiId, { root, until: this.time + seconds, x: t.x, y: t.y });
+  }
+
   private floatText(s: string, x: number, y: number, color: number): void {
     const text = new Text({
       text: s,
@@ -333,6 +358,24 @@ export class GameRenderer {
         ft.destroy();
         this.fuseTexts.delete(id);
       }
+    }
+
+    // Speech bubbles follow their tardi (and stay put if it's gone).
+    for (const [id, b] of this.bubbles) {
+      if (this.time > b.until) {
+        b.root.destroy({ children: true });
+        this.bubbles.delete(id);
+        continue;
+      }
+      const t = s.tardis.find((x) => x.id === id && x.alive);
+      if (t) {
+        const p = this.lerpPos(t.id, t.x, t.y, alpha);
+        b.x = p.x;
+        b.y = p.y;
+      }
+      b.root.position.set(b.x, b.y - 48);
+      // Readable even when zoomed right out.
+      b.root.scale.set(Math.max(1, 0.8 / this.camera.zoom));
     }
 
     // Silk ropes

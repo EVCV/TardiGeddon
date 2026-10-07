@@ -62,7 +62,7 @@ describe('big matches', () => {
 
   it('8 CPU teams play without stalling', () => {
     const s = createWorld({ seed: 11, teams: teams(8, true), scheme: { tardisPerTeam: 2, turnTime: 20 } });
-    const cpus = s.teams.map(() => new CpuPlayer(1));
+    const cpus = s.teams.map(() => new CpuPlayer('perfect'));
     let lastTurn = s.turn.turnNumber;
     let since = 0;
     for (let i = 0; i < 50 * 60 * 6 && s.turn.phase !== 'gameover'; i++) {

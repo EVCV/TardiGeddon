@@ -83,7 +83,7 @@ describe('CPU across styles', () => {
         teams: teams.map((t) => ({ ...t, cpu: true })),
         scheme: { ...presetScheme(id), tardisPerTeam: 2 },
       });
-      const cpus = [new CpuPlayer(1), new CpuPlayer(1)];
+      const cpus = [new CpuPlayer('perfect'), new CpuPlayer('perfect')];
       for (let i = 0; i < 50 * 60 * 4 && s.turn.phase !== 'gameover'; i++) tick(s, cpus[s.turn.teamIdx].next(s), []);
       // Either someone won, or turns kept flowing (no soft-lock).
       // (A superweapon can legitimately win on the very first turn.)
@@ -111,7 +111,7 @@ describe('CPU with a non-thrown arsenal', () => {
       td.y = 592;
       td.airborne = false;
     }
-    const cpus = [new CpuPlayer(1), new CpuPlayer(1)];
+    const cpus = [new CpuPlayer('perfect'), new CpuPlayer('perfect')];
     const ev: SimEvent[] = [];
     for (let i = 0; i < 600; i++) tick(s, cpus[s.turn.teamIdx].next(s), ev);
     const shots = ev.filter((e) => e.t === 'shot').length;

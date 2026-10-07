@@ -6,6 +6,45 @@ import { cloneWorld, launchVelocity, stepProjectile, activeTardi, traceHitscan, 
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type Projectile, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
 
+export type CpuSkill = 'easy' | 'normal' | 'hard' | 'perfect';
+
+/**
+ * How a CPU of each skill gets it wrong, like a person would. It picks a
+ * victim, then aims for a spot near them: the lower the skill, the further
+ * off that spot tends to be. It also only half-reads the wind, has shaky
+ * hands, and now and then just lets rip at nothing in particular.
+ */
+interface SkillDef {
+  /** Typical miss distance (px) from the tardi it is aiming at. */
+  spread: number;
+  /** How much of the real wind it allows for (0 = ignores wind). */
+  windSense: number;
+  /** Shaky hands: typical power error (power runs 0..1000) and aim error (aim steps). */
+  powerErr: number;
+  aimErr: number;
+  /** Chance of a wild, hopeful shot instead of an aimed one. */
+  wild: number;
+}
+
+const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
+  easy: { spread: 320, windSense: 0, powerErr: 40, aimErr: 2, wild: 0.25 },
+  normal: { spread: 170, windSense: 0.4, powerErr: 25, aimErr: 1, wild: 0.1 },
+  hard: { spread: 60, windSense: 0.85, powerErr: 10, aimErr: 0, wild: 0.03 },
+  perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0 },
+};
+
+/** The skill levels offered in the menu. */
+export const CPU_SKILLS: { id: CpuSkill; name: string }[] = [
+  { id: 'easy', name: 'Easy' },
+  { id: 'normal', name: 'Normal' },
+  { id: 'hard', name: 'Hard' },
+];
+
+/** Bell-curve noise with a standard deviation of 1. */
+function gauss(): number {
+  return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+}
+
 interface Plan {
   weapon: string;
   facing: 1 | -1;
@@ -23,7 +62,11 @@ export class CpuPlayer {
   private step: 'face' | 'weapon' | 'aim' | 'charge' | 'done' = 'face';
   private tapped = false;
 
-  constructor(private readonly accuracy = 0.85) {}
+  private readonly skill: SkillDef;
+
+  constructor(skill: CpuSkill = 'normal') {
+    this.skill = SKILL_DEFS[skill] ?? SKILL_DEFS.normal;
+  }
 
   next(s: WorldState): InputFrame {
     const turn = s.turn;
@@ -33,7 +76,7 @@ export class CpuPlayer {
 
     if (this.planTurn !== turn.turnNumber) {
       this.planTurn = turn.turnNumber;
-      this.plan = choosePlan(s, this.accuracy);
+      this.plan = choosePlan(s, this.skill);
       this.think = 40;
       this.step = 'face';
     }
@@ -85,12 +128,26 @@ export class CpuPlayer {
   }
 }
 
-function choosePlan(s: WorldState, accuracy: number): Plan | null {
+interface Candidate {
+  plan: Plan;
+  /** Predicted impact point. */
+  x: number;
+  y: number;
+  score: number;
+  /** Would hurt our own side. */
+  ownGoal: boolean;
+}
+
+function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
   const me = activeTardi(s);
   if (!me) return null;
   const sim = cloneWorld(s);
-  let best: Plan | null = null;
-  let bestScore = 0;
+  // It plans for the wind it thinks there is.
+  sim.wind = s.wind * skill.windSense;
+  const cands: Candidate[] = [];
+  const add = (plan: Plan, x: number, y: number, radius: number, damage: number) => {
+    cands.push({ plan, x, y, score: scoreHit(s, x, y, radius, damage, me.team), ownGoal: hurtsTeam(s, x, y, radius, me.team) });
+  };
 
   const ammo = s.teams[me.team].ammo;
   const usable = (w: string) => ammo[w] !== 0;
@@ -104,12 +161,7 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
         for (let power = 300; power <= 1000; power += 100) {
           const fuse = 3;
           const hit = predict(sim, weapon, me.x, me.y, facing, aim, power, fuse * TICK_RATE, me.id);
-          if (!hit) continue;
-          const score = scoreHit(s, hit.x, hit.y, spec.radius, spec.damage, me.team);
-          if (score > bestScore) {
-            bestScore = score;
-            best = { weapon, facing, aim, power, fuse };
-          }
+          if (hit) add({ weapon, facing, aim, power, fuse }, hit.x, hit.y, spec.radius, spec.damage);
         }
       }
     }
@@ -121,13 +173,19 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
       for (let aim = s.turn.aim - AIM_STEP * 80; aim <= s.turn.aim + AIM_STEP * 50; aim += AIM_STEP * 2) {
         if (aim < -1024 || aim > 1024) continue;
         const shot = traceHitscan(sim, me, facing, aim, hs.range);
-        if (!shot.hit) continue;
-        const score = scoreHit(s, shot.x, shot.y, hs.radius, hs.damage, me.team) * WEAPONS[weapon].shots;
-        if (score > bestScore) {
-          bestScore = score;
-          best = { weapon, facing, aim, power: 0, fuse: 3 };
-        }
+        if (shot.hit) add({ weapon, facing, aim, power: 0, fuse: 3 }, shot.x, shot.y, hs.radius, hs.damage * WEAPONS[weapon].shots);
       }
+    }
+  }
+
+  let best: Plan | null = null;
+  let bestScore = 0;
+  let bestAt: Candidate | null = null;
+  for (const c of cands) {
+    if (c.score > bestScore) {
+      bestScore = c.score;
+      best = c.plan;
+      bestAt = c;
     }
   }
   // Concrete Tun: dropped straight onto an enemy, slamming it several times.
@@ -151,12 +209,47 @@ function choosePlan(s: WorldState, accuracy: number): Plan | null {
       best = { weapon: 'slideslam', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3 };
     }
   }
-  if (best && accuracy < 1 && WEAPONS[best.weapon].kind === 'charge') {
-    // Humanise: wobble the power a little.
-    const wobble = Math.round((1 - accuracy) * 200 * (Math.random() - 0.5));
-    best.power = Math.max(100, Math.min(1000, best.power + wobble));
+  // Perfect play, and superweapon plans, go as chosen.
+  if (!best || skill.spread === 0 || best.target || WEAPONS[best.weapon].kind === 'instant') return best;
+
+  const safe = cands.filter((c) => !c.ownGoal);
+  let pick: Candidate | undefined;
+  if (Math.random() < skill.wild) {
+    // "That'll do": a hopeful shot at nothing in particular.
+    pick = safe[Math.floor(Math.random() * safe.length)];
+  } else if (bestAt) {
+    // Pick the victim its best shot was going for, then aim for a spot
+    // near them; how near depends on skill.
+    const victim = s.tardis
+      .filter((t) => t.alive && t.team !== me.team)
+      .sort((a, b) => Math.hypot(a.x - bestAt.x, a.y - bestAt.y) - Math.hypot(b.x - bestAt.x, b.y - bestAt.y))[0];
+    if (victim) {
+      const tx = victim.x + gauss() * skill.spread;
+      const ty = victim.y + gauss() * skill.spread * 0.3;
+      let bestD = Infinity;
+      for (const c of safe) {
+        if (c.plan.weapon !== best.weapon) continue; // stick with the weapon it chose
+        const d = (c.x - tx) * (c.x - tx) + (c.y - ty) * (c.y - ty);
+        if (d < bestD) {
+          bestD = d;
+          pick = c;
+        }
+      }
+    }
   }
-  return best;
+  const plan: Plan = { ...(pick?.plan ?? best) };
+  // Then shaky hands on the aim and power.
+  if (WEAPONS[plan.weapon].kind === 'charge') {
+    plan.power = Math.max(100, Math.min(1000, Math.round(plan.power + gauss() * skill.powerErr)));
+  }
+  plan.aim = Math.max(-1024, Math.min(1024, plan.aim + Math.round(gauss() * skill.aimErr) * AIM_STEP));
+  return plan;
+}
+
+/** Would a blast here hurt any of our own living tardis? */
+function hurtsTeam(s: WorldState, x: number, y: number, radius: number, team: number): boolean {
+  const reach = radius + TARDI_R + 6;
+  return s.tardis.some((t) => t.alive && t.team === team && Math.hypot(t.x - x, t.y - y) < reach);
 }
 
 function predict(
