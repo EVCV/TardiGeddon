@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { activeTardi, createWorld, tick } from '../src/sim/world';
-import { BTN_UP, EMPTY_INPUT, type SimEvent, type WorldState } from '../src/sim/types';
+import { BTN_DOWN, BTN_UP, EMPTY_INPUT, type SimEvent, type WorldState } from '../src/sim/types';
 import { presetScheme } from '../src/sim/schemes';
 import { isSolid } from '../src/sim/terrain/terrain';
 import { makeWorld, run, runUntilPhase } from './helpers';
@@ -80,6 +80,25 @@ describe('Rope Race', () => {
   });
 });
 
+describe('Rope Race ties', () => {
+  it('a tie for the fastest time is a draw', () => {
+    const s = race();
+    const tries = s.teams.length * s.scheme.raceRounds;
+    for (let i = 0; i < tries && s.turn.phase !== 'gameover'; i++) {
+      runUntilPhase(s, 'aim');
+      const t = activeTardi(s)!;
+      run(s, 80); // everyone equally quick
+      t.x = s.race!.goalX;
+      t.y = s.race!.goalY;
+      run(s, 1);
+      runUntilPhase(s, 'start', 3000);
+    }
+    runUntilPhase(s, 'gameover', 3000);
+    expect(s.race!.best[0]).toBe(s.race!.best[1]);
+    expect(s.turn.winner).toBe(-1);
+  });
+});
+
 describe('aiming', () => {
   it('starts fine and speeds up while held, and resets when let go', () => {
     const s = makeWorld();
@@ -95,5 +114,14 @@ describe('aiming', () => {
     const a1 = s.turn.aim;
     run(s, 1, { held: BTN_UP, pressed: 0 });
     expect(s.turn.aim - a1).toBe(2);
+  });
+
+  it('starts fine again when switching straight from up to down', () => {
+    const s = makeWorld();
+    runUntilPhase(s, 'aim');
+    run(s, 60, { held: BTN_UP, pressed: 0 });
+    const a = s.turn.aim;
+    run(s, 1, { held: BTN_DOWN, pressed: 0 });
+    expect(a - s.turn.aim).toBe(2);
   });
 });

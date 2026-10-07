@@ -467,13 +467,14 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
 
   // Aiming
   const aimDir = ((held & BTN_UP) !== 0 ? 1 : 0) - ((held & BTN_DOWN) !== 0 ? 1 : 0);
+  // aimHeld counts ticks held, signed by direction: a change of direction
+  // starts again from a fine nudge.
+  if (aimDir === 0 || aimDir * turn.aimHeld < 0) turn.aimHeld = 0;
   if (aimDir !== 0) {
     // Fine to start with, faster the longer it's held.
-    const step = Math.min(AIM_STEP_MAX, AIM_STEP_MIN + (turn.aimHeld >> 2));
-    turn.aimHeld++;
+    const step = Math.min(AIM_STEP_MAX, AIM_STEP_MIN + (Math.abs(turn.aimHeld) >> 2));
+    turn.aimHeld += aimDir;
     turn.aim = Math.max(-AIM_MAX, Math.min(AIM_MAX, turn.aim + aimDir * step));
-  } else {
-    turn.aimHeld = 0;
   }
 
   // Utilities usable mid-air
@@ -1540,11 +1541,11 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   }
 
   if (s.race && turn.turnNumber >= s.teams.length * s.scheme.raceRounds) {
-    // Rope Race over: the fastest best time wins.
-    let winner = -1;
-    s.race.best.forEach((b, i) => {
-      if (b >= 0 && (winner < 0 || b < s.race!.best[winner])) winner = i;
-    });
+    // Rope Race over: the fastest best time wins; a tie for fastest is a draw.
+    const times = s.race.best.filter((b) => b >= 0);
+    const fastest = times.length > 0 ? Math.min(...times) : -1;
+    const leaders = s.race.best.filter((b) => b === fastest && b >= 0).length;
+    const winner = leaders === 1 ? s.race.best.indexOf(fastest) : -1;
     turn.phase = 'gameover';
     turn.winner = winner;
     events.push({ t: 'gameover', winner });

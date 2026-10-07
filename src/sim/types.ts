@@ -180,7 +180,7 @@ export interface TurnState {
   settleTimer: number;
   settleTotal: number;
   winner: number; // team id, -1 = none/draw
-  /** Ticks Up/Down has been held, so aiming starts fine and speeds up. */
+  /** Ticks Up (+) or Down (-) has been held, so aiming starts fine and speeds up. */
   aimHeld: number;
 }
 

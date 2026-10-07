@@ -36,6 +36,10 @@ function leaveRoom(member: Member): void {
 /** Quick play uses the short-turn style, which suits strangers on phones. */
 const QUICK_SCHEME = SCHEME_PRESETS.find((p) => p.id === 'quick')!.scheme;
 const matchmaker = new Matchmaker((players, cpu) => {
+  if (rooms.size >= MAX_ROOMS) {
+    for (const p of players) p.member.send({ t: 'error', msg: 'The server is full right now. Please try again soon.' });
+    return;
+  }
   const r = new Room(newCode());
   rooms.set(r.code, r);
   for (const p of players) {
