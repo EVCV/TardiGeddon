@@ -169,6 +169,7 @@ export class Hud {
     const key = [
       secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, turn.charging ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0, s.projectiles.some((p) => p.dir !== 0) ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
+      s.race ? s.race.best.join(',') : '',
     ].join('|');
     if (key === this.lastKey) return;
     this.lastKey = key;
@@ -202,6 +203,11 @@ export class Hud {
       bar.style.width = `${Math.max(2, (hp / maxHp) * 100)}%`;
       bar.style.background = hex(tm.color);
       row.append(name, bar);
+      if (s.race) {
+        // Rope Race: best time after the bar.
+        const best = s.race.best[tm.id];
+        row.append(el('span', 'team-time', best >= 0 ? `${(best / TICK_RATE).toFixed(1)}s` : '–'));
+      }
       if (tm.id === team.id) row.classList.add('active');
       this.teams.append(row);
     }
@@ -223,6 +229,7 @@ export class Hud {
     let hint = '';
     if (humanTurn && turn.phase === 'aim' && t) {
       if (t.rope) hint = '←/→ swing · ↑/↓ climb · Jump or Fire to let go';
+      else if (s.race) hint = `Rope your way to the flag! Try ${Math.ceil(turn.turnNumber / s.teams.length)} of ${s.scheme.raceRounds}`;
       else if (def.kind === 'rope') hint = 'Aim, then Fire to shoot a silk line';
       else if (def.kind === 'parachute') hint = t.chute ? '←/→ to steer' : t.airborne ? 'Fire to open the leaf!' : 'Jump off something, then Fire to open';
       else if (def.girder) hint = !turn.target ? 'Tap / click where to build' : girderFits(s) ? '↑/↓ rotate · Fire to build' : 'Won’t fit there — move or rotate it';

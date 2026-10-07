@@ -8,7 +8,7 @@
 import type { Command, InputFrame, Scheme } from '../sim/types';
 import type { TeamConfig } from '../sim/world';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** A player's team as shown in the lobby. */
 export interface LobbyTeam {
@@ -32,6 +32,11 @@ export type WireFrame = 0 | [number, number] | [number, number, Command];
 export type ClientMsg =
   | { t: 'create'; v: number; team: LobbyTeam }
   | { t: 'join'; v: number; code: string; team: LobbyTeam; token?: string }
+  /** Quick play: wait in the queue to be matched with other players. */
+  | { t: 'quick'; v: number; team: LobbyTeam }
+  | { t: 'quickCancel' }
+  /** Tired of waiting: play a CPU straight away. */
+  | { t: 'quickCpu' }
   | { t: 'addCpu' }
   | { t: 'removeSlot'; idx: number }
   | { t: 'start'; scheme: Partial<Scheme> }
@@ -50,6 +55,8 @@ export type ServerMsg =
   | { t: 'hash'; tick: number; h: number }
   /** Full state, for rejoining or recovering from a desync. */
   | { t: 'snapshot'; state: string; teams: TeamConfig[]; you: number }
+  /** Quick play: how many players are waiting (including you). */
+  | { t: 'queue'; waiting: number }
   | { t: 'error'; msg: string };
 
 export function toWire(f: InputFrame): WireFrame {

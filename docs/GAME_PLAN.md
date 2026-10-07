@@ -717,6 +717,12 @@ monetisation (cosmetics only, no ads, no power for sale).
   Normal does about half the damage per turn the old CPU did.
 - Speech-bubble banter: CPU taunts and excuses, "Missed me!" on near misses,
   reactions to big hits and drownings.
+- Rope Race game style: a roofed course, swing from the start sign to the
+  chequered flag; fastest of 3 tries wins; a dunking just ends the try.
+- Quick play: a matchmaking queue (up to 4; starts with 2+ after a few
+  seconds) with a "Play a CPU instead" button while you wait.
+- Aim feel: Up/Down start with fine 0.2° nudges and speed up the longer
+  they're held.
 - Comedy: victory dances and confetti, a sad trombone when you lose;
   tardis curl into a tun and POP when they die (with last words);
   teetering and "Whoa!" at cliff edges; synthesised squeaks, oofs,
@@ -731,6 +737,5 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Owner: deploy the game server (docs/ONLINE.md) so online works on the site.
-2. Phase 2, part 2: Supabase accounts (required for online), quick-play queue.
-3. Rope-only "rope race" scheme; crosshair/aim feel tuning against WA.
-4. Owner: register developer accounts (Apple, Google, Stripe) early.
+2. Phase 2, part 2: Supabase accounts (required for online).
+3. Owner: register developer accounts (Apple, Google, Stripe) early.

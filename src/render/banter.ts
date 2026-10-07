@@ -67,6 +67,11 @@ export class Banter {
         case 'drown':
           say(e.id, pick(DROWN));
           break;
+        case 'finish': {
+          const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
+          if (t) say(t.id, e.best ? pick(['Personal best!', 'Yeeehaw!', 'Swing king!']) : pick(['Made it!', 'Phew!', 'Not my fastest…']));
+          break;
+        }
         case 'death':
           say(e.id, pick(LAST_WORDS));
           break;

@@ -317,6 +317,12 @@ class Match {
           }
           break;
         case 'drown': sfx.gargle(); break;
+        case 'finish': {
+          sfx.collect();
+          const tm = this.state.teams[e.team];
+          this.hud.showBanner(`${tm.name}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, tm.color, 2.5);
+          break;
+        }
         case 'turnStart':
           sfx.turn();
           this.announceTurn();

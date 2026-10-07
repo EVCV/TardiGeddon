@@ -29,12 +29,17 @@ import {
   type Team,
   type WorldState,
 } from './types';
-import { WEAPONS, type ProjectileSpec, type WeaponDef } from './weapons';
+import { PANEL_WEAPONS, WEAPONS, type ProjectileSpec, type WeaponDef } from './weapons';
 
 export const GRAVITY = 0.22;
 export const TARDI_R = 7;
 export const WALK_SPEED = 0.75;
 export const AIM_STEP = 12;
+/** Aiming starts slow for fine control and speeds up while held. */
+const AIM_STEP_MIN = 2;
+const AIM_STEP_MAX = 16;
+/** Rope Race: how close (px) counts as touching the flag. */
+const RACE_GOAL_R = 22;
 export const AIM_MAX = ANGLE_QUARTER;
 export const POWER_STEP = 20;
 export const POWER_MAX = 1000;
@@ -123,7 +128,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
   // Retry seeds until the map has room for every tardi.
   for (let attempt = 0; attempt < 50; attempt++) {
     const seed = (cfg.seed + attempt * 7919) | 0;
-    const terrain = generateMap({ w, h, waterY, seed });
+    const terrain = generateMap({ w, h, waterY, seed, ceiling: scheme.race });
     const rng = createRng(seed ^ 0x5eed);
     const spots = findSpawns(terrain, waterY, needed, rng);
     if (!spots) continue;
@@ -158,10 +163,12 @@ export function createWorld(cfg: WorldConfig): WorldState {
         settleTimer: 0,
         settleTotal: 0,
         winner: -1,
+        aimHeld: 0,
       },
       nextId: 1,
       prevHeld: 0,
       scheme,
+      race: null,
     };
 
     cfg.teams.forEach((tc, ti) => {
@@ -202,6 +209,17 @@ export function createWorld(cfg: WorldConfig): WorldState {
         };
         s.tardis.push(t);
         team.tardiIds.push(t.id);
+      }
+    }
+    if (scheme.race) {
+      // Start on the left-most land, flag on the right-most.
+      const start = raceSpot(terrain, waterY, 1);
+      const goal = raceSpot(terrain, waterY, -1);
+      if (!start || !goal || goal.x - start.x < w / 2) continue;
+      s.race = { startX: start.x, startY: start.y - TARDI_R - 1, goalX: goal.x, goalY: goal.y - 24, best: s.teams.map(() => -1) };
+      for (const t of s.tardis) {
+        t.x = s.race.startX;
+        t.y = s.race.startY;
       }
     }
     // Bigger maps get proportionally more mines and drums.
@@ -246,6 +264,19 @@ function placeObjects(s: WorldState, kind: ObjectKind, count: number): void {
 
 function objectRadius(o: MapObject): number {
   return o.kind === 'mine' ? MINE_R : o.kind === 'drum' ? DRUM_R : CRATE_R;
+}
+
+/** Rope Race: the first stretch of dry land scanning in from one side. */
+function raceSpot(terrain: Terrain, waterY: number, dir: 1 | -1): { x: number; y: number } | null {
+  for (let i = 80; i < terrain.w - 80; i += 4) {
+    const x = dir === 1 ? i : terrain.w - i;
+    // Below the ceiling, find the first ground.
+    let y = 0;
+    while (y < terrain.h && isSolid(terrain, x, y)) y++;
+    while (y < terrain.h && !isSolid(terrain, x, y)) y++;
+    if (y > 200 && y < waterY - 30 && !circleCollides(terrain, x, y - TARDI_R - 2, TARDI_R)) return { x, y };
+  }
+  return null;
 }
 
 function findSpawns(
@@ -334,6 +365,7 @@ export function tick(s: WorldState, input: InputFrame, events: SimEvent[]): void
   updateObjects(s, events);
   updateFlames(s, events);
   for (const t of s.tardis) if (t.alive) updateTardi(s, t, events);
+  if (s.race) checkFinish(s, events);
 
   if (turn.phase === 'settle') updateSettle(s, events);
 }
@@ -434,8 +466,16 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   if (!aiming) return;
 
   // Aiming
-  if ((held & BTN_UP) !== 0) turn.aim = Math.min(AIM_MAX, turn.aim + AIM_STEP);
-  if ((held & BTN_DOWN) !== 0) turn.aim = Math.max(-AIM_MAX, turn.aim - AIM_STEP);
+  const aimDir = ((held & BTN_UP) !== 0 ? 1 : 0) - ((held & BTN_DOWN) !== 0 ? 1 : 0);
+  // aimHeld counts ticks held, signed by direction: a change of direction
+  // starts again from a fine nudge.
+  if (aimDir === 0 || aimDir * turn.aimHeld < 0) turn.aimHeld = 0;
+  if (aimDir !== 0) {
+    // Fine to start with, faster the longer it's held.
+    const step = Math.min(AIM_STEP_MAX, AIM_STEP_MIN + (Math.abs(turn.aimHeld) >> 2));
+    turn.aimHeld += aimDir;
+    turn.aim = Math.max(-AIM_MAX, Math.min(AIM_MAX, turn.aim + aimDir * step));
+  }
 
   // Utilities usable mid-air
   if (team.ammo[def.id] !== 0 && fireEdge) {
@@ -1091,6 +1131,13 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
 }
 
 function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
+  if (s.race && (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60)) {
+    // Rope Race: a dunking just ends the attempt.
+    events.push({ t: 'drown', id: t.id });
+    placeAtStart(s, t);
+    if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
+    return;
+  }
   if (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60) {
     t.alive = false;
     t.rope = null;
@@ -1100,6 +1147,42 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
     events.push({ t: 'drown', id: t.id });
     if (t.id === s.turn.activeTardi) endTurnNow(s);
   }
+}
+
+/** A sensible weapon when the team's last one has run out (or isn't allowed). */
+function firstUsable(team: Team): string {
+  if (team.ammo.bazooka !== 0) return 'bazooka';
+  return PANEL_WEAPONS.find((w) => w.id !== 'skip' && team.ammo[w.id] !== 0)?.id ?? 'skip';
+}
+
+/** Rope Race: put a tardi back on the start line. */
+function placeAtStart(s: WorldState, t: Tardi): void {
+  const r = s.race!;
+  t.x = r.startX;
+  t.y = r.startY;
+  t.vx = 0;
+  t.vy = 0;
+  t.rope = null;
+  t.chute = false;
+  t.airborne = true;
+  t.knocked = false;
+  t.fallStartY = r.startY;
+}
+
+/** Rope Race: has the active tardi reached the flag? */
+function checkFinish(s: WorldState, events: SimEvent[]): void {
+  const r = s.race!;
+  const t = activeTardi(s);
+  if (!t || s.turn.phase !== 'aim') return;
+  const dx = t.x - r.goalX;
+  const dy = t.y - r.goalY;
+  if (dx * dx + dy * dy > RACE_GOAL_R * RACE_GOAL_R) return;
+  const ticks = s.scheme.turnTime * TICK_RATE - s.turn.timer;
+  const prev = r.best[t.team];
+  const best = prev < 0 || ticks < prev;
+  if (best) r.best[t.team] = ticks;
+  events.push({ t: 'finish', team: t.team, ticks, best });
+  endTurnNow(s);
 }
 
 // ---------------------------------------------------------------- map objects
@@ -1457,6 +1540,17 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     return;
   }
 
+  if (s.race && turn.turnNumber >= s.teams.length * s.scheme.raceRounds) {
+    // Rope Race over: the fastest best time wins; a tie for fastest is a draw.
+    const times = s.race.best.filter((b) => b >= 0);
+    const fastest = times.length > 0 ? Math.min(...times) : -1;
+    const leaders = s.race.best.filter((b) => b === fastest && b >= 0).length;
+    const winner = leaders === 1 ? s.race.best.indexOf(fastest) : -1;
+    turn.phase = 'gameover';
+    turn.winner = winner;
+    events.push({ t: 'gameover', winner });
+    return;
+  }
   const alive = s.teams.filter((tm) => s.tardis.some((t) => t.alive && t.team === tm.id));
   if (alive.length <= 1) {
     turn.phase = 'gameover';
@@ -1489,7 +1583,7 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
   turn.phase = 'start';
   turn.timer = START_TICKS;
   turn.turnNumber++;
-  turn.weapon = team.ammo[team.weapon] === 0 ? 'bazooka' : team.weapon;
+  turn.weapon = team.ammo[team.weapon] !== 0 ? team.weapon : firstUsable(team);
   turn.shotsLeft = WEAPONS[turn.weapon].shots;
   turn.power = 0;
   turn.charging = false;
@@ -1497,6 +1591,12 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
   turn.target = null;
   turn.settleTimer = 0;
   turn.aim = 256;
+  turn.aimHeld = 0;
+  if (s.race) {
+    // Every attempt starts from the start line.
+    const t = getTardi(s, tardiId);
+    if (t) placeAtStart(s, t);
+  }
   s.wind = (rngInt(s.rng, -100, 100) / 100) * s.scheme.windMax;
   events.push({ t: 'turnStart', team: team.id, tardi: tardiId });
 
@@ -1565,6 +1665,7 @@ export function hashWorld(s: WorldState): number {
     mix(f.x); mix(f.y); mix(f.vx); mix(f.vy); mix(f.life); mix(f.resting ? 1 : 0); mix(f.acid ? 1 : 0);
   }
   mix(s.waterY); mix(s.roundTicks); mix(s.suddenDeath ? 1 : 0); mix(s.nextId);
+  if (s.race) for (const b of s.race.best) mix(b);
   const tr = s.turn;
   mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);
   const m = s.terrain.mask;

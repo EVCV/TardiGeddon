@@ -70,6 +70,7 @@ export function showOnline(
   const status = el('p', 'online-status');
 
   const leave = () => {
+    stopQueueClock();
     off?.();
     client?.close();
     try {
@@ -84,10 +85,13 @@ export function showOnline(
     off?.();
     off = c.on((msg: ServerMsg) => {
       if (msg.t === 'error') status.textContent = msg.msg;
+      else if (msg.t === 'queue') renderQueue(msg.waiting);
       else if (msg.t === 'room') {
+        stopQueueClock();
         saveRejoin(msg.code, msg.token);
         if (!msg.started) renderLobby(msg);
       } else if (msg.t === 'start') {
+        stopQueueClock();
         off?.();
         hooks.onStart(c, Lockstep.start(msg.seed, msg.scheme, msg.teams, msg.you));
       } else if (msg.t === 'snapshot') {
@@ -136,7 +140,13 @@ export function showOnline(
     who.append(name);
     card.append(who, el('p', 'online-note', 'You play as your first team. Edit it from the main menu.'));
 
-    const create = el('button', 'big-btn', 'Create a room');
+    const quick = el('button', 'big-btn', '⚡ Quick play');
+    quick.onclick = async () => {
+      const c = await connect();
+      c?.quick(myTeam());
+    };
+    const or = el('p', 'online-note', 'or play with friends:');
+    const create = el('button', 'big-btn secondary', 'Create a room');
     create.onclick = async () => {
       const c = await connect();
       c?.create(myTeam());
@@ -164,8 +174,41 @@ export function showOnline(
     joinRow.append(code, join);
     const back = el('button', 'hud-btn', '← Back');
     back.onclick = leave;
-    card.append(create, joinRow, status, back);
+    card.append(quick, or, create, joinRow, status, back);
     if (opts.code) join.click();
+  };
+
+  // Quick play: waiting to be matched.
+  let queueClock = 0;
+  let queueSince = 0;
+  const stopQueueClock = () => {
+    clearInterval(queueClock);
+    queueClock = 0;
+  };
+  const renderQueue = (waiting: number) => {
+    if (!queueClock) {
+      queueSince = performance.now();
+      queueClock = window.setInterval(() => {
+        const secs = Math.floor((performance.now() - queueSince) / 1000);
+        const el2 = card.querySelector('.queue-time');
+        if (el2) el2.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+        else stopQueueClock();
+      }, 500);
+    }
+    card.innerHTML = '';
+    card.append(el('h1', 'title-small', 'Quick play'));
+    const spin = el('div', 'queue-spin');
+    spin.innerHTML = mascotSvg(myTeam().color, myTeam().hat);
+    card.append(spin, el('p', 'online-note', waiting > 1 ? `${waiting} players waiting… starting soon!` : 'Looking for players…'), el('div', 'queue-time', '0:00'));
+    const cpu = el('button', 'big-btn secondary', 'Play a CPU instead');
+    cpu.onclick = () => client?.send({ t: 'quickCpu' });
+    const cancel = el('button', 'hud-btn', 'Cancel');
+    cancel.onclick = () => {
+      client?.send({ t: 'quickCancel' });
+      stopQueueClock();
+      renderEntry();
+    };
+    card.append(cpu, status, cancel);
   };
 
   const renderLobby = (room: Extract<ServerMsg, { t: 'room' }>) => {

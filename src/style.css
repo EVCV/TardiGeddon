@@ -523,3 +523,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lobby-tag { font-size: 13px; font-weight: 800; }
 .online-style { font-weight: 800; }
 .online-style select { font: inherit; margin-left: 6px; }
+
+/* Quick play queue */
+.queue-spin svg { width: 90px; height: auto; animation: bob 0.8s ease-in-out infinite; }
+.queue-time { font-family: var(--title); font-size: 28px; }
+.team-time { font-family: var(--title); font-size: 13px; color: #fff; -webkit-text-stroke: 0.6px var(--ink); min-width: 40px; }

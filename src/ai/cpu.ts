@@ -59,7 +59,7 @@ export class CpuPlayer {
   private plan: Plan | null = null;
   private planTurn = -1;
   private think = 0;
-  private step: 'face' | 'weapon' | 'aim' | 'charge' | 'done' = 'face';
+  private step: 'face' | 'weapon' | 'aim' | 'fuse' | 'charge' | 'done' = 'face';
   private tapped = false;
 
   private readonly skill: SkillDef;
@@ -97,11 +97,15 @@ export class CpuPlayer {
         if (turn.weapon !== p.weapon) return { held: 0, pressed: 0, cmd: { t: 'weapon', id: p.weapon } };
         return { held: 0, pressed: 0, cmd: { t: 'fuse', s: p.fuse } };
       case 'aim': {
+        // Sweep the crosshair like a player, then settle exactly on the angle.
         const diff = p.aim - turn.aim;
-        if (Math.abs(diff) >= AIM_STEP) return { held: diff > 0 ? BTN_UP : BTN_DOWN, pressed: 0 };
+        if (Math.abs(diff) > AIM_STEP * 2) return { held: diff > 0 ? BTN_UP : BTN_DOWN, pressed: 0 };
+        this.step = 'fuse';
+        return { held: 0, pressed: 0, cmd: { t: 'aim', facing: p.facing, aim: p.aim } };
+      }
+      case 'fuse':
         this.step = 'charge';
         return { held: 0, pressed: 0, cmd: { t: 'fuse', s: p.fuse } };
-      }
       case 'charge':
         if (WEAPONS[p.weapon].kind === 'hitscan') {
           // Tap fire for each shot (the shotgun has two), releasing in between.
