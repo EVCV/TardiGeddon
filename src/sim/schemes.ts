@@ -47,6 +47,25 @@ export const SCHEME_PRESETS: SchemePreset[] = [
     blurb: 'No walking or jumping: you fight from where you land.',
     scheme: { movement: false, weapons: { bazooka: -1, grenade: -1, cluster: 3, shotgun: -1, airstrike: 1 }, mines: 0 },
   },
+  {
+    id: 'roperace',
+    name: 'Rope Race',
+    blurb: 'No fighting: swing on the Silk Rope from the start to the flag. Fastest time over 3 tries wins.',
+    scheme: {
+      race: true,
+      raceRounds: 3,
+      tardisPerTeam: 1,
+      weapons: { rope: -1, parachute: -1 },
+      mines: 0,
+      drums: 0,
+      crateChance: 0,
+      fallDamage: false,
+      windMax: 0,
+      turnTime: 60,
+      retreatTime: 0,
+      roundTime: 60,
+    },
+  },
 ];
 
 export function presetScheme(id: string): Scheme {

@@ -53,6 +53,8 @@ export interface MapOptions {
   h: number;
   waterY: number;
   seed: number;
+  /** Add a rocky ceiling across the top (Rope Race courses). */
+  ceiling?: boolean;
 }
 
 export function generateMap(o: MapOptions): Terrain {
@@ -84,6 +86,15 @@ export function generateMap(o: MapOptions): Terrain {
       const depth = y - top;
       if (depth > 40 && y < o.waterY - 30 && sample2D(caves, x, y) > 0.7) continue;
       t.mask[y * o.w + x] = 1;
+    }
+  }
+  if (o.ceiling) {
+    // A bumpy roof to swing from, high enough to leave a clear course.
+    const roof = lattice1D(rng, o.w, 160);
+    const bumps = lattice1D(rng, o.w, 40);
+    for (let x = 0; x < o.w; x++) {
+      const bottom = Math.floor(30 + sample1D(roof, x, 160) * 90 + sample1D(bumps, x, 40) * 25);
+      for (let y = 0; y < bottom; y++) t.mask[y * o.w + x] = 1;
     }
   }
   return t;

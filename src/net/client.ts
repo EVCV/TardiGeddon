@@ -63,6 +63,10 @@ export class NetClient {
     this.send({ t: 'create', v: PROTOCOL_VERSION, team });
   }
 
+  quick(team: LobbyTeam): void {
+    this.send({ t: 'quick', v: PROTOCOL_VERSION, team });
+  }
+
   join(code: string, team: LobbyTeam, token?: string): void {
     this.send({ t: 'join', v: PROTOCOL_VERSION, code, team, token });
   }

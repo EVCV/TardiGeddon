@@ -78,6 +78,9 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   }
   if (typeof v.fallDamage === 'boolean') out.fallDamage = v.fallDamage;
   if (typeof v.movement === 'boolean') out.movement = v.movement;
+  if (typeof v.race === 'boolean') out.race = v.race;
+  num('raceRounds', 1, 10);
+  if (out.raceRounds !== undefined) out.raceRounds = Math.round(out.raceRounds);
   if (v.weapons && typeof v.weapons === 'object') {
     const w: Record<string, number> = {};
     for (const [id, n] of Object.entries(v.weapons as Record<string, unknown>)) {
@@ -180,10 +183,7 @@ export class Room {
     const isHost = idx === this.host;
     switch (msg.t) {
       case 'addCpu':
-        if (isHost && !this.state && this.slots.length < MAX_TEAMS) {
-          this.newSlot(cleanTeam({}, this.slots.length), true);
-          this.broadcastRoom();
-        }
+        if (isHost) this.addCpu();
         break;
       case 'removeSlot':
         if (isHost && !this.state && this.slots[msg.idx]?.cpu) {
@@ -207,6 +207,18 @@ export class Room {
         this.leave(member);
         break;
     }
+  }
+
+  /** Add a CPU team (lobby only). */
+  addCpu(): void {
+    if (this.state || this.slots.length >= MAX_TEAMS) return;
+    this.newSlot(cleanTeam({}, this.slots.length), true);
+    this.broadcastRoom();
+  }
+
+  /** Start the match now (used by quick play, which has no host to press Start). */
+  start(scheme: unknown): void {
+    if (!this.state && this.slots.length >= 2) this.startMatch(scheme);
   }
 
   /** Advance the match by one tick (call at 50 Hz). */

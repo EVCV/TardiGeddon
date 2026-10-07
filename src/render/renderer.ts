@@ -52,6 +52,8 @@ export class GameRenderer {
   private waterFront = new Graphics();
   private floatLayer = new Container();
   private markers = new Container();
+  /** Rope Race flag and start sign (redrawn each frame so the flag waves). */
+  private course = new Graphics();
   private tardiViews = new Map<number, TardiView>();
   private objectViews = new Map<number, ObjectView>();
   private objectLayer = new Container();
@@ -83,6 +85,7 @@ export class GameRenderer {
       this.waterBack,
       this.terrainView.root,
       this.markers,
+      this.course,
       this.objectLayer,
       this.entities,
       this.projectiles,
@@ -246,6 +249,35 @@ export class GameRenderer {
     return 'none';
   }
 
+  /** Rope Race: a waving flag at the finish and a sign at the start. */
+  private drawCourse(s: WorldState): void {
+    const r = s.race!;
+    const g = this.course;
+    const O = PALETTE.outline;
+    g.clear();
+    // Finish flag: pole, then a chequered flag that ripples.
+    const px = r.goalX;
+    const base = r.goalY + 24;
+    g.rect(px - 1.5, base - 52, 3, 52).fill(0xeeeeee).stroke({ width: 1.2, color: O });
+    const wave = (i: number) => Math.sin(this.time * 6 - i * 0.9) * 3;
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 5; col++) {
+        const x0 = px + 1.5 + col * 6;
+        const y0 = base - 52 + row * 6;
+        g.poly([x0, y0 + wave(col), x0 + 6, y0 + wave(col + 1), x0 + 6, y0 + 6 + wave(col + 1), x0, y0 + 6 + wave(col)])
+          .fill((row + col) % 2 ? 0x2b1b24 : 0xffffff);
+      }
+    }
+    g.circle(px, base - 54, 3).fill(0xffd84a).stroke({ width: 1, color: O });
+    // Start sign.
+    const sx = r.startX - 26;
+    const sy = r.startY + TARDI_R;
+    g.rect(sx - 1.5, sy - 30, 3, 30).fill(0x8f5f2e).stroke({ width: 1, color: O });
+    g.roundRect(sx - 16, sy - 42, 32, 14, 3).fill(0x9ee06a).stroke({ width: 1.5, color: O });
+    g.moveTo(sx - 9, sy - 35).lineTo(sx + 7, sy - 35).moveTo(sx + 3, sy - 39).lineTo(sx + 7, sy - 35).lineTo(sx + 3, sy - 31);
+    g.stroke({ width: 2, color: O });
+  }
+
   /** End of a comedy death: pop, leave a husk. */
   private pop(id: number, x: number, y: number, color: number): void {
     this.dying.delete(id);
@@ -360,7 +392,10 @@ export class GameRenderer {
       v.mood = this.moodFor(s, t, v);
       const dyingSince = this.dying.get(t.id);
       v.dying = dyingSince === undefined ? -1 : Math.min(1, (this.time - dyingSince) / DEATH_CURL);
-      v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined);
+      // Rope Race: only the current racer is solid; the rest wait as ghosts.
+      const ghost = s.race !== null && t.id !== active?.id && s.turn.phase !== 'gameover';
+      v.root.alpha = ghost ? 0.35 : 1;
+      v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
       if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color);
     }
     if (s.turn.phase === 'gameover' && !this.confettiDone) {
@@ -434,6 +469,8 @@ export class GameRenderer {
         this.fuseTexts.delete(id);
       }
     }
+
+    if (s.race) this.drawCourse(s);
 
     // Speech bubbles follow their tardi (and stay put if it's gone).
     for (const [id, b] of this.bubbles) {

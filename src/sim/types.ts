@@ -45,6 +45,10 @@ export interface Scheme {
   movement: boolean;
   /** Starting ammo of each superweapon (0 = crates only). */
   supers: number;
+  /** Rope Race: no fighting, race from the start to the flag; fastest time wins. */
+  race: boolean;
+  /** Rope Race: how many attempts each team gets. */
+  raceRounds: number;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
 }
@@ -64,6 +68,8 @@ export const DEFAULT_SCHEME: Scheme = {
   waterRise: 24,
   movement: true,
   supers: 0,
+  race: false,
+  raceRounds: 3,
 };
 
 export interface Tardi {
@@ -174,6 +180,18 @@ export interface TurnState {
   settleTimer: number;
   settleTotal: number;
   winner: number; // team id, -1 = none/draw
+  /** Ticks Up/Down has been held, so aiming starts fine and speeds up. */
+  aimHeld: number;
+}
+
+/** Rope Race course and results. */
+export interface RaceState {
+  startX: number;
+  startY: number;
+  goalX: number;
+  goalY: number;
+  /** Best time per team, in ticks (-1 = not finished yet). */
+  best: number[];
 }
 
 export interface Team {
@@ -208,6 +226,8 @@ export interface WorldState {
   nextId: number;
   prevHeld: number;
   scheme: Scheme;
+  /** Set in Rope Race games. */
+  race: RaceState | null;
 }
 
 export type SimEvent =
@@ -234,4 +254,6 @@ export type SimEvent =
   | { t: 'gas'; x: number; y: number; r: number }
   | { t: 'burn'; x: number; y: number; rect: Rect }
   | { t: 'waterRise'; y: number }
+  /** Rope Race: a team reached the flag. */
+  | { t: 'finish'; team: number; ticks: number; best: boolean }
   | { t: 'gameover'; winner: number };

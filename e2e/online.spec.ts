@@ -48,3 +48,28 @@ test('two players can play an online match', async ({ browser }, info) => {
   await other.waitForFunction((n) => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.turn.turnNumber ?? 0) > n, turn, { timeout: 15_000 });
   expect(errors).toEqual([]);
 });
+
+test('quick play matches two strangers, or one player with a CPU', async ({ browser }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one run is enough');
+  test.setTimeout(150_000); // three software-rendered browsers are slow
+  const errors: string[] = [];
+  const pages = await Promise.all([0, 1, 2].map(async () => (await browser.newContext()).newPage()));
+  for (const p of pages) {
+    p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto('/');
+    await p.getByRole('button', { name: 'Play online' }).click();
+  }
+  const [a, b, c] = pages;
+  // Two strangers: matched after a short wait for more players.
+  await a.getByRole('button', { name: /Quick play/ }).click();
+  await expect(a.getByText('Looking for players')).toBeVisible();
+  await b.getByRole('button', { name: /Quick play/ }).click();
+  for (const p of [a, b]) await expect(p.locator('.hud-timer')).toBeVisible({ timeout: 15_000 });
+  // A third player gets bored of waiting and plays a CPU.
+  await c.getByRole('button', { name: /Quick play/ }).click();
+  await c.getByRole('button', { name: 'Play a CPU instead' }).click();
+  await expect(c.locator('.hud-timer')).toBeVisible({ timeout: 10_000 });
+  const teams = await c.evaluate(() => (window as unknown as { __tardi: { world: { teams: { cpu: boolean }[] } } }).__tardi.world.teams.map((t) => t.cpu));
+  expect(teams).toEqual([false, true]);
+  expect(errors).toEqual([]);
+});

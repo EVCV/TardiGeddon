@@ -5,8 +5,9 @@ simulation as the browser (`src/sim`) at 50 Hz and streams the input frame it
 used for every tick. Each browser replays those frames, so everyone sees the
 same match while only a few bytes per tick go over the network.
 
-- **Server:** `server/main.ts` (WebSocket + health check) and `server/room.ts`
-  (lobby, match, input relay). Run locally with `npm run server` (port 8787).
+- **Server:** `server/main.ts` (WebSocket + health check), `server/room.ts`
+  (lobby, match, input relay) and `server/matchmaker.ts` (quick play: up to
+  4 players, starting with 2+ after 6 s, or a CPU on request). Run locally with `npm run server` (port 8787).
 - **Client:** `src/net/` (protocol, lockstep replay, snapshots) and
   `src/ui/online.ts` (create/join a room, lobby). `npm run dev` on
   `localhost` connects to `ws://localhost:8787` automatically.
@@ -18,7 +19,7 @@ same match while only a few bytes per tick go over the network.
 - **Tests:** `tests/room.test.ts` (rooms, sync, rejoin, desync recovery) and
   `e2e/online.spec.ts` (two browsers play a match).
 
-Not yet: accounts (Supabase), quick-play matchmaking, and running more than
+Not yet: accounts (Supabase), and running more than
 one server machine (rooms live in memory, so keep a single instance).
 
 ## Putting it online (owner steps)
