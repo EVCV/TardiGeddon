@@ -16,7 +16,7 @@ describe('cpu soak', () => {
         ],
         scheme: { tardisPerTeam: 2 },
       });
-      const cpus = [new CpuPlayer(1), new CpuPlayer(1)];
+      const cpus = [new CpuPlayer('perfect'), new CpuPlayer('perfect')];
       const events: SimEvent[] = [];
       let lastTurn = s.turn.turnNumber;
       let sinceTurn = 0;

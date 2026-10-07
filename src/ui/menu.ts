@@ -1,6 +1,7 @@
 // Title screen and match setup: game style presets plus a Customise panel.
 
-import { MASCOT_SVG } from './mascot';
+import { MASCOT_SVG, mascotSvg } from './mascot';
+import { CPU_SKILLS, type CpuSkill } from '../ai/cpu';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
 import { MAX_TEAMS } from '../sim/world';
@@ -15,6 +16,8 @@ export interface MatchSetup {
   teams: TeamProfile[];
   scheme: Scheme;
   seed: number;
+  /** How well CPU teams play. */
+  cpuSkill: CpuSkill;
 }
 
 const STORE_KEY = 'tardigeddon.menu';
@@ -23,6 +26,7 @@ interface Saved {
   style: string;
   custom: Scheme;
   players: boolean[];
+  cpuSkill: CpuSkill;
 }
 
 const PLAYER_COUNTS = [2, 3, 4, 6, 8, 10];
@@ -35,12 +39,13 @@ function load(): Saved {
     if (raw) {
       const v = JSON.parse(raw) as Saved;
       const players = Array.isArray(v.players) && v.players.length >= 2 && v.players.length <= MAX_TEAMS ? v.players : DEFAULT_PLAYERS;
-      return { style: v.style ?? 'standard', custom: { ...DEFAULT_SCHEME, ...v.custom }, players };
+      const cpuSkill = CPU_SKILLS.some((k) => k.id === v.cpuSkill) ? v.cpuSkill : 'normal';
+      return { style: v.style ?? 'standard', custom: { ...DEFAULT_SCHEME, ...v.custom }, players, cpuSkill };
     }
   } catch {
     /* ignore */
   }
-  return { style: 'standard', custom: { ...DEFAULT_SCHEME }, players: DEFAULT_PLAYERS };
+  return { style: 'standard', custom: { ...DEFAULT_SCHEME }, players: DEFAULT_PLAYERS, cpuSkill: 'normal' };
 }
 
 function save(v: Saved): void {
@@ -91,9 +96,12 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
           <label>Players
             <select name="players">${PLAYER_COUNTS.map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
           </label>
-          <p class="players-hint">Tap a team to switch between Human and CPU. Humans share this device and take turns.</p>
+          <label>CPU skill
+            <select name="cpuSkill">${CPU_SKILLS.map((k) => `<option value="${k.id}">${k.name}</option>`).join('')}</select>
+          </label>
         </div>
         <div class="slots"></div>
+        <p class="players-hint">Tap a team to switch Human / CPU · ✎ to edit. Humans share this device and take turns.</p>
         <div class="menu-buttons">
           <button class="big-btn play">Play</button>
           <button class="big-btn secondary online-btn">Play online</button>
@@ -135,13 +143,17 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
       // Main area toggles Human/CPU; the pencil opens the team editor.
       const toggle = document.createElement('button');
       toggle.className = 'slot-main';
+      toggle.setAttribute('aria-label', `${p.name}: ${cpu ? 'CPU' : 'Human'} (tap to switch)`);
+      const pic = document.createElement('span');
+      pic.className = 'slot-pic';
+      pic.innerHTML = mascotSvg(p.color, p.hat);
       const name = document.createElement('span');
       name.className = 'slot-name';
       name.textContent = p.name; // player-entered text: never innerHTML
       const kind = document.createElement('span');
       kind.className = 'slot-kind';
       kind.textContent = cpu ? '🤖 CPU' : '👤 Human';
-      toggle.append(name, kind);
+      toggle.append(pic, name, kind);
       toggle.onclick = () => {
         players[i] = !players[i];
         renderSlots();
@@ -161,7 +173,10 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
       slots.append(slot);
     });
   };
-  const persist = () => save({ style: styleSel.value, custom, players });
+  const skillSel = root.querySelector<HTMLSelectElement>('select[name=cpuSkill]')!;
+  skillSel.value = saved.cpuSkill;
+  skillSel.onchange = () => persist();
+  const persist = () => save({ style: styleSel.value, custom, players, cpuSkill: skillSel.value as CpuSkill });
   countSel.value = String(PLAYER_COUNTS.includes(players.length) ? players.length : 2);
   if (players.length !== Number(countSel.value)) players = players.slice(0, Number(countSel.value));
   countSel.onchange = () => {
@@ -234,6 +249,12 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
   else onlineBtn.remove();
 
   root.querySelector<HTMLButtonElement>('.play')!.onclick = () => {
-    onStart({ players: [...players], teams: profiles.slice(0, players.length), scheme: current(), seed: (Math.random() * 1e9) | 0 });
+    onStart({
+      players: [...players],
+      teams: profiles.slice(0, players.length),
+      scheme: current(),
+      seed: (Math.random() * 1e9) | 0,
+      cpuSkill: skillSel.value as CpuSkill,
+    });
   };
 }

@@ -711,6 +711,14 @@ monetisation (cosmetics only, no ads, no power for sale).
   lobby with CPU slots and game style, rejoin with snapshot, hash-based
   desync recovery, dropped players' turns played by the CPU. Deploy steps
   for the owner in `docs/ONLINE.md` (Fly.io + `SERVER_URL` variable).
+- CPU skill levels (Easy / Normal / Hard, menu setting): the CPU picks a
+  victim and aims for a spot near them, missing by more the easier it is;
+  it half-reads the wind, has shaky hands and sometimes lets rip wildly.
+  Normal does about half the damage per turn the old CPU did.
+- Speech-bubble banter: CPU taunts and excuses, "Missed me!" on near misses,
+  reactions to big hits and drownings.
+- Menu: one full-width row per team (no cut-off names) with mascot,
+  Human/CPU toggle and edit button.
 - CPU opponent (simulates shots, presses buttons like a player).
 - Vector tardi rig, HUD (timer, wind, team health, weapon panel), touch
   controls, pinch/drag camera, synthesised placeholder SFX, death husks.

@@ -227,7 +227,7 @@ export class Room {
     if (slot && (slot.cpu || !slot.member)) {
       // CPU teams, and players who dropped out, are played by the computer.
       let cpu = this.cpus.get(ti);
-      if (!cpu) this.cpus.set(ti, (cpu = new CpuPlayer()));
+      if (!cpu) this.cpus.set(ti, (cpu = new CpuPlayer('normal')));
       frame = cpu.next(s);
     } else if (slot) {
       const q = slot.queue.shift();

@@ -107,7 +107,7 @@ describe('CPU and superweapons', () => {
     victim.x = 1300;
     // Outnumbered: only the active tardi is left, so a map-wide strike pays off.
     for (const t of s.tardis) if (t.team === team.id && t !== activeTardi(s)) t.alive = false;
-    const cpu = new CpuPlayer(1);
+    const cpu = new CpuPlayer('perfect');
     const ev: SimEvent[] = [];
     for (let i = 0; i < 600 && s.turn.phase === 'aim'; i++) tick(s, cpu.next(s), ev);
     return { s, team, ev };
@@ -118,7 +118,7 @@ describe('CPU and superweapons', () => {
     const team = activeTeam(s);
     for (const k of Object.keys(team.ammo)) if (k !== 'skip') team.ammo[k] = 0;
     team.ammo.slideslam = 1;
-    const cpu = new CpuPlayer(1);
+    const cpu = new CpuPlayer('perfect');
     for (let i = 0; i < 600 && s.turn.phase === 'aim'; i++) tick(s, cpu.next(s), []);
     expect(team.ammo.slideslam).toBe(1);
   });
