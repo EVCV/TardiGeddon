@@ -24,7 +24,9 @@ function damageDealt(skill: CpuSkill): number {
         tick(s, { held: 0, pressed: 0, cmd: { t: 'skip' } }, []);
       } else if (s.turn.phase === 'aim') {
         const before = s.tardis.filter((t) => t.team === 0).reduce((a, t) => a + t.hp, 0);
-        while (s.turn.phase !== 'gameover' && !(s.turn.phase === 'start' && s.turn.teamIdx === 0)) tick(s, cpu.next(s), []);
+        // Play the CPU's whole turn, until it's the other team's go.
+        const phase = () => s.turn.phase as string;
+        while (phase() !== 'gameover' && !(phase() === 'start' && s.turn.teamIdx === 0)) tick(s, cpu.next(s), []);
         dealt += before - s.tardis.filter((t) => t.team === 0).reduce((a, t) => a + t.hp, 0);
         turns++;
       } else tick(s, EMPTY_INPUT, []);
