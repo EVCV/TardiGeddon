@@ -77,4 +77,32 @@ export const sfx = {
     setTimeout(() => tone(990, 1320, 0.12, 0.06, 'triangle'), 90);
   },
   suddenDeath: () => tone(300, 80, 1.2, 0.12, 'sawtooth'),
+  // Tardi voices (placeholder squeaks until real voice packs exist).
+  squeak: () => tone(900 + Math.random() * 300, 1500 + Math.random() * 300, 0.09, 0.05, 'sine'),
+  oof: () => {
+    tone(420, 170, 0.22, 0.09, 'triangle');
+    noise(0.08, 700, 0.12);
+  },
+  gargle: () => {
+    // A splash, then bubbles of rising pitch.
+    noise(0.35, 900, 0.2);
+    for (let i = 0; i < 7; i++) {
+      const f = 250 + Math.random() * 450;
+      setTimeout(() => tone(f, f * 1.6, 0.06, 0.07, 'sine'), 120 + i * 85);
+    }
+  },
+  pop: () => {
+    noise(0.1, 3500, 0.4);
+    tone(700, 1800, 0.07, 0.07, 'sine');
+  },
+  whoa: () => {
+    tone(420, 820, 0.18, 0.06, 'triangle');
+    setTimeout(() => tone(820, 380, 0.3, 0.06, 'triangle'), 170);
+  },
+  fanfare: () => {
+    [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, f, i === 3 ? 0.5 : 0.14, 0.07, 'triangle'), i * 140));
+  },
+  wahwah: () => {
+    [392, 370, 349, 294].forEach((f, i) => setTimeout(() => tone(f, f * 0.96, i === 3 ? 0.7 : 0.3, 0.06, 'sawtooth'), 900 + i * 320));
+  },
 };

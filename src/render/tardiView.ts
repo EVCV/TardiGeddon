@@ -44,8 +44,16 @@ export function drawLeafChute(g: Graphics): void {
   for (const x of [-12, -4, 4, 12]) g.moveTo(x * 0.4, -36).lineTo(x, -30).stroke({ width: 0.9, color: 0x2e5a1c });
 }
 
+/** Cosmetic moods layered over the normal animation. */
+export type Mood = 'none' | 'dance' | 'sulk' | 'teeter';
+
 export class TardiView {
   readonly root = new Container();
+  mood: Mood = 'none';
+  /** Which way a teetering tardi is about to fall (-1 left, 1 right). */
+  teeterDir = 1;
+  /** 0..1 while curling up into a tun before popping (comedy death), else -1. */
+  dying = -1;
   private body = new Container();
   private legs = new Graphics();
   private label: Text;
@@ -108,8 +116,28 @@ export class TardiView {
       g.moveTo(lx + 1 + sway, 8 - lift).lineTo(lx + 1.6 + sway, 9.2 - lift).stroke({ width: 0.9, color: O });
     });
 
-    // Poisoned tardis turn sickly green.
-    this.body.tint = t.poison ? 0xa8e890 : 0xffffff;
+    // Moods (cosmetic): victory dance, sulk, teetering on a cliff edge.
+    this.body.y = -2;
+    if (this.mood === 'dance') {
+      this.body.y = -2 - Math.abs(Math.sin(time * 8 + t.id)) * 7;
+      this.body.rotation = Math.sin(time * 6 + t.id) * 0.3;
+      this.body.scale.x = Math.sin(time * 3 + t.id) > 0 ? 1 : -1;
+    } else if (this.mood === 'sulk') {
+      this.body.rotation = t.facing * 0.18;
+      this.body.scale.y = 0.92 + Math.sin(time * 1.2 + t.id) * 0.02;
+      this.body.y = 0;
+    } else if (this.mood === 'teeter') {
+      this.body.rotation = this.teeterDir * (0.15 + Math.abs(Math.sin(time * 9 + t.id)) * 0.35);
+    }
+    if (this.dying >= 0) {
+      // Curl up into a tun, wobbling faster and faster, then pop.
+      const d = this.dying;
+      this.body.scale.set(t.facing * (1 - 0.45 * d), 1 - 0.35 * d);
+      this.body.rotation = Math.sin(time * (10 + d * 30)) * 0.25 * d;
+    }
+
+    // Poisoned tardis turn sickly green; sulkers go a bit blue.
+    this.body.tint = t.poison ? 0xa8e890 : this.mood === 'sulk' ? 0xc9d6ff : 0xffffff;
     this.chute.visible = t.chute;
     if (t.chute) this.chute.rotation = Math.sin(time * 2.5 + t.id) * 0.12;
 

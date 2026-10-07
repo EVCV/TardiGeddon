@@ -144,6 +144,7 @@ class Match {
     }
 
     this.renderer = new GameRenderer(app, this.state);
+    this.renderer.onSound = (name) => sfx[name]();
     this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => this.toggleMute() }, touchMode);
     ui.append(this.hud.root);
     this.detachKeys = attachKeyboard(this.input, {
@@ -176,6 +177,7 @@ class Match {
           // The world was replaced wholesale: redraw it from scratch.
           this.renderer.destroy();
           this.renderer = new GameRenderer(this.app, this.state);
+          this.renderer.onSound = (name) => sfx[name]();
           break;
         case 'room': this.lastRoom = msg; break;
         case 'start':
@@ -283,6 +285,7 @@ class Match {
   }
 
   private playSounds(events: SimEvent[]): void {
+    let hurt = false; // one voice per batch of damage
     for (const e of events) {
       switch (e.t) {
         case 'explosion': sfx.explosion(e.r); break;
@@ -306,6 +309,14 @@ class Match {
           break;
         case 'waterRise': sfx.splash(); break;
         case 'gas': sfx.chute(); break;
+        case 'damage':
+          if (!hurt) {
+            hurt = true;
+            if (e.amount >= 35) sfx.oof();
+            else sfx.squeak();
+          }
+          break;
+        case 'drown': sfx.gargle(); break;
         case 'turnStart':
           sfx.turn();
           this.announceTurn();
@@ -313,8 +324,11 @@ class Match {
         case 'gameover':
           if (!this.over) {
             this.over = true;
+            sfx.fanfare();
+            // Losers who are still standing get a sad trombone.
+            if (this.state.tardis.some((t) => t.alive && t.team !== e.winner)) sfx.wahwah();
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
-            setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 1200);
+            setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
           }
           break;
       }
