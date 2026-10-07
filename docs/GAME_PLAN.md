@@ -717,7 +717,7 @@ monetisation (cosmetics only, no ads, no power for sale).
   Normal does about half the damage per turn the old CPU did.
 - Speech-bubble banter: CPU taunts and excuses, "Missed me!" on near misses,
   reactions to big hits and drownings.
-- Comedy: victory dances, confetti and a sad trombone for the losers;
+- Comedy: victory dances and confetti, a sad trombone when you lose;
   tardis curl into a tun and POP when they die (with last words);
   teetering and "Whoa!" at cliff edges; synthesised squeaks, oofs,
   drowning gargles and a victory fanfare (placeholder for voice packs).

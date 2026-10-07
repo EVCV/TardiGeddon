@@ -325,8 +325,9 @@ class Match {
           if (!this.over) {
             this.over = true;
             sfx.fanfare();
-            // Losers who are still standing get a sad trombone.
-            if (this.state.tardis.some((t) => t.alive && t.team !== e.winner)) sfx.wahwah();
+            // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
+            const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
+            if (youLost) sfx.wahwah();
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
             setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
           }

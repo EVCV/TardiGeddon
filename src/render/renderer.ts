@@ -218,10 +218,10 @@ export class GameRenderer {
     }
   }
 
-  /** Victory dance, sulk or teetering on an edge: purely for show. */
+  /** Victory dance or teetering on an edge: purely for show. */
   private moodFor(s: WorldState, t: Tardi, v: TardiView): Mood {
     if (!t.alive) return 'none';
-    if (s.turn.phase === 'gameover') return t.team === s.turn.winner ? 'dance' : 'sulk';
+    if (s.turn.phase === 'gameover') return t.team === s.turn.winner ? 'dance' : 'none';
     if (t.airborne || t.rope) return 'none';
     // Teetering: ground under the middle, but a drop right beside one foot.
     const ground = (x: number) => {
@@ -544,13 +544,16 @@ export class GameRenderer {
     for (const p of this.particles) {
       p.life -= dt;
       const k = Math.max(0, p.life / p.max);
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.kind === 'debris') p.vy += 0.25;
+      // Speeds are "per 60 fps frame"; scale by elapsed time so motion is the
+      // same on slow and high-refresh screens.
+      const f = dt * 60;
+      p.x += p.vx * f;
+      p.y += p.vy * f;
+      if (p.kind === 'debris') p.vy += 0.25 * f;
       if (p.kind === 'confetti') p.vx = Math.sin(this.time * 4 + p.r * 7) * 0.8;
       if (p.kind === 'smoke') {
-        p.vy -= 0.01;
-        p.vx *= 0.98;
+        p.vy -= 0.01 * f;
+        p.vx *= Math.pow(0.98, f);
       }
       if (p.kind === 'flash') {
         g.circle(p.x, p.y, p.r * (1.2 - k * 0.4)).fill({ color: 0xffb13b, alpha: k * 0.8 });

@@ -23,7 +23,6 @@ const BIG_HIT = ['OUCH!', 'My cuticle!', 'Not the face!', 'I felt that in all ei
 const DROWN = ['Glub glub…', 'Wait, I’m a water bear!', 'Tell my team I was brave!'];
 const LAST_WORDS = ['I regret nothing!', 'Tell my mum I was brave!', 'Avenge meeee!', 'Not like this…', 'I’ll be back… in a million years.', 'Worth it.'];
 const VICTORY = ['Too easy!', 'Water bears rule!', 'Who’s indestructible now?', 'Dance party!', 'GG, no re.', 'Victory tastes like moss!'];
-const SULK = ['Rigged.', 'I wasn’t even trying.', 'Best of three?', 'Sigh…', 'The wind was against us.'];
 
 const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
@@ -72,10 +71,10 @@ export class Banter {
           say(e.id, pick(LAST_WORDS));
           break;
         case 'gameover':
-          // Everyone left standing has something to say, a beat apart.
+          // The winners left standing gloat, a beat apart.
           s.tardis
-            .filter((t) => t.alive)
-            .forEach((t, i) => setTimeout(() => say(t.id, pick(t.team === e.winner ? VICTORY : SULK)), 600 + i * 450));
+            .filter((t) => t.alive && t.team === e.winner)
+            .forEach((t, i) => setTimeout(() => say(t.id, pick(VICTORY)), 600 + i * 450));
           break;
       }
     }
