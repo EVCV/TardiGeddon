@@ -19,6 +19,8 @@ in `site/`. It is a small **React** app, separate from the game: the game itself
   we may use the components on our commercial site, but never resell or
   redistribute them as components. Prefer the GSAP-based ones (no extra
   dependencies); check any extra packages a component needs before adding it.
+  React Bits components animate unconditionally: when `prefersReducedMotion()`
+  is true, render a static element instead (see the title in `App.tsx`).
 
 Rules of thumb: keep pages fast on phones (animate `transform`/`opacity` only,
 lazy-load heavy effects), keep text readable without JavaScript where

@@ -1,10 +1,10 @@
 // Starter page: proves the stack (React + GSAP + Lenis + React Bits) works.
 // The real website is built on top of this; see docs/WEBSITE.md.
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { SmoothScroll } from './motion/SmoothScroll';
+import { SmoothScroll, prefersReducedMotion } from './motion/SmoothScroll';
 import SplitText from './reactbits/SplitText';
 
 gsap.registerPlugin(useGSAP);
@@ -17,6 +17,7 @@ const FEATURES = [
 
 export function App() {
   const features = useRef<HTMLElement>(null);
+  const [reduced] = useState(prefersReducedMotion);
 
   // Cards rise in as they scroll into view (skipped if reduced motion is on).
   useGSAP(
@@ -39,7 +40,11 @@ export function App() {
   return (
     <SmoothScroll>
       <header className="hero">
-        <SplitText text="TardiGeddon" tag="h1" className="title" delay={60} from={{ opacity: 0, y: 60, rotate: -8 }} to={{ opacity: 1, y: 0, rotate: 0 }} />
+        {reduced ? (
+          <h1 className="title">TardiGeddon</h1>
+        ) : (
+          <SplitText text="TardiGeddon" tag="h1" className="title" delay={60} from={{ opacity: 0, y: 60, rotate: -8 }} to={{ opacity: 1, y: 0, rotate: 0 }} />
+        )}
         <p className="tagline">Tiny. Indestructible. Armed.</p>
         <a className="play" href="/play/">Play now, it's free</a>
       </header>
