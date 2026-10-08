@@ -27,6 +27,26 @@ lazy-load heavy effects), keep text readable without JavaScript where
 possible, and match the game's look (`docs/STYLE_GUIDE.md`: Luckiest Guy +
 Nunito, thick ink outlines, sky/paper/accent colours).
 
+## Owner's rules for the site
+
+- **Domain:** `tardigeddon.com` (not bought yet; the owner will buy it on
+  Cloudflare). Use it for canonical URLs, Open Graph tags and the legal pages;
+  the game server will be `server.tardigeddon.com`.
+- **Real game media only.** Every image, clip and animation on the site must
+  come from the actual game: screenshots, screen recordings (short muted
+  looping video/WebP, with a poster frame), or the game's own art (the
+  mascot SVG, hats, weapons, team colours from `src/render/` and `src/ui/`).
+  **No stock photos, no AI-generated pictures, no placeholder art.**
+- Capture media from the running game with Playwright (the repo's
+  `*.tmp.mjs` screenshot scripts show how: `?autostart=cpu`, `?touch`,
+  `window.__tardi` to set up a scene). Commit the chosen files under
+  `site/public/media/`, optimised (WebP/AVIF images, H.264/WebM clips), and
+  re-capture them when the game's look changes.
+- Good shots to show: a big explosion, the Concrete Tun mid-slam, a rope
+  swing in Rope Race, speech-bubble banter, the victory dance with confetti,
+  the online lobby and quick-play screen, the phone layout with touch
+  controls.
+
 ## Commands
 
 - `npm run site:dev`: dev server on :5174
@@ -44,7 +64,7 @@ Nunito, thick ink outlines, sky/paper/accent colours).
    from one deploy: build the game with `base: '/play/'`, copy `dist/` into
    `dist-site/play/`, and keep old links (`?room=CODE`) working by redirecting
    them to `/play/`. GitHub Pages works the same way in the meantime.
-3. **Domain:** owner buys it on Cloudflare Registrar (e.g. `tardigeddon.com`);
+3. **Domain:** `tardigeddon.com`, which the owner will buy on Cloudflare Registrar;
    free email forwarding for `support@`. Game server on Fly.io at
    `server.<domain>` (`fly certs add`), `SERVER_URL=wss://server.<domain>`.
 4. Later: make the repo private when the shop opens (Cloudflare Pages
