@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to [Company Legal Name] a
 
 ## Introduction
 
-TardiGeddon is a cartoon game, so we expect children to play it. This policy explains how we protect children's privacy: the game does not ask for names, ages, email addresses, or locations, has no chat, and keeps online match information only while a match is being played.
+TardiGeddon is a cartoon game, so we expect children to play it. This policy explains how we protect children's privacy: the game does not ask for names, ages, email addresses, or locations, has no chat, and keeps online room information (team names and the room code) only in the game server's memory while the room is in use, from the lobby onwards. It is deleted at the latest about two minutes after the last player leaves.
 
 ---
 
@@ -39,7 +39,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.1 Online Play
 
-1.1.1 [DECISION FOR THE OWNER: confirm the age policy. This draft uses 13.] Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to the internet at all.
+1.1.1 [DECISION FOR THE OWNER: confirm the age policy. This draft uses 13.] Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to our game server: once the game has loaded, nothing about the match is sent anywhere. Loading the website and game itself, like visiting any website, means our hosting provider receives your device's IP address (see the Privacy Policy).
 
 1.1.2 We do not ask players for their age and do not knowingly collect personal data from children under 13. If we introduce player accounts in future, we will put appropriate, proportionate age-assurance measures in place before launch, in line with the UK Information Commissioner's Age Appropriate Design Code, and will update this policy first.
 
