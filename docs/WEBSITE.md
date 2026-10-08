@@ -47,6 +47,18 @@ Nunito, thick ink outlines, sky/paper/accent colours).
   the online lobby and quick-play screen, the phone layout with touch
   controls.
 
+## Legal pages: use the owner's templates
+
+The privacy policy, terms and any other legal pages must be based on the
+owner's own templates, kept on their PC at
+`C:\Users\rchow\OneDrive\Desktop\UpliftMi Agency Files\site-builder-library\legal-templates`.
+A cloud session can't read that path: **ask the owner to share the files**
+(paste or attach them in the chat, or run the session on their machine)
+before writing these pages. Fill them in to match what TardiGeddon actually
+does, and flag anything that needs a lawyer's eye. Don't commit the raw
+templates to this public repo (they're the agency's material); only the
+finished pages, which are public on the site anyway.
+
 ## Commands
 
 - `npm run site:dev`: dev server on :5174
