@@ -1,7 +1,7 @@
 # Children's Privacy Policy
 
-**Effective Date:** [Effective Date — set when the website goes live]
-**Last Modified:** [Last Modified Date]
+**Effective Date:** 17 August 2021
+**Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -39,7 +39,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.1 Online Play
 
-1.1.1 [DECISION FOR THE OWNER: confirm the age policy. This draft uses 13.] Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to our game server: once the game has loaded, nothing about the match is sent anywhere. Loading the website and game itself, like visiting any website, means our hosting provider receives your device's IP address (see the Privacy Policy).
+1.1.1 Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to our game server: once the game has loaded, nothing about the match is sent anywhere. Loading the website and game itself, like visiting any website, means our hosting provider receives your device's IP address (see the Privacy Policy).
 
 1.1.2 We do not ask players for their age and do not knowingly collect personal data from children under 13. If we introduce player accounts in future, we will put appropriate, proportionate age-assurance measures in place before launch, in line with the UK Information Commissioner's Age Appropriate Design Code, and will update this policy first.
 

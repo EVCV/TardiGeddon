@@ -1,7 +1,7 @@
 # Legal Notice (Imprint)
 
-**Effective Date:** [Effective Date — set when the website goes live]
-**Last Modified:** [Last Modified Date]
+**Effective Date:** 17 August 2021
+**Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -37,7 +37,7 @@ This page sets out the legal and company information about the business that run
 
 1.0.2 VAT registration number: GB389265053.
 
-1.0.3 Directors: [List directors if required for your entity type.]
+1.0.3 Directors: details of the Company's directors and officers are available on the public register at Companies House: https://find-and-update.company-information.service.gov.uk/company/13570383
 
 ### 1.1 Regulatory Information
 

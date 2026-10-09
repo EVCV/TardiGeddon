@@ -1,7 +1,7 @@
 # Terms of Service
 
-**Effective Date:** [Effective Date — set when the website goes live]
-**Last Modified:** [Last Modified Date]
+**Effective Date:** 17 August 2021
+**Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -43,7 +43,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 1.1 Who May Use the Services
 
-1.1.1 TardiGeddon is a cartoon game that may be played by people of all ages. [DECISION FOR THE OWNER: confirm the minimum age for online play. This draft uses 13.] Online play (playing against other people over the internet) is intended for players aged 13 and over; players under 13 may play online only with the permission and supervision of a parent or legal guardian.
+1.1.1 TardiGeddon is a cartoon game that may be played by people of all ages. Online play (playing against other people over the internet) is intended for players aged 13 and over; players under 13 may play online only with the permission and supervision of a parent or legal guardian.
 
 1.1.2 If you are under 18, you should read these Terms with a parent or legal guardian, who agrees to them on your behalf and takes responsibility for your use of the Services.
 
