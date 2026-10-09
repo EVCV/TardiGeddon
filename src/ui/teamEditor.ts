@@ -2,6 +2,8 @@
 
 import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
+import { canWearHat, formatPrice, hatItem } from '../shop/catalog';
+import { account, ownedItems } from '../account/session';
 import { TEAM_COLORS, hex } from '../render/palette';
 import {
   TARDI_NAME_MAX,
@@ -25,6 +27,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
  */
 export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfile, onSave: (p: TeamProfile) => void): void {
   let draft: TeamProfile = { ...start, names: [...start.names] };
+  if (!canWearHat(draft.hat, ownedItems())) draft.hat = 'beanie';
 
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor');
@@ -41,6 +44,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
 
   const colours = el('div', 'editor-swatches');
   const hats = el('div', 'editor-hats');
+  const hatHint = el('p', 'account-note');
   const names = el('div', 'editor-tardis');
   const defaults = defaultTardiNames(slot);
   defaults.forEach((placeholder, i) => {
@@ -68,11 +72,20 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       colours.append(b);
     }
     hats.innerHTML = '';
+    const owned = ownedItems();
+    const shopOpen = account().me?.shop === true;
     for (const h of HATS) {
-      const b = el('button', 'hat-btn' + (h.id === draft.hat ? ' on' : ''));
+      const locked = !canWearHat(h.id, owned);
+      if (locked && !shopOpen) continue; // shop hats are only advertised while the shop is open
+      const b = el('button', 'hat-btn' + (h.id === draft.hat ? ' on' : '') + (locked ? ' locked' : ''));
       b.innerHTML = mascotSvg(draft.color, h.id);
-      b.append(el('span', '', h.name));
+      b.append(el('span', '', locked ? `🔒 ${formatPrice(hatItem(h.id)!.price)}` : h.name));
+      b.setAttribute('aria-label', locked ? `${h.name} (in the shop)` : h.name);
       b.onclick = () => {
+        if (locked) {
+          hatHint.textContent = `The ${h.name} is in the shop: tap 👤 on the main menu.`;
+          return;
+        }
         draft.hat = h.id;
         refresh();
       };
@@ -114,6 +127,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     colours,
     el('h3', '', 'Hat'),
     hats,
+    hatHint,
     el('h3', '', 'Tardi names'),
     names,
     actions,
