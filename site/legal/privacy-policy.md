@@ -1,7 +1,7 @@
 # Privacy Policy
 
-**Effective Date:** [Effective Date — set when the website goes live]
-**Last Modified:** [Last Modified Date]
+**Effective Date:** [Launch date — set when the website goes live]
+**Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -9,17 +9,17 @@
 
 **Company Details**
 
-[Company Legal Name] (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
+EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
-- Registered in England and Wales under company number [00000000]
-- Registered office: [Registered Office Address, including postcode]
+- Registered in England and Wales under company number 13570383
+- Registered office: 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 - Website: https://tardigeddon.com
 - General contact: support@tardigeddon.com
 - Legal / contractual queries: legal@tardigeddon.com
 - Data protection queries: privacy@tardigeddon.com
-- VAT number (if applicable): [GB000000000]
+- VAT number: GB389265053
 
-Any reference in this document to "the Company" refers to [Company Legal Name] and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
+Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
 ---
 
@@ -33,13 +33,13 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 1.0 Scope
 
-1.0.1 This Privacy Policy explains how [Company Legal Name] collects, uses, discloses, retains, and safeguards personal data when you visit the Website, play TardiGeddon, use our online game server, or contact us, and explains your rights under the UK General Data Protection Regulation ("UK GDPR"), the Data Protection Act 2018, and, where applicable, the EU General Data Protection Regulation ("EU GDPR").
+1.0.1 This Privacy Policy explains how EVCV Limited collects, uses, discloses, retains, and safeguards personal data when you visit the Website, play TardiGeddon, use our online game server, or contact us, and explains your rights under the UK General Data Protection Regulation ("UK GDPR"), the Data Protection Act 2018, and, where applicable, the EU General Data Protection Regulation ("EU GDPR").
 
 1.0.2 This Policy applies to all personal data processed by the Company in connection with the Website and Services.
 
 ### 1.1 Data Controller
 
-1.1.1 For the purposes of the UK GDPR and EU GDPR, [Company Legal Name] is the "data controller" responsible for personal data processed through the Services. [ICO registration number: ZA000000 — see the Legal Notice.]
+1.1.1 EVCV Limited ("we", "us" or "our") is the controller for personal data described in this policy unless we act as a processor for a business customer. We are registered in England and Wales under company number 13570383 at 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom. This applies for the purposes of the UK GDPR and, where applicable, the EU GDPR. We are registered with the Information Commissioner's Office (ICO) under registration number ZB232228.
 
 ### 1.2 Related Documents
 
@@ -133,7 +133,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.2 Online match data: in server memory only while the room is in use, and deleted at the latest about two minutes after the last player leaves.
 
-5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to [24 months] in case of follow-up questions, unless the law requires longer.
+5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
 ## Section 6 — Your Rights
 
@@ -284,6 +284,6 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 If you have any questions about this document, please contact us at:
 
 - **Email:** privacy@tardigeddon.com
-- **Post:** [Company Legal Name], [Registered Office Address]
+- **Post:** EVCV Limited, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 
 We aim to respond to all enquiries within 5 business days.

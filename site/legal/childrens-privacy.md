@@ -1,7 +1,7 @@
 # Children's Privacy Policy
 
-**Effective Date:** [Effective Date — set when the website goes live]
-**Last Modified:** [Last Modified Date]
+**Effective Date:** [Launch date — set when the website goes live]
+**Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -9,17 +9,17 @@
 
 **Company Details**
 
-[Company Legal Name] (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
+EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
-- Registered in England and Wales under company number [00000000]
-- Registered office: [Registered Office Address, including postcode]
+- Registered in England and Wales under company number 13570383
+- Registered office: 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 - Website: https://tardigeddon.com
 - General contact: support@tardigeddon.com
 - Legal / contractual queries: legal@tardigeddon.com
 - Data protection queries: privacy@tardigeddon.com
-- VAT number (if applicable): [GB000000000]
+- VAT number: GB389265053
 
-Any reference in this document to "the Company" refers to [Company Legal Name] and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
+Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
 ---
 
@@ -39,7 +39,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.1 Online Play
 
-1.1.1 [DECISION FOR THE OWNER: confirm the age policy. This draft uses 13.] Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to our game server: once the game has loaded, nothing about the match is sent anywhere. Loading the website and game itself, like visiting any website, means our hosting provider receives your device's IP address (see the Privacy Policy).
+1.1.1 Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to our game server: once the game has loaded, nothing about the match is sent anywhere. Loading the website and game itself, like visiting any website, means our hosting provider receives your device's IP address (see the Privacy Policy).
 
 1.1.2 We do not ask players for their age and do not knowingly collect personal data from children under 13. If we introduce player accounts in future, we will put appropriate, proportionate age-assurance measures in place before launch, in line with the UK Information Commissioner's Age Appropriate Design Code, and will update this policy first.
 
@@ -144,6 +144,6 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 If you have any questions about this document, please contact us at:
 
 - **Email:** privacy@tardigeddon.com
-- **Post:** [Company Legal Name], [Registered Office Address]
+- **Post:** EVCV Limited, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 
 We aim to respond to all enquiries within 5 business days.

@@ -15,6 +15,7 @@ export const LEGAL_PAGES: LegalPage[] = [
   { slug: 'cookie-policy', label: 'Cookies & Storage' },
   { slug: 'childrens-privacy', label: 'Children’s Privacy' },
   { slug: 'community-guidelines', label: 'Community Guidelines' },
+  { slug: 'ai-policy', label: 'AI Policy' },
   { slug: 'accessibility-statement', label: 'Accessibility' },
   { slug: 'copyright-policy', label: 'Copyright' },
   { slug: 'third-party-licences', label: 'Third-Party Licences' },

@@ -16,6 +16,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <Link to="/" className="brand" aria-label="TardiGeddon home">
           <Mascot className="brand-mascot" label="" />
           <span className="brand-name">TardiGeddon</span>
+          <span className="beta-tag">Beta</span>
         </Link>
         <a className="btn btn-play btn-small" href={PLAY_URL}>
           Play now
@@ -56,7 +57,25 @@ export function Layout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
         </div>
-        <p className="footer-small">© {new Date().getFullYear()} TardiGeddon. No ads, no tracking, no cookies.</p>
+        <div className="footer-notices">
+          <p>
+            <strong>Beta.</strong> TardiGeddon is still in beta, so expect bugs and changes.
+          </p>
+          <p>
+            <strong>Accessibility.</strong> Accessibility features are still in development. Read our{' '}
+            <Link to="/legal/accessibility-statement">Accessibility Statement</Link>.
+          </p>
+          <p>
+            <strong>Made with AI.</strong> This website and the game were made with the help of AI tools, checked by
+            people. Read our <Link to="/legal/ai-policy">AI Policy</Link>.
+          </p>
+        </div>
+        <p className="footer-small">
+          TardiGeddon is a game developed by EVCV Limited, registered in England and Wales, company number 13570383.
+          Registered office: 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom. VAT number
+          GB389265053. ICO registration number ZB232228.
+          <br />© {new Date().getFullYear()} EVCV Limited. No ads, no tracking, no cookies.
+        </p>
       </footer>
     </>
   );

@@ -25,6 +25,7 @@ README advises.
 | `childrens-privacy.md` | 11 Children's Privacy Policy |
 | `third-party-licences.md` | 14 Third-Party Licences & Attributions |
 | `community-guidelines.md` | 20 Community Guidelines |
+| `ai-policy.md` | None: the pack has no AI policy template, so this one was written from scratch in the same format. Have it reviewed with the others. |
 
 ## Templates not used yet, and when to add them
 
@@ -45,11 +46,13 @@ Cookie & Storage Policy with the new data, sign-in cookies and retention.
 
 ## Still to fill in (owner)
 
-- `[Company Legal Name]`, company number `[00000000]`, `[Registered Office Address]`, VAT `[GB000000000]`. If you're a sole trader, use your trading name and business address instead (see `legal-notice.md`).
-- ICO registration `[ZA000000]`: check at ico.org.uk whether the data protection fee applies.
-- Effective / Last Modified dates: set them at launch.
-- **Minimum age for online play:** the draft says 13+, or younger players with a parent. Confirm it.
+- Company details are filled in: EVCV Limited, company number 13570383, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, VAT GB389265053. Directors are not listed; the Legal Notice links to Companies House instead.
+- ICO registration: ZB232228 (filled in; renewal due 07/10/2027).
+- Effective date: set to the **launch date** when the site goes live (`grep -n "Launch date" site/legal/*.md`). Last Modified: 9 October 2026; update it whenever a page changes.
+- Minimum age for online play: 13+, or younger with a parent's permission and supervision (confirmed).
 - **Hosts:** the draft names Cloudflare (website) and Fly.io in London (game server). Confirm them once deployed.
+- Support emails are kept for up to 24 months after the conversation ends (Privacy Policy 5.1.3). **Delete older ones** from the support inbox to match: UK GDPR requires a set period, and the policy promises this one.
+- Copyright year: 2026.
 - **Contact addresses:** support@, legal@ and privacy@tardigeddon.com. Set these up when the domain is bought, or replace them.
 
 Find everything still to do with: `grep -n "\[" site/legal/*.md`

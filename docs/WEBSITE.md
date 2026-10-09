@@ -71,6 +71,11 @@ on the site anyway.
   (loaded on demand with `marked`). `[Placeholders]` are highlighted and the
   page shows a "Draft" note until the owner fills them in. Footer order and
   labels: `site/src/legal.ts`.
+- Legal pages are **noindex** (kept out of search results, links still
+  followed): an `X-Robots-Tag: noindex, follow` header for `/legal/*` in
+  `site/public/_headers` (Cloudflare Pages), plus a robots meta tag the app
+  adds on those pages. Don't block them in `robots.txt` (crawlers must fetch a
+  page to see its noindex) and leave them out of any sitemap.
 - Clips play only while on screen; with reduced motion they don't play by
   themselves (poster + controls instead). GSAP animations run inside
   `gsap.matchMedia('(prefers-reduced-motion: no-preference)')`.
@@ -101,6 +106,7 @@ the clip ranges (`from`/`to` in each scene) may need a nudge.
 - `npm run site:dev`: dev server on :5174
 - `npm run site:build`: builds into `dist-site/`
 - `npm run site:preview`: preview the build on :4174
+- `npm run build:all`: the whole deploy (site + game at `/play/`) into `dist-site/`; see `docs/DEPLOY.md`
 
 ## Plan (agreed with the owner)
 
