@@ -7,7 +7,7 @@ import { NotFound } from './NotFound';
 
 /** Mark the "[Company Legal Name]"-style blanks the owner still has to fill in. */
 /** Pages a solicitor is still reviewing; they show a short note until that is done. */
-const UNDER_REVIEW = new Set(['terms-of-service', 'privacy-policy']);
+const UNDER_REVIEW = new Set(['terms-of-service', 'privacy-policy', 'cookie-policy', 'childrens-privacy']);
 
 function markPlaceholders(html: string): string {
   return html.replace(/\[([^\]<>]{2,120})\]/g, '<mark class="placeholder">[$1]</mark>');

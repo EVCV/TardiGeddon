@@ -72,6 +72,35 @@ export const HATS: HatDef[] = [
     ],
   },
   { id: 'none', name: 'No hat', shapes: [] },
+  // Shop hats (see src/shop/catalog.ts): usable once owned.
+  {
+    id: 'wizard',
+    name: 'Wizard',
+    shapes: [
+      { k: 'poly', pts: [-1.3, 0.1, -0.15, -2.6, 0.35, -2.2, 0.75, -1.2, 1.3, 0.1], fill: 'team' },
+      { k: 'poly', pts: [-1.5, 0.2, -1.5, -0.12, 1.5, -0.12, 1.5, 0.2], fill: 'team' },
+      { k: 'circle', x: 0.05, y: -0.9, r: 0.2, fill: 'gold' },
+      { k: 'circle', x: -0.4, y: -0.4, r: 0.12, fill: 'gold' },
+    ],
+  },
+  {
+    id: 'pirate',
+    name: 'Pirate',
+    shapes: [
+      { k: 'poly', pts: [-1.6, -0.1, -1.1, -1.3, 0, -0.95, 1.1, -1.3, 1.6, -0.1, 0, 0.15], fill: 'ink' },
+      { k: 'circle', x: 0, y: -0.55, r: 0.27, fill: 'white' },
+    ],
+  },
+  {
+    id: 'viking',
+    name: 'Viking',
+    shapes: [
+      { k: 'poly', pts: [-0.85, -0.35, -1.65, -1.0, -1.55, -1.75, -1.2, -1.0, -0.6, -0.75], fill: 'white' },
+      { k: 'poly', pts: [0.85, -0.35, 1.65, -1.0, 1.55, -1.75, 1.2, -1.0, 0.6, -0.75], fill: 'white' },
+      { k: 'dome', x: 0, y: 0, r: 1, fill: 'team' },
+      { k: 'poly', pts: [-1, 0.05, -1, -0.25, 1, -0.25, 1, 0.05], fill: 'gold' },
+    ],
+  },
 ];
 
 export function hatById(id: string): HatDef {

@@ -8,6 +8,7 @@ import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type WorldSt
 import { WEAPONS } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { CpuPlayer } from '../src/ai/cpu';
+import { canWearHat } from '../src/shop/catalog';
 import { encodeWorld, syncHash } from '../src/net/snapshot';
 import { fromWire, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
 
@@ -51,6 +52,17 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
     hat: typeof v.hat === 'string' && /^[a-z]{1,16}$/.test(v.hat) ? v.hat : 'beanie',
     names,
   };
+}
+
+/**
+ * The team as sent, but with a shop hat its player doesn't own swapped for
+ * the default one. Leaves anything else for cleanTeam to tidy.
+ */
+export function wearableTeam<T>(t: T, owned: readonly string[]): T {
+  if (!t || typeof t !== 'object') return t;
+  const hat = (t as { hat?: unknown }).hat;
+  if (typeof hat === 'string' && !canWearHat(hat, owned)) return { ...t, hat: 'beanie' };
+  return t;
 }
 
 /** Only known scheme fields, clamped to sane ranges. */

@@ -329,7 +329,7 @@ Whatever is chosen, keep the licence/terms copy in `assets/audio/LICENSES.md`.
 | UI / menus     | HTML/CSS overlay (Preact or plain TS)           | Easy responsive menus, shop, settings            |
 | Mobile wrap    | **Capacitor** (iOS + Android)                   | Same web build; native plugins for IAP, push, haptics |
 | Web install    | **PWA** (manifest + service worker)             | Installable from browser, offline vs-AI play     |
-| Backend        | **Supabase** (Auth + Postgres + Edge Functions) | Accounts, profiles, inventory, purchases, stats  |
+| Backend        | **Neon** Postgres + **Better Auth** in the game server | Accounts, profiles, inventory, purchases, stats (docs/ACCOUNTS.md) |
 | Realtime       | **Node + WebSocket game server** (e.g. on Fly.io) | Room/match relay, matchmaking, turn validation |
 | Purchases      | **RevenueCat** (wraps Apple/Google IAP) + **Stripe** on web | One entitlement system across all stores |
 | Analytics/crash| PostHog (or similar) + Sentry                   | Funnel, retention, crash reports                 |
@@ -491,11 +491,10 @@ real-time shooter: only one player acts at a time.
 
 ```
 ├─ server/               # WebSocket game server (rooms, matchmaking, headless sim)
-├─ supabase/             # DB migrations, edge functions (purchase webhooks, etc.)
 ├─ mobile/               # Capacitor iOS/Android projects
 └─ src/
-   ├─ shop/              # store UI, entitlements, RevenueCat/Stripe client
-   └─ account/           # login, profile, inventory
+   ├─ shop/              # catalogue (items + prices), shared with the server
+   └─ account/           # login, profile, inventory (server side: server/accounts.ts)
 ```
 
 ---
@@ -533,7 +532,7 @@ are avoiding. All gameplay content (weapons, modes, missions) is free.
 ### 8.3 Implementation
 
 - **RevenueCat** handles Apple/Google receipts; **Stripe Checkout** on web.
-  Both fire **webhooks → Supabase edge function** which grants items to
+  Both fire **webhooks → the game server** (`server/accounts.ts`), which grants items to
   the player's inventory. **Server is the source of truth** — the client
   never grants itself items.
 - Catalogue (items, prices, bundles, shop rotation) is data in the DB,
@@ -574,7 +573,7 @@ sim from the start, so it's a layer on top, not a rewrite.
 - **Exit:** a full 2-team match is fun on both laptop and phone.
 
 ### Phase 2 — Online & accounts (≈4–6 weeks)
-- Supabase auth (free account: email / Apple / Google), profiles, teams saved to cloud.
+- Accounts with Better Auth on Neon (free account: email / Apple / Google), profiles, teams saved to cloud.
 - WebSocket game server: rooms, invite codes, input relay, headless sim,
   hash checks, reconnect, turn timeout.
 - Quick-play matchmaking. Basic AI opponent v1 (also fills bots).
@@ -737,5 +736,5 @@ monetisation (cosmetics only, no ads, no power for sale).
 ### Next
 
 1. Owner: deploy the game server (docs/ONLINE.md) so online works on the site.
-2. Phase 2, part 2: Supabase accounts (required for online).
+2. Phase 2, part 2: accounts (Neon + Better Auth) and the web shop (Stripe): built, off until the legal pages are updated (docs/ACCOUNTS.md).
 3. Owner: register developer accounts (Apple, Google, Stripe) early.

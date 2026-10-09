@@ -2,6 +2,9 @@ import '@fontsource/luckiest-guy';
 import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
+import { enforceLandscape } from './ui/landscape';
+import { refreshAccount, wearHat } from './account/session';
+import { openAccount } from './ui/account';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
@@ -21,11 +24,10 @@ import { presetScheme } from './sim/schemes';
 import { ANGLE_FULL } from './sim/math/trig';
 
 const TICK_MS = 1000 / TICK_RATE;
-/** Far enough out to see most of a big 10-player map. */
-const MIN_ZOOM = 0.2;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 
 async function boot(): Promise<void> {
+  if (touchMode) enforceLandscape();
   const app = new Application();
   await app.init({
     resizeTo: window,
@@ -91,6 +93,22 @@ async function boot(): Promise<void> {
     // Invite link: ?room=CODE
     online({ code: room.toUpperCase() });
   } else menu();
+
+  // Who's signed in (and what they own); the menu updates when this lands.
+  const before = (await refreshAccount())?.owned.length ?? 0;
+  // Back from Stripe's payment page.
+  const shop = params.get('shop');
+  if (shop) {
+    history.replaceState(null, '', location.pathname);
+    if (shop === 'done') {
+      openAccount(ui, 'Thanks! Your item will appear here in a moment.');
+      // Stripe tells the server a few seconds after paying, so check back a few times.
+      for (let i = 0; i < 8; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        if (((await refreshAccount())?.owned.length ?? 0) > before) break;
+      }
+    } else openAccount(ui, 'Payment cancelled: nothing was charged.');
+  }
 }
 
 type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'online'; client: NetClient; ls: Lockstep };
@@ -134,7 +152,7 @@ class Match {
       const setup = mode.setup;
       const teams: TeamConfig[] = setup.players.map((cpu, i) => {
         const p = setup.teams[i];
-        return { name: p.name, color: p.color, hat: p.hat, names: matchNames(p, i), cpu };
+        return { name: p.name, color: p.color, hat: wearHat(p.hat), names: matchNames(p, i), cpu };
       });
       this.local = createWorld({ seed: setup.seed, teams, scheme: setup.scheme });
       for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
@@ -374,7 +392,7 @@ class Match {
         p.x = e.clientX;
         p.y = e.clientY;
         const d = this.pointerSpread();
-        if (this.pinchDist > 0) cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (d / this.pinchDist)));
+        if (this.pinchDist > 0) cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (d / this.pinchDist)));
         this.pinchDist = d;
         p.moved = true;
         cam.manualUntil = performance.now() + 3000;
@@ -409,7 +427,7 @@ class Match {
     c.onwheel = (e) => {
       e.preventDefault();
       const cam = this.renderer.camera;
-      cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
+      cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
     };
   }
 

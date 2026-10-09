@@ -8,6 +8,8 @@ import { MAX_TEAMS } from '../sim/world';
 import { hex } from '../render/palette';
 import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
+import { openAccount } from './account';
+import { account, onAccountChange, wearHat } from '../account/session';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -89,6 +91,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
   root.innerHTML = `
     <div class="menu">
       <div class="menu-card">
+        <button class="hud-btn account-btn hidden">👤 Account</button>
         <div class="mascot">${MASCOT_SVG}</div>
         <h1 class="title">Tardi<span>Geddon</span></h1>
         <p class="tagline">Tiny. Indestructible. Armed.</p>
@@ -146,7 +149,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
       toggle.setAttribute('aria-label', `${p.name}: ${cpu ? 'CPU' : 'Human'} (tap to switch)`);
       const pic = document.createElement('span');
       pic.className = 'slot-pic';
-      pic.innerHTML = mascotSvg(p.color, p.hat);
+      pic.innerHTML = mascotSvg(p.color, wearHat(p.hat));
       const name = document.createElement('span');
       name.className = 'slot-name';
       name.textContent = p.name; // player-entered text: never innerHTML
@@ -243,6 +246,21 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
     customiseBtn.textContent = panel.classList.contains('hidden') ? 'Customise' : 'Done';
   };
   refresh();
+
+  const accountBtn = root.querySelector<HTMLButtonElement>('.account-btn')!;
+  accountBtn.onclick = () => openAccount(root);
+  const showAccount = () => {
+    if (!accountBtn.isConnected) return off();
+    const { me } = account();
+    const user = me?.user;
+    // Only shown when the server has accounts turned on (see docs/ACCOUNTS.md).
+    accountBtn.classList.toggle('hidden', !me);
+    accountBtn.textContent = user ? `👤 ${user.name}` : '👤 Sign in / Shop';
+    // Hats may have been bought or lost (signed out): redraw the team pictures.
+    renderSlots();
+  };
+  const off = onAccountChange(showAccount);
+  showAccount();
 
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;

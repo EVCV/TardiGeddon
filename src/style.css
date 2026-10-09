@@ -73,7 +73,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 24px;
   padding: 20px 20px 16px;
   box-shadow: 0 8px 0 var(--ink);
+  position: relative;
 }
+.account-btn { position: absolute; top: 12px; right: 12px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mascot svg { width: 150px; height: auto; animation: bob 1.6s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-2deg); } }
 .title {
@@ -470,6 +472,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .editor-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 14px; }
 .editor-actions .big-btn { padding: 8px 22px; font-size: 18px; }
 
+/* Account & Shop */
+.account-status { margin: 0 0 8px; min-height: 1.2em; font-weight: 800; color: var(--red); }
+.account-form { display: flex; flex-direction: column; gap: 8px; }
+.account-tabs { display: flex; gap: 6px; justify-content: center; }
+.account-tabs .on { background: var(--accent); }
+.account-provider { width: 100%; }
+.account-note { margin: 6px 0 0; font-size: 12px; font-weight: 600; }
+.account-who { margin: 0 0 4px; overflow-wrap: anywhere; }
+.account-delete { margin-right: auto; color: var(--red); }
+.shop-item { gap: 4px; }
+.shop-item .hud-btn { padding: 4px 10px; font-size: 13px; }
+.shop-owned { color: #2c7a3d; }
+.hat-btn.locked svg { opacity: .55; }
+
 /* ---------- Online ---------- */
 .menu-card.online { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 .online .title-small { color: var(--accent); }
@@ -528,3 +544,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .queue-spin svg { width: 90px; height: auto; animation: bob 0.8s ease-in-out infinite; }
 .queue-time { font-family: var(--title); font-size: 28px; }
 .team-time { font-family: var(--title); font-size: 13px; color: #fff; -webkit-text-stroke: 0.6px var(--ink); min-width: 40px; }
+
+/* Landscape only on touch devices (see ui/landscape.ts). */
+#rotate { display: none; }
+@media (orientation: portrait) {
+  html.touch #rotate {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 24px; text-align: center;
+    background: var(--sky); color: var(--ink);
+  }
+}
+#rotate h2 { margin: 16px 0 0; font-family: var(--title); font-weight: 400; font-size: 28px; letter-spacing: 1px; }
+#rotate p { margin: 0; font-weight: 600; }
+.rotate-phone {
+  width: 56px; height: 96px; border: 5px solid var(--ink); border-radius: 12px; background: var(--paper);
+  animation: rotate-phone 2s ease-in-out infinite;
+}
+@keyframes rotate-phone {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+.account-status:empty { display: none; }
+.account-check { display: flex; gap: 8px; align-items: flex-start; text-align: left; font-size: 13px; font-weight: 600; }
+.account-check input { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+.account-check a, .account-note a { color: inherit; font-weight: 800; }
+.shop-confirm { display: flex; flex-direction: column; gap: 10px; text-align: left; font-weight: 600; }
+.shop-confirm p { margin: 0; }
+.big-btn:disabled { opacity: .5; }

@@ -9,7 +9,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - `npm run server` — online game server on :8787 (`npm run dev` on localhost connects to it; see `docs/ONLINE.md`)
 - `npm run site:dev` / `site:build` — the public website (React + GSAP + Lenis + React Bits; see `docs/WEBSITE.md`)
 - `npm run build:all` — site + game (at `/play/`) into `dist-site/`, as deployed to Cloudflare Pages (`docs/DEPLOY.md`)
-- `npm test` — unit + soak tests (Vitest)
+- `npm test` — unit + soak tests (Vitest). Set `TEST_DATABASE_URL` (an empty throwaway Postgres) to also run the accounts/shop tests
 - `npm run typecheck`, `npm run build`
 - `npm run e2e` — Playwright smoke tests (desktop + phone). In sandboxes with a
   preinstalled Chromium set `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium`.
@@ -25,6 +25,8 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - `src/render/` — PixiJS view of the state; reads state, never writes it. Interpolates between ticks.
 - `src/ui/` — DOM menus/HUD/touch controls. `src/input/` — keyboard/touch → `InputFrame`.
 - `server/` + `src/net/` — online play: the server runs the sim and streams lockstep input frames; clients replay them.
+- `server/accounts.ts` + `src/account/` + `src/shop/` — optional accounts (Better Auth on Neon Postgres) and the
+  Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
   Runs on one machine only (host), so it may use non-deterministic code.
 - Weapons are data in `src/sim/weapons.ts`.

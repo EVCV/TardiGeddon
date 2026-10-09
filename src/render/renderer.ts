@@ -12,6 +12,8 @@ import { PALETTE, hex } from './palette';
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
+/** How far past the map's left/right edges the camera may look. */
+const VIEW_MARGIN_X = 200;
 
 interface Particle {
   x: number;
@@ -111,7 +113,15 @@ export class GameRenderer {
 
   defaultZoom(): number {
     const { width, height } = this.app.screen;
-    return Math.max(0.5, Math.min(2.2, Math.min(height / 600, width / 1000)));
+    return Math.max(this.minZoom(), Math.max(0.5, Math.min(2.2, Math.min(height / 600, width / 1000))));
+  }
+
+  /**
+   * Furthest the camera may zoom out: the whole map (plus a small margin) just
+   * fills the screen's width, so the edges of the backdrop never show.
+   */
+  minZoom(): number {
+    return Math.min(3, this.app.screen.width / (this.state.terrain.w + 2 * VIEW_MARGIN_X));
   }
 
   /** Record positions before a sim tick so frames can interpolate. */
@@ -624,12 +634,12 @@ export class GameRenderer {
       [this.waterFront, 1.7, PALETTE.water, 0.88],
     ] as const) {
       g.clear();
-      g.moveTo(left, wy + 2000);
+      g.moveTo(left, wy + 8000);
       for (let x = left; x <= right; x += 20) {
         const y = wy + Math.sin(x * 0.03 + this.time * 2 + offset) * 4 + (offset ? 6 : 0);
         g.lineTo(x, y);
       }
-      g.lineTo(right, wy + 2000).closePath().fill({ color, alpha });
+      g.lineTo(right, wy + 8000).closePath().fill({ color, alpha });
     }
   }
 
@@ -640,11 +650,11 @@ export class GameRenderer {
       [this.hills, PALETTE.hillFar, 90, h - 260, 0.004],
       [this.hillsNear, PALETTE.hillNear, 70, h - 170, 0.007],
     ] as const) {
-      g.moveTo(-3000, h + 200);
+      g.moveTo(-3000, h + 3000);
       for (let x = -3000; x <= w + 3000; x += 25) {
         g.lineTo(x, base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4);
       }
-      g.lineTo(w + 3000, h + 200).closePath().fill(color).stroke({ width: 3, color: PALETTE.outline, alpha: 0.25 });
+      g.lineTo(w + 3000, h + 3000).closePath().fill(color).stroke({ width: 3, color: PALETTE.outline, alpha: 0.25 });
     }
   }
 
@@ -673,10 +683,14 @@ export class GameRenderer {
       }
     }
     const { width, height } = this.app.screen;
+    // Also catches a window resize that leaves the old zoom too far out.
+    cam.zoom = Math.max(cam.zoom, this.minZoom());
     const halfW = width / 2 / cam.zoom;
     const halfH = height / 2 / cam.zoom;
-    cam.x = clamp(cam.x, -200 + halfW, s.terrain.w + 200 - halfW, s.terrain.w / 2);
-    cam.y = clamp(cam.y, -300 + halfH, s.waterY + 60 - halfH, s.waterY / 2);
+    cam.x = clamp(cam.x, -VIEW_MARGIN_X + halfW, s.terrain.w + VIEW_MARGIN_X - halfW, s.terrain.w / 2);
+    // A view taller than the map (tall phone screens) centres it, with sky
+    // above and deep sea below (drawWater reaches far enough down).
+    cam.y = clamp(cam.y, -300 + halfH, s.waterY + 60 - halfH, (s.waterY - 240) / 2);
     this.world.scale.set(cam.zoom);
     this.world.position.set(width / 2 - cam.x * cam.zoom, height / 2 - cam.y * cam.zoom);
     // Parallax: background hills move slower than the world.

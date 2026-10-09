@@ -19,7 +19,8 @@ same match while only a few bytes per tick go over the network.
 - **Tests:** `tests/room.test.ts` (rooms, sync, rejoin, desync recovery) and
   `e2e/online.spec.ts` (two browsers play a match).
 
-Not yet: accounts (Supabase), and running more than
+Accounts and the shop are served by the same server when it has a database
+(docs/ACCOUNTS.md). Not yet: running more than
 one server machine (rooms live in memory, so keep a single instance).
 
 ## Putting it online

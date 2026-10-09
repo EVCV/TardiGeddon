@@ -2,8 +2,8 @@
 // current state, then "presses buttons" through the normal input path.
 // Runs only on one machine (host) — its inputs are what get replayed.
 
-import { cloneWorld, launchVelocity, stepProjectile, activeTardi, traceHitscan, TARDI_R, AIM_STEP } from '../sim/world';
-import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type Projectile, type WorldState } from '../sim/types';
+import { cloneWorld, launchVelocity, stepProjectile, activeTardi, traceHitscan, TARDI_R, AIM_STEP, POWER_STEP } from '../sim/world';
+import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type Projectile, type Tardi, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
 
 export type CpuSkill = 'easy' | 'normal' | 'hard' | 'perfect';
@@ -27,9 +27,9 @@ interface SkillDef {
 }
 
 const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
-  easy: { spread: 320, windSense: 0, powerErr: 40, aimErr: 2, wild: 0.25 },
-  normal: { spread: 170, windSense: 0.4, powerErr: 25, aimErr: 1, wild: 0.1 },
-  hard: { spread: 60, windSense: 0.85, powerErr: 10, aimErr: 0, wild: 0.03 },
+  easy: { spread: 200, windSense: 0.3, powerErr: 30, aimErr: 1, wild: 0.15 },
+  normal: { spread: 45, windSense: 0.85, powerErr: 0, aimErr: 0, wild: 0.03 },
+  hard: { spread: 25, windSense: 0.95, powerErr: 0, aimErr: 0, wild: 0 },
   perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0 },
 };
 
@@ -38,6 +38,7 @@ export const CPU_SKILLS: { id: CpuSkill; name: string }[] = [
   { id: 'easy', name: 'Easy' },
   { id: 'normal', name: 'Normal' },
   { id: 'hard', name: 'Hard' },
+  { id: 'perfect', name: 'Expert' },
 ];
 
 /** Bell-curve noise with a standard deviation of 1. */
@@ -239,6 +240,8 @@ function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
           pick = c;
         }
       }
+      // The search grid is coarse; fine-tune that shot onto the chosen spot.
+      if (pick) pick = refine(sim, s, me, pick, tx, ty) ?? pick;
     }
   }
   const plan: Plan = { ...(pick?.plan ?? best) };
@@ -248,6 +251,33 @@ function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
   }
   plan.aim = Math.max(-1024, Math.min(1024, plan.aim + Math.round(gauss() * skill.aimErr) * AIM_STEP));
   return plan;
+}
+
+/**
+ * Nudge a thrown shot's aim and power around the grid point it came from, to
+ * land as close as possible to (tx, ty) without hurting our own side.
+ */
+function refine(sim: WorldState, s: WorldState, me: Tardi, c: Candidate, tx: number, ty: number): Candidate | null {
+  const { weapon, facing, aim, power, fuse } = c.plan;
+  if (WEAPONS[weapon].kind !== 'charge') return null;
+  const radius = WEAPONS[weapon].projectile!.radius;
+  let best: Candidate | null = null;
+  let bestD = (c.x - tx) * (c.x - tx) + (c.y - ty) * (c.y - ty);
+  for (let a = aim - AIM_STEP * 4; a <= aim + AIM_STEP * 4; a += AIM_STEP) {
+    if (a < -1024 || a > 1024) continue;
+    // Power charges in POWER_STEP increments, so only those values are reachable.
+    for (let pw = power - POWER_STEP * 5; pw <= power + POWER_STEP * 5; pw += POWER_STEP) {
+      if (pw < 100 || pw > 1000) continue;
+      const hit = predict(sim, weapon, me.x, me.y, facing, a, pw, fuse * TICK_RATE, me.id);
+      if (!hit || hurtsTeam(s, hit.x, hit.y, radius, me.team)) continue;
+      const d = (hit.x - tx) * (hit.x - tx) + (hit.y - ty) * (hit.y - ty);
+      if (d < bestD) {
+        bestD = d;
+        best = { plan: { ...c.plan, aim: a, power: pw }, x: hit.x, y: hit.y, score: 0, ownGoal: false };
+      }
+    }
+  }
+  return best;
 }
 
 /** Would a blast here hurt any of our own living tardis? */

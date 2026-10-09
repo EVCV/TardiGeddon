@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -65,19 +65,33 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ## Section 3 — Playing the Game
 
-### 3.0 No Account Required
+### 3.0 Accounts Are Optional
 
-3.0.1 You do not currently need an account to play TardiGeddon. Your settings and team details are stored only on your own device, as described in our Privacy Policy and Cookie & Storage Policy.
+3.0.1 You do not need an account to play TardiGeddon. Your settings and team details are stored on your own device, as described in our Privacy Policy and Cookie & Storage Policy.
 
-3.0.2 If we introduce player accounts in future, additional terms covering account registration, security, and closure will apply and will be added to these Terms before accounts become available.
+3.0.2 You may create a free account so that items you buy in the shop are kept on every device you sign in on. Accounts are being introduced and may not be available everywhere straight away.
 
-### 3.1 Online Play
+### 3.1 Your Account
 
-3.1.1 Online matches are hosted on our game server. Your team name, team colour, hat, and tardigrade names are shown to the other players in your match, so please do not use your real name or any other personal information in them.
+3.1.1 You must be 13 or older to create an account. If you are under 18, please read these Terms with a parent or guardian before creating one.
 
-3.1.2 Online play depends on internet connections and servers that are outside our full control. Matches may be interrupted, lost, or ended early, and if you disconnect, the computer may play your turns until you rejoin. The Company does not guarantee that the online Services will always be available or uninterrupted.
+3.1.2 You must give a real email address that you can access, and you must not create an account for, or in the name of, someone else. Your player name must follow our Community Guidelines.
 
-3.1.3 Your behaviour in online play must follow our Community Guidelines. We may remove you from a match or block your access to online play if you do not.
+3.1.3 You are responsible for keeping your password secret and for everything done with your account. Tell us straight away at support@tardigeddon.com if you think someone else has used it.
+
+3.1.4 Your account is personal to you. You must not sell, transfer, or share it, or the items it owns.
+
+3.1.5 You can delete your account at any time in the game (Account, then Delete account). Deleting it permanently removes the items it owns; they cannot be restored and are not refunded.
+
+3.1.6 We may suspend or close an account under Section 11.0. If we close your account when you have not broken these Terms, we will give you reasonable notice where we can, and you keep any rights you have under Section 5.
+
+### 3.2 Online Play
+
+3.2.1 Online matches are hosted on our game server. Your team name, team colour, hat, and tardigrade names are shown to the other players in your match, so please do not use your real name or any other personal information in them.
+
+3.2.2 Online play depends on internet connections and servers that are outside our full control. Matches may be interrupted, lost, or ended early, and if you disconnect, the computer may play your turns until you rejoin. The Company does not guarantee that the online Services will always be available or uninterrupted.
+
+3.2.3 Your behaviour in online play must follow our Community Guidelines. We may remove you from a match or block your access to online play if you do not.
 
 ## Section 4 — Use of the Website and Game
 
@@ -113,13 +127,45 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 5.0 The Game Is Free
 
-5.0.1 TardiGeddon is currently free to play, and the Services do not currently offer any purchases. There are no adverts in the game.
+5.0.1 TardiGeddon is free to play, and every part of the game, including every weapon and game mode, is available without paying. There are no adverts in the game.
 
-### 5.1 Future Cosmetic Items
+5.0.2 The shop sells optional cosmetic items (such as hats) that change only how your team looks. We will never sell items that give a gameplay advantage. There are no loot boxes or random paid rewards: you always know exactly what you are buying.
 
-5.1.1 We may in future offer optional cosmetic items (such as hats or team colours) that change only how your team looks. We will never sell items that give a gameplay advantage.
+### 5.1 Buying Items
 
-5.1.2 Before any purchases become available, we will publish additional terms covering prices, payment, refunds, and your statutory rights as a consumer, including your rights under the Consumer Rights Act 2015 and the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013. Purchases made through an app store will also be subject to that store's terms.
+5.1.1 You need an account to buy items. If you are under 18, you must have permission from a parent or guardian before buying anything.
+
+5.1.2 Prices are shown in the game in pounds sterling and include VAT. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
+
+5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for that item. Stripe sends a receipt to your account's email address.
+
+5.1.4 An item you buy is digital content: a personal, non-transferable licence to use that cosmetic item in TardiGeddon with your account, for as long as we provide the Services (see Section 5.4). It has no cash value, and you cannot sell, trade, or transfer it.
+
+5.1.5 Your item is added to your account straight away, normally within a few seconds of payment. If it has not appeared within an hour, please contact support@tardigeddon.com.
+
+### 5.2 Your Right to Cancel
+
+5.2.1 Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you normally have 14 days to cancel a contract made online. For digital content like our items, that right ends once supply begins, if you have asked for it to start straight away and acknowledged that you will lose the right to cancel.
+
+5.2.2 Before you pay, we ask you to confirm that you want your item straight away and that you understand you will lose your right to cancel once it is delivered. Because your item is delivered as soon as you pay, you will not be able to cancel the purchase after that. This does not affect your rights if the item is faulty (Section 5.3).
+
+### 5.3 If Something Goes Wrong
+
+5.3.1 Under the Consumer Rights Act 2015, the items you buy must be as described, fit for purpose, and of satisfactory quality. If an item is faulty or is not delivered, you are entitled to a repair or replacement, or, if that is not possible or not done within a reasonable time and without significant inconvenience to you, a price reduction or a refund. Please contact support@tardigeddon.com.
+
+5.3.2 You may also have rights against your card issuer. If you dispute a payment with your bank or card issuer, or a payment is refunded, the item will be removed from your account.
+
+5.3.3 Apart from your rights under this Section, we do not normally give refunds for items you have bought, but we will consider any request fairly. Please contact support@tardigeddon.com.
+
+### 5.4 Changes to Items and the Services
+
+5.4.1 We may update how an item looks to fix a problem or keep it consistent with the game's art style, as long as it stays substantially the same as what you bought.
+
+5.4.2 If we decide to close the shop, or to stop providing the Services, we will give at least 30 days' notice in the game and on the Website. Your rights under the Consumer Rights Act 2015 are not affected.
+
+### 5.5 App Stores
+
+5.5.1 If you buy items in a TardiGeddon app from an app store in future, that purchase will be made through the app store's own payment system and will also be subject to that store's terms, including its refund policy.
 
 ## Section 6 — Intellectual Property
 
@@ -139,7 +185,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 7.0 Your Content
 
-7.0.1 The only content you can currently add to the Services is your team name, team colour, hat choice, and tardigrade names ("Team Details"). In online matches, these are shown to the other players in your match.
+7.0.1 The only content you can currently add to the Services is your team name, team colour, hat choice, and tardigrade names ("Team Details"), and, if you create an account, your player name. In online matches, your Team Details are shown to the other players in your match. Your player name is not shown to other players.
 
 7.0.2 You grant the Company a non-exclusive, royalty-free licence to store, transmit, and display your Team Details for as long as needed to run the match you are playing.
 
@@ -165,7 +211,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 9.0 No Warranties
 
-9.0.1 The Services are provided free of charge on an "as is" and "as available" basis, without warranties of any kind, either express or implied, including but not limited to implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, or that the Services will be uninterrupted, timely, secure, or error-free, to the fullest extent permitted by applicable law.
+9.0.1 Except for items you buy, which are covered by Section 5.3, the Services are provided free of charge on an "as is" and "as available" basis, without warranties of any kind, either express or implied, including but not limited to implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, or that the Services will be uninterrupted, timely, secure, or error-free, to the fullest extent permitted by applicable law.
 
 9.0.2 Nothing in this Section 9 affects any statutory rights you have as a consumer that cannot be excluded or limited by law.
 
@@ -175,7 +221,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 9.1.2 Nothing in these Terms shall limit or exclude the Company's liability for: (a) death or personal injury caused by negligence; (b) fraud or fraudulent misrepresentation; or (c) any other liability which cannot be limited or excluded under applicable law.
 
-9.1.3 Subject to clause 9.1.2, the Company's total aggregate liability to you arising out of or in connection with these Terms, whether in contract, tort (including negligence), breach of statutory duty, or otherwise, shall not exceed £100.
+9.1.3 Subject to clause 9.1.2, the Company's total aggregate liability to you arising out of or in connection with these Terms, whether in contract, tort (including negligence), breach of statutory duty, or otherwise, shall not exceed the greater of £100 and the total amount you have paid us for items in the 12 months before the claim arose.
 
 9.1.4 If we provide digital content that damages a device or other digital content belonging to you, and this is caused by our failure to use reasonable care and skill, we will either repair the damage or pay you compensation, as required by the Consumer Rights Act 2015.
 
@@ -193,11 +239,11 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 11.1 Termination by You
 
-11.1.1 You may stop using the Services at any time. You can remove the information the game stores on your device by clearing your browser's site data for tardigeddon.com.
+11.1.1 You may stop using the Services at any time. You can remove the information the game stores on your device by clearing your browser's site data for tardigeddon.com, and you can delete your account at any time as described in Section 3.1.5.
 
 ### 11.2 Effect of Termination
 
-11.2.1 Upon termination, your right to access and use the Services will immediately cease. All provisions of these Terms which by their nature should survive termination shall survive, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability.
+11.2.1 Upon termination, your right to access and use the Services will immediately cease. If we close your account because you have seriously or repeatedly broken these Terms, you will lose the items it owns and will not receive a refund, except where the law requires one. All provisions of these Terms which by their nature should survive termination shall survive, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability.
 
 ## Section 12 — Governing Law and Jurisdiction
 
@@ -255,7 +301,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 14.7 Notices
 
-14.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. As the Services do not currently use accounts, we may give notices to you by publishing them on the Website.
+14.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. We may give notices to you by publishing them on the Website or in the game, or, if you have an account, by email to the address on your account.
 
 ### 14.8 Language and Translation
 
