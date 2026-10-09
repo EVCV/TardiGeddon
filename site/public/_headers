@@ -1,0 +1,5 @@
+# Cloudflare Pages response headers (https://developers.cloudflare.com/pages/configuration/headers/).
+# Legal pages stay out of search results. Don't block them in robots.txt
+# instead: crawlers have to fetch a page to see its noindex.
+/legal/*
+  X-Robots-Tag: noindex, follow
