@@ -41,7 +41,7 @@ This page sets out the legal and company information about the business that run
 
 ### 1.1 Regulatory Information
 
-1.1.1 ICO Registration Number (Data Protection Fee): [ZA000000]. [OWNER: check at ico.org.uk whether you need to pay the data protection fee; many small organisations do.]
+1.1.1 EVCV Limited is registered with the Information Commissioner's Office (ICO) as a data controller and pays the data protection fee. ICO registration number: ZB232228. You can check our entry on the ICO's public register at https://ico.org.uk/register.
 
 ## Section 2 — Website Hosting and Technical Information
 

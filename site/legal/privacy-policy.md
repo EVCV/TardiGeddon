@@ -39,7 +39,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 1.1 Data Controller
 
-1.1.1 EVCV Limited ("we", "us" or "our") is the controller for personal data described in this policy unless we act as a processor for a business customer. We are registered in England and Wales under company number 13570383 at 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom. This applies for the purposes of the UK GDPR and, where applicable, the EU GDPR. [ICO registration number: ZA000000 — see the Legal Notice.]
+1.1.1 EVCV Limited ("we", "us" or "our") is the controller for personal data described in this policy unless we act as a processor for a business customer. We are registered in England and Wales under company number 13570383 at 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom. This applies for the purposes of the UK GDPR and, where applicable, the EU GDPR. We are registered with the Information Commissioner's Office (ICO) under registration number ZB232228.
 
 ### 1.2 Related Documents
 

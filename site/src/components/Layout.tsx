@@ -73,7 +73,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <p className="footer-small">
           TardiGeddon is a game developed by EVCV Limited, registered in England and Wales, company number 13570383.
           Registered office: 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom. VAT number
-          GB389265053.
+          GB389265053. ICO registration number ZB232228.
           <br />© {new Date().getFullYear()} EVCV Limited. No ads, no tracking, no cookies.
         </p>
       </footer>
