@@ -3,7 +3,7 @@
 
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
-import { SHOP_ITEMS, formatPrice } from '../shop/catalog';
+import { SHOP_ITEMS, formatPrice, type ShopItem } from '../shop/catalog';
 import {
   account,
   buy,
@@ -24,6 +24,16 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 }
 
 const PROVIDER_NAMES: Record<string, string> = { google: 'Google', apple: 'Apple' };
+const LEGAL = 'https://tardigeddon.com/legal/';
+
+/** A link to one of the legal pages, opening in a new tab. */
+function legalLink(slug: string, text: string): HTMLAnchorElement {
+  const a = el('a', '', text);
+  a.href = LEGAL + slug;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  return a;
+}
 
 /** Open the Account & Shop panel. `notice` is shown at the top (e.g. after paying). */
 export function openAccount(host: HTMLElement, notice = ''): void {
@@ -135,7 +145,19 @@ export function openAccount(host: HTMLElement, notice = ''): void {
     if (name) name.maxLength = 30;
     const email = field('email', 'email', 'Email', 'email');
     const pw = field('password', 'password', mode === 'signup' ? 'Password (8+ characters)' : 'Password', mode === 'signup' ? 'new-password' : 'current-password');
-    if (mode === 'signup') pw.minLength = 8;
+    if (mode === 'signup') {
+      pw.minLength = 8;
+      // Age self-declaration (Children's Privacy Policy §1.1) and acceptance of the Terms.
+      const agree = el('label', 'account-check');
+      const box = el('input');
+      box.type = 'checkbox';
+      box.required = true;
+      box.name = 'agree';
+      const text = el('span');
+      text.append("I'm 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '. See how we use your data in the ', legalLink('privacy-policy', 'Privacy Policy'), '.');
+      agree.append(box, text);
+      form.append(agree);
+    }
     const submit = el('button', 'big-btn', mode === 'signup' ? 'Create account' : 'Sign in');
     submit.type = 'submit';
     submit.disabled = busy;
@@ -151,13 +173,54 @@ export function openAccount(host: HTMLElement, notice = ''): void {
       b.onclick = () => void run(() => signInWith(p));
       form.append(b);
     }
+    if (providers.length) {
+      const note = el('p', 'account-note');
+      note.append("Continuing with Google or Apple means you're 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '.');
+      form.append(note);
+    }
     form.append(el('p', 'account-note', 'An account keeps your shop items on every device. Everything in the game is free to play without one.'));
     return form;
+  };
+
+  /** The item the player tapped Buy on, waiting for them to confirm. */
+  let pending: ShopItem | null = null;
+
+  const confirmBuy = (item: ShopItem): HTMLElement => {
+    const box = el('div', 'shop-confirm');
+    box.append(el('p', '', `Buy the ${item.name} for ${formatPrice(item.price)} (including VAT)? You'll pay on Stripe's secure page and get it straight away.`));
+    const consent = el('label', 'account-check');
+    const tick = el('input');
+    tick.type = 'checkbox';
+    const text = el('span');
+    text.append(
+      "I want it straight away, and I understand that once it's delivered I lose my 14-day right to cancel. My other rights, such as if it doesn't work, aren't affected (",
+      legalLink('terms-of-service', 'Terms'),
+      ' §5).',
+    );
+    consent.append(tick, text);
+    const row = el('div', 'editor-actions');
+    const back = el('button', 'hud-btn', 'Cancel');
+    back.onclick = () => {
+      pending = null;
+      render();
+    };
+    const pay = el('button', 'big-btn', 'Pay');
+    pay.disabled = true;
+    tick.onchange = () => (pay.disabled = !tick.checked || busy);
+    pay.onclick = () => void run(() => buy(item.id, tick.checked));
+    row.append(back, pay);
+    box.append(consent, row);
+    return box;
   };
 
   const shop = (owned: string[], open: boolean): HTMLElement => {
     const wrap = el('div', 'account-shop');
     wrap.append(el('h3', '', 'Shop'));
+    if (pending && open && !owned.includes(pending.id)) {
+      wrap.append(confirmBuy(pending));
+      return wrap;
+    }
+    pending = null;
     wrap.append(el('p', 'account-note', 'Just for looks: nothing in the shop changes how your team plays.'));
     const grid = el('div', 'editor-hats');
     const color = loadProfiles()[0].color;
@@ -170,14 +233,21 @@ export function openAccount(host: HTMLElement, notice = ''): void {
       else {
         const b = el('button', 'hud-btn', open ? formatPrice(item.price) : 'Soon');
         b.disabled = busy || !open;
-        b.onclick = () => void run(() => buy(item.id));
+        b.onclick = () => {
+          pending = item;
+          status = '';
+          render();
+        };
         card.append(b);
       }
       grid.append(card);
     }
     wrap.append(grid);
     if (!open) wrap.append(el('p', 'account-note', 'The shop opens soon.'));
-    else wrap.append(el('p', 'account-note', 'Wear your hats from the ✎ team editor.'));
+    else {
+      wrap.append(el('p', 'account-note', 'Prices include VAT. Under 18? Please ask a parent or carer before you buy.'));
+      wrap.append(el('p', 'account-note', 'Wear your hats from the ✎ team editor.'));
+    }
     return wrap;
   };
 

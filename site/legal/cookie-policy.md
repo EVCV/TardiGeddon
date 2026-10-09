@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to EVCV Limited and, wher
 
 ## Introduction
 
-This policy explains what cookies and similar technologies are, and how TardiGeddon uses them. The short version: we do not use cookies, analytics, or advertising trackers. The game uses your browser's local storage only to remember the settings you choose, which is strictly necessary and does not need a consent banner.
+This policy explains what cookies and similar technologies are, and how TardiGeddon uses them. The short version: we do not use analytics or advertising trackers. The game uses your browser's local storage to remember the settings you choose, and, only if you sign in to an account, a cookie that keeps you signed in. All of this is strictly necessary for features you ask for, so it does not need a consent banner.
 
 ---
 
@@ -37,13 +37,13 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 1.1 First-Party and Third-Party Cookies
 
-1.1.1 "First-party" technologies are set by the website you are visiting. "Third-party" technologies are set by other domains, typically advertising and analytics companies. TardiGeddon uses no third-party cookies or trackers.
+1.1.1 "First-party" technologies are set by the website you are visiting. "Third-party" technologies are set by other domains, typically advertising and analytics companies. TardiGeddon uses no third-party cookies or trackers. Our sign-in cookies are set by our own game server (server.tardigeddon.com), which is part of the Services.
 
 ## Section 2 — Categories We Use
 
 ### 2.0 Strictly Necessary Storage
 
-2.0.1 TardiGeddon uses browser storage on your device only to provide features you ask for: remembering your teams and settings, and letting you rejoin an online match after a dropped connection. This storage is strictly necessary to provide those features.
+2.0.1 TardiGeddon uses cookies and browser storage on your device only to provide features you ask for: remembering your teams and settings, letting you rejoin an online match after a dropped connection, and, if you sign in, keeping you signed in to your account. This storage is strictly necessary to provide those features.
 
 ### 2.1 Performance, Analytics, Targeting and Advertising
 
@@ -58,6 +58,9 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.teams` | Local storage | TardiGeddon (first party) | Your team names, colours, hats and tardigrade names | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.menu` | Local storage | TardiGeddon (first party) | Your game style, custom rules, players and CPU skill | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.rejoin` | Session storage | TardiGeddon (first party) | Room code and rejoin token, so you can get back into an online match | Strictly necessary | Until you close the tab |
+| `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
+| `__Secure-better-auth.session_token` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Keeps you signed in to your account. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
+| `__Secure-better-auth.state` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Protects sign-in with Google or Apple from forgery. Only set while you sign in with them | Strictly necessary | 5 minutes |
 
 3.0.1 This table will be kept up to date if the storage the game uses changes.
 
@@ -67,6 +70,8 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 4.0.1 We do not embed third-party analytics, advertising, social media plug-ins, or videos that set cookies. Our hosting provider may use strictly necessary security measures (for example, to protect the Website from attacks), as described in its own privacy policy.
 
+4.0.2 When you buy something, you leave the game for Stripe's payment page (checkout.stripe.com), and if you sign in with Google or Apple, you visit their sign-in page. Those pages are run by Stripe, Google or Apple, which may set their own cookies, for example to prevent fraud, as described in their own cookie and privacy policies. We do not control those cookies.
+
 ## Section 5 — Managing Your Preferences
 
 ### 5.0 No Consent Banner
@@ -75,9 +80,9 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 5.1 Browser and Device Controls
 
-5.1.1 You can delete the information the game stores by clearing your browser's site data for tardigeddon.com. Instructions can be found in your browser's settings or "Help" menu.
+5.1.1 You can delete the information the game stores by clearing your browser's site data for tardigeddon.com (and, to remove sign-in cookies, for server.tardigeddon.com). Signing out also removes the sign-in cookie. Instructions can be found in your browser's settings or "Help" menu.
 
-5.1.2 If you block or clear this storage, the game will still work, but it will forget your teams and settings.
+5.1.2 If you block or clear this storage, the game will still work, but it will forget your teams and settings, and you will need to sign in again. If you block cookies from server.tardigeddon.com, you will not be able to sign in.
 
 ### 5.2 Do Not Track Signals
 
@@ -87,7 +92,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 6.0 UK PECR and GDPR
 
-6.0.1 Under the Privacy and Electronic Communications Regulations 2003 (as amended) ("PECR"), storing information on your device that is strictly necessary to provide a service you have requested does not require consent. Our use of this storage is based on our legitimate interest in providing a working game that remembers your choices, and on providing the Services you request.
+6.0.1 Under the Privacy and Electronic Communications Regulations 2003 (as amended) ("PECR"), storing information on your device that is strictly necessary to provide a service you have requested does not require consent. This includes the sign-in cookies, which are only set when you choose to sign in. Our use of this storage is based on our legitimate interest in providing a working game that remembers your choices, and on providing the Services you request.
 
 ## Section 7 — General Legal Provisions
 
@@ -127,7 +132,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 7.7 Notices
 
-7.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. As the Services do not currently use accounts, we may give notices to you by publishing them on the Website.
+7.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. We may give notices to you by publishing them on the Website or in the game, or, if you have an account, by email to the address on your account.
 
 ### 7.8 Language and Translation
 

@@ -29,6 +29,12 @@ export async function migrate(db: Pool): Promise<void> {
   `);
 }
 
+/** Delete expired sign-in sessions and one-time verification codes. */
+export async function purgeExpired(db: Pool): Promise<void> {
+  await db.query('DELETE FROM session WHERE "expiresAt" < now()');
+  await db.query('DELETE FROM verification WHERE "expiresAt" < now()');
+}
+
 export async function ownedItems(db: Pool, userId: string): Promise<string[]> {
   const r = await db.query<{ item: string }>('SELECT item FROM inventory WHERE user_id = $1 ORDER BY granted_at', [userId]);
   return r.rows.map((x) => x.item);

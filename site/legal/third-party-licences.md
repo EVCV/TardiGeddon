@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -49,6 +49,9 @@ TardiGeddon is built with the help of excellent open-source and third-party soft
 | Lenis | 1.3 | Website | MIT — https://github.com/darkroomengineering/lenis/blob/main/LICENSE | darkroom.engineering |
 | React Bits (SplitText component) | — | Website | MIT + Commons Clause — https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md | David Haz |
 | ws | 8.22 | Online game server | MIT — https://github.com/websockets/ws/blob/master/LICENSE | Einar Otto Stangvik and contributors |
+| Better Auth | 1.7 | Online game server (accounts) | MIT — https://github.com/better-auth/better-auth/blob/main/LICENSE.md | Bereket Engida and contributors |
+| node-postgres (pg) | 8.23 | Online game server (accounts) | MIT — https://github.com/brianc/node-postgres/blob/master/LICENSE | Brian Carlson and contributors |
+| Stripe Node.js library | 23.0 | Online game server (shop) | MIT — https://github.com/stripe/stripe-node/blob/master/LICENSE | Stripe, Inc. and contributors |
 | Luckiest Guy font (via Fontsource) | 5.3 | Game and Website | Apache License 2.0 — https://www.apache.org/licenses/LICENSE-2.0 | Astigmatic (font); Google Inc. (distribution) |
 | Nunito font (via Fontsource) | 5.3 | Game and Website | SIL Open Font License 1.1 — https://openfontlicense.org | The Nunito Project Authors |
 

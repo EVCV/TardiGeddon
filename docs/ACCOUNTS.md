@@ -36,23 +36,30 @@ item's `id` once sold: inventories store it.
 
 ## Before switching it on for real players
 
-The live legal pages promise there are no accounts, cookies or purchases,
-and say they'll be updated before that changes. Before setting
-`DATABASE_URL` on the live server, update and republish (`site/legal/`):
+The legal pages were updated for accounts and the shop (v1.1 of the Privacy
+Policy, Cookies & Storage, Children's Privacy, Terms §3 and §5). They are
+marked "under legal review" on the site; have them checked before launch.
+Their promises are also code rules, so keep them true:
 
-- **Privacy Policy:** account data (name, email, sign-in records), purchase
-  records, Neon and Stripe as processors (and Google/Apple if used),
-  retention, account deletion. Rewrite §11.0, §6.1.1 and the summary.
-- **Cookies & Storage:** the sign-in cookie (`better-auth.session_token`, a
-  strictly necessary cookie that lasts 7 days).
-- **Terms of Service:** §3.0 (accounts) and §5 (purchases, prices, refunds,
-  your 14-day cancellation rights for digital content).
-- **Children's Privacy:** §1.1.2 commits to age checks before accounts go
-  live. Decide how (for example an age question at sign-up, with under-13s
-  unable to buy) before launch.
+- Sessions store no IP address or browser details (`databaseHooks` in
+  `server/accounts.ts`); expired sessions are deleted hourly.
+- Sign-up asks players to confirm they are 13+ and accept the Terms.
+- Checkout needs the player's consent to immediate supply (losing the 14-day
+  cancellation right); the server refuses without it and records the time in
+  the Stripe session's metadata.
+- Prices include VAT and are in pounds.
 
-Have someone qualified check the wording; this is legal text for real
-players and payments.
+Still to decide or set up (owner):
+
+- **VAT outside the UK.** Selling digital items to consumers in the EU means
+  charging VAT at the buyer's country's rate from the first sale (registering
+  for the EU's non-Union OSS scheme), and some other countries have similar
+  rules. Options: Stripe Tax, or selling only to UK buyers at first. Ask your
+  accountant.
+- **Receipts:** turn on Stripe → Settings → Customer emails → Successful
+  payments. The Terms promise a receipt by email.
+- **Password reset** isn't built yet (it needs an email-sending service).
+  Until then players who forget their password must email support.
 
 ## Setting it up
 

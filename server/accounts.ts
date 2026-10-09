@@ -18,7 +18,7 @@ import { CURRENCY, SHOP_ITEMS, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 
 export type { MeResponse };
-import { migrate, ownedItems, recordPurchase, revokePurchase } from './store';
+import { migrate, ownedItems, purgeExpired, recordPurchase, revokePurchase } from './store';
 
 export interface AccountsEnv {
   DATABASE_URL?: string;
@@ -72,6 +72,16 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     trustedOrigins: [...origins, ...(socialProviders.apple ? ['https://appleid.apple.com'] : [])],
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     socialProviders,
+    // Fly.io passes the player's IP in this header. It is used, in memory only,
+    // to rate-limit sign-in attempts; it is never written to the database.
+    advanced: { ipAddress: { ipAddressHeaders: ['fly-client-ip', 'x-forwarded-for'] } },
+    // Keep sessions minimal (the Privacy Policy says we don't store IP addresses).
+    databaseHooks: {
+      session: {
+        create: { before: async (session) => ({ data: { ...session, ipAddress: null, userAgent: null } }) },
+      },
+    },
+    telemetry: { enabled: false },
     // App stores require in-app account deletion. Inventory rows go with it (ON DELETE CASCADE).
     user: {
       deleteUser: {
@@ -89,6 +99,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   await runMigrations();
   await migrate(db);
   const auth = betterAuth(options);
+
+  // Expired sign-ins and one-time codes are deleted, not just ignored.
+  const purge = setInterval(() => void purgeExpired(db).catch((e) => console.error('purge failed', e)), 60 * 60_000);
+  purge.unref();
+  await purgeExpired(db);
 
   const stripe = opts.stripe ?? (env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null);
   const authHandler = toNodeHandler(auth);
@@ -119,9 +134,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     if (!stripe) return json(res, 503, { error: 'The shop is not open yet.' });
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
-    let body: { item?: unknown };
+    let body: { item?: unknown; consent?: unknown };
     try {
-      body = JSON.parse((await readBody(req)).toString('utf8')) as { item?: unknown };
+      body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
     } catch {
       return json(res, 400, { error: 'Bad request.' });
     }
@@ -129,6 +144,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const item = typeof body.item === 'string' ? shopItem(body.item) : undefined;
     if (!item) return json(res, 400, { error: 'No such item.' });
     if ((await ownedItems(db, user.id)).includes(item.id)) return json(res, 409, { error: 'You already own that.' });
+    // UK consumer law: digital content supplied straight away needs the buyer's express
+    // consent and acknowledgement that they lose the 14-day right to cancel (Terms §5).
+    if (body.consent !== true) return json(res, 400, { error: 'Please confirm you want the item straight away.' });
     const back = new URL(gameUrl);
     back.searchParams.set('shop', 'done');
     const cancel = new URL(gameUrl);
@@ -137,7 +155,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       mode: 'payment',
       line_items: [{ quantity: 1, price_data: { currency: CURRENCY, unit_amount: item.price, product_data: { name: `TardiGeddon: ${item.name}` } } }],
       client_reference_id: user.id,
-      metadata: { userId: user.id, item: item.id },
+      metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString() },
       customer_email: user.email,
       success_url: back.toString(),
       cancel_url: cancel.toString(),
@@ -226,6 +244,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       return user ? ownedItems(db, user.id) : [];
     },
     async close(): Promise<void> {
+      clearInterval(purge);
       await db.end();
     },
   };

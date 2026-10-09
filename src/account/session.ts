@@ -128,8 +128,11 @@ export async function signInWith(provider: string): Promise<void> {
   if (r.url) location.href = r.url;
 }
 
-/** Off to Stripe's payment page for one item. */
-export async function buy(item: string): Promise<void> {
-  const r = await call<{ url?: string }>('/api/shop/checkout', { item });
+/**
+ * Off to Stripe's payment page for one item. `consent`: the player asked for
+ * the item straight away and accepted losing the 14-day cancellation right.
+ */
+export async function buy(item: string, consent: boolean): Promise<void> {
+  const r = await call<{ url?: string }>('/api/shop/checkout', { item, consent });
   if (r.url) location.href = r.url;
 }

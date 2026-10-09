@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to EVCV Limited and, wher
 
 ## Introduction
 
-TardiGeddon is a cartoon game, so we expect children to play it. This policy explains how we protect children's privacy: the game does not ask for names, ages, email addresses, or locations, has no chat, and keeps online room information (team names and the room code) only in the game server's memory while the room is in use, from the lobby onwards. It is deleted at the latest about two minutes after the last player leaves.
+TardiGeddon is a cartoon game, so we expect children to play it. This policy explains how we protect children's privacy: the whole game can be played without an account, it has no chat, and it keeps online room information (team names and the room code) only in the game server's memory while the room is in use, from the lobby onwards. It is deleted at the latest about two minutes after the last player leaves. Optional accounts, which let players keep shop items on every device, are only for people aged 13 or over.
 
 ---
 
@@ -33,27 +33,35 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.0 Designed to Collect as Little as Possible
 
-1.0.1 We recognise that TardiGeddon is likely to be played by children. We have therefore designed it so that players of every age share as little information as possible: there are no accounts, no adverts, no analytics or tracking, no chat, and no requests for a name, age, email address, photo, or location.
+1.0.1 We recognise that TardiGeddon is likely to be played by children. We have therefore designed it so that players of every age share as little information as possible: there are no adverts, no analytics or tracking, and no chat, and nobody needs an account, or to give us a name, age, email address, photo, or location, to play any part of the game.
 
-1.0.2 The only information a player can enter is team and tardigrade names. These are stored on the player's own device and, in online matches, shown to the other players in that match. We encourage children (and all players) not to use their real name or anything else that could identify them.
+1.0.2 Without an account, the only information a player can enter is team and tardigrade names. These are stored on the player's own device and, in online matches, shown to the other players in that match. We encourage children (and all players) not to use their real name or anything else that could identify them.
 
 ### 1.1 Online Play
 
 1.1.1 Online play is intended for players aged 13 and over. Children under 13 may play online only with the permission and supervision of a parent or legal guardian. Playing against the computer or with friends on the same device does not connect to our game server: once the game has loaded, nothing about the match is sent anywhere. Loading the website and game itself, like visiting any website, means our hosting provider receives your device's IP address (see the Privacy Policy).
 
-1.1.2 We do not ask players for their age and do not knowingly collect personal data from children under 13. If we introduce player accounts in future, we will put appropriate, proportionate age-assurance measures in place before launch, in line with the UK Information Commissioner's Age Appropriate Design Code, and will update this policy first.
+1.1.2 We do not knowingly collect personal data from children under 13.
+
+### 1.2 Accounts and Purchases
+
+1.2.1 Accounts are optional and are only for people aged 13 or over. When someone creates an account, we ask them to confirm that they are 13 or older; signing in with Google or Apple includes the same confirmation. We think this self-declaration is proportionate to the low risk involved, in line with the UK Information Commissioner's Age Appropriate Design Code, because an account holds only a player name, an email address and the cosmetic items owned, is not visible to other players, cannot be used to contact anyone, and is never used for marketing or profiling. We do not ask for or store a date of birth.
+
+1.2.2 If we learn that an account belongs to a child under 13, we will delete it (see Section 2.0).
+
+1.2.3 The shop sells cosmetic items only, which change how a team looks and never how it plays. There are no loot boxes or random paid rewards, no time-limited pressure to buy, and nothing in the game that requires a purchase. Players under 18 are asked to get a parent's or carer's permission before buying anything. Payments are made on Stripe's payment page, and parents and carers can ask us about a child's purchase at support@tardigeddon.com (see our Terms of Service, Section 5).
 
 ## Section 2 — Parental Notice and Rights
 
 ### 2.0 If We Learn of Underage Data Collection
 
-2.0.1 If we become aware that we hold personal data from a child below the applicable minimum age without appropriate parental consent (for example, in an email sent to us), we will take reasonable steps to delete it promptly.
+2.0.1 If we become aware that we hold personal data from a child below the applicable minimum age without appropriate parental consent (for example, an account created by a child under 13, or an email sent to us), we will take reasonable steps to delete it promptly.
 
 ### 2.1 Parental Controls and Requests
 
-2.1.1 Parents or legal guardians may contact privacy@tardigeddon.com with any question or request about their child's data, including requests for review or deletion.
+2.1.1 Parents or legal guardians may contact privacy@tardigeddon.com with any question or request about their child's data, including requests for review or deletion of an account.
 
-2.1.2 You can remove everything the game stores on a device by clearing the browser's site data for tardigeddon.com.
+2.1.2 You can remove everything the game stores on a device by clearing the browser's site data for tardigeddon.com. An account can be deleted at any time from inside the game (Account, then Delete account).
 
 2.1.3 We will take reasonable steps to verify that a person making a request under this Section is the parent or legal guardian of the child in question.
 
@@ -65,7 +73,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 3.1 Design Principles
 
-3.1.1 We apply data protection by design and by default: we collect the minimum data needed to run the game, do not profile players, do not use nudge techniques to encourage players to share more information, show no adverts, and will never sell items that give a gameplay advantage.
+3.1.1 We apply data protection by design and by default: we collect the minimum data needed to run the game, make accounts optional, do not profile players, do not use nudge techniques to encourage players to share more information or to spend money, show no adverts, and will never sell items that give a gameplay advantage.
 
 ## Section 4 — General Legal Provisions
 
@@ -105,7 +113,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 4.7 Notices
 
-4.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. As the Services do not currently use accounts, we may give notices to you by publishing them on the Website.
+4.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. We may give notices to you by publishing them on the Website or in the game, or, if you have an account, by email to the address on your account.
 
 ### 4.8 Language and Translation
 

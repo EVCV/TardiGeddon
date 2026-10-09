@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to EVCV Limited and, wher
 
 ## Introduction
 
-This Privacy Policy explains what information TardiGeddon uses, why, and the rights you have. In short: there are no accounts, no adverts, no tracking and no analytics. The game remembers your settings on your own device, and our online game server only uses what it needs to run the match you are playing, then forgets it.
+This Privacy Policy explains what information TardiGeddon uses, why, and the rights you have. In short: there are no adverts, no tracking and no analytics, and you can play everything without an account. The game remembers your settings on your own device, and our online game server only uses what it needs to run the match you are playing, then forgets it. If you choose to create an account, we keep your email address and player name so your shop items follow you to any device, and if you buy something we keep a record of the purchase. Accounts and the shop are being introduced; this Policy describes how they work once they are available.
 
 ---
 
@@ -49,7 +49,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.0 Information Stored Only on Your Device
 
-2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; and the computer's skill level.
+2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
 
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. This is deleted when you close the tab.
 
@@ -63,17 +63,43 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.1.3 As with any internet connection, our server and our hosting providers necessarily receive your device's IP address in order to send data back to you. We do not use your IP address to identify you, and we do not store it in our own records.
 
-2.1.4 The server keeps match information in memory only while the match or lobby is in use. It is deleted when the room closes (at the latest about two minutes after the last player leaves) or when the server restarts. We do not keep match histories, chat logs, or player profiles.
+2.1.4 The server keeps match information in memory only while the match or lobby is in use. It is deleted when the room closes (at the latest about two minutes after the last player leaves) or when the server restarts. We do not keep match histories or chat logs.
 
-### 2.2 Information You Send Us
+2.1.5 If you are signed in when you play online, the server also checks which shop items your account owns, so that only the hats you own are shown to other players. It does not tell other players who you are: they only see your Team Details.
 
-2.2.1 If you email us (for example, for support or to make a privacy request), we will receive your email address and anything you include in your message.
+### 2.2 Your Account (Optional)
 
-### 2.3 Information We Do Not Collect
+2.2.1 You do not need an account to play. If you create one, we collect and store:
 
-2.3.1 We do not use cookies, analytics, advertising, or tracking technologies, and we do not ask for your name, age, email address, location, or contact list in order to play. The game's fonts and code are served from our own Website, so playing does not send your data to font or analytics services.
+- your player name and email address;
+- your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
+- if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
+- when your account was created and last updated;
+- the shop items your account owns, and how you got them.
 
-2.3.2 We do not intentionally collect special category personal data (such as data concerning health, religion, or sexual orientation), and you should not include any in your Team Details or messages to us.
+2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
+
+2.2.3 Your account name and email address are not shown to other players.
+
+2.2.4 When you create an account, we ask you to confirm that you are 13 or older and that you agree to our Terms of Service. We do not ask for or store your date of birth.
+
+### 2.3 Purchases
+
+2.3.1 Payments are handled by Stripe on its own secure payment page. Your card or other payment details go directly to Stripe; we never see or store your full card number.
+
+2.3.2 When you buy an item, we send Stripe your email address (so it can send you a receipt), the item and its price, and an identifier for your account. We receive back, and keep, a purchase record: the item, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, and the time you confirmed that you wanted the item straight away (see our Terms of Service, Section 5).
+
+2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
+
+### 2.4 Information You Send Us
+
+2.4.1 If you email us (for example, for support or to make a privacy request), we will receive your email address and anything you include in your message.
+
+### 2.5 Information We Do Not Collect
+
+2.5.1 We do not use analytics, advertising, or tracking technologies. The only cookies we use are the strictly necessary sign-in cookies described in our Cookie & Storage Policy, and only if you sign in. We do not ask for your age, location, or contact list, and you can play without giving us your name or email address. The game's fonts and code are served from our own Website, so playing does not send your data to font or analytics services.
+
+2.5.2 We do not intentionally collect special category personal data (such as data concerning health, religion, or sexual orientation), and you should not include any in your Team Details or messages to us.
 
 ## Section 3 — How We Use Your Information
 
@@ -87,15 +113,19 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 3.0.4 To respond to your emails and requests.
 
-3.0.5 To comply with legal obligations and respond to lawful requests from public authorities.
+3.0.5 If you create an account: to sign you in, keep your account secure, keep track of the shop items you own on every device, and let you delete your account.
+
+3.0.6 If you buy something: to take payment through Stripe, deliver the item, handle refunds and disputes, and prevent fraud.
+
+3.0.7 To comply with legal obligations, such as keeping accounting and tax records, and to respond to lawful requests from public authorities.
 
 ### 3.1 Legal Basis for Processing (UK/EU GDPR)
 
-3.1.1 Performance of a contract: providing the game and the online matches you ask to play (Sections 3.0.1 and 3.0.2).
+3.1.1 Performance of a contract: providing the game and the online matches you ask to play, your account if you create one, and the items you buy (Sections 3.0.1, 3.0.2, 3.0.5 and 3.0.6).
 
-3.1.2 Legitimate interests: keeping the Services secure and fair, and answering your messages (Sections 3.0.3 and 3.0.4). These interests do not override your rights, because we use very little data and keep it for a very short time.
+3.1.2 Legitimate interests: keeping the Services and accounts secure and fair, preventing payment fraud, and answering your messages (Sections 3.0.3, 3.0.4 and 3.0.6). These interests do not override your rights, because we use very little data and keep it only as long as described in Section 5.
 
-3.1.3 Legal obligation: where we must keep or disclose information by law (Section 3.0.5).
+3.1.3 Legal obligation: where we must keep or disclose information by law, including keeping records of sales for tax purposes (Section 3.0.7).
 
 3.1.4 Storing your settings on your device is strictly necessary to provide the features you use, as described in our Cookie & Storage Policy.
 
@@ -105,11 +135,15 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 4.0.1 Other players in your online match, who see your Team Details and the effects of your moves.
 
-4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files) and Fly.io, Inc. (which runs the online game server in its London region). They process connection data such as IP addresses to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
+4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files), Fly.io, Inc. (which runs the online game server in its London region) and Neon (which hosts our account database in London, on Amazon Web Services). They process data such as IP addresses and, for Neon, the account and purchase data described in Sections 2.2 and 2.3, to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
 
-4.0.3 Professional advisers, regulators, law enforcement agencies, courts, or other public authorities, where required or permitted by law, or to protect the rights, property, or safety of the Company, our players, or others.
+4.0.3 Stripe, which processes payments for us. Stripe acts as our processor for taking payments, and as an independent controller for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
 
-4.0.4 A prospective buyer, investor, or successor entity, in connection with an actual or proposed merger, acquisition, reorganisation, or sale of some or all of the Company's assets, subject to appropriate confidentiality arrangements.
+4.0.4 Google or Apple, only if you choose to sign in with them. They will know that you used your Google or Apple account to sign in to TardiGeddon, under their own privacy policies.
+
+4.0.5 Professional advisers, regulators, law enforcement agencies, courts, or other public authorities, where required or permitted by law, or to protect the rights, property, or safety of the Company, our players, or others.
+
+4.0.6 A prospective buyer, investor, or successor entity, in connection with an actual or proposed merger, acquisition, reorganisation, or sale of some or all of the Company's assets, subject to appropriate confidentiality arrangements.
 
 ### 4.1 We Do Not Sell Personal Data
 
@@ -117,7 +151,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 4.2 International Transfers
 
-4.2.1 Our hosting providers are based in the United States and operate worldwide networks, so connection data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
+4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon and Stripe) are based in the United States or operate worldwide networks, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
 
 4.2.2 You may request further information about these safeguards by contacting privacy@tardigeddon.com.
 
@@ -134,6 +168,12 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 5.1.2 Online match data: in server memory only while the room is in use, and deleted at the latest about two minutes after the last player leaves.
 
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
+
+5.1.4 Your account (Section 2.2.1), including the items it owns: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle.
+
+5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
+
+5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe keeps its own records under its privacy policy.
 
 ## Section 6 — Your Rights
 
@@ -159,7 +199,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 6.1 Exercising Your Rights
 
-6.1.1 To exercise any of these rights, please contact privacy@tardigeddon.com. Because we do not have accounts and keep online match data only briefly, we will usually hold no personal data about you other than any emails you have sent us; we will tell you if that is the case.
+6.1.1 To exercise any of these rights, please contact privacy@tardigeddon.com. If you have an account, please write from the email address it uses, so that we can confirm the request is yours. You can also delete your account yourself at any time in the game. If you do not have an account, we keep online match data only briefly, so we will usually hold no personal data about you other than any emails you have sent us; we will tell you if that is the case.
 
 6.1.2 We will respond to valid requests within one calendar month, extendable by a further two months for complex or numerous requests.
 
@@ -167,7 +207,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 7.0 Safeguards
 
-7.0.1 We use appropriate technical and organisational measures to protect personal data, including encrypted connections (HTTPS and secure WebSockets) between the game and our servers, checks that reject malformed data, limits on how quickly a connection can send messages or create rooms, and keeping as little data as possible for as short a time as possible.
+7.0.1 We use appropriate technical and organisational measures to protect personal data, including encrypted connections (HTTPS and secure WebSockets) between the game and our servers, an encrypted connection to our account database, passwords stored only in hashed form, sign-in cookies that the game's code cannot read, limits on repeated sign-in attempts, checks that payment notifications really come from Stripe, checks that reject malformed data, limits on how quickly a connection can send messages or create rooms, and keeping as little data as possible for as short a time as possible.
 
 7.0.2 No method of transmission over the internet or method of electronic storage is completely secure. While we strive to protect your personal data, we cannot guarantee its absolute security.
 
@@ -179,13 +219,13 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 8.0 No Marketing
 
-8.0.1 We do not send marketing communications, and the game does not show adverts. If this changes, we will only send marketing with your consent, and you will always be able to opt out.
+8.0.1 We do not send marketing communications, and the game does not show adverts. Creating an account does not sign you up for marketing. If this changes, we will only send marketing with your consent, and you will always be able to opt out.
 
 ## Section 9 — Children's Privacy
 
 ### 9.0 Children
 
-9.0.1 TardiGeddon is a cartoon game that children may enjoy. Because the game does not ask for names, email addresses, ages, or locations, and keeps online match data only briefly, we collect as little information as possible from every player, including children. Please see our Children's Privacy Policy for further detail.
+9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. Please see our Children's Privacy Policy for further detail.
 
 ## Section 10 — Regional Supplements
 
@@ -203,9 +243,9 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ## Section 11 — Future Changes to the Services
 
-### 11.0 Accounts and Purchases
+### 11.0 Mobile Apps
 
-11.0.1 We plan to add optional player accounts and cosmetic purchases in future. These will involve new kinds of personal data (such as an email address and purchase records). We will update this Policy before those features become available.
+11.0.1 We plan to release TardiGeddon as an app for phones and tablets. Purchases in those apps will be made through Apple's or Google's own payment systems. We will update this Policy before the apps become available.
 
 ## Section 12 — General Legal Provisions
 
@@ -245,7 +285,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 12.7 Notices
 
-12.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. As the Services do not currently use accounts, we may give notices to you by publishing them on the Website.
+12.7.1 Any notice required to be given under this document shall be in writing and shall be delivered by email to the relevant address specified in the Company Details section above, and shall be deemed received 24 hours after being sent, provided no delivery failure notification is received. We may give notices to you by publishing them on the Website or in the game, or, if you have an account, by email to the address on your account.
 
 ### 12.8 Language and Translation
 

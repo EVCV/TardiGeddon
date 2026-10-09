@@ -567,3 +567,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   100% { transform: rotate(0deg); }
 }
 .account-status:empty { display: none; }
+.account-check { display: flex; gap: 8px; align-items: flex-start; text-align: left; font-size: 13px; font-weight: 600; }
+.account-check input { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+.account-check a, .account-note a { color: inherit; font-weight: 800; }
+.shop-confirm { display: flex; flex-direction: column; gap: 10px; text-align: left; font-weight: 600; }
+.shop-confirm p { margin: 0; }
+.big-btn:disabled { opacity: .5; }

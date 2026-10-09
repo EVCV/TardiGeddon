@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -45,7 +45,7 @@ TardiGeddon is about blowing up cartoon tardigrades, not each other. These Commu
 
 ### 2.1 Choose Friendly Names
 
-2.1.1 Team and tardigrade names must be suitable for players of all ages. Do not use names that are offensive, sexual, hateful, or that mock or target anyone.
+2.1.1 Team and tardigrade names, and the player name on your account, must be suitable for players of all ages. Do not use names that are offensive, sexual, hateful, or that mock or target anyone.
 
 2.1.2 Do not use your real full name, address, school, phone number, social media handle, or any other personal information in your names, and do not use other people's.
 

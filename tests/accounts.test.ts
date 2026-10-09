@@ -85,18 +85,24 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const m = await me(cookie);
     expect(m.user?.email).toBe('one@example.com');
     expect(m.owned).toEqual([]);
+    // Sessions don't keep IP addresses or browser details (Privacy Policy).
+    const sess = await accounts.db.query('SELECT "ipAddress", "userAgent" FROM session WHERE "userId" = $1', [m.user!.id]);
+    expect(sess.rows).toEqual([{ ipAddress: null, userAgent: null }]);
   });
 
   it('starts checkout at the catalogue price, only for signed-in players', async () => {
     expect((await post('/api/shop/checkout', { item: 'hat:wizard' })).status).toBe(401);
     const { cookie, id } = await signUp('two@example.com');
     expect((await post('/api/shop/checkout', { item: 'hat:nope' }, cookie)).status).toBe(400);
-    const r = await post('/api/shop/checkout', { item: 'hat:wizard', price: 1 }, cookie);
+    // No checkout without consent to immediate supply (losing the 14-day cancellation right).
+    expect((await post('/api/shop/checkout', { item: 'hat:wizard' }, cookie)).status).toBe(400);
+    const r = await post('/api/shop/checkout', { item: 'hat:wizard', price: 1, consent: true }, cookie);
     expect(r.status).toBe(200);
     expect(((await r.json()) as { url: string }).url).toContain('checkout.stripe.test');
     const p = checkouts.at(-1)!;
     expect(p.line_items?.[0].price_data?.unit_amount).toBe(199);
-    expect(p.metadata).toEqual({ userId: id, item: 'hat:wizard' });
+    expect(p.metadata).toMatchObject({ userId: id, item: 'hat:wizard' });
+    expect(Date.parse(String(p.metadata?.immediateSupplyConsent))).toBeGreaterThan(0);
   });
 
   it('grants an item once Stripe confirms payment, once, and takes it back on refund', async () => {
@@ -111,7 +117,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(await accounts.ownedFor({ cookie })).toEqual(['hat:pirate']);
 
     // Already owned: no second checkout.
-    expect((await post('/api/shop/checkout', { item: 'hat:pirate' }, cookie)).status).toBe(409);
+    expect((await post('/api/shop/checkout', { item: 'hat:pirate', consent: true }, cookie)).status).toBe(409);
 
     expect(await sendWebhook('charge.refunded', { id: 'ch_1', refunded: true, payment_intent: 'pi_cs_1' })).toBe(200);
     expect((await me(cookie)).owned).toEqual([]);

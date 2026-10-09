@@ -103,7 +103,7 @@ export function Home() {
             <a className="btn btn-play btn-huge" href={PLAY_URL}>
               Play now
             </a>
-            <p className="hero-free">Free in your browser. No download, no sign-up, no ads.</p>
+            <p className="hero-free">Free in your browser. No download, no sign-up needed, no ads.</p>
           </div>
         </div>
         <figure className="hero-screen screen">
