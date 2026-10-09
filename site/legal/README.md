@@ -48,6 +48,7 @@ Cookie & Storage Policy with the new data, sign-in cookies and retention.
 
 - Company details are filled in: EVCV Limited, company number 13570383, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, VAT GB389265053. Directors are not listed; the Legal Notice links to Companies House instead.
 - ICO registration: ZB232228 (filled in; renewal due 07/10/2027).
+- Solicitor review of the Terms and Privacy Policy is pending; until it is done they show an "under review" note (`UNDER_REVIEW` in `site/src/pages/Legal.tsx`). Remove them from that list afterwards.
 - Effective date: 9 October 2026, the launch date. Last Modified: 9 October 2026; update it whenever a page changes.
 - Minimum age for online play: 13+, or younger with a parent's permission and supervision (confirmed).
 - Hosts: Cloudflare Pages (website) and Fly.io in London (game server), confirmed at launch.

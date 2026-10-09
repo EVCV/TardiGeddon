@@ -6,6 +6,9 @@ import { Link } from '../router';
 import { NotFound } from './NotFound';
 
 /** Mark the "[Company Legal Name]"-style blanks the owner still has to fill in. */
+/** Pages a solicitor is still reviewing; they show a short note until that is done. */
+const UNDER_REVIEW = new Set(['terms-of-service', 'privacy-policy']);
+
 function markPlaceholders(html: string): string {
   return html.replace(/\[([^\]<>]{2,120})\]/g, '<mark class="placeholder">[$1]</mark>');
 }
@@ -35,6 +38,12 @@ export function Legal({ slug }: { slug: string }) {
 
   return (
     <div className="page legal-page">
+      {UNDER_REVIEW.has(slug) && (
+        <p className="legal-review" role="note">
+          This page is under legal review and may be updated. Questions to{' '}
+          <a href="mailto:legal@tardigeddon.com">legal@tardigeddon.com</a>.
+        </p>
+      )}
       <article className="paper prose" aria-busy={html === null}>
         {html === null ? <p className="loading">Loading…</p> : <div dangerouslySetInnerHTML={{ __html: html }} />}
       </article>
