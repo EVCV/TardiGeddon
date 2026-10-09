@@ -133,7 +133,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.2 Online match data: in server memory only while the room is in use, and deleted at the latest about two minutes after the last player leaves.
 
-5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to [24 months] in case of follow-up questions, unless the law requires longer.
+5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
 ## Section 6 — Your Rights
 

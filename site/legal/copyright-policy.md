@@ -33,7 +33,7 @@ This policy explains how we protect the intellectual property in TardiGeddon, wh
 
 ### 1.0 Copyright Notice
 
-1.0.1 © [Year] EVCV Limited. All rights reserved. The TardiGeddon game and Website, including but not limited to their software, game design, characters, artwork, animations, sounds, text, logos, and the compilation thereof, are the property of the Company or its licensors and are protected by United Kingdom and international copyright laws. Third-party software and fonts are used under the licences listed on our Third-Party Licences & Attributions page.
+1.0.1 © 2026 EVCV Limited. All rights reserved. The TardiGeddon game and Website, including but not limited to their software, game design, characters, artwork, animations, sounds, text, logos, and the compilation thereof, are the property of the Company or its licensors and are protected by United Kingdom and international copyright laws. Third-party software and fonts are used under the licences listed on our Third-Party Licences & Attributions page.
 
 ### 1.1 Permitted Use
 
