@@ -59,6 +59,43 @@ owner to share it again. Don't commit the raw templates to this public repo
 (they're the agency's material); only the finished pages, which are public
 on the site anyway.
 
+## How the site is built
+
+- `site/src/App.tsx` picks the page from the path (`site/src/router.tsx` is a
+  tiny History-API router). Pages live in `site/src/pages/`.
+- Game facts (weapon list, game styles, team colours, hats, the mascot) are
+  imported straight from the game's own code (`src/sim/weapons.ts`,
+  `src/sim/schemes.ts`, `src/render/palette.ts`, `src/render/hats.ts`,
+  `src/ui/mascot.ts`), so the site can't drift out of date.
+- Legal pages: `/legal/<file name>` renders `site/legal/<file name>.md`
+  (loaded on demand with `marked`). `[Placeholders]` are highlighted and the
+  page shows a "Draft" note until the owner fills them in. Footer order and
+  labels: `site/src/legal.ts`.
+- Clips play only while on screen; with reduced motion they don't play by
+  themselves (poster + controls instead). GSAP animations run inside
+  `gsap.matchMedia('(prefers-reduced-motion: no-preference)')`.
+
+## Capturing media
+
+`site/capture/capture-media.mjs` records every screenshot and clip in
+`site/public/media/` from the real game:
+
+```sh
+npm run build && npx vite preview --port 4173   # the game
+npm run server                                   # for the online screenshots
+PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node site/capture/capture-media.mjs [scene ...]
+```
+
+Scenes: `tun`, `victory`, `rope`, `menus`, `aim`, `phone` (all if none
+given). Clips are recorded frame by frame on a virtual clock
+(`site/capture/virtual-clock.js`), so they're smooth however slow the
+headless browser is. Scenes stage things through `window.__tardi` (giving
+the player a superweapon, huddling the enemies so the shot is worth
+watching); everything on screen is the game itself. The Rope Race clip is
+played by `site/capture/rope-bot.js`. Courses are random, so the script
+tries a few and keeps the best run. Check the result before committing:
+the clip ranges (`from`/`to` in each scene) may need a nudge.
+
 ## Commands
 
 - `npm run site:dev`: dev server on :5174
