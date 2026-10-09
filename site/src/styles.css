@@ -279,13 +279,6 @@ h1, h2, h3 { line-height: 1.1; }
 .page { max-width: 860px; margin: 0 auto; padding: 16px var(--gutter) 96px; }
 
 /* Legal pages */
-.legal-draft {
-  background: var(--accent);
-  border: 3px solid var(--ink);
-  border-radius: 14px;
-  padding: 10px 16px;
-  margin-bottom: 18px;
-}
 .prose { padding: clamp(20px, 4vw, 44px); overflow-wrap: anywhere; }
 .prose h1 { font-family: var(--title); font-weight: normal; color: var(--red); font-size: clamp(32px, 6vw, 48px); margin: 0 0 18px; }
 .prose h2 { font-size: 24px; margin: 36px 0 10px; }

@@ -39,5 +39,6 @@ npm run e2e       # browser smoke tests (desktop + phone) and a two-player onlin
 
 ## Playable link
 
-Pushes to `main` deploy to GitHub Pages via `.github/workflows/deploy.yml`
-(enable once: repo Settings → Pages → Source: GitHub Actions).
+The website and game are live at https://tardigeddon.com (game at
+`/play/`). Cloudflare Pages rebuilds them on every push to `main`; the online
+server runs on Fly.io. See `docs/DEPLOY.md`.

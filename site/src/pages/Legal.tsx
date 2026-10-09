@@ -35,10 +35,6 @@ export function Legal({ slug }: { slug: string }) {
 
   return (
     <div className="page legal-page">
-      <aside className="legal-draft" role="note">
-        <strong>Draft.</strong> Dates and a few details in <mark className="placeholder">[brackets]</mark> are still to
-        be filled in.
-      </aside>
       <article className="paper prose" aria-busy={html === null}>
         {html === null ? <p className="loading">Loading…</p> : <div dangerouslySetInnerHTML={{ __html: html }} />}
       </article>

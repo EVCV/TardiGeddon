@@ -1,6 +1,6 @@
 # Legal Notice (Imprint)
 
-**Effective Date:** [Launch date — set when the website goes live]
+**Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
@@ -50,8 +50,6 @@ This page sets out the legal and company information about the business that run
 2.0.1 The Website and game files are hosted by Cloudflare, Inc., 101 Townsend Street, San Francisco, CA 94107, United States.
 
 2.0.2 The online game server is hosted by Fly.io, Inc., United States, in its London (United Kingdom) region.
-
-2.0.3 [OWNER: confirm these once the Website and server are live.]
 
 ## Section 3 — Complaints Procedure
 

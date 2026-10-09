@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective Date:** [Launch date — set when the website goes live]
+**Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
@@ -105,7 +105,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 4.0.1 Other players in your online match, who see your Team Details and the effects of your moves.
 
-4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files) and Fly.io, Inc. (which runs the online game server in its London region). They process connection data such as IP addresses to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies. [OWNER: confirm the hosts once the Website and server are live.]
+4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files) and Fly.io, Inc. (which runs the online game server in its London region). They process connection data such as IP addresses to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
 
 4.0.3 Professional advisers, regulators, law enforcement agencies, courts, or other public authorities, where required or permitted by law, or to protect the rights, property, or safety of the Company, our players, or others.
 
