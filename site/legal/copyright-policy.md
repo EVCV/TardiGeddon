@@ -9,7 +9,7 @@
 
 **Company Details**
 
-[Company Legal Name] (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
+EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
 - Registered in England and Wales under company number [00000000]
 - Registered office: [Registered Office Address, including postcode]
@@ -19,7 +19,7 @@
 - Data protection queries: privacy@tardigeddon.com
 - VAT number (if applicable): [GB000000000]
 
-Any reference in this document to "the Company" refers to [Company Legal Name] and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
+Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
 ---
 
@@ -33,7 +33,7 @@ This policy explains how we protect the intellectual property in TardiGeddon, wh
 
 ### 1.0 Copyright Notice
 
-1.0.1 © [Year] [Company Legal Name]. All rights reserved. The TardiGeddon game and Website, including but not limited to their software, game design, characters, artwork, animations, sounds, text, logos, and the compilation thereof, are the property of the Company or its licensors and are protected by United Kingdom and international copyright laws. Third-party software and fonts are used under the licences listed on our Third-Party Licences & Attributions page.
+1.0.1 © [Year] EVCV Limited. All rights reserved. The TardiGeddon game and Website, including but not limited to their software, game design, characters, artwork, animations, sounds, text, logos, and the compilation thereof, are the property of the Company or its licensors and are protected by United Kingdom and international copyright laws. Third-party software and fonts are used under the licences listed on our Third-Party Licences & Attributions page.
 
 ### 1.1 Permitted Use
 
@@ -152,6 +152,6 @@ This policy explains how we protect the intellectual property in TardiGeddon, wh
 If you have any questions about this document, please contact us at:
 
 - **Email:** legal@tardigeddon.com
-- **Post:** [Company Legal Name], [Registered Office Address]
+- **Post:** EVCV Limited, [Registered Office Address]
 
 We aim to respond to all enquiries within 5 business days.

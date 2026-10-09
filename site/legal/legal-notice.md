@@ -9,7 +9,7 @@
 
 **Company Details**
 
-[Company Legal Name] (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
+EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
 - Registered in England and Wales under company number [00000000]
 - Registered office: [Registered Office Address, including postcode]
@@ -19,7 +19,7 @@
 - Data protection queries: privacy@tardigeddon.com
 - VAT number (if applicable): [GB000000000]
 
-Any reference in this document to "the Company" refers to [Company Legal Name] and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
+Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
 ---
 
@@ -33,7 +33,7 @@ This page sets out the legal and company information about the business that run
 
 ### 1.0 Corporate Details
 
-1.0.1 TardiGeddon and this Website are owned and operated by [Company Legal Name], a company registered in England and Wales under company number [00000000], with its registered office at [Registered Office Address]. [OWNER: if TardiGeddon is run by you as a sole trader rather than a company, replace this with your trading name and business address.]
+1.0.1 TardiGeddon and this Website are owned and operated by EVCV Limited, a company registered in England and Wales under company number [00000000], with its registered office at [Registered Office Address].
 
 1.0.2 VAT registration number (if applicable): [GB000000000].
 
@@ -148,6 +148,6 @@ This page sets out the legal and company information about the business that run
 If you have any questions about this document, please contact us at:
 
 - **Email:** legal@tardigeddon.com
-- **Post:** [Company Legal Name], [Registered Office Address]
+- **Post:** EVCV Limited, [Registered Office Address]
 
 We aim to respond to all enquiries within 5 business days.

@@ -9,7 +9,7 @@
 
 **Company Details**
 
-[Company Legal Name] (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
+EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
 - Registered in England and Wales under company number [00000000]
 - Registered office: [Registered Office Address, including postcode]
@@ -19,7 +19,7 @@
 - Data protection queries: privacy@tardigeddon.com
 - VAT number (if applicable): [GB000000000]
 
-Any reference in this document to "the Company" refers to [Company Legal Name] and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
+Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
 ---
 
@@ -33,13 +33,13 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 1.0 Scope
 
-1.0.1 This Privacy Policy explains how [Company Legal Name] collects, uses, discloses, retains, and safeguards personal data when you visit the Website, play TardiGeddon, use our online game server, or contact us, and explains your rights under the UK General Data Protection Regulation ("UK GDPR"), the Data Protection Act 2018, and, where applicable, the EU General Data Protection Regulation ("EU GDPR").
+1.0.1 This Privacy Policy explains how EVCV Limited collects, uses, discloses, retains, and safeguards personal data when you visit the Website, play TardiGeddon, use our online game server, or contact us, and explains your rights under the UK General Data Protection Regulation ("UK GDPR"), the Data Protection Act 2018, and, where applicable, the EU General Data Protection Regulation ("EU GDPR").
 
 1.0.2 This Policy applies to all personal data processed by the Company in connection with the Website and Services.
 
 ### 1.1 Data Controller
 
-1.1.1 For the purposes of the UK GDPR and EU GDPR, [Company Legal Name] is the "data controller" responsible for personal data processed through the Services. [ICO registration number: ZA000000 — see the Legal Notice.]
+1.1.1 For the purposes of the UK GDPR and EU GDPR, EVCV Limited is the "data controller" responsible for personal data processed through the Services. [ICO registration number: ZA000000 — see the Legal Notice.]
 
 ### 1.2 Related Documents
 
@@ -284,6 +284,6 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 If you have any questions about this document, please contact us at:
 
 - **Email:** privacy@tardigeddon.com
-- **Post:** [Company Legal Name], [Registered Office Address]
+- **Post:** EVCV Limited, [Registered Office Address]
 
 We aim to respond to all enquiries within 5 business days.
