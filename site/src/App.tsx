@@ -1,62 +1,46 @@
-// Starter page: proves the stack (React + GSAP + Lenis + React Bits) works.
-// The real website is built on top of this; see docs/WEBSITE.md.
+// The TardiGeddon website. Pages are picked by path; see docs/WEBSITE.md.
 
-import { useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { SmoothScroll, prefersReducedMotion } from './motion/SmoothScroll';
-import SplitText from './reactbits/SplitText';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SmoothScroll } from './motion/SmoothScroll';
+import { Router, usePath } from './router';
+import { Layout } from './components/Layout';
+import { Home } from './pages/Home';
+import { Legal } from './pages/Legal';
+import { NotFound } from './pages/NotFound';
+import { SITE_URL } from './config';
 
 gsap.registerPlugin(useGSAP);
 
-const FEATURES = [
-  { title: 'Hilarious', text: 'Taunts, excuses, victory dances and tardis that curl up and POP.' },
-  { title: 'Online', text: 'Quick play with strangers, or a room code for your friends.' },
-  { title: 'Armed', text: 'Bazookas, holy water, concrete tuns and a silk rope to swing on.' },
-];
+// Web fonts and images change the layout as they arrive: re-measure the
+// scroll-triggered animations so they fire in the right places.
+document.fonts?.ready.then(() => ScrollTrigger.refresh());
+window.addEventListener('load', () => ScrollTrigger.refresh());
+
+function Page() {
+  const path = usePath();
+  useEffect(() => {
+    document.querySelector('link[rel=canonical]')?.setAttribute('href', SITE_URL + (path === '/' ? '/' : path));
+    // New page, new layout: let ScrollTrigger re-measure.
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+  }, [path]);
+
+  if (path === '/') return <Home />;
+  const legal = /^\/legal\/([a-z-]+)$/.exec(path);
+  if (legal) return <Legal slug={legal[1]} />;
+  return <NotFound />;
+}
 
 export function App() {
-  const features = useRef<HTMLElement>(null);
-  const [reduced] = useState(prefersReducedMotion);
-
-  // Cards rise in as they scroll into view (skipped if reduced motion is on).
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add('(prefers-reduced-motion: no-preference)', () => {
-        gsap.from('.card', {
-          y: 60,
-          opacity: 0,
-          duration: 0.8,
-          ease: 'back.out(1.6)',
-          stagger: 0.15,
-          scrollTrigger: { trigger: features.current, start: 'top 75%' },
-        });
-      });
-    },
-    { scope: features },
-  );
-
   return (
     <SmoothScroll>
-      <header className="hero">
-        {reduced ? (
-          <h1 className="title">TardiGeddon</h1>
-        ) : (
-          <SplitText text="TardiGeddon" tag="h1" className="title" delay={60} from={{ opacity: 0, y: 60, rotate: -8 }} to={{ opacity: 1, y: 0, rotate: 0 }} />
-        )}
-        <p className="tagline">Tiny. Indestructible. Armed.</p>
-        <a className="play" href="/play/">Play now, it's free</a>
-      </header>
-      <section className="features" ref={features}>
-        {FEATURES.map((f) => (
-          <article className="card" key={f.title}>
-            <h2>{f.title}</h2>
-            <p>{f.text}</p>
-          </article>
-        ))}
-      </section>
-      <footer className="footer">© TardiGeddon</footer>
+      <Router>
+        <Layout>
+          <Page />
+        </Layout>
+      </Router>
     </SmoothScroll>
   );
 }
