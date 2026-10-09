@@ -61,57 +61,52 @@ Still to decide or set up (owner):
 - **Password reset** isn't built yet (it needs an email-sending service).
   Until then players who forget their password must email support.
 
-## Setting it up
+## Going live: step by step
 
-Steps 1–3 are enough to try accounts on your own computer; 4–6 put it live.
+Do these in order. Each step ends with a check. Keep every key and secret in
+your password manager; never paste them into chats, issues or code.
 
-### 1. Neon database
+### 1. Merge and deploy the server
 
-1. In console.neon.tech, create a project (or a new database in an existing
-   one) called `tardigeddon`, in a London/Europe region near the game server.
-2. Copy its connection string (Dashboard → **Connect**). Use the **pooled**
-   one; it looks like `postgresql://…-pooler….neon.tech/tardigeddon?sslmode=require`.
-3. Keep it secret: anyone with it can read and change every player's data.
-   Don't paste it into chats, issues or code.
+1. Merge the pull request into `main`. Cloudflare rebuilds the website and
+   game (a few minutes): the updated legal pages go live, and the game is
+   ready for accounts but hides them until the server has a database.
+2. Deploy the game server from `main` (see DEPLOY.md step 6):
+   `git pull && fly deploy --ha=false`.
 
-Check: none yet; the server creates the tables the first time it starts.
+Check: https://server.tardigeddon.com/api/me shows `{"accounts":false}`, and
+online play still works.
 
-### 2. Stripe (test mode first)
+### 2. Visit statistics
 
-1. Sign up at dashboard.stripe.com and stay in **Test mode** (toggle at the
-   top). Taking real payments later needs the business details for EVCV
-   Limited.
-2. **Developers → API keys:** copy the **Secret key** (`sk_test_…`).
-3. Webhook (needs a public server, so do it after step 4):
-   **Developers → Webhooks → Add endpoint**,
-   URL `https://server.tardigeddon.com/api/stripe/webhook`, events
-   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-   `charge.refunded` and `charge.dispute.created`. Copy its **Signing secret**
-   (`whsec_…`).
+Cloudflare Pages project → **Metrics → Web Analytics → Enable** (DEPLOY.md 6a).
 
-### 3. Try it locally
+### 3. Stripe account details (do these in the sandbox and again in live mode)
 
-```sh
-export DATABASE_URL='postgresql://…'          # from step 1 (or a local Postgres)
-export BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
-export STRIPE_SECRET_KEY='sk_test_…'           # optional: without it the shop shows "Soon"
-npm run server                                  # prints "Accounts enabled"
-npm run dev                                     # then open http://localhost:5173
-```
+Settings are per mode, so set them in both:
 
-Check: the menu shows **👤 Sign in / Shop**; you can create an account and see
-the shop. To test a payment locally, install the Stripe CLI and run
-`stripe listen --forward-to localhost:8787/api/stripe/webhook`; it prints the
-`whsec_…` to export as `STRIPE_WEBHOOK_SECRET` (restart the server). Pay with
-card `4242 4242 4242 4242`, any future date, any CVC.
+- **Settings → Business → Public details:** name **TardiGeddon**, website
+  https://tardigeddon.com, support email support@tardigeddon.com, statement
+  descriptor **TARDIGEDDON**.
+- **Settings → Branding:** icon `docs/brand/tardigeddon-icon-512.png`, logo
+  `docs/brand/tardigeddon-logo.png`, brand colour `#e04848`, accent `#ffd84a`.
+- **Settings → Customer emails:** turn on **Successful payments** and
+  **Refunds** (the Terms promise a receipt). Stripe doesn't email receipts in
+  the sandbox, so you'll only see them in live mode.
+- **Developers → API keys:** copy the **Secret key** (`sk_test_…` in the
+  sandbox, `sk_live_…` in live mode).
+- **Developers → Webhooks → Add destination:** events from your account,
+  **snapshot** payloads, events `checkout.session.completed`,
+  `checkout.session.async_payment_succeeded`, `charge.refunded` and
+  `charge.dispute.created`, endpoint URL
+  `https://server.tardigeddon.com/api/stripe/webhook`. Copy its **Signing
+  secret** (`whsec_…`).
 
-### 4. Secrets on the live server (Fly.io)
-
-From the repo folder (see DEPLOY.md step 6):
+### 4. Switch accounts on, with sandbox payments
 
 ```sh
 fly secrets set \
-  DATABASE_URL='postgresql://…' \
+  DATABASE_URL='postgresql://…-pooler….neon.tech/neondb?sslmode=require' \
   BETTER_AUTH_SECRET="$(openssl rand -hex 32)" \
   BETTER_AUTH_URL='https://server.tardigeddon.com' \
   GAME_URL='https://tardigeddon.com/play/' \
@@ -119,15 +114,59 @@ fly secrets set \
   STRIPE_WEBHOOK_SECRET='whsec_…'
 ```
 
-Setting secrets restarts the server (rooms in progress end).
-`BETTER_AUTH_SECRET` signs everyone's sessions: generate it once and keep it.
-Changing it signs everyone out.
+This restarts the server (matches in progress end), so pick a quiet moment.
+`BETTER_AUTH_SECRET` signs everyone's sign-ins: let the command generate it
+once, then never change it (changing it signs everyone out). If the server
+can't reach the database it keeps running games without accounts and says why
+in `fly logs`.
 
-Check: `https://server.tardigeddon.com/api/me` shows
-`{"user":null,"owned":[],"shop":true,…}`, and `fly logs` shows
-"Accounts enabled".
+Check: `/api/me` now shows `{"user":null,"owned":[],"shop":true,"providers":[]}`
+and `fly logs` says "Accounts enabled". On https://tardigeddon.com/play/ the
+menu shows **👤 Sign in / Shop**.
 
-### 5. Google and Apple sign-in (optional)
+### 5. Test it end to end (sandbox)
+
+1. Create an account in the game, open the shop, buy a hat. On Stripe's page
+   pay with card `4242 4242 4242 4242`, any future date, any CVC.
+2. Back in the game the hat shows **Owned ✓** within a few seconds, and it
+   can be picked in the ✎ team editor.
+3. Play an online match: the other player sees your hat.
+4. In Stripe (sandbox) → **Payments**, refund the payment: within a few
+   seconds the hat is gone from your account.
+5. **Developers → Webhooks** → your endpoint shows the deliveries as
+   succeeded.
+6. Try Account → Delete account.
+
+Keep this window short: while sandbox keys are live, anyone could "buy" with
+the test card.
+
+### 6. Real payments
+
+1. Activate the Stripe account (business details for EVCV Limited, bank
+   account for payouts) and do step 3 again in **live mode**.
+2. Decide how to handle VAT outside the UK (see "Still to decide" above).
+   To let Stripe Tax work it out, set it up in Stripe (Settings → Tax), then
+   add `STRIPE_AUTOMATIC_TAX=on` to the command below. Prices stay
+   VAT-inclusive either way.
+3. Switch the server to live keys:
+   `fly secrets set STRIPE_SECRET_KEY='sk_live_…' STRIPE_WEBHOOK_SECRET='whsec_…'`
+   (the live webhook's own secret).
+4. Remove the hats granted by sandbox payments. In the Neon console, **SQL
+   Editor**, run:
+
+   ```sql
+   DELETE FROM inventory i USING purchase p
+     WHERE p.id LIKE 'cs_test_%' AND i.user_id = p.user_id AND i.item = p.item AND i.source = 'purchase';
+   DELETE FROM purchase WHERE id LIKE 'cs_test_%';
+   ```
+
+   (With a live key the server also ignores any further sandbox events.)
+5. Buy one hat yourself with a real card, check it arrives along with the
+   receipt email, then refund it in Stripe.
+
+Done: the shop is live.
+
+### Optional: Google and Apple sign-in
 
 - **Google:** console.cloud.google.com → APIs & Services → Credentials →
   Create OAuth client ID (Web application). Authorised redirect URI:
@@ -142,12 +181,19 @@ Check: `https://server.tardigeddon.com/api/me` shows
 
 Check: the sign-in screen shows "Continue with Google / Apple".
 
-### 6. Real payments
+### Trying it on your own computer
 
-When the legal pages are updated and test purchases work end to end:
-activate the Stripe account, then repeat step 2 in **live mode** (new
-`sk_live_…` key and a new live webhook with its own `whsec_…`) and set both
-with `fly secrets set`.
+```sh
+export DATABASE_URL='postgresql://…'          # Neon, or a local Postgres
+export BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
+export STRIPE_SECRET_KEY='sk_test_…'           # optional: without it the shop shows "Soon"
+npm run server                                  # prints "Accounts enabled"
+npm run dev                                     # then open http://localhost:5173
+```
+
+For payments, install the Stripe CLI and run
+`stripe listen --forward-to localhost:8787/api/stripe/webhook`; export the
+`whsec_…` it prints as `STRIPE_WEBHOOK_SECRET` and restart the server.
 
 ## Phone apps (later)
 

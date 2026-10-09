@@ -31,6 +31,8 @@ export interface AccountsEnv {
   TRUSTED_ORIGINS?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  /** "on" to let Stripe Tax work out VAT for the buyer's country (needs Stripe Tax set up; prices stay VAT-inclusive). */
+  STRIPE_AUTOMATIC_TAX?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   APPLE_CLIENT_ID?: string;
@@ -46,6 +48,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
   const db = opts.db ?? new Pool({ connectionString: env.DATABASE_URL, max: 5 });
   const baseURL = env.BETTER_AUTH_URL ?? 'http://localhost:8787';
+  // On a public server, a missing or guessable secret would let anyone forge sign-ins.
+  if (baseURL.startsWith('https://') && (env.BETTER_AUTH_SECRET ?? '').length < 32) {
+    throw new Error('BETTER_AUTH_SECRET must be set to a random string of at least 32 characters');
+  }
   const gameUrl = env.GAME_URL ?? 'http://localhost:5173/';
   const origins = new Set([
     new URL(gameUrl).origin,
@@ -153,7 +159,14 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     cancel.searchParams.set('shop', 'cancel');
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [{ quantity: 1, price_data: { currency: CURRENCY, unit_amount: item.price, product_data: { name: `TardiGeddon: ${item.name}` } } }],
+      line_items: [
+        {
+          quantity: 1,
+          // Catalogue prices include VAT.
+          price_data: { currency: CURRENCY, unit_amount: item.price, tax_behavior: 'inclusive', product_data: { name: `TardiGeddon: ${item.name}` } },
+        },
+      ],
+      ...(env.STRIPE_AUTOMATIC_TAX === 'on' ? { automatic_tax: { enabled: true } } : {}),
       client_reference_id: user.id,
       metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString() },
       customer_email: user.email,
@@ -166,13 +179,16 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   async function webhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!stripe || !env.STRIPE_WEBHOOK_SECRET) return json(res, 503, { error: 'Not configured.' });
     const raw = await readBody(req);
-    let event: { type: string; data: { object: Record<string, unknown> } };
+    let event: { type: string; livemode?: boolean; data: { object: Record<string, unknown> } };
     try {
       // Proves the request really came from Stripe.
       event = (await stripe.webhooks.constructEventAsync(raw, String(req.headers['stripe-signature'] ?? ''), env.STRIPE_WEBHOOK_SECRET)) as unknown as typeof event;
     } catch {
       return json(res, 400, { error: 'Bad signature.' });
     }
+    // A test-mode payment must never grant anything on a server taking real money (and vice versa).
+    const liveKey = (env.STRIPE_SECRET_KEY ?? '').startsWith('sk_live_') || (env.STRIPE_SECRET_KEY ?? '').startsWith('rk_live_');
+    if (env.STRIPE_SECRET_KEY && event.livemode !== undefined && event.livemode !== liveKey) return json(res, 200, { ignored: 'wrong mode' });
     const o = event.data.object;
     const str = (v: unknown): string | null => (typeof v === 'string' ? v : v && typeof v === 'object' && 'id' in v ? String((v as { id: unknown }).id) : null);
     if (

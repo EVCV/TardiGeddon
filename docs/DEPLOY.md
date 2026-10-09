@@ -92,6 +92,12 @@ it. Merge the branch that updates them first, then:
 Check: after visiting the site, **Analytics & Logs → Web Analytics** shows
 the visit within a few minutes.
 
+## 6b. Accounts and the shop
+
+Follow **docs/ACCOUNTS.md → "Going live: step by step"**: deploy the server,
+set the Neon and Stripe secrets on Fly, test with the Stripe sandbox, then
+switch to live keys.
+
 ## 7. Final touches
 
 Done at launch (9 October 2026): the legal pages' effective dates are set and

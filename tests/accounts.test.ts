@@ -38,7 +38,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET },
       { stripe },
     );
     await accounts.db.query('DELETE FROM purchase; DELETE FROM "user";');
@@ -121,6 +121,15 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
     expect(await sendWebhook('charge.refunded', { id: 'ch_1', refunded: true, payment_intent: 'pi_cs_1' })).toBe(200);
     expect((await me(cookie)).owned).toEqual([]);
+  });
+
+  it('ignores events from the other Stripe mode', async () => {
+    const { cookie, id } = await signUp('six@example.com');
+    const payload = JSON.stringify({ id: 'evt_live', object: 'event', type: 'checkout.session.completed', livemode: true, data: { object: paid('cs_live_x', id, 'hat:viking') } });
+    const header = await stripe.webhooks.generateTestHeaderStringAsync({ payload, secret: WEBHOOK_SECRET });
+    const r = await fetch(base + '/api/stripe/webhook', { method: 'POST', headers: { 'stripe-signature': header }, body: payload });
+    expect(r.status).toBe(200);
+    expect((await me(cookie)).owned).toEqual([]); // the tests run with a test key
   });
 
   it('ignores unpaid sessions and unknown items', async () => {

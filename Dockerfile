@@ -8,5 +8,7 @@ COPY tsconfig.json ./
 COPY src ./src
 COPY server ./server
 ENV PORT=8787
+# Production mode: Better Auth rate-limits sign-in attempts and insists on a real secret.
+ENV NODE_ENV=production
 EXPOSE 8787
 CMD ["npx", "tsx", "server/main.ts"]
