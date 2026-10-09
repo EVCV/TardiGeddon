@@ -78,6 +78,20 @@ Check: an email to support@tardigeddon.com arrives in your inbox.
 Check: https://server.tardigeddon.com shows "TardiGeddon server ok", and
 **Play online → Quick play** on https://tardigeddon.com/play/ connects.
 
+## 6a. Visit statistics (Cloudflare Web Analytics)
+
+Cookie-free, so no consent banner is needed; the legal pages (v1.2) describe
+it. Merge the branch that updates them first, then:
+
+1. In the Pages project: **Metrics → Web Analytics → Enable**. Cloudflare
+   adds its small analytics script to every page it serves, the game at
+   `/play/` included; nothing in the code needs changing.
+2. Don't add Google Analytics or anything else that sets cookies without
+   first adding a consent banner and updating the Cookie & Storage Policy.
+
+Check: after visiting the site, **Analytics & Logs → Web Analytics** shows
+the visit within a few minutes.
+
 ## 7. Final touches
 
 Done at launch (9 October 2026): the legal pages' effective dates are set and

@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.1
+**Document Version:** v1.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to EVCV Limited and, wher
 
 ## Introduction
 
-This policy explains what cookies and similar technologies are, and how TardiGeddon uses them. The short version: we do not use analytics or advertising trackers. The game uses your browser's local storage to remember the settings you choose, and, only if you sign in to an account, a cookie that keeps you signed in. All of this is strictly necessary for features you ask for, so it does not need a consent banner.
+This policy explains what cookies and similar technologies are, and how TardiGeddon uses them. The short version: we do not use advertising trackers, and our visit statistics (Cloudflare Web Analytics) use no cookies and store nothing on your device. The game uses your browser's local storage to remember the settings you choose, and, only if you sign in to an account, a cookie that keeps you signed in. All of this is strictly necessary for features you ask for, so it does not need a consent banner.
 
 ---
 
@@ -47,7 +47,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 2.1 Performance, Analytics, Targeting and Advertising
 
-2.1.1 We do not use performance, analytics, targeting, or advertising cookies or similar technologies.
+2.1.1 We do not use performance, analytics, targeting, or advertising cookies or similar technologies. We count visits with Cloudflare Web Analytics, which does not set cookies or use your browser's storage (see our Privacy Policy, Section 2.4), so there is nothing for it in the table below.
 
 ## Section 3 — Specific Storage We Use
 
@@ -86,7 +86,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 5.2 Do Not Track Signals
 
-5.2.1 Some browsers offer a "Do Not Track" (DNT) signal. As we do not track you, there is nothing for this signal to switch off.
+5.2.1 Some browsers offer a "Do Not Track" (DNT) signal. As we do not track you, there is nothing for this signal to switch off. If you would rather not be counted in our visit statistics at all, browser privacy settings or extensions that block cloudflareinsights.com will stop it; the game works the same either way.
 
 ## Section 6 — Legal Basis
 

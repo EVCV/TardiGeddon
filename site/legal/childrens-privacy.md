@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.1
+**Document Version:** v1.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -33,7 +33,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.0 Designed to Collect as Little as Possible
 
-1.0.1 We recognise that TardiGeddon is likely to be played by children. We have therefore designed it so that players of every age share as little information as possible: there are no adverts, no analytics or tracking, and no chat, and nobody needs an account, or to give us a name, age, email address, photo, or location, to play any part of the game.
+1.0.1 We recognise that TardiGeddon is likely to be played by children. We have therefore designed it so that players of every age share as little information as possible: there are no adverts, no tracking, no chat, and no analytics apart from cookie-free visit totals that cannot identify anyone, and nobody needs an account, or to give us a name, age, email address, photo, or location, to play any part of the game.
 
 1.0.2 Without an account, the only information a player can enter is team and tardigrade names. These are stored on the player's own device and, in online matches, shown to the other players in that match. We encourage children (and all players) not to use their real name or anything else that could identify them.
 
