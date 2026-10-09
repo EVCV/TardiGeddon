@@ -2,6 +2,7 @@ import '@fontsource/luckiest-guy';
 import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
+import { enforceLandscape } from './ui/landscape';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
@@ -21,11 +22,10 @@ import { presetScheme } from './sim/schemes';
 import { ANGLE_FULL } from './sim/math/trig';
 
 const TICK_MS = 1000 / TICK_RATE;
-/** Far enough out to see most of a big 10-player map. */
-const MIN_ZOOM = 0.2;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 
 async function boot(): Promise<void> {
+  if (touchMode) enforceLandscape();
   const app = new Application();
   await app.init({
     resizeTo: window,
@@ -374,7 +374,7 @@ class Match {
         p.x = e.clientX;
         p.y = e.clientY;
         const d = this.pointerSpread();
-        if (this.pinchDist > 0) cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (d / this.pinchDist)));
+        if (this.pinchDist > 0) cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (d / this.pinchDist)));
         this.pinchDist = d;
         p.moved = true;
         cam.manualUntil = performance.now() + 3000;
@@ -409,7 +409,7 @@ class Match {
     c.onwheel = (e) => {
       e.preventDefault();
       const cam = this.renderer.camera;
-      cam.zoom = Math.max(MIN_ZOOM, Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
+      cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
     };
   }
 

@@ -528,3 +528,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .queue-spin svg { width: 90px; height: auto; animation: bob 0.8s ease-in-out infinite; }
 .queue-time { font-family: var(--title); font-size: 28px; }
 .team-time { font-family: var(--title); font-size: 13px; color: #fff; -webkit-text-stroke: 0.6px var(--ink); min-width: 40px; }
+
+/* Landscape only on touch devices (see ui/landscape.ts). */
+#rotate { display: none; }
+@media (orientation: portrait) {
+  html.touch #rotate {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 24px; text-align: center;
+    background: var(--sky); color: var(--ink);
+  }
+}
+#rotate h2 { margin: 16px 0 0; font-family: var(--title); font-weight: 400; font-size: 28px; letter-spacing: 1px; }
+#rotate p { margin: 0; font-weight: 600; }
+.rotate-phone {
+  width: 56px; height: 96px; border: 5px solid var(--ink); border-radius: 12px; background: var(--paper);
+  animation: rotate-phone 2s ease-in-out infinite;
+}
+@keyframes rotate-phone {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
