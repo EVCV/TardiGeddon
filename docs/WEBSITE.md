@@ -118,7 +118,7 @@ the clip ranges (`from`/`to` in each scene) may need a nudge.
    commercial use and private repos). The site at `/` and the game at `/play/`
    from one deploy: build the game with `base: '/play/'`, copy `dist/` into
    `dist-site/play/`, and keep old links (`?room=CODE`) working by redirecting
-   them to `/play/`. GitHub Pages works the same way in the meantime.
+   them to `/play/`.
 3. **Domain:** `tardigeddon.com`, which the owner will buy on Cloudflare Registrar;
    free email forwarding for `support@`. Game server on Fly.io at
    `server.<domain>` (`fly certs add`), `SERVER_URL=wss://server.<domain>`.

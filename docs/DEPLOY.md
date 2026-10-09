@@ -18,9 +18,11 @@ Check: `tardigeddon.com` appears under **Websites** in the dashboard.
 
 ## 3. Create the Pages project
 
-1. **Workers & Pages → Create → Pages → Connect to Git**, then pick the
-   `EVCV/TardiGeddon` repository. Allow Cloudflare's GitHub app access to it
-   if asked.
+1. **Workers & Pages → Create**, then the small **"Looking to deploy Pages?
+   Get started"** link at the bottom (the default flow makes a Worker, with a
+   `npx wrangler deploy` command; that is the wrong one). Choose **Import an
+   existing Git repository** and pick `EVCV/TardiGeddon`. Allow Cloudflare's
+   GitHub app access to it if asked.
 2. Build settings:
    - Production branch: `main`
    - Framework preset: `None`
@@ -59,14 +61,18 @@ Check: an email to support@tardigeddon.com arrives in your inbox.
 1. Sign up at fly.io and add a payment card. A small machine costs a few
    dollars a month.
 2. Install `flyctl` (fly.io/docs/flyctl/install) and run `fly auth login`.
-3. In the repo folder: `fly apps create tardigeddon-server`. If that name is
-   taken, pick another and put it as `app` in `fly.toml`. Then run `fly deploy`.
+3. Clone the repo and run the commands from inside it (`fly deploy` needs
+   `fly.toml`): `git clone https://github.com/EVCV/TardiGeddon.git`,
+   `cd TardiGeddon`, `fly apps create tardigeddon-server`. If that name is
+   taken, pick another and put it as `app` in `fly.toml`. Then run
+   `fly deploy --ha=false`: rooms live in memory, so there must be exactly one
+   machine, and without the flag Fly starts two.
 4. Check `https://tardigeddon-server.fly.dev` shows "TardiGeddon server ok".
-5. `fly certs add server.tardigeddon.com`. It prints the DNS records to add.
-6. In Cloudflare **DNS → Records**, add them, usually a `CNAME` named
-   `server` pointing to `tardigeddon-server.fly.dev`. Set the proxy status
-   to **DNS only** (grey cloud) so Fly can issue the certificate.
-7. `fly certs show server.tardigeddon.com` until it says the certificate is
+5. `fly certs add server.tardigeddon.com`. It prints the DNS records to add:
+   an `A` and an `AAAA` record for `server` with the app's IP addresses.
+6. In Cloudflare **DNS → Records**, add them exactly as printed. Set the proxy
+   status to **DNS only** (grey cloud) so Fly can issue the certificate.
+7. `fly certs check server.tardigeddon.com` until it says the certificate is
    issued.
 
 Check: https://server.tardigeddon.com shows "TardiGeddon server ok", and
@@ -74,7 +80,5 @@ Check: https://server.tardigeddon.com shows "TardiGeddon server ok", and
 
 ## 7. Final touches
 
-- Legal pages: set the launch date (`grep -n "Launch date" site/legal/*.md`)
-  and confirm the hosts note in `legal-notice.md` and `privacy-policy.md`.
-- The old GitHub Pages deploy (`.github/workflows/deploy.yml`) can be
-  switched off once the new site is live.
+Done at launch (9 October 2026): the legal pages' effective dates are set and
+the hosts confirmed, and the old GitHub Pages deploy workflow is removed.

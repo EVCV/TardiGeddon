@@ -48,11 +48,11 @@ Cookie & Storage Policy with the new data, sign-in cookies and retention.
 
 - Company details are filled in: EVCV Limited, company number 13570383, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, VAT GB389265053. Directors are not listed; the Legal Notice links to Companies House instead.
 - ICO registration: ZB232228 (filled in; renewal due 07/10/2027).
-- Effective date: set to the **launch date** when the site goes live (`grep -n "Launch date" site/legal/*.md`). Last Modified: 9 October 2026; update it whenever a page changes.
+- Effective date: 9 October 2026, the launch date. Last Modified: 9 October 2026; update it whenever a page changes.
 - Minimum age for online play: 13+, or younger with a parent's permission and supervision (confirmed).
-- **Hosts:** the draft names Cloudflare (website) and Fly.io in London (game server). Confirm them once deployed.
+- Hosts: Cloudflare Pages (website) and Fly.io in London (game server), confirmed at launch.
 - Support emails are kept for up to 24 months after the conversation ends (Privacy Policy 5.1.3). **Delete older ones** from the support inbox to match: UK GDPR requires a set period, and the policy promises this one.
 - Copyright year: 2026.
-- **Contact addresses:** support@, legal@ and privacy@tardigeddon.com. Set these up when the domain is bought, or replace them.
+- Contact addresses: support@, legal@ and privacy@tardigeddon.com forward to the owner via Cloudflare Email Routing.
 
 Find everything still to do with: `grep -n "\[" site/legal/*.md`
