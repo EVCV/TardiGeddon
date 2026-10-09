@@ -151,8 +151,10 @@ export function openAccount(host: HTMLElement, notice = ''): void {
       const agree = el('label', 'account-check');
       const box = el('input');
       box.type = 'checkbox';
-      box.required = true;
+      // Checked in onsubmit with a clear message: the browser's own bubble is easy to miss.
       box.name = 'agree';
+      box.checked = draft.agree === '1';
+      box.onchange = () => (draft.agree = box.checked ? '1' : '');
       const text = el('span');
       text.append("I'm 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '. See how we use your data in the ', legalLink('privacy-policy', 'Privacy Policy'), '.');
       agree.append(box, text);
@@ -164,6 +166,12 @@ export function openAccount(host: HTMLElement, notice = ''): void {
     form.append(submit);
     form.onsubmit = (e) => {
       e.preventDefault();
+      const agreed = form.querySelector<HTMLInputElement>('input[name=agree]');
+      if (mode === 'signup' && agreed && !agreed.checked) {
+        status = "Please tick the box to confirm you're 13 or older and agree to the Terms.";
+        render();
+        return;
+      }
       void run(() => (mode === 'signup' ? signUp(name!.value.trim(), email.value.trim(), pw.value) : signIn(email.value.trim(), pw.value)));
     };
     for (const p of providers) {

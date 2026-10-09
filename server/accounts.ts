@@ -53,8 +53,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     throw new Error('BETTER_AUTH_SECRET must be set to a random string of at least 32 characters');
   }
   const gameUrl = env.GAME_URL ?? 'http://localhost:5173/';
+  const gameOrigin = new URL(gameUrl);
   const origins = new Set([
-    new URL(gameUrl).origin,
+    gameOrigin.origin,
+    // The same site with or without "www." (https://example.com <-> https://www.example.com).
+    `${gameOrigin.protocol}//${gameOrigin.hostname.startsWith('www.') ? gameOrigin.hostname.slice(4) : 'www.' + gameOrigin.hostname}${gameOrigin.port ? ':' + gameOrigin.port : ''}`,
     ...(env.TRUSTED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   ]);
 
@@ -122,6 +125,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   /** CORS for the game's own origin(s), with cookies. */
   function cors(req: IncomingMessage, res: ServerResponse): void {
     const origin = req.headers.origin;
+    if (origin && !origins.has(origin)) {
+      // The browser will refuse to use our answer; say why in the server log.
+      console.warn(`api: request from untrusted origin ${origin} (allowed: ${[...origins].join(', ')})`);
+    }
     if (origin && origins.has(origin)) {
       res.setHeader('access-control-allow-origin', origin);
       res.setHeader('access-control-allow-credentials', 'true');
@@ -233,6 +240,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           res.writeHead(204);
           res.end();
         } else if (path.startsWith('/api/auth/')) {
+          // Refused sign-ins are logged with the reason (never the email or password).
+          res.on('finish', () => {
+            if (res.statusCode >= 400) console.warn(`auth: ${req.method} ${path} -> ${res.statusCode} (origin ${req.headers.origin ?? 'none'})`);
+          });
           await authHandler(req, res);
         } else if (path === '/api/me' && req.method === 'GET') {
           const user = await userFrom(req.headers);
