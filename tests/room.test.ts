@@ -9,6 +9,7 @@ import { makeWorld, run } from './helpers';
 
 /** A fake connection that records what the server sends and keeps a lockstep copy. */
 class Client implements Member {
+  userId?: string;
   msgs: ServerMsg[] = [];
   ls: Lockstep | null = null;
   send(msg: ServerMsg): void {
@@ -174,6 +175,21 @@ describe('online room', () => {
     for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
     expect(room.started).toBe(false);
     expect(a.last('room')!.started).toBe(false);
+  });
+
+  it("reports signed-in players' results when the match ends", () => {
+    const room = new Room('FGHIJ', Date.now, () => 0.42);
+    const a = new Client();
+    a.userId = 'user-a';
+    const b = new Client(); // signed out: not reported
+    room.join(a, team('Alpha'));
+    room.join(b, team('Bravo'));
+    const reported: { userId: string; won: boolean }[][] = [];
+    room.onResult = (r) => reported.push(r);
+    room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
+    for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
+    for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
+    expect(reported).toEqual([[{ userId: 'user-a', won: true }]]);
   });
 });
 

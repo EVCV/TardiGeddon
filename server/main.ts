@@ -41,7 +41,7 @@ const matchmaker = new Matchmaker((players, cpu) => {
     for (const p of players) p.member.send({ t: 'error', msg: 'The server is full right now. Please try again soon.' });
     return;
   }
-  const r = new Room(newCode());
+  const r = newRoom();
   rooms.set(r.code, r);
   for (const p of players) {
     leaveRoom(p.member);
@@ -50,6 +50,13 @@ const matchmaker = new Matchmaker((players, cpu) => {
   if (cpu) r.addCpu();
   r.start(QUICK_SCHEME);
 });
+
+/** A new room; finished matches count towards signed-in players' stats. */
+function newRoom(): Room {
+  const r = new Room(newCode());
+  r.onResult = (results) => void accounts?.recordResults(results).catch((e) => console.error('stats failed', e));
+  return r;
+}
 
 function newCode(): string {
   for (;;) {
@@ -95,7 +102,11 @@ const wss = new WebSocketServer({ server: http, maxPayload: 16 * 1024 });
 
 wss.on('connection', (ws: WebSocket, req) => {
   // Shop items this player owns, from their sign-in cookie (none if signed out).
-  const owned = accounts ? accounts.ownedFor(req.headers).catch(() => [] as string[]) : Promise.resolve([] as string[]);
+  const player = accounts ? accounts.playerFor(req.headers).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
+  const owned = player.then((p) => {
+    member.userId = 'userId' in p ? p.userId : undefined;
+    return p.owned;
+  });
   // Messages are handled in order, once we know what the player owns.
   let queue: Promise<void> = owned.then(() => undefined);
   let lastCreate = 0;
@@ -149,7 +160,7 @@ wss.on('connection', (ws: WebSocket, req) => {
       if (msg.t === 'quick') {
         matchmaker.add(member, msg.team);
       } else if (msg.t === 'create') {
-        const r = new Room(newCode());
+        const r = newRoom();
         rooms.set(r.code, r);
         r.join(member, msg.team);
         roomOf.set(member, r);

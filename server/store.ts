@@ -26,6 +26,12 @@ export async function migrate(db: Pool): Promise<void> {
       created_at     timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS purchase_payment_intent ON purchase (payment_intent);
+    CREATE TABLE IF NOT EXISTS player_stats (
+      user_id       text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      online_played integer NOT NULL DEFAULT 0,
+      online_won    integer NOT NULL DEFAULT 0,
+      updated_at    timestamptz NOT NULL DEFAULT now()
+    );
   `);
 }
 
@@ -38,6 +44,31 @@ export async function purgeExpired(db: Pool): Promise<void> {
 export async function ownedItems(db: Pool, userId: string): Promise<string[]> {
   const r = await db.query<{ item: string }>('SELECT item FROM inventory WHERE user_id = $1 ORDER BY granted_at', [userId]);
   return r.rows.map((x) => x.item);
+}
+
+export interface PlayerStats {
+  onlinePlayed: number;
+  onlineWon: number;
+}
+
+export async function playerStats(db: Pool, userId: string): Promise<PlayerStats> {
+  const r = await db.query<{ online_played: number; online_won: number }>('SELECT online_played, online_won FROM player_stats WHERE user_id = $1', [userId]);
+  return { onlinePlayed: r.rows[0]?.online_played ?? 0, onlineWon: r.rows[0]?.online_won ?? 0 };
+}
+
+/** Count one finished online match for each signed-in player in it. */
+export async function recordResults(db: Pool, results: { userId: string; won: boolean }[]): Promise<void> {
+  for (const r of results) {
+    await db.query(
+      `INSERT INTO player_stats (user_id, online_played, online_won)
+       SELECT $1, 1, $2 WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)
+       ON CONFLICT (user_id) DO UPDATE SET
+         online_played = player_stats.online_played + 1,
+         online_won = player_stats.online_won + EXCLUDED.online_won,
+         updated_at = now()`,
+      [r.userId, r.won ? 1 : 0],
+    );
+  }
 }
 
 export interface PaidCheckout {

@@ -8,8 +8,10 @@ import { canWearHat } from '../shop/catalog';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
-  user: { id: string; name: string; email: string } | null;
+  user: { id: string; name: string; email: string; createdAt: string } | null;
   owned: string[];
+  /** Online matches played and won with this account. */
+  stats: { onlinePlayed: number; onlineWon: number };
   /** Whether the shop can take payments. */
   shop: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
