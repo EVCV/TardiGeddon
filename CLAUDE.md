@@ -8,6 +8,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - `npm run dev` — dev server (add `?autostart=cpu` or `?autostart=hotseat` to skip the menu, `&players=N` for 2–10 teams, `?touch` to force touch controls)
 - `npm run server` — online game server on :8787 (`npm run dev` on localhost connects to it; see `docs/ONLINE.md`)
 - `npm run site:dev` / `site:build` — the public website (React + GSAP + Lenis + React Bits; see `docs/WEBSITE.md`)
+- `npm run build:all` — site + game (at `/play/`) into `dist-site/`, as deployed to Cloudflare Pages (`docs/DEPLOY.md`)
 - `npm test` — unit + soak tests (Vitest)
 - `npm run typecheck`, `npm run build`
 - `npm run e2e` — Playwright smoke tests (desktop + phone). In sandboxes with a

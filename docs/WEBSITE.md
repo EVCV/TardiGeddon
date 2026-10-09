@@ -106,6 +106,7 @@ the clip ranges (`from`/`to` in each scene) may need a nudge.
 - `npm run site:dev`: dev server on :5174
 - `npm run site:build`: builds into `dist-site/`
 - `npm run site:preview`: preview the build on :4174
+- `npm run build:all`: the whole deploy (site + game at `/play/`) into `dist-site/`; see `docs/DEPLOY.md`
 
 ## Plan (agreed with the owner)
 

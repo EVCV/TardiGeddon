@@ -14,7 +14,8 @@
     "server": "tsx server/main.ts",
     "site:dev": "vite --config site/vite.config.ts",
     "site:build": "vite build --config site/vite.config.ts",
-    "site:preview": "vite preview --config site/vite.config.ts --port 4174"
+    "site:preview": "vite preview --config site/vite.config.ts --port 4174",
+    "build:all": "npm run build && npm run site:build && node -e \"require('fs').cpSync('dist', 'dist-site/play', { recursive: true })\""
   },
   "dependencies": {
     "@fontsource/luckiest-guy": "^5.3.0",
