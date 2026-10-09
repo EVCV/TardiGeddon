@@ -11,13 +11,13 @@
 
 EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
-- Registered in England and Wales under company number [00000000]
-- Registered office: [Registered Office Address, including postcode]
+- Registered in England and Wales under company number 13570383
+- Registered office: 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 - Website: https://tardigeddon.com
 - General contact: support@tardigeddon.com
 - Legal / contractual queries: legal@tardigeddon.com
 - Data protection queries: privacy@tardigeddon.com
-- VAT number (if applicable): [GB000000000]
+- VAT number: GB389265053
 
 Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
@@ -166,6 +166,6 @@ TardiGeddon is about blowing up cartoon tardigrades, not each other. These Commu
 If you have any questions about this document, please contact us at:
 
 - **Email:** support@tardigeddon.com
-- **Post:** EVCV Limited, [Registered Office Address]
+- **Post:** EVCV Limited, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 
 We aim to respond to all enquiries within 5 business days.

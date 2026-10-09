@@ -11,13 +11,13 @@
 
 EVCV Limited (trading as "TardiGeddon"), referred to throughout this document as **"the Company"**, **"we"**, **"us"**, or **"our"**.
 
-- Registered in England and Wales under company number [00000000]
-- Registered office: [Registered Office Address, including postcode]
+- Registered in England and Wales under company number 13570383
+- Registered office: 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 - Website: https://tardigeddon.com
 - General contact: support@tardigeddon.com
 - Legal / contractual queries: legal@tardigeddon.com
 - Data protection queries: privacy@tardigeddon.com
-- VAT number (if applicable): [GB000000000]
+- VAT number: GB389265053
 
 Any reference in this document to "the Company" refers to EVCV Limited and, where the context requires, its subsidiaries, affiliates, employees, contractors, and agents. Any reference to "you" or "your" refers to the individual or entity accessing or using the Website or Services.
 
@@ -39,7 +39,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 1.1 Data Controller
 
-1.1.1 For the purposes of the UK GDPR and EU GDPR, EVCV Limited is the "data controller" responsible for personal data processed through the Services. [ICO registration number: ZA000000 — see the Legal Notice.]
+1.1.1 EVCV Limited ("we", "us" or "our") is the controller for personal data described in this policy unless we act as a processor for a business customer. We are registered in England and Wales under company number 13570383 at 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom. This applies for the purposes of the UK GDPR and, where applicable, the EU GDPR. [ICO registration number: ZA000000 — see the Legal Notice.]
 
 ### 1.2 Related Documents
 
@@ -284,6 +284,6 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 If you have any questions about this document, please contact us at:
 
 - **Email:** privacy@tardigeddon.com
-- **Post:** EVCV Limited, [Registered Office Address]
+- **Post:** EVCV Limited, 28 Oak Tree Lane, Cookhill, Alcester, Warwickshire, B49 5LH, United Kingdom
 
 We aim to respond to all enquiries within 5 business days.
