@@ -9,7 +9,7 @@ import { coinIcon, packArt } from './coinArt';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
-import { COIN_PACKS, SHOP_ITEMS, formatNumber, formatPrice, type ShopItem } from '../shop/catalog';
+import { BIG_PACK_PRICE, COIN_PACKS, SHOP_ITEMS, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type ShopItem } from '../shop/catalog';
 import { buyCoins, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { HubContext } from './hub';
 
@@ -34,7 +34,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 }
 
-/** "🪙 200" or "🟢 300". Coins are about 1p each, so the £ value is shown alongside. */
+/** "🪙 200" or "🟢 300". Where coins are shown, so is their value in pounds (coinValue). */
 export function priceLabel(item: ShopItem): string {
   return item.coins !== undefined ? `🪙 ${formatNumber(item.coins)}` : `🟢 ${formatNumber(item.slime ?? 0)}`;
 }
@@ -186,7 +186,7 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
     return box;
   }
   const b = el('button', 'big-btn', `Unlock for ${priceLabel(item)}`);
-  b.title = item.coins !== undefined ? `${formatNumber(item.coins)} coins (about ${formatPrice(item.coins)})` : `${formatNumber(item.slime ?? 0)} Slime`;
+  b.title = item.coins !== undefined ? `${formatNumber(item.coins)} coins (${coinValue(item.coins)})` : `${formatNumber(item.slime ?? 0)} Slime`;
   b.disabled = ctx.busy;
   b.onclick = () => ctx.run(() => unlock(item.id));
   action.append(b);
@@ -215,16 +215,38 @@ function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState)
 }
 
 /**
- * How each pack is dressed up. Value is the same in every pack (about 1p a
- * coin), so no "best value" claims, and no "most popular" without the sales
- * to back it up (CMA: no misleading claims).
+ * How each pack is dressed up. Bigger packs have bonus coins, so "Best value"
+ * goes on the one with the lowest price per coin (checked, not assumed), and
+ * there's no "most popular" without sales to back it up (CMA: no misleading
+ * claims).
  */
-const PACK_LOOKS: Record<string, { art: string; name: string; tag?: string }> = {
+const PACK_LOOKS: Record<string, { art: string; name: string }> = {
   'coins:200': { art: 'pouch', name: 'Pocket pouch' },
-  'coins:500': { art: 'stack', name: 'Coin stack', tag: 'Starter' },
-  'coins:1000': { art: 'chest', name: 'Treasure chest', tag: 'Collector' },
-  'coins:2000': { art: 'vault', name: 'Royal hoard', tag: 'Biggest pack' },
+  'coins:500': { art: 'stack', name: 'Coin stack' },
+  'coins:1000': { art: 'chest', name: 'Treasure chest' },
+  'coins:2000': { art: 'vault', name: 'Royal hoard' },
+  'coins:5000': { art: 'mountain', name: 'Mountain of coins' },
+  'coins:10000': { art: 'dragon', name: "Dragon's hoard" },
 };
+
+/** The pack with the lowest price per coin. */
+const bestValue = (): string => COIN_PACKS.reduce((a, b) => (pencePerCoin(b) < pencePerCoin(a) ? b : a)).id;
+
+/** "0.83p a coin". */
+const perCoin = (pence: number): string => `${pence.toFixed(2)}p a coin`;
+
+/** How many looks (you don't own) these coins could unlock, cheapest first; and whether that's all of them. */
+function lookCount(coins: number, owned: string[]): { n: number; all: boolean } {
+  const prices = SHOP_ITEMS.filter((i) => i.coins !== undefined && !owned.includes(i.id)).map((i) => i.coins!).sort((a, b) => a - b);
+  let n = 0;
+  let left = coins;
+  for (const c of prices) {
+    if (c > left) break;
+    left -= c;
+    n++;
+  }
+  return { n, all: n === prices.length && n > 0 };
+}
 
 /** Up to three looks a pack could unlock, priciest first, skipping what you own. */
 function examples(coins: number, owned: string[]): ShopItem[] {
@@ -288,21 +310,25 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   const head = el('div', 'coins-head');
   const icon = el('span', 'coins-head-icon');
   icon.innerHTML = coinIcon();
-  head.append(icon, el('h3', '', 'Get coins'), el('span', '', 'Coins unlock hats and skins. About 1p a coin in every pack, VAT included.'));
+  head.append(icon, el('h3', '', 'Get coins'), el('span', '', 'Coins unlock hats and skins. Bigger packs come with bonus coins. Prices include VAT.'));
   box.append(head);
 
   const grid = el('div', 'coin-grid');
+  const best = bestValue();
   for (const p of COIN_PACKS) {
     const look = PACK_LOOKS[p.id] ?? { art: 'pouch', name: `${formatNumber(p.coins)} coins` };
-    const b = el('button', 'coin-pack' + (state.pack === p.id ? ' on' : '') + (look.tag ? ' tagged' : ''));
-    b.setAttribute('aria-label', `${formatNumber(p.coins)} coins for ${formatPrice(p.price)}`);
-    if (look.tag) b.append(el('span', 'pack-tag', look.tag));
+    const total = packTotal(p);
+    const tag = p.id === best ? 'Best value' : p.bonus ? `+${Math.round((p.bonus / p.coins) * 100)}% bonus` : '';
+    const b = el('button', 'coin-pack' + (state.pack === p.id ? ' on' : '') + (tag ? ' tagged' : '') + (p.id === best ? ' best' : ''));
+    b.setAttribute('aria-label', `${formatNumber(total)} coins for ${formatPrice(p.price)}`);
+    if (tag) b.append(el('span', 'pack-tag', tag));
     const art = el('span', 'pack-art');
     art.innerHTML = packArt(look.art);
-    const ex = examples(p.coins, me.owned);
+    const ex = examples(total, me.owned);
     const exBox = el('span', 'pack-examples');
     if (ex.length) {
-      exBox.append(el('span', 'pack-eg', 'Enough for e.g.'));
+      const count = lookCount(total, me.owned);
+      exBox.append(el('span', 'pack-eg', count.all ? 'Enough for every look in the shop!' : count.n > 3 ? `Enough for up to ${count.n} looks, e.g.` : 'Enough for e.g.'));
       const row = el('span', 'pack-eg-row');
       for (const item of ex) {
         const m = el('span', 'pack-eg-item');
@@ -312,7 +338,16 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
       }
       exBox.append(row);
     }
-    b.append(art, el('span', 'pack-name', look.name), el('b', 'pack-coins', `🪙 ${formatNumber(p.coins)}`), exBox, el('span', 'pack-price', formatPrice(p.price)));
+    const bonus = el('span', 'pack-bonus' + (p.bonus ? '' : ' none'), p.bonus ? `${formatNumber(p.coins)} + ${formatNumber(p.bonus)} bonus` : 'No bonus');
+    b.append(
+      art,
+      el('span', 'pack-name', look.name),
+      el('b', 'pack-coins', `🪙 ${formatNumber(total)}`),
+      bonus,
+      exBox,
+      el('span', 'pack-rate', perCoin(pencePerCoin(p))),
+      el('span', 'pack-price', formatPrice(p.price)),
+    );
     b.onclick = () => {
       state.pack = p.id;
       ctx.rerender();
@@ -324,7 +359,9 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   const pack = COIN_PACKS.find((p) => p.id === state.pack);
   if (pack) {
     const checkout = el('div', 'coin-checkout');
-    checkout.append(el('b', '', `${PACK_LOOKS[pack.id]?.name ?? 'Coins'}: 🪙 ${formatNumber(pack.coins)} for ${formatPrice(pack.price)}`));
+    checkout.append(
+      el('b', '', `${PACK_LOOKS[pack.id]?.name ?? 'Coins'}: 🪙 ${formatNumber(packTotal(pack))} for ${formatPrice(pack.price)}${pack.bonus ? ` (${formatNumber(pack.coins)} + ${formatNumber(pack.bonus)} bonus)` : ''}`),
+    );
     if (!me.user) {
       const b = el('button', 'big-btn', 'Sign in to buy coins');
       b.onclick = () => ctx.go('account');
@@ -335,16 +372,26 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
       tick.type = 'checkbox';
       const text = el('span');
       text.append(
-        `I want my ${formatNumber(pack.coins)} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
+        `I want my ${formatNumber(packTotal(pack))} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
         legalLink('terms-of-service', 'Terms'),
         ' §5).',
       );
       consent.append(tick, text);
+      // The biggest packs also need a grown-up's say-so (Terms 5.1.1).
+      const big = pack.price >= BIG_PACK_PRICE;
+      const adult = el('label', 'account-check');
+      const adultTick = el('input');
+      adultTick.type = 'checkbox';
+      adult.append(adultTick, el('span', '', "I'm 18 or over, or a parent or carer has said yes to this purchase."));
       const pay = el('button', 'big-btn', `Pay ${formatPrice(pack.price)}`);
       pay.disabled = true;
-      tick.onchange = () => (pay.disabled = !tick.checked || ctx.busy);
-      pay.onclick = () => ctx.run(() => buyCoins(pack.id, tick.checked));
-      checkout.append(consent, pay);
+      const update = () => (pay.disabled = !tick.checked || (big && !adultTick.checked) || ctx.busy);
+      tick.onchange = update;
+      adultTick.onchange = update;
+      pay.onclick = () => ctx.run(() => buyCoins(pack.id, tick.checked, big && adultTick.checked));
+      checkout.append(consent);
+      if (big) checkout.append(adult);
+      checkout.append(pay);
     }
     box.append(checkout);
   } else box.append(el('p', 'coins-pick', '👆 Pick a pack to continue'));

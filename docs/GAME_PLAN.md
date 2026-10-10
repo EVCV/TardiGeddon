@@ -524,8 +524,9 @@ are avoiding. All gameplay content (weapons, modes, missions) is free.
   against the CPU (capped per day). Unlocks season weapons and some
   cosmetics. **Can never be bought.**
 - Bought currency **Coins**: coin packs are the only thing sold for money
-  (Stripe). Coins buy cosmetics only. Coins never convert to Slime, so
-  money can never buy weapons.
+  (Stripe), £1.99 to £99.99, with bonus coins on bigger packs. Coins buy
+  cosmetics only. Coins never convert to Slime, so money can never buy
+  weapons.
 - Unlocked season weapons are switched on for *everyone* in matches the
   unlocker starts (local, or online rooms they host); quick play uses the
   standard set. Built: see docs/ACCOUNTS.md and src/shop/catalog.ts.

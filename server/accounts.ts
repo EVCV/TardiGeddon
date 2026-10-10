@@ -14,7 +14,7 @@ import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, coinPack, formatNumber, shopItem } from '../src/shop/catalog';
+import { BIG_PACK_PRICE, CURRENCY, coinPack, formatNumber, packTotal, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 
 export type { MeResponse };
@@ -158,7 +158,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     if (!stripe) return json(res, 503, { error: 'The shop is not open yet.' });
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
-    let body: { item?: unknown; consent?: unknown };
+    let body: { item?: unknown; consent?: unknown; grownUp?: unknown };
     try {
       body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
     } catch {
@@ -170,6 +170,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     // UK consumer law: digital content supplied straight away needs the buyer's express
     // consent and acknowledgement that they lose the 14-day right to cancel (Terms §5).
     if (body.consent !== true) return json(res, 400, { error: 'Please confirm you want the coins straight away.' });
+    // The biggest packs: 18 or over, or a parent or carer has agreed (Terms 5.1.1).
+    if (item.price >= BIG_PACK_PRICE && body.grownUp !== true) return json(res, 400, { error: "Please confirm you're 18 or over, or that a parent or carer has agreed." });
     const back = new URL(gameUrl);
     back.searchParams.set('shop', 'done');
     const cancel = new URL(gameUrl);
@@ -187,7 +189,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             unit_amount: item.price,
             // Catalogue prices include VAT (only needs saying when Stripe Tax is on).
             ...(tax ? { tax_behavior: 'inclusive' as const } : {}),
-            product_data: { name: `TardiGeddon: ${formatNumber(item.coins)} coins`, ...(env.STRIPE_TAX_CODE ? { tax_code: env.STRIPE_TAX_CODE } : {}) },
+            product_data: { name: `TardiGeddon: ${formatNumber(packTotal(item))} coins${item.bonus ? ` (${formatNumber(item.coins)} + ${formatNumber(item.bonus)} bonus)` : ''}`, ...(env.STRIPE_TAX_CODE ? { tax_code: env.STRIPE_TAX_CODE } : {}) },
           },
         },
       ],
@@ -195,7 +197,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       // Stripe turns Managed Payments on by default for new accounts; we only use it when asked to.
       managed_payments: { enabled: env.STRIPE_MANAGED_PAYMENTS === 'on' },
       client_reference_id: user.id,
-      metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString() },
+      metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString(), ...(item.price >= BIG_PACK_PRICE ? { grownUpConfirmed: new Date().toISOString() } : {}) },
       // The player's own Stripe customer, so all their purchases appear in the purchases portal.
       customer,
       // An invoice per purchase: a receipt they can download from the portal any time.

@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 10 October 2026
-**Document Version:** v1.3
+**Document Version:** v1.4
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -138,9 +138,9 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.1 Buying Coins
 
-5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything.
+5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. For coin packs costing £20 or more, we also ask you to confirm, before you pay, that you are 18 or over or that a parent or guardian has agreed to the purchase.
 
-5.1.2 Coin packs are priced in pounds sterling, including VAT, and each coin costs about 1p in every pack. Wherever coin prices are shown, you can see what they are worth in pounds. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
+5.1.2 Coin packs are priced in pounds sterling, including VAT. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or time-limited offers to pressure you into buying. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
 
 5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for the coin pack. Stripe sends a receipt to your account's email address, and you can see your purchases and download receipts at any time through the shop's "Manage purchases & receipts" button.
 
@@ -156,7 +156,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 5.3.1 Under the Consumer Rights Act 2015, what you buy must be as described, fit for purpose, and of satisfactory quality. If your coins, or an item you unlocked with them, are faulty or not delivered, you are entitled to a repair or replacement, or, if that is not possible or not done within a reasonable time and without significant inconvenience to you, a price reduction or a refund. Please contact support@tardigeddon.com.
 
-5.3.2 You may also have rights against your card issuer. If you dispute a payment with your bank or card issuer, or a payment is refunded, the coins from that payment are taken back from your account, even if you have already spent them; your coin balance may then go below zero, and you will not be able to spend coins until it is back above zero.
+5.3.2 You may also have rights against your card issuer. If you dispute a payment with your bank or card issuer, or a payment is refunded, the coins from that payment, including any bonus coins, are taken back from your account, even if you have already spent them; your coin balance may then go below zero, and you will not be able to spend coins until it is back above zero.
 
 5.3.3 Apart from your rights under this Section, we do not normally give refunds for coins, but we will consider any request fairly. Please contact support@tardigeddon.com.
 

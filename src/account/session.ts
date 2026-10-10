@@ -210,7 +210,8 @@ export async function signInWith(provider: string): Promise<void> {
  * Off to Stripe's payment page for a coin pack. `consent`: the player asked
  * for the coins straight away and accepted losing the 14-day cancellation right.
  */
-export async function buyCoins(pack: string, consent: boolean): Promise<void> {
-  const r = await call<{ url?: string }>('/api/shop/checkout', { item: pack, consent });
+/** `grownUp`: the buyer is 18+ or a parent or carer has agreed (needed for the biggest packs). */
+export async function buyCoins(pack: string, consent: boolean, grownUp = false): Promise<void> {
+  const r = await call<{ url?: string }>('/api/shop/checkout', { item: pack, consent, grownUp });
   if (r.url) location.href = r.url;
 }
