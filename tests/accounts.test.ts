@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
+import { migrate } from '../server/store';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -161,6 +162,20 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await accounts.db.query('UPDATE purchase SET coins = 2000 WHERE id = $1', ['cs_b1']);
     await sendWebhook('charge.refunded', { id: 'ch_b1', refunded: true, payment_intent: 'pi_cs_b1' });
     expect((await me(cookie)).wallet.coins).toBe(400);
+  });
+
+  it('treats coin packs bought before bonus coins as giving their base amount', async () => {
+    const { cookie, id } = await signUp('legacy@example.com');
+    await sendWebhook('checkout.session.completed', paid('cs_l1', id, 'coins:2000'));
+    // An old purchase: no record of the coins it gave, and it gave 2,000 (no bonus then).
+    await accounts.db.query('UPDATE purchase SET coins = NULL WHERE id = $1', ['cs_l1']);
+    await accounts.db.query('UPDATE wallet SET coins = 2000 WHERE user_id = $1', [id]);
+    await migrate(accounts.db);
+    expect((await accounts.db.query('SELECT coins FROM purchase WHERE id = $1', ['cs_l1'])).rows[0].coins).toBe(2000);
+    // And a refund with no record at all still takes back only the base amount.
+    await accounts.db.query('UPDATE purchase SET coins = NULL WHERE id = $1', ['cs_l1']);
+    await sendWebhook('charge.refunded', { id: 'ch_l1', refunded: true, payment_intent: 'pi_cs_l1' });
+    expect((await me(cookie)).wallet.coins).toBe(0);
   });
 
   it('pays Slime for matches (CPU games capped per day) and Slime unlocks weapons', async () => {

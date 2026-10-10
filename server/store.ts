@@ -30,6 +30,8 @@ export async function migrate(db: Pool): Promise<void> {
     CREATE INDEX IF NOT EXISTS purchase_payment_intent ON purchase (payment_intent);
     -- Coins a coin-pack payment gave, bonus included (taken back exactly on a refund).
     ALTER TABLE purchase ADD COLUMN IF NOT EXISTS coins integer;
+    -- Coin packs bought before bonus coins existed gave exactly their base amount (the number in the id).
+    UPDATE purchase SET coins = split_part(item, ':', 2)::int WHERE coins IS NULL AND item ~ '^coins:[0-9]+$';
     CREATE TABLE IF NOT EXISTS player_stats (
       user_id       text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       online_played integer NOT NULL DEFAULT 0,
@@ -332,7 +334,8 @@ export async function revokePurchase(db: Pool, paymentIntent: string, status: 'r
   for (const row of r.rows) {
     if (!row.user_id) continue;
     const pack = coinPack(row.item);
-    if (pack) await credit(db, row.user_id, -(row.coins ?? packTotal(pack)), 0);
+    // No record means an old purchase, from before bonus coins: it gave the base amount.
+    if (pack) await credit(db, row.user_id, -(row.coins ?? pack.coins), 0);
     else await db.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
   }
 }
