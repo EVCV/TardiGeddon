@@ -42,7 +42,12 @@ interface Slot {
   token: string;
   queue: InputFrame[];
   held: number;
+  /** Ticks of the current match this human spent disconnected (the CPU played for them). */
+  absent: number;
 }
+
+/** Players away for more than this share of a match earn nothing from it, even if they rejoin. */
+const MAX_ABSENT_SHARE = 0.25;
 
 const DEFAULT_TARDI_NAMES = ['Waddles', 'Tun', 'Mossy', 'Pudge'];
 
@@ -264,6 +269,7 @@ export class Room {
   step(): void {
     const s = this.state;
     if (!s) return;
+    for (const sl of this.slots) if (!sl.cpu && !sl.member) sl.absent++;
     const ti = s.turn.teamIdx;
     if (ti !== this.lastTeam) {
       // New turn: forget anything queued during the previous one.
@@ -296,11 +302,11 @@ export class Room {
     }
     if (s.turn.phase === 'gameover') {
       this.flush();
-      // Signed-in players still here at the end, each account once (two tabs on one
-      // account don't pay twice; leaving early pays nothing).
+      // Signed-in players here at the end who played most of the match, each account
+      // once (two tabs don't pay twice; leaving, or rejoining just for the end, pays nothing).
       const seen = new Set<string>();
       const paid = this.slots.flatMap((sl, i) => {
-        if (!sl.userId || sl.cpu || !sl.member || seen.has(sl.userId)) return [];
+        if (!sl.userId || sl.cpu || !sl.member || sl.absent > s.tick * MAX_ABSENT_SHARE || seen.has(sl.userId)) return [];
         seen.add(sl.userId);
         return [{ i, userId: sl.userId }];
       });
@@ -336,7 +342,7 @@ export class Room {
       used.add(alt);
       return alt;
     });
-    const slot: Slot = { team, cpu, member: null, token: randomToken(), queue: [], held: 0 };
+    const slot: Slot = { team, cpu, member: null, token: randomToken(), queue: [], held: 0, absent: 0 };
     this.slots.push(slot);
     return slot;
   }
@@ -354,6 +360,7 @@ export class Room {
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();
     this.tally = new MatchTally(this.teams.length);
+    for (const sl of this.slots) sl.absent = 0;
     this.outbox = [];
     this.outFrom = 0;
     this.lastTeam = -1;

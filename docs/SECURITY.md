@@ -28,7 +28,8 @@ the owner needs to keep doing. Last full review: 10 October 2026.
 - Unlocks are all-or-nothing database transactions (no double spending).
 - Slime: online-rate Slime only when two or more different accounts played
   each other; anything else pays the CPU rate under its 200-a-day cap; one
-  payout per account per match; nothing for leaving early.
+  payout per account per match; nothing for anyone away for more than a
+  quarter of the match (rejoining just for the end doesn't count).
 
 **The game server** (Fly.io)
 - Every message from a player is size-limited (16 KB), rate-limited (120 a
@@ -39,7 +40,8 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   (This closed a bug where one message could crash the server.)
 - If a match ever hits an unexpected error, only that match closes; the rest
   keep running.
-- Limits per address: 8 connections at once and 12 new rooms a minute;
+- Limits per address: 8 connections at once and 12 new rooms a minute
+  (quick play counts too);
   `MAX_ROOMS` (default 150) caps the whole server; abandoned matches stop
   after 45 seconds; dead connections are dropped by a heartbeat.
 - Room codes and rejoin tokens come from a cryptographic random source, so

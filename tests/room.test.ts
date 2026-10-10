@@ -253,6 +253,29 @@ describe('online room', () => {
     expect(finish(room, a)).toEqual([expect.objectContaining({ userId: 'user-a', slime: 'cpu' })]);
   });
 
+  it('pays nothing to a player who rejoins only for the end', () => {
+    const room = new Room('EFGHJ', Date.now, () => 0.42);
+    const a = new Client();
+    a.userId = 'user-a';
+    const b = new Client();
+    b.userId = 'user-b';
+    room.join(a, team('Alpha'));
+    room.join(b, team('Bravo'));
+    room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
+    const token = (room as unknown as { slots: { token: string }[] }).slots[0].token;
+    room.leave(a);
+    for (let i = 0; i < 50 * 20; i++) room.step(); // away for 20 s while the CPU plays
+    const back = new Client();
+    back.userId = 'user-a';
+    expect(room.join(back, team('Alpha'), token)).toBe(true);
+    const reported: { userId: string; slime?: string }[][] = [];
+    room.onResult = (r) => reported.push(r);
+    for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
+    for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
+    // Only b is paid, and alone that's the CPU rate.
+    expect(reported[0]).toEqual([expect.objectContaining({ userId: 'user-b', slime: 'cpu' })]);
+  });
+
   it('pays nothing to a player who left before the end (the CPU played on for them)', () => {
     const room = new Room('ZABCD', Date.now, () => 0.42);
     const a = new Client();

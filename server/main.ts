@@ -206,6 +206,18 @@ wss.on('connection', (ws: WebSocket, req) => {
     return true;
   };
 
+  const mayQuick = (): boolean => {
+    if (rooms.size >= MAX_ROOMS) {
+      fail('The server is full right now. Please try again soon.');
+      return false;
+    }
+    if (!ipMayCreate(ip)) {
+      fail('Lots of games started from your network just now. Please wait a minute and try again.');
+      return false;
+    }
+    return true;
+  };
+
   ws.on('message', (data) => {
     if (--budget < 0) return;
     let msg: ClientMsg;
@@ -229,6 +241,10 @@ wss.on('connection', (ws: WebSocket, req) => {
       // Shop hats only for players who own them.
       msg.team = wearableTeam(msg.team, ownedItems);
       if (msg.t === 'create' && !mayCreate()) return;
+      // Quick play makes a room when it pairs players, so it counts towards the
+      // address's room budget too (but not the per-connection cooldown, so
+      // "Play a CPU instead" straight after still works).
+      if (msg.t === 'quick' && !mayQuick()) return;
       leaveRoom(member);
       matchmaker.remove(member);
       if (msg.t === 'quick') {
