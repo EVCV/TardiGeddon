@@ -18,6 +18,8 @@ export interface MeResponse {
   shop: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
+  /** Set only on Cloudflare preview builds that can't reach the server (see refreshAccount). */
+  preview?: boolean;
 }
 
 export interface PlayerStats {
@@ -122,9 +124,30 @@ export async function refreshAccount(): Promise<MeResponse | null> {
     const r = await call<MeResponse>('/api/me');
     set(Array.isArray(r.owned) ? { ...r, wallet: r.wallet ?? { coins: 0, slime: 0 } } : null);
   } catch {
-    set(null);
+    set(isPreviewBuild() ? previewMe() : null);
   }
   return me;
+}
+
+/**
+ * Cloudflare's preview links (*.pages.dev) can't reach the game server, so
+ * accounts would look switched off and the Stats, Shop and Account pages
+ * would be hidden. There, show them signed out so the pages can be reviewed.
+ */
+function isPreviewBuild(): boolean {
+  return location.hostname.endsWith('.pages.dev');
+}
+
+function previewMe(): MeResponse {
+  return {
+    user: null,
+    owned: [],
+    wallet: { coins: 0, slime: 0 },
+    stats: { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0 },
+    shop: true,
+    providers: [],
+    preview: true,
+  };
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

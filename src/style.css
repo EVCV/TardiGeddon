@@ -950,7 +950,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .shop-card-art { min-height: 60px; }
 }
 
-/* ---------- Hub: page flow, footer, background scene ---------- */
+/* ---------- Hub: page flow and footer ---------- */
 .menu.hub { display: flex; flex-direction: column; }
 .hub-bar, .hub-notice, .hub-footer { flex: none; }
 /* Pages shorter than the screen sit in the middle of it, not stuck to the top. */
@@ -982,34 +982,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hub-footer a:hover { background: var(--accent); }
 .hub-version { opacity: .7; }
 
-.hub-scene { position: fixed; left: 0; right: 0; bottom: 0; height: 26vh; min-height: 140px; pointer-events: none; z-index: 0; overflow: hidden; }
-.scene-hills { position: absolute; left: -8px; right: -8px; bottom: -6px; width: calc(100% + 16px); height: 100%; }
-.scene-bubble {
-  position: absolute;
-  bottom: 4%;
-  left: calc(4% + var(--i) * 9.6%);
-  width: calc(10px + (var(--i) * 7 % 4) * 6px);
-  aspect-ratio: 1;
-  border: 2.5px solid var(--ink);
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff 0 18%, rgba(255, 255, 255, .35) 22%);
-  opacity: 0;
-  animation: bubble-up calc(9s + (var(--i) * 5 % 7) * 1s) linear infinite;
-  animation-delay: calc(var(--i) * -1.7s);
-}
-@keyframes bubble-up {
-  0% { transform: translate(0, 0); opacity: 0; }
-  10% { opacity: .9; }
-  50% { transform: translate(14px, -40vh); }
-  90% { opacity: .9; }
-  100% { transform: translate(-6px, -80vh); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) { .scene-bubble { display: none; } }
-/* A CPU match plays behind the menu instead (attract.ts). */
-.menu.hub.live { background: rgba(127, 211, 247, .18); }
-.menu.hub.live .hub-scene { display: none; }
-.menu.hub.live .hub-footer a, .menu.hub.live .hub-version { background: var(--paper); }
-
 /* ---------- Lobby: balanced columns ---------- */
 .lobby .dash { align-self: stretch; }
 .dash .dash-buttons { margin-top: auto; }
@@ -1033,7 +1005,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .account-split { grid-template-columns: minmax(0, 1fr); padding: 14px; }
 }
 @media (max-height: 500px) and (min-width: 600px) {
-  .hub-scene { display: none; }
   .account-split { gap: 14px; padding: 12px; }
   .account-pitch .account-art svg { width: 90px; }
   .account-pitch .dash-perks { font-size: 13px; }
@@ -1079,3 +1050,143 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dash-goal-info b { font-family: var(--title); font-weight: normal; font-size: 20px; line-height: 1.1; }
 .dash-goal-label { font-size: 12px; font-weight: 800; }
 @media (max-height: 500px) and (min-width: 600px) { .dash-goal-art, .dash-goal-art svg { width: 52px; } .dash-goal-info b { font-size: 16px; } }
+
+/* ---------- Shop: one box size for every tab, the catalogue scrolls inside ---------- */
+@media (min-width: 981px), (max-height: 500px) and (min-width: 600px) {
+  .hub[data-tab='shop'] .hub-page { flex: 1 1 0; min-height: 520px; }
+  .hub[data-tab='shop'] .page-shop { flex: 1 1 0; min-height: 0; margin: 0; grid-template-rows: minmax(0, 1fr); }
+  .shop-main { height: 100%; min-height: 0; overflow: hidden; }
+  .shop-body { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 8px 2px; margin: -4px -6px 0 -2px; }
+}
+@media (min-width: 981px), (max-height: 500px) and (min-width: 600px) {
+  /* The stage panel never runs past the box either. */
+  .hub[data-tab='shop'] .shop-side { position: static; max-height: 100%; overflow-y: auto; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  /* Every pixel of a landscape phone goes to the shop; the links are on the other pages. */
+  .hub[data-tab='shop'] .hub-page { min-height: 0; padding-bottom: 10px; }
+  .hub[data-tab='shop'] .hub-footer { display: none; }
+}
+.shop-body { display: flex; flex-direction: column; gap: 14px; }
+.shop-body > * { flex-shrink: 0; }
+
+/* ---------- Shop: featured banner ---------- */
+.shop-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 4px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 5px 0 var(--ink);
+  background:
+    radial-gradient(circle at 10% 50%, rgba(255, 248, 236, .9) 0 12%, transparent 26%),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 18px, transparent 18px 36px),
+    linear-gradient(120deg, var(--sky-deep), #9b7bff 55%, #ff7eb6);
+  overflow: hidden;
+}
+.banner-hero svg { width: 150px; height: auto; display: block; animation: bob 1.6s ease-in-out infinite; }
+.banner-hero .shop-weapon-icon { font-size: 80px; }
+.banner-text { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; color: #fff; min-width: 0; }
+.banner-kicker { font-weight: 800; font-size: 13px; background: var(--ink); border-radius: 999px; padding: 2px 10px; }
+.banner-title { font-family: var(--title); font-weight: normal; font-size: 34px; line-height: 1.05; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink); }
+.banner-sub { font-weight: 800; color: var(--ink); background: rgba(255, 248, 236, .9); border: 2px solid var(--ink); border-radius: 10px; padding: 2px 10px; }
+.banner-go { font-size: 18px; padding: 6px 16px; margin-top: 4px; }
+.banner-minis { display: flex; gap: 10px; }
+.banner-mini { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 108px; padding: 6px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 3px 0 var(--ink); font: inherit; color: inherit; }
+.banner-mini .rarity { align-self: flex-start; }
+.banner-mini-art svg { width: 70px; height: auto; display: block; }
+.banner-mini-art .shop-weapon-icon { font-size: 36px; }
+.banner-mini-name { font-weight: 800; font-size: 12px; text-align: center; line-height: 1.1; }
+.banner-mini .shop-price { font-size: 12px; }
+
+/* ---------- Shop: coin packs ---------- */
+.coins-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.coins-head h3 { margin: 0; font-family: var(--title); font-weight: normal; font-size: 26px; letter-spacing: .5px; }
+.coins-head > span:last-child { font-size: 13px; font-weight: 700; }
+.coins-head-icon svg { width: 34px; height: 34px; display: block; }
+.coin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; padding-top: 10px; }
+.coin-pack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px 0;
+  border: 4px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 5px 0 var(--ink);
+  background: radial-gradient(circle at 50% 30%, #fffdf2, #ffe9a8 80%);
+  overflow: visible;
+  transition: transform .08s;
+}
+.coin-pack:hover { transform: translateY(-3px); }
+.coin-pack.on { background: radial-gradient(circle at 50% 30%, #fff, var(--accent) 80%); outline: 4px solid var(--red); outline-offset: 2px; }
+.pack-tag {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  white-space: nowrap;
+  font-family: var(--title);
+  font-size: 15px;
+  letter-spacing: .5px;
+  color: #fff;
+  background: var(--red);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 12px;
+  -webkit-text-stroke: .8px var(--ink);
+  paint-order: stroke fill;
+}
+.pack-art svg { width: 120px; height: auto; display: block; }
+.coin-pack:hover .pack-art svg { animation: bob 1.2s ease-in-out infinite; }
+.pack-name { font-weight: 800; font-size: 14px; }
+.coin-pack .pack-coins { font-family: var(--title); font-weight: normal; font-size: 30px; line-height: 1; }
+.pack-examples { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 58px; }
+.pack-eg { font-size: 11px; font-weight: 800; opacity: .75; }
+.pack-eg-row { display: flex; gap: 2px; }
+.pack-eg-item svg { width: 44px; height: auto; display: block; }
+.pack-eg-item .shop-weapon-icon { font-size: 26px; }
+.coin-pack .pack-price {
+  align-self: stretch;
+  margin: 6px -10px 0;
+  padding: 8px 0;
+  font-family: var(--body);
+  font-weight: 800;
+  font-size: 24px;
+  color: #fff;
+  background: var(--moss);
+  border-top: 4px solid var(--ink);
+  border-radius: 0 0 16px 16px;
+  -webkit-text-stroke: 1px var(--ink);
+  paint-order: stroke fill;
+}
+.coin-checkout { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; }
+.coin-checkout > b { flex-basis: 100%; font-size: 16px; }
+.coin-checkout .account-check { flex: 1 1 320px; }
+.coins-pick { margin: 0; text-align: center; font-weight: 800; }
+.coin-trust { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.coin-trust li { font-size: 13px; font-weight: 800; border: 2.5px solid var(--ink); border-radius: 999px; background: #ddf5cf; padding: 3px 12px; }
+
+@media (max-width: 1240px) {
+  .shop-banner { grid-template-columns: auto minmax(0, 1fr); }
+  .banner-minis { grid-column: 1 / -1; justify-content: center; }
+}
+@media (max-width: 600px) {
+  .shop-banner { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+  .banner-text { align-items: center; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  .shop-banner { grid-template-columns: auto minmax(0, 1fr); padding: 8px 10px; gap: 10px; }
+  .banner-hero svg { width: 80px; }
+  .banner-title { font-size: 22px; }
+  .banner-minis, .banner-sub { display: none; }
+  .banner-go { font-size: 15px; padding: 3px 12px; }
+  .coin-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .pack-art svg { width: 80px; }
+  .coin-pack .pack-coins { font-size: 22px; }
+  .coin-pack .pack-price { font-size: 18px; padding: 4px 0; }
+  .pack-eg-item svg { width: 32px; }
+}
