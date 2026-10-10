@@ -9,6 +9,7 @@ import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
 import { compact } from './dashboard';
+import { LEGAL } from './account';
 import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
 
 export type HubTab = 'lobby' | 'stats' | 'shop' | 'account';
@@ -47,16 +48,18 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   root.innerHTML = '';
   const shell = el('div', 'menu hub');
   const bar = el('header', 'hub-bar');
+  const barInner = el('div', 'hub-bar-inner');
   const logo = el('button', 'hub-logo');
   logo.setAttribute('aria-label', 'TardiGeddon: lobby');
   const tabs = el('nav', 'seg hub-tabs');
   tabs.setAttribute('aria-label', 'Menu');
   const right = el('div', 'hub-right');
-  bar.append(logo, tabs, right);
+  barInner.append(logo, tabs, right);
+  bar.append(barInner);
   const notice = el('div', 'hub-notice hidden');
   notice.setAttribute('role', 'status');
   const page = el('main', 'hub-page');
-  shell.append(bar, notice, page);
+  shell.append(scene(), bar, notice, page, footer());
   root.append(shell);
 
   let status = '';
@@ -181,4 +184,43 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   const off = onAccountChange(render);
   render();
   return { go };
+}
+
+/** Cartoon hills, water and rising bubbles behind the menu (decoration only). */
+function scene(): HTMLElement {
+  const box = el('div', 'hub-scene');
+  box.setAttribute('aria-hidden', 'true');
+  box.innerHTML = `
+    <svg class="scene-hills" viewBox="0 0 1600 300" preserveAspectRatio="none">
+      <path d="M0 170 C160 90 300 110 420 150 S700 60 860 120 S1150 170 1300 100 S1520 90 1600 130 V300 H0 Z" fill="#9fd8b0" stroke="#2b1b24" stroke-width="4"/>
+      <path d="M0 220 C120 170 260 180 380 210 S640 150 820 195 S1100 230 1240 180 S1480 170 1600 205 V300 H0 Z" fill="#6fbf8a" stroke="#2b1b24" stroke-width="4"/>
+      <path d="M0 262 Q100 250 200 262 T400 262 T600 262 T800 262 T1000 262 T1200 262 T1400 262 T1600 262 V300 H0 Z" fill="#2f86d6" stroke="#2b1b24" stroke-width="4"/>
+    </svg>
+    ${Array.from({ length: 10 }, (_, i) => `<span class="scene-bubble" style="--i:${i}"></span>`).join('')}`;
+  return box;
+}
+
+declare const __APP_VERSION__: string;
+
+/** Links to the legal pages, support and the game's version. */
+function footer(): HTMLElement {
+  const f = el('footer', 'hub-footer');
+  const link = (href: string, text: string) => {
+    const a = el('a', '', text);
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    return a;
+  };
+  f.append(
+    link('https://tardigeddon.com/', 'tardigeddon.com'),
+    link(LEGAL + 'terms-of-service', 'Terms'),
+    link(LEGAL + 'privacy-policy', 'Privacy'),
+    link(LEGAL + 'cookie-policy', 'Cookies'),
+    link(LEGAL + 'childrens-privacy', "Children's privacy"),
+    link(LEGAL + 'community-guidelines', 'Community'),
+    link('mailto:support@tardigeddon.com', 'Support'),
+    el('span', 'hub-version', `v${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'}`),
+  );
+  return f;
 }

@@ -73,6 +73,13 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
     side.append(wallet);
   }
   side.append(stage(me, ctx, state));
+  if (!me.user) {
+    const cta = el('div', 'shop-cta');
+    const b = el('button', 'big-btn', 'Sign in to start collecting');
+    b.onclick = () => ctx.go('account');
+    cta.append(el('p', '', 'Earn Slime every game you play, unlock weapons and looks, and keep them on every device.'), b);
+    side.append(cta);
+  }
   side.append(el('p', 'shop-fair', '✅ Fair play: coins only buy looks. Weapons are unlocked with Slime, which you earn by playing.'));
   if (me.shop && me.user) {
     const manage = el('button', 'hud-btn shop-manage', '🧾 Purchases & receipts');

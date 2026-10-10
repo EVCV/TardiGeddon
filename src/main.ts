@@ -6,6 +6,7 @@ import { enforceLandscape } from './ui/landscape';
 import { myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
+import { Attract, wantsAttract } from './attract';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
@@ -48,23 +49,34 @@ async function boot(): Promise<void> {
   let current: Match | null = null;
   let hub = null as Hub | null; // set by menu()
 
+  // Big screens: a CPU match plays behind the menu (see attract.ts).
+  let attract: Attract | null = null;
+  const stopAttract = () => {
+    attract?.stop();
+    attract = null;
+  };
   const menu = () => {
     current?.destroy();
     current = null;
     hub = showHub(ui, (setup) => start(setup), () => online());
+    if (!attract && wantsAttract()) attract = new Attract(app);
+    ui.querySelector('.hub')?.classList.toggle('live', attract !== null);
   };
   const start = (setup: MatchSetup) => {
+    stopAttract();
     current?.destroy();
     ui.innerHTML = '';
     unlockAudio();
     current = new Match(app, ui, { kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
   };
   const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
+    stopAttract();
     current?.destroy();
     current = null;
     showOnline(ui, { onBack: menu, onStart: startOnline }, opts);
   };
   const startOnline = (client: NetClient, ls: Lockstep) => {
+    stopAttract();
     current?.destroy();
     ui.innerHTML = '';
     unlockAudio();

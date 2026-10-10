@@ -7,7 +7,7 @@ import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
 import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
 import { WEAPONS } from '../sim/weapons';
-import { type MeResponse, wearHat, wearSkin, deleteAccount, managePurchases, signIn, signInWith, signOut, signUp } from '../account/session';
+import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, managePurchases, signIn, signInWith, signOut, signUp } from '../account/session';
 import type { HubContext } from './hub';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -18,7 +18,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 }
 
 const PROVIDER_NAMES: Record<string, string> = { google: 'Google', apple: 'Apple' };
-const LEGAL = 'https://tardigeddon.com/legal/';
+export const LEGAL = 'https://tardigeddon.com/legal/';
 
 /** A link to one of the legal pages, opening in a new tab. */
 export function legalLink(slug: string, text: string): HTMLAnchorElement {
@@ -47,12 +47,11 @@ export const newSignInState = (): SignInState => ({ mode: 'signin', draft: { nam
 export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInState): HTMLElement {
   const page = el('div', 'page page-account');
   if (!me.user) {
-    const card = el('section', 'card account-card');
+    // One wide card: your tardi and why to sign in, beside the form.
+    const card = el('section', 'card account-split');
+    const pitch = el('div', 'account-pitch');
     const art = el('div', 'account-art');
     art.innerHTML = myTardi();
-    card.append(art, el('h2', 'card-title', form.mode === 'signup' ? 'Create your account' : 'Welcome back'), signInForm(me.providers, ctx, form));
-    const perks = el('section', 'card account-perks');
-    perks.append(el('h2', 'card-title', 'Why sign in?'));
     const list = el('ul', 'dash-perks');
     for (const t of [
       '📊 Your stats: wins, streaks, pops and own goals',
@@ -61,8 +60,11 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
       '🆓 Free: everything in the game stays playable without one',
     ])
       list.append(el('li', '', t));
-    perks.append(list);
-    page.append(card, perks);
+    pitch.append(art, el('h2', 'card-title', 'Why sign in?'), list);
+    const formBox = el('div', 'account-form-box');
+    formBox.append(el('h2', 'card-title', form.mode === 'signup' ? 'Create your account' : 'Welcome back'), signInForm(me.providers, ctx, form));
+    card.append(pitch, formBox);
+    page.append(card);
     return page;
   }
 
@@ -184,37 +186,40 @@ function signInForm(providers: string[], ctx: HubContext, state: SignInState): H
   return form;
 }
 
-/** The Stats page: lifetime stats, the online/CPU split and your collection. */
+/** The Stats page: lifetime stats, the online/CPU split and your collection.
+ *  Signed out, the same layout shows empty, behind a sign-in card. */
 export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   const page = el('div', 'page page-stats');
-  if (!me.user) {
-    const card = el('section', 'card stats-teaser');
-    const art = el('div', 'account-art');
-    art.innerHTML = myTardi();
-    const go = el('button', 'big-btn', 'Sign in');
-    go.onclick = () => ctx.go('account');
-    card.append(art, el('h2', 'card-title', 'Track your stats'), el('p', '', 'Sign in to count your wins, streaks, pops and own goals, online and against the CPU.'), go);
-    page.append(card);
-    return page;
-  }
+  const s = me.user ? me.stats : null;
+  /** A number, or a dash while signed out. */
+  const v = (f: (s: PlayerStats) => string) => (s ? f(s) : '–');
+  const t = s ? totals(s) : null;
 
-  const s = me.stats;
-  const t = totals(s);
   const head = el('section', 'card stats-head');
   const pic = el('div', 'profile-pic');
   pic.innerHTML = myTardi();
   const who = el('div', 'profile-who');
-  who.append(el('div', 'profile-name', me.user.name));
-  if (s.streak > 1) who.append(el('div', 'dash-streak', `🔥 ${s.streak} wins in a row`));
+  who.append(el('div', 'profile-name', me.user?.name ?? 'You'));
+  if (s && s.streak > 1) who.append(el('div', 'dash-streak', `🔥 ${s.streak} wins in a row`));
   head.append(pic, who);
   const big = el('div', 'stats-big');
-  big.append(statTile(compact(t.won), 'Wins', 'gold'), statTile(t.rate, 'Win rate', 'gold'), statTile(compact(t.played), 'Games'), statTile(compact(s.bestStreak), 'Best streak'));
+  big.append(
+    statTile(t ? compact(t.won) : '–', 'Wins', 'gold'),
+    statTile(t ? t.rate : '–', 'Win rate', 'gold'),
+    statTile(t ? compact(t.played) : '–', 'Games'),
+    statTile(v((s) => compact(s.bestStreak)), 'Best streak'),
+  );
   head.append(big);
 
   const fight = el('section', 'card');
   fight.append(el('h2', 'card-title', 'Combat'));
   const g1 = el('div', 'stats-grid');
-  g1.append(statTile(compact(s.popped), '💥 Tardis popped'), statTile(compact(s.damage), 'Damage dealt'), statTile(compact(s.selfPopped), '🤦 Own goals'), statTile(compact(s.selfDamage), 'Hurt yourself'));
+  g1.append(
+    statTile(v((s) => compact(s.popped)), '💥 Tardis popped'),
+    statTile(v((s) => compact(s.damage)), 'Damage dealt'),
+    statTile(v((s) => compact(s.selfPopped)), '🤦 Own goals'),
+    statTile(v((s) => compact(s.selfDamage)), 'Hurt yourself'),
+  );
   fight.append(g1);
 
   const modes = el('section', 'card');
@@ -222,19 +227,19 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   const g2 = el('div', 'stats-grid');
   const rate = (w: number, p: number) => (p ? `${Math.round((w / p) * 100)}%` : '–');
   g2.append(
-    statTile(`${compact(s.onlineWon)}/${compact(s.onlinePlayed)}`, '🌍 Online won'),
-    statTile(rate(s.onlineWon, s.onlinePlayed), 'Online win rate'),
-    statTile(`${compact(s.cpuWon)}/${compact(s.cpuPlayed)}`, '🤖 vs CPU won'),
-    statTile(rate(s.cpuWon, s.cpuPlayed), 'CPU win rate'),
+    statTile(v((s) => `${compact(s.onlineWon)}/${compact(s.onlinePlayed)}`), '🌍 Online won'),
+    statTile(v((s) => rate(s.onlineWon, s.onlinePlayed)), 'Online win rate'),
+    statTile(v((s) => `${compact(s.cpuWon)}/${compact(s.cpuPlayed)}`), '🤖 vs CPU won'),
+    statTile(v((s) => rate(s.cpuWon, s.cpuPlayed)), 'CPU win rate'),
   );
   modes.append(g2);
-  if (!t.played) modes.append(el('p', 'account-note', 'Stats count online games, and one-on-one games against the CPU, played while signed in.'));
+  if (t && !t.played) modes.append(el('p', 'account-note', 'Stats count online games, and one-on-one games against the CPU, played while signed in.'));
 
   const coll = el('section', 'card stats-collection');
   const mine = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
-  coll.append(el('h2', 'card-title', `Collection · ${mine.length}/${SHOP_ITEMS.length}`));
+  coll.append(el('h2', 'card-title', `Collection · ${me.user ? mine.length : 0}/${SHOP_ITEMS.length}`));
   const team = loadProfiles()[0];
-  if (mine.length) {
+  if (me.user && mine.length) {
     const grid = el('div', 'collection-grid');
     for (const item of mine) {
       const c = el('div', 'hat-btn');
@@ -249,12 +254,24 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
     }
     coll.append(grid, el('p', 'account-note', 'Wear hats and skins from the ✎ team editor in the lobby; unlocked weapons appear in the matches you start.'));
   } else {
-    const p = el('p', 'account-note', 'Nothing unlocked yet. ');
+    const p = el('p', 'account-note', me.user ? 'Nothing unlocked yet. ' : 'Hats, skins and weapons you unlock show up here. ');
     const go = el('button', 'link-btn', 'Have a look in the shop');
     go.onclick = () => ctx.go('shop');
     p.append(go);
     coll.append(p);
   }
   page.append(head, fight, modes, coll);
-  return page;
+  if (me.user) return page;
+
+  // Signed out: the empty layout, faded, with a sign-in card on top.
+  page.classList.add('locked');
+  page.setAttribute('aria-hidden', 'true');
+  page.inert = true;
+  const wrap = el('div', 'page stats-locked');
+  const card = el('section', 'card stats-teaser');
+  const go = el('button', 'big-btn', 'Sign in');
+  go.onclick = () => ctx.go('account');
+  card.append(el('h2', 'card-title', 'Track your stats'), el('p', '', 'Sign in to count your wins, streaks, pops and own goals, online and against the CPU.'), go);
+  wrap.append(page, card);
+  return wrap;
 }
