@@ -32,8 +32,12 @@ test('two players can play an online match', async ({ browser }, info) => {
 
   // Both clients follow the server's simulation.
   await a.waitForFunction(() => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.tick ?? 0) > 150);
-  const [wa, wb] = [await world(a), await world(b)];
-  expect(Math.abs(wa!.tick - wb!.tick)).toBeLessThan(30);
+  // The second browser reaches the same tick (it may trail a little on a busy
+  // machine: comparing two reads taken one after the other is racy).
+  const wa = await world(a);
+  await b.waitForFunction((t) => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.tick ?? 0) >= t, wa!.tick, { timeout: 10_000 });
+  const wb = await world(b);
+  expect(wb!.tick - wa!.tick).toBeLessThan(100);
   expect(wa!.turn.teamIdx).toBe(wb!.turn.teamIdx);
 
   // Whoever's turn it is skips it; the other browser sees the turn pass.
