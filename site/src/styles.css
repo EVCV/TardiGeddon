@@ -25,7 +25,7 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; overflow-x: clip; }
 body {
   margin: 0;
   font-family: var(--body);
@@ -36,6 +36,7 @@ body {
   background: linear-gradient(var(--sky) 0, var(--sky-light) 900px, var(--sky-light));
   min-height: 100vh;
   overflow-x: hidden;
+  overflow-x: clip; /* never let anything widen the page (phones would zoom out) */
 }
 img, video { max-width: 100%; height: auto; display: block; }
 a { color: var(--blue); font-weight: 800; }
@@ -130,6 +131,7 @@ h1, h2, h3 { line-height: 1.1; }
   box-shadow: 0 4px 0 var(--ink);
   padding: 4px 14px 2px 8px;
 }
+.site-header .btn { flex-shrink: 0; }
 .brand-mascot svg { width: 46px; }
 .brand-name { font-family: var(--title); font-size: 22px; color: var(--red); padding-top: 3px; }
 
@@ -146,7 +148,7 @@ h1, h2, h3 { line-height: 1.1; }
 }
 .hero-mascot { display: block; margin: 0 auto -8px; width: clamp(150px, 30vw, 230px); }
 .hero-mascot svg { width: 100%; overflow: visible; }
-.hero-title { font-size: clamp(54px, 13vw, 108px); -webkit-text-stroke-width: 3px; text-shadow: 0 6px 0 var(--ink); }
+.hero-title { font-size: clamp(40px, 13vw, 108px); max-width: 100%; -webkit-text-stroke-width: 3px; text-shadow: 0 6px 0 var(--ink); }
 .hero-tagline { font-weight: 800; font-size: clamp(20px, 3vw, 28px); margin: 12px 0 0; }
 .hero-pitch { font-size: clamp(17px, 2vw, 19px); max-width: 34em; margin: 0 auto 26px; }
 .hero-actions { display: grid; justify-items: center; gap: 14px; }
@@ -317,6 +319,12 @@ h1, h2, h3 { line-height: 1.1; }
 @media (max-width: 420px) {
   .brand-mascot { display: none; }
   .brand { padding-left: 12px; }
+}
+
+/* Smallest phones (and big zoom): drop the Beta badge so the brand and Play fit side by side. */
+@media (max-width: 370px) {
+  .beta-tag { display: none; }
+  .site-header .btn-small { font-size: 16px; padding: 9px 12px 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
