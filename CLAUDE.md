@@ -28,6 +28,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - `server/accounts.ts` + `src/account/` + `src/shop/` — optional accounts (Better Auth on Neon Postgres) and the
   Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
+  `src/attract.ts` runs a CPU match behind the menu on big screens (planning in `ai/planWorker.ts`).
   Runs on one machine only (host), so it may use non-deterministic code.
 - Weapons are data in `src/sim/weapons.ts`.
 

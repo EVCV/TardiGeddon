@@ -88,6 +88,9 @@ export function savedScheme(): { style: string; custom: Scheme } {
   return { style: v.style, custom: v.custom };
 }
 
+/** Pop-ups go above the whole menu (top bar and footer included), not inside the page. */
+const overlayHost = (fallback: HTMLElement): HTMLElement => document.getElementById('ui') ?? fallback;
+
 export interface Lobby {
   el: HTMLElement;
   /** Redraw what depends on the account (hats owned, stats). */
@@ -187,7 +190,7 @@ export function buildLobby(onStart: (s: MatchSetup) => void, onOnline: (() => vo
       editBtn.textContent = '✎';
       editBtn.setAttribute('aria-label', `Edit ${p.name}`);
       editBtn.onclick = () =>
-        openTeamEditor(root, i, p, (next) => {
+        openTeamEditor(overlayHost(root), i, p, (next) => {
           profiles = updateProfile(profiles, i, next);
           saveProfiles(profiles);
           renderSlots();
@@ -277,7 +280,7 @@ export function buildLobby(onStart: (s: MatchSetup) => void, onOnline: (() => vo
     heroTeam.style.setProperty('--team', hex(p.color));
   };
   root.querySelector<HTMLButtonElement>('.hero-edit')!.onclick = () =>
-    openTeamEditor(root, 0, profiles[0], (next) => {
+    openTeamEditor(overlayHost(root), 0, profiles[0], (next) => {
       profiles = updateProfile(profiles, 0, next);
       saveProfiles(profiles);
       renderSlots();

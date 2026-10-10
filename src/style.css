@@ -572,13 +572,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: sticky;
   top: 0;
   z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px calc(16px + var(--safe-r)) 10px calc(16px + var(--safe-l));
+  padding: 10px var(--safe-r) 10px var(--safe-l);
   background: var(--paper);
   border-bottom: 4px solid var(--ink);
 }
+/* Lined up with the page below: same width, same edges. */
+.hub-bar-inner { display: flex; align-items: center; gap: 12px; max-width: 1240px; margin: 0 auto; padding: 0 16px; }
 .hub-logo {
   flex: none;
   display: flex;
@@ -892,7 +891,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .shop-stage-info, .shop-stage-action { align-items: flex-start; }
 }
 @media (max-width: 720px) {
-  .hub-bar { flex-wrap: wrap; gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+  .hub-bar { padding-top: 8px; padding-bottom: 8px; }
+  .hub-bar-inner { flex-wrap: wrap; gap: 8px; }
   .hub-tabs { order: 3; width: 100%; justify-content: space-between; }
   .hub-tabs .seg-btn { flex: 1; justify-content: center; padding: 6px 4px; }
   .hub-right { margin-left: auto; }
@@ -905,7 +905,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* Landscape phones: three columns (team | match setup | play + career), compact bar. */
 @media (max-height: 500px) and (min-width: 600px) {
-  .hub-bar { padding-top: 5px; padding-bottom: 5px; gap: 8px; }
+  .hub-bar { padding-top: 5px; padding-bottom: 5px; }
+  .hub-bar-inner { gap: 8px; }
   .hub-logo { height: 38px; }
   .hub-logo-pic svg { width: 36px; }
   .seg-btn { padding: 4px 10px; font-size: 14px; }
@@ -948,3 +949,133 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .shop-card-art svg { width: 70px; }
   .shop-card-art { min-height: 60px; }
 }
+
+/* ---------- Hub: page flow, footer, background scene ---------- */
+.menu.hub { display: flex; flex-direction: column; }
+.hub-bar, .hub-notice, .hub-footer { flex: none; }
+/* Pages shorter than the screen sit in the middle of it, not stuck to the top. */
+.hub-page { flex: 1 0 auto; width: 100%; display: flex; flex-direction: column; position: relative; z-index: 1; }
+.hub-page > * { margin-top: auto; margin-bottom: auto; width: 100%; }
+.hub-notice { position: relative; z-index: 2; }
+.hub-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 16px calc(18px + var(--safe-b));
+  font-size: 13px;
+  font-weight: 800;
+}
+.hub-footer a, .hub-version {
+  color: var(--ink);
+  text-decoration: none;
+  background: rgba(255, 248, 236, .85);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.hub-footer a:hover { background: var(--accent); }
+.hub-version { opacity: .7; }
+
+.hub-scene { position: fixed; left: 0; right: 0; bottom: 0; height: 26vh; min-height: 140px; pointer-events: none; z-index: 0; overflow: hidden; }
+.scene-hills { position: absolute; left: -8px; right: -8px; bottom: -6px; width: calc(100% + 16px); height: 100%; }
+.scene-bubble {
+  position: absolute;
+  bottom: 4%;
+  left: calc(4% + var(--i) * 9.6%);
+  width: calc(10px + (var(--i) * 7 % 4) * 6px);
+  aspect-ratio: 1;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0 18%, rgba(255, 255, 255, .35) 22%);
+  opacity: 0;
+  animation: bubble-up calc(9s + (var(--i) * 5 % 7) * 1s) linear infinite;
+  animation-delay: calc(var(--i) * -1.7s);
+}
+@keyframes bubble-up {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: .9; }
+  50% { transform: translate(14px, -40vh); }
+  90% { opacity: .9; }
+  100% { transform: translate(-6px, -80vh); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .scene-bubble { display: none; } }
+/* A CPU match plays behind the menu instead (attract.ts). */
+.menu.hub.live { background: rgba(127, 211, 247, .18); }
+.menu.hub.live .hub-scene { display: none; }
+.menu.hub.live .hub-footer a, .menu.hub.live .hub-version { background: var(--paper); }
+
+/* ---------- Lobby: balanced columns ---------- */
+.lobby .dash { align-self: stretch; }
+.dash .dash-buttons { margin-top: auto; }
+
+/* ---------- Signed-out Account and Stats ---------- */
+.account-split { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: center; padding: 22px 26px; }
+.account-pitch { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 12px; border: 3px solid var(--ink); border-radius: 18px; background: radial-gradient(circle at 50% 30%, #d9f3ff, var(--sky) 75%); }
+.account-pitch .account-art svg { width: 170px; }
+.account-pitch .dash-perks { text-align: left; background: var(--paper); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 14px; }
+.account-form-box { display: flex; flex-direction: column; align-items: stretch; text-align: center; }
+.stats-locked { position: relative; display: grid; }
+.stats-locked > * { grid-area: 1 / 1; }
+.page-stats.locked { pointer-events: none; user-select: none; }
+.page-stats.locked .card > * { opacity: .35; filter: saturate(.5); }
+.stats-locked > .stats-teaser { align-self: center; justify-self: center; z-index: 1; box-shadow: 0 10px 0 var(--ink); max-width: 460px; }
+.shop-cta { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; text-align: center; }
+.shop-cta p { margin: 0; font-size: 13px; font-weight: 700; }
+.shop-cta .big-btn { font-size: 17px; padding: 8px 12px; }
+
+@media (max-width: 720px) {
+  .account-split { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  .hub-scene { display: none; }
+  .account-split { gap: 14px; padding: 12px; }
+  .account-pitch .account-art svg { width: 90px; }
+  .account-pitch .dash-perks { font-size: 13px; }
+}
+
+/* ---------- Big screens ---------- */
+@media (min-width: 1500px) {
+  .hub-bar-inner, .hub-footer, .hub-page, .hub-notice { max-width: 1480px; }
+  /* Lobby in three columns: your team + Play | match setup | career. */
+  .lobby, .lobby.solo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-areas: 'hero setup career' 'play setup career';
+    grid-template-rows: auto 1fr;
+  }
+  .lobby.solo { grid-template-areas: 'hero setup setup' 'play setup setup'; }
+  .lobby-hero { flex-direction: column; text-align: center; align-self: stretch; justify-content: center; }
+  .lobby-hero .hero-text { text-align: center; }
+  .lobby .title { font-size: 54px; }
+  .lobby-setup { align-self: stretch; }
+  /* Room for the full rules: show them instead of hiding them behind Customise. */
+  .lobby .custom-panel.hidden { display: grid !important; }
+  .lobby .customise { display: none; }
+  .dash-teaser { justify-content: center; }
+  .lobby-play { align-self: stretch; }
+  .page-shop { grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); }
+  .shop-stage-art svg { width: 200px; }
+}
+/* Scale the whole menu up with the screen: text, borders, shadows and all. */
+@media (min-width: 1700px) and (min-height: 820px) {
+  .hub-bar-inner, .hub-notice, .hub-page, .hub-footer { zoom: 1.08; }
+}
+@media (min-width: 1900px) and (min-height: 900px) {
+  .hub-bar-inner, .hub-notice, .hub-page, .hub-footer { zoom: 1.15; }
+}
+@media (min-width: 2300px) and (min-height: 1100px) {
+  .hub-bar-inner, .hub-notice, .hub-page, .hub-footer { zoom: 1.4; }
+}
+.dash-goal { display: flex; align-items: center; gap: 12px; border: 3px solid var(--ink); border-radius: 16px; background: #ddf5cf; padding: 8px 12px; text-align: left; box-shadow: 0 3px 0 var(--ink); }
+.dash-goal-art { flex: none; width: 76px; display: flex; justify-content: center; }
+.dash-goal-art svg { width: 76px; height: auto; display: block; }
+.dash-goal-art .shop-weapon-icon { font-size: 44px; }
+.dash-goal-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.dash-goal-info b { font-family: var(--title); font-weight: normal; font-size: 20px; line-height: 1.1; }
+.dash-goal-label { font-size: 12px; font-weight: 800; }
+@media (max-height: 500px) and (min-width: 600px) { .dash-goal-art, .dash-goal-art svg { width: 52px; } .dash-goal-info b { font-size: 16px; } }

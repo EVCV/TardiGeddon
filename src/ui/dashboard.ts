@@ -4,7 +4,8 @@
 
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
-import { SHOP_ITEMS } from '../shop/catalog';
+import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
+import { WEAPONS } from '../sim/weapons';
 import { account, wearHat, wearSkin, type PlayerStats } from '../account/session';
 import type { HubTab } from './hub';
 
@@ -95,6 +96,34 @@ export function renderDashboard(box: HTMLElement, go: (tab: HubTab) => void): vo
   buttons.append(stats, shop);
 
   box.append(head, grid, coll);
+
+  // The next thing Slime can unlock: the cheapest Slime item not owned yet.
+  const next = SHOP_ITEMS.filter((i) => i.slime !== undefined && !me.owned.includes(i.id)).sort((a, b) => a.slime! - b.slime!)[0];
+  if (next) {
+    const goal = el('button', 'dash-goal');
+    goal.setAttribute('aria-label', `Next Slime unlock: ${next.name}`);
+    goal.onclick = () => go('shop');
+    const art = el('span', 'dash-goal-art');
+    art.innerHTML =
+      next.kind === 'weapon'
+        ? `<span class="shop-weapon-icon">${WEAPONS[next.ref]?.icon ?? '💥'}</span>`
+        : mascotSvg(team.color, next.kind === 'hat' ? next.ref : wearHat(team.hat), next.kind === 'skin' ? next.ref : wearSkin(team.skin));
+    const info = el('span', 'dash-goal-info');
+    const have = me.wallet.slime;
+    const ready = have >= next.slime!;
+    const gbar = el('span', 'dash-bar');
+    const gfill = el('span', 'dash-bar-fill');
+    gfill.style.width = `${Math.min(100, Math.round((have / next.slime!) * 100))}%`;
+    gbar.append(gfill);
+    info.append(
+      el('span', 'dash-goal-label', 'Next Slime unlock'),
+      el('b', '', next.name),
+      gbar,
+      el('span', 'dash-goal-label', ready ? '✅ Ready to unlock in the shop!' : `🟢 ${formatNumber(have)} / ${formatNumber(next.slime!)} Slime`),
+    );
+    goal.append(art, info);
+    box.append(goal);
+  }
   if (!t.played) box.append(el('p', 'dash-note', 'Play online, or one-on-one against the CPU, to fill these in.'));
   box.append(buttons);
 }

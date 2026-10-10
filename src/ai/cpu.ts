@@ -14,7 +14,7 @@ export type CpuSkill = 'easy' | 'normal' | 'hard' | 'perfect';
  * off that spot tends to be. It also only half-reads the wind, has shaky
  * hands, and now and then just lets rip at nothing in particular.
  */
-interface SkillDef {
+export interface SkillDef {
   /** Typical miss distance (px) from the tardi it is aiming at. */
   spread: number;
   /** How much of the real wind it allows for (0 = ignores wind). */
@@ -26,7 +26,7 @@ interface SkillDef {
   wild: number;
 }
 
-const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
+export const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
   easy: { spread: 200, windSense: 0.3, powerErr: 30, aimErr: 1, wild: 0.15 },
   normal: { spread: 45, windSense: 0.85, powerErr: 0, aimErr: 0, wild: 0.03 },
   hard: { spread: 25, windSense: 0.95, powerErr: 0, aimErr: 0, wild: 0 },
@@ -46,7 +46,7 @@ function gauss(): number {
   return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
 }
 
-interface Plan {
+export interface Plan {
   weapon: string;
   facing: 1 | -1;
   aim: number;
@@ -56,17 +56,29 @@ interface Plan {
   target?: { x: number; y: number };
 }
 
+/**
+ * Works out a plan somewhere else (e.g. a Web Worker), so the page doesn't
+ * stall while the CPU thinks. Only for display-only matches: a plan that
+ * arrives later than usual changes when the CPU acts.
+ */
+export type Planner = (s: WorldState, skill: CpuSkill) => Promise<Plan | null>;
+
 export class CpuPlayer {
   private plan: Plan | null = null;
   private planTurn = -1;
   private think = 0;
+  /** Waiting for the planner's answer. */
+  private pending = false;
   private step: 'face' | 'weapon' | 'aim' | 'fuse' | 'charge' | 'done' = 'face';
   private tapped = false;
 
   private readonly skill: SkillDef;
 
-  constructor(skill: CpuSkill = 'normal') {
-    this.skill = SKILL_DEFS[skill] ?? SKILL_DEFS.normal;
+  constructor(
+    private readonly skillId: CpuSkill = 'normal',
+    private readonly planner?: Planner,
+  ) {
+    this.skill = SKILL_DEFS[skillId] ?? SKILL_DEFS.normal;
   }
 
   next(s: WorldState): InputFrame {
@@ -77,12 +89,22 @@ export class CpuPlayer {
 
     if (this.planTurn !== turn.turnNumber) {
       this.planTurn = turn.turnNumber;
-      this.plan = choosePlan(s, this.skill);
       this.think = 40;
       this.step = 'face';
+      if (this.planner) {
+        const n = turn.turnNumber;
+        this.plan = null;
+        this.pending = true;
+        const done = (p: Plan | null) => {
+          if (this.planTurn !== n) return;
+          this.plan = p;
+          this.pending = false;
+        };
+        this.planner(s, this.skillId).then(done, () => done(null));
+      } else this.plan = choosePlan(s, this.skill);
     }
-    if (this.think > 0) {
-      this.think--;
+    if (this.think > 0 || this.pending) {
+      if (this.think > 0) this.think--;
       return EMPTY_INPUT;
     }
     const p = this.plan;
@@ -143,7 +165,7 @@ interface Candidate {
   ownGoal: boolean;
 }
 
-function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
+export function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
   const me = activeTardi(s);
   if (!me) return null;
   const sim = cloneWorld(s);
