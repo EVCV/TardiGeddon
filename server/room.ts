@@ -5,7 +5,8 @@
 
 import { createWorld, DEFAULT_NAMES, MAX_TEAMS, tick, type TeamConfig } from '../src/sim/world';
 import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../src/sim/types';
-import { WEAPONS } from '../src/sim/weapons';
+import { randomBytes } from 'node:crypto';
+import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
@@ -41,7 +42,12 @@ interface Slot {
   token: string;
   queue: InputFrame[];
   held: number;
+  /** Ticks of the current match this human spent disconnected (the CPU played for them). */
+  absent: number;
 }
+
+/** Players away for more than this share of a match earn nothing from it, even if they rejoin. */
+const MAX_ABSENT_SHARE = 0.25;
 
 const DEFAULT_TARDI_NAMES = ['Waddles', 'Tun', 'Mossy', 'Pudge'];
 
@@ -110,7 +116,7 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   if (v.weapons && typeof v.weapons === 'object') {
     const w: Record<string, number> = {};
     for (const [id, n] of Object.entries(v.weapons as Record<string, unknown>)) {
-      if (WEAPONS[id] && !WEAPONS[id].hidden && typeof n === 'number' && Number.isInteger(n) && n >= -1 && n <= 99) w[id] = n;
+      if (isWeaponId(id) && !WEAPONS[id].hidden && typeof n === 'number' && Number.isInteger(n) && n >= -1 && n <= 99) w[id] = n;
     }
     out.weapons = w;
   }
@@ -124,7 +130,7 @@ export function cleanFrame(raw: unknown): InputFrame {
   const c = raw[2] as Record<string, unknown> | undefined;
   if (!c || typeof c !== 'object') return f;
   const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
-  if (c.t === 'weapon' && typeof c.id === 'string' && c.id.length <= 20) f.cmd = { t: 'weapon', id: c.id };
+  if (c.t === 'weapon' && typeof c.id === 'string' && isWeaponId(c.id)) f.cmd = { t: 'weapon', id: c.id };
   else if (c.t === 'fuse' && finite(c.s)) f.cmd = { t: 'fuse', s: c.s as number };
   else if (c.t === 'target' && finite(c.x) && finite(c.y)) f.cmd = { t: 'target', x: Math.round(c.x as number), y: Math.round(c.y as number) };
   else if (c.t === 'aim' && finite(c.aim) && (c.facing === 1 || c.facing === -1)) f.cmd = { t: 'aim', facing: c.facing, aim: c.aim as number };
@@ -132,8 +138,9 @@ export function cleanFrame(raw: unknown): InputFrame {
   return f;
 }
 
+/** A rejoin token: secret, so nobody can take over a dropped player's slot. */
 function randomToken(): string {
-  return Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+  return randomBytes(16).toString('base64url');
 }
 
 export class Room {
@@ -164,6 +171,11 @@ export class Room {
 
   get world(): WorldState | null {
     return this.state;
+  }
+
+  /** Everyone connected to this room. */
+  get members(): Member[] {
+    return this.slots.flatMap((s) => (s.member ? [s.member] : []));
   }
 
   get humansConnected(): number {
@@ -257,6 +269,7 @@ export class Room {
   step(): void {
     const s = this.state;
     if (!s) return;
+    for (const sl of this.slots) if (!sl.cpu && !sl.member) sl.absent++;
     const ti = s.turn.teamIdx;
     if (ti !== this.lastTeam) {
       // New turn: forget anything queued during the previous one.
@@ -289,9 +302,18 @@ export class Room {
     }
     if (s.turn.phase === 'gameover') {
       this.flush();
-      const results: MatchResult[] = this.slots.flatMap((sl, i) =>
-        sl.userId && !sl.cpu ? [{ userId: sl.userId, mode: 'online' as const, won: s.turn.winner === i, ...this.tally!.teams[i] }] : [],
-      );
+      // Signed-in players here at the end who played most of the match, each account
+      // once (two tabs don't pay twice; leaving, or rejoining just for the end, pays nothing).
+      const seen = new Set<string>();
+      const paid = this.slots.flatMap((sl, i) => {
+        if (!sl.userId || sl.cpu || !sl.member || sl.absent > s.tick * MAX_ABSENT_SHARE || seen.has(sl.userId)) return [];
+        seen.add(sl.userId);
+        return [{ i, userId: sl.userId }];
+      });
+      // The online Slime rate needs two or more different accounts playing each
+      // other; against the CPU or guests it pays the CPU rate, under its daily cap.
+      const slime = paid.length >= 2 ? ('online' as const) : ('cpu' as const);
+      const results: MatchResult[] = paid.map(({ i, userId }) => ({ userId, mode: 'online' as const, slime, won: s.turn.winner === i, ...this.tally!.teams[i] }));
       if (results.length) this.onResult?.(results);
       // Back to the lobby for a rematch; disconnected players' slots are freed.
       this.state = null;
@@ -320,7 +342,7 @@ export class Room {
       used.add(alt);
       return alt;
     });
-    const slot: Slot = { team, cpu, member: null, token: randomToken(), queue: [], held: 0 };
+    const slot: Slot = { team, cpu, member: null, token: randomToken(), queue: [], held: 0, absent: 0 };
     this.slots.push(slot);
     return slot;
   }
@@ -332,12 +354,13 @@ export class Room {
   }
 
   private startMatch(rawScheme: unknown, unlocked: string[]): void {
-    this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => WEAPONS[id]?.locked) };
+    this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => isWeaponId(id) && WEAPONS[id].locked) };
     this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();
     this.tally = new MatchTally(this.teams.length);
+    for (const sl of this.slots) sl.absent = 0;
     this.outbox = [];
     this.outFrom = 0;
     this.lastTeam = -1;

@@ -6,6 +6,8 @@ import { enforceLandscape } from './ui/landscape';
 import { myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
+// Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
+import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';

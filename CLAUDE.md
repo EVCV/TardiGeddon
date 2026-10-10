@@ -25,6 +25,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - `src/render/` — PixiJS view of the state; reads state, never writes it. Interpolates between ticks.
 - `src/ui/` — DOM menus/HUD/touch controls. The menu is one hub (`ui/hub.ts`) of pages, not pop-ups: Lobby, Stats, Shop, Account. `src/input/` — keyboard/touch → `InputFrame`.
 - `server/` + `src/net/` — online play: the server runs the sim and streams lockstep input frames; clients replay them.
+- Security: `docs/SECURITY.md` (what is protected and how; the CSP in `site/public/_headers`). Online input is untrusted: validate ids with `isWeaponId`, never `WEAPONS[id]` alone.
 - `server/accounts.ts` + `src/account/` + `src/shop/` — optional accounts (Better Auth on Neon Postgres) and the
   Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
