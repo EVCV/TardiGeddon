@@ -63,6 +63,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   root.append(shell);
 
   let status = '';
+  let previewDismissed = false;
   const shopState = newShopState();
   const signInState = newSignInState();
   let lobby: Lobby | null = null;
@@ -157,12 +158,16 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
     renderBar();
 
     notice.innerHTML = '';
-    notice.classList.toggle('hidden', !status);
-    if (status) {
-      notice.append(el('span', '', status));
+    const shown = status || (me?.preview && !previewDismissed ? "Preview build: accounts and payments aren't connected here, so signing in and buying won't work." : '');
+    notice.classList.toggle('hidden', !shown);
+    if (shown) {
+      notice.append(el('span', '', shown));
       const x = el('button', 'hub-notice-x', '×');
       x.setAttribute('aria-label', 'Dismiss');
-      x.onclick = () => ctx.notify('');
+      x.onclick = () => {
+        if (!status) previewDismissed = true;
+        ctx.notify('');
+      };
       notice.append(x);
     }
 
