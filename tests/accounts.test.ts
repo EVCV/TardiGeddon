@@ -101,6 +101,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(((await r.json()) as { url: string }).url).toContain('checkout.stripe.test');
     const p = checkouts.at(-1)!;
     expect(p.line_items?.[0].price_data?.unit_amount).toBe(199);
+    // EVCV is the seller: Stripe's Managed Payments stays off unless configured.
+    expect(p.managed_payments).toEqual({ enabled: false });
     expect(p.metadata).toMatchObject({ userId: id, item: 'hat:wizard' });
     expect(Date.parse(String(p.metadata?.immediateSupplyConsent))).toBeGreaterThan(0);
   });
