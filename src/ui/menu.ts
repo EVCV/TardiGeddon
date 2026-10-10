@@ -1,6 +1,8 @@
-// Title screen and match setup: game style presets plus a Customise panel.
+// The Lobby page of the menu hub (ui/hub.ts): a hero card with your team,
+// match setup (teams, CPU skill, game style plus a Customise panel), the
+// Play buttons and the career panel.
 
-import { MASCOT_SVG, mascotSvg } from './mascot';
+import { mascotSvg } from './mascot';
 import { CPU_SKILLS, type CpuSkill } from '../ai/cpu';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
@@ -8,9 +10,9 @@ import { MAX_TEAMS } from '../sim/world';
 import { hex } from '../render/palette';
 import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
-import { openAccount } from './account';
 import { renderDashboard } from './dashboard';
-import { account, onAccountChange, wearHat, wearSkin } from '../account/session';
+import { account, wearHat, wearSkin } from '../account/session';
+import type { HubTab } from './hub';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -86,17 +88,31 @@ export function savedScheme(): { style: string; custom: Scheme } {
   return { style: v.style, custom: v.custom };
 }
 
-export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, onOnline?: () => void): void {
+export interface Lobby {
+  el: HTMLElement;
+  /** Redraw what depends on the account (hats owned, stats). */
+  refresh: () => void;
+}
+
+export function buildLobby(onStart: (s: MatchSetup) => void, onOnline: (() => void) | undefined, go: (tab: HubTab) => void): Lobby {
+  const root = document.createElement('div');
   const saved = load();
   const styleOptions = SCHEME_PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+  root.className = 'page lobby';
   root.innerHTML = `
-    <div class="menu">
-      <div class="menu-layout">
-      <div class="menu-card">
-        <button class="hud-btn account-btn hidden">👤 Account</button>
-        <div class="mascot">${MASCOT_SVG}</div>
-        <h1 class="title">Tardi<span>Geddon</span></h1>
-        <p class="tagline">Tiny. Indestructible. Armed.</p>
+      <section class="card lobby-hero">
+        <div class="hero-art">
+          <div class="mascot"></div>
+          <button class="chip hero-edit">✎ Customise team</button>
+        </div>
+        <div class="hero-text">
+          <h1 class="title">Tardi<span>Geddon</span></h1>
+          <p class="tagline">Tiny. Indestructible. Armed.</p>
+          <p class="hero-team"></p>
+        </div>
+      </section>
+      <section class="card lobby-setup">
+        <h2 class="card-title">Match setup</h2>
         <div class="players-row">
           <label>Players
             <select name="players">${PLAYER_COUNTS.map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
@@ -107,10 +123,6 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
         </div>
         <div class="slots"></div>
         <p class="players-hint">Tap a team to switch Human / CPU · ✎ to edit. Humans share this device and take turns.</p>
-        <div class="menu-buttons">
-          <button class="big-btn play">Play</button>
-          <button class="big-btn secondary online-btn">Play online</button>
-        </div>
         <div class="style-row">
           <label>Game style
             <select name="style">${styleOptions}<option value="custom">Custom</option></select>
@@ -119,16 +131,20 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
         </div>
         <p class="style-blurb"></p>
         <div class="custom-panel hidden"></div>
+      </section>
+      <section class="card lobby-play">
+        <div class="menu-buttons">
+          <button class="big-btn play">Play</button>
+          <button class="big-btn secondary online-btn">Play online</button>
+        </div>
         <details class="controls-help">
           <summary>Controls</summary>
           <p><b>Keyboard:</b> ←/→ walk · ↑/↓ aim · Enter jump (twice = backflip) · hold Space to charge, release to fire ·
           1–5 fuse · Tab or right-click for weapons · click map to target · drag to look around · wheel to zoom</p>
           <p><b>Touch:</b> on-screen pads · tap map to target · drag to look · pinch to zoom</p>
         </details>
-      </div>
-      <aside class="dash hidden" aria-label="Your stats"></aside>
-      </div>
-    </div>`;
+      </section>
+      <aside class="card dash hidden" aria-label="Your career"></aside>`;
 
   const styleSel = root.querySelector<HTMLSelectElement>('select[name=style]')!;
   const blurb = root.querySelector<HTMLParagraphElement>('.style-blurb')!;
@@ -175,6 +191,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
           profiles = updateProfile(profiles, i, next);
           saveProfiles(profiles);
           renderSlots();
+          renderHero();
         });
       slot.append(toggle, editBtn);
       slots.append(slot);
@@ -251,22 +268,31 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
   };
   refresh();
 
-  const accountBtn = root.querySelector<HTMLButtonElement>('.account-btn')!;
-  accountBtn.onclick = () => openAccount(root);
-  const dash = root.querySelector<HTMLElement>('.dash')!;
-  const showAccount = () => {
-    if (!accountBtn.isConnected) return off();
-    const { me } = account();
-    const user = me?.user;
-    // Only shown when the server has accounts turned on (see docs/ACCOUNTS.md).
-    accountBtn.classList.toggle('hidden', !me);
-    accountBtn.textContent = user ? `👤 ${user.name}` : '👤 Sign in / Shop';
-    // Hats may have been bought or lost (signed out): redraw the team pictures.
-    renderSlots();
-    renderDashboard(dash, (tab) => openAccount(root, '', tab));
+  const mascot = root.querySelector<HTMLElement>('.mascot')!;
+  const heroTeam = root.querySelector<HTMLElement>('.hero-team')!;
+  const renderHero = () => {
+    const p = profiles[0];
+    mascot.innerHTML = mascotSvg(p.color, wearHat(p.hat), wearSkin(p.skin));
+    heroTeam.textContent = `Your team: ${p.name}`; // player-entered text: never innerHTML
+    heroTeam.style.setProperty('--team', hex(p.color));
   };
-  const off = onAccountChange(showAccount);
-  showAccount();
+  root.querySelector<HTMLButtonElement>('.hero-edit')!.onclick = () =>
+    openTeamEditor(root, 0, profiles[0], (next) => {
+      profiles = updateProfile(profiles, 0, next);
+      saveProfiles(profiles);
+      renderSlots();
+      renderHero();
+    });
+  const dash = root.querySelector<HTMLElement>('.dash')!;
+  const refreshAccountBits = () => {
+    // Hats may have been bought or lost (signed out), or changed in the shop: redraw the team pictures.
+    profiles = loadProfiles();
+    renderSlots();
+    renderHero();
+    renderDashboard(dash, go);
+    root.classList.toggle('solo', !account().me);
+  };
+  refreshAccountBits();
 
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;
@@ -281,4 +307,5 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
       cpuSkill: skillSel.value as CpuSkill,
     });
   };
+  return { el: root, refresh: refreshAccountBits };
 }

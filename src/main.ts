@@ -5,7 +5,7 @@ import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
-import { openAccount } from './ui/account';
+import { showHub, type Hub } from './ui/hub';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
@@ -16,7 +16,7 @@ import { InputCollector, attachKeyboard } from './input/input';
 import { Hud } from './ui/hud';
 import { CpuPlayer, type CpuSkill } from './ai/cpu';
 import { sfx, setMuted, unlockAudio } from './audio/sfx';
-import { showMenu, type MatchSetup } from './ui/menu';
+import type { MatchSetup } from './ui/menu';
 import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
 import { Lockstep } from './net/lockstep';
@@ -46,11 +46,12 @@ async function boot(): Promise<void> {
 
   const ui = document.getElementById('ui')!;
   let current: Match | null = null;
+  let hub = null as Hub | null; // set by menu()
 
   const menu = () => {
     current?.destroy();
     current = null;
-    showMenu(ui, (setup) => start(setup), () => online());
+    hub = showHub(ui, (setup) => start(setup), () => online());
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
@@ -102,13 +103,13 @@ async function boot(): Promise<void> {
   if (shop) {
     history.replaceState(null, '', location.pathname);
     if (shop === 'done') {
-      openAccount(ui, 'Thanks! Your coins will appear in your wallet in a moment.', 'shop');
+      hub?.go('shop', 'Thanks! Your coins will appear in your wallet in a moment.');
       // Stripe tells the server a few seconds after paying, so check back a few times.
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 2000));
         if (((await refreshAccount())?.wallet.coins ?? 0) > before) break;
       }
-    } else openAccount(ui, 'Payment cancelled: nothing was charged.', 'shop');
+    } else hub?.go('shop', 'Payment cancelled: nothing was charged.');
   }
 }
 

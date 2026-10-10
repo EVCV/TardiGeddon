@@ -1,13 +1,16 @@
-// The Shop tab of the account panel: a wallet strip (coins and Slime), a
-// preview stage, category pills and item cards. Coins are bought in packs
+// The Shop page of the menu hub: a preview stage with the wallet on one side,
+// category pills and the catalogue on the other. Coins are bought in packs
 // (the only thing paid for with money) and spent on looks; Slime is earned by
-// playing and unlocks weapons and some looks.
+// playing and unlocks weapons and some looks. Picking a card shows it on the
+// stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
-import { loadProfiles } from './teams';
+import { loadProfiles, saveProfiles, updateProfile } from './teams';
+import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
 import { COIN_PACKS, SHOP_ITEMS, formatNumber, formatPrice, type ShopItem } from '../shop/catalog';
 import { buyCoins, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
+import type { HubContext } from './hub';
 
 type Category = 'all' | 'hat' | 'skin' | 'weapon' | 'coins';
 
@@ -20,14 +23,6 @@ export interface ShopState {
 }
 
 export const newShopState = (): ShopState => ({ category: 'all', preview: null, pack: null });
-
-export interface ShopContext {
-  state: ShopState;
-  busy: boolean;
-  run: (fn: () => Promise<void>) => void;
-  rerender: () => void;
-  legalLink: (slug: string, text: string) => HTMLAnchorElement;
-}
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -42,8 +37,9 @@ export function priceLabel(item: ShopItem): string {
 }
 
 /** The picture for an item: your team's tardi wearing it, or the weapon's icon. */
-function itemArt(item: ShopItem): string {
+function itemArt(item: ShopItem | null): string {
   const team = loadProfiles()[0];
+  if (!item) return mascotSvg(team.color, wearHat(team.hat), wearSkin(team.skin));
   if (item.kind === 'hat') return mascotSvg(team.color, item.ref, wearSkin(team.skin));
   if (item.kind === 'skin') return mascotSvg(team.color, wearHat(team.hat), item.ref);
   return `<span class="shop-weapon-icon">${WEAPONS[item.ref]?.icon ?? '💥'}</span>`;
@@ -57,34 +53,39 @@ const CATEGORIES: [Category, string][] = [
   ['coins', '🪙 Get coins'],
 ];
 
-export function renderShop(me: MeResponse, ctx: ShopContext): HTMLElement {
-  const { state } = ctx;
-  const wrap = el('div', 'shop');
-  const { coins, slime } = me.wallet;
+const affordable = (item: ShopItem, me: MeResponse) =>
+  item.coins !== undefined ? me.wallet.coins >= item.coins : me.wallet.slime >= (item.slime ?? 0);
 
-  // Wallet strip
-  const wallet = el('div', 'shop-wallet');
-  const coinBox = el('div', 'wallet-chip');
-  coinBox.append(el('b', '', `🪙 ${formatNumber(coins)}`), el('span', '', 'coins'));
-  const slimeBox = el('div', 'wallet-chip');
-  slimeBox.append(el('b', '', `🟢 ${formatNumber(slime)}`), el('span', '', 'Slime'));
-  wallet.append(coinBox, slimeBox);
-  if (me.shop) {
-    const get = el('button', 'hud-btn wallet-get', '+ Get coins');
-    get.onclick = () => {
-      state.category = 'coins';
-      ctx.rerender();
-    };
-    wallet.append(get);
+export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  const page = el('div', 'page page-shop');
+  const side = el('aside', 'card shop-side');
+  const main = el('section', 'card shop-main');
+  page.append(side, main);
+
+  // Side: wallet, stage, fair-play promise, receipts.
+  if (me.user) {
+    const wallet = el('div', 'shop-wallet');
+    const coinBox = el('div', 'wallet-chip');
+    coinBox.append(el('b', '', `🪙 ${formatNumber(me.wallet.coins)}`), el('span', '', 'coins'));
+    const slimeBox = el('div', 'wallet-chip slime');
+    slimeBox.append(el('b', '', `🟢 ${formatNumber(me.wallet.slime)}`), el('span', '', 'Slime'));
+    wallet.append(coinBox, slimeBox);
+    side.append(wallet);
   }
-  wrap.append(wallet);
-  wrap.append(el('p', 'shop-fair', '✅ Fair play: coins only buy looks. Weapons are unlocked with Slime, which you earn by playing.'));
+  side.append(stage(me, ctx, state));
+  side.append(el('p', 'shop-fair', '✅ Fair play: coins only buy looks. Weapons are unlocked with Slime, which you earn by playing.'));
+  if (me.shop && me.user) {
+    const manage = el('button', 'hud-btn shop-manage', '🧾 Purchases & receipts');
+    manage.disabled = ctx.busy;
+    manage.onclick = () => ctx.run(managePurchases);
+    side.append(manage);
+  }
 
-  // Category pills
-  const pills = el('div', 'shop-pills');
+  // Main: category pills, then the catalogue or the coin packs.
+  const pills = el('div', 'seg shop-pills');
   for (const [c, label] of CATEGORIES) {
     if (c === 'coins' && !me.shop) continue;
-    const b = el('button', 'shop-pill' + (state.category === c ? ' on' : ''), label);
+    const b = el('button', 'seg-btn' + (state.category === c ? ' on' : ''), label);
     b.onclick = () => {
       state.category = c;
       state.pack = null;
@@ -92,101 +93,133 @@ export function renderShop(me: MeResponse, ctx: ShopContext): HTMLElement {
     };
     pills.append(b);
   }
-  wrap.append(pills);
+  main.append(pills);
 
-  if (state.category === 'coins') {
-    wrap.append(coinPacks(ctx));
-  } else {
-    // Preview stage: what the selected item looks like on your own team.
+  if (state.category === 'coins') main.append(coinPacks(me, ctx, state));
+  else {
     const items = SHOP_ITEMS.filter((i) => state.category === 'all' || i.kind === state.category);
-    const preview = state.preview && items.includes(state.preview) ? state.preview : null;
-    if (preview) {
-      const stage = el('div', 'shop-stage');
-      const art = el('div', 'shop-stage-art');
-      art.innerHTML = itemArt(preview);
-      const info = el('div', 'shop-stage-info');
-      info.append(el('span', `rarity rarity-${preview.rarity}`, preview.rarity), el('b', '', preview.name), el('span', '', preview.blurb));
-      stage.append(art, info);
-      wrap.append(stage);
-    }
     const grid = el('div', 'shop-grid');
-    for (const item of items) grid.append(card(item, me, ctx));
-    wrap.append(grid);
-    wrap.append(
-      el('p', 'account-note', 'Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Wear hats and skins from the ✎ team editor; unlocked weapons appear in the matches you start.'),
+    for (const item of items) grid.append(card(item, me, ctx, state));
+    main.append(
+      grid,
+      el('p', 'account-note', 'Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Unlocked weapons appear in the matches you start.'),
     );
   }
-
-  const manage = el('button', 'hud-btn shop-manage', '🧾 Manage purchases & receipts');
-  manage.disabled = ctx.busy;
-  manage.onclick = () => ctx.run(managePurchases);
-  if (me.shop) wrap.append(manage);
-  return wrap;
+  return page;
 }
 
-function card(item: ShopItem, me: MeResponse, ctx: ShopContext): HTMLElement {
-  const has = me.owned.includes(item.id);
-  const c = el('div', 'shop-card' + (has ? ' owned' : '') + (ctx.state.preview === item ? ' previewing' : ''));
-  const top = el('div', 'shop-card-top');
-  top.append(el('span', `rarity rarity-${item.rarity}`, item.rarity));
-  const art = el('button', 'shop-card-art');
-  art.setAttribute('aria-label', `Preview ${item.name}`);
+/** The preview stage: the picked item on your own tardi, and what you can do with it. */
+function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  const item = state.preview;
+  const box = el('div', 'shop-stage');
+  const art = el('div', 'shop-stage-art');
   art.innerHTML = itemArt(item);
-  art.onclick = () => {
-    ctx.state.preview = item;
+  box.append(art);
+  const info = el('div', 'shop-stage-info');
+  box.append(info);
+  if (!item) {
+    info.append(el('b', '', 'Dress-up stage'), el('span', '', 'Pick anything in the shop to try it on your team.'));
+    return box;
+  }
+  info.append(el('span', `rarity rarity-${item.rarity}`, item.rarity), el('b', '', item.name), el('span', '', item.blurb));
+
+  const action = el('div', 'shop-stage-action');
+  info.append(action);
+  const owned = me.owned.includes(item.id);
+  if (owned) {
+    action.append(el('span', 'shop-owned', 'Owned ✓'));
+    if (item.kind !== 'weapon') {
+      const team = loadProfiles()[0];
+      const wearing = item.kind === 'hat' ? team.hat === item.ref : team.skin === item.ref;
+      const wear = el('button', 'hud-btn', wearing ? 'Wearing ✓' : `Wear on ${team.name}`);
+      wear.disabled = wearing;
+      wear.onclick = () => {
+        const next = item.kind === 'hat' ? { ...team, hat: item.ref } : { ...team, skin: item.ref };
+        saveProfiles(updateProfile(loadProfiles(), 0, next));
+        ctx.rerender();
+      };
+      action.append(wear);
+    }
+    return box;
+  }
+  if (!me.user) {
+    const b = el('button', 'big-btn', 'Sign in to unlock');
+    b.onclick = () => ctx.go('account');
+    action.append(el('span', 'shop-price', priceLabel(item)), b);
+    return box;
+  }
+  if (!affordable(item, me)) {
+    if (item.coins !== undefined) {
+      action.append(el('span', 'shop-short', `${priceLabel(item)} · you need ${formatNumber(item.coins - me.wallet.coins)} more coins`));
+      if (me.shop) {
+        const get = el('button', 'big-btn', 'Get coins');
+        get.onclick = () => {
+          state.category = 'coins';
+          ctx.rerender();
+        };
+        action.append(get);
+      }
+    } else {
+      action.append(el('span', 'shop-short', `${priceLabel(item)} · ${formatNumber((item.slime ?? 0) - me.wallet.slime)} more Slime to go: keep playing!`));
+    }
+    return box;
+  }
+  const b = el('button', 'big-btn', `Unlock for ${priceLabel(item)}`);
+  b.title = item.coins !== undefined ? `${formatNumber(item.coins)} coins (about ${formatPrice(item.coins)})` : `${formatNumber(item.slime ?? 0)} Slime`;
+  b.disabled = ctx.busy;
+  b.onclick = () => ctx.run(() => unlock(item.id));
+  action.append(b);
+  return box;
+}
+
+function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  const has = me.owned.includes(item.id);
+  const c = el('button', 'shop-card' + (has ? ' owned' : '') + (state.preview === item ? ' previewing' : ''));
+  c.setAttribute('aria-label', `${item.name}, ${has ? 'owned' : priceLabel(item)}`);
+  c.onclick = () => {
+    state.preview = item;
     ctx.rerender();
-    // The stage is at the top of the shop: bring it into view.
+    // On narrow screens the stage is above the grid: bring it into view.
     document.querySelector('.shop-stage')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
-  c.append(top, art, el('b', 'shop-card-name', item.name));
-  const foot = el('div', 'shop-card-foot');
+  const top = el('span', 'shop-card-top');
+  top.append(el('span', `rarity rarity-${item.rarity}`, item.rarity));
+  const art = el('span', 'shop-card-art');
+  art.innerHTML = itemArt(item);
+  const foot = el('span', 'shop-card-foot');
   if (has) foot.append(el('span', 'shop-owned', 'Owned ✓'));
-  else {
-    const affordable = item.coins !== undefined ? me.wallet.coins >= item.coins : me.wallet.slime >= (item.slime ?? 0);
-    const b = el('button', 'hud-btn shop-buy' + (affordable ? ' can' : ''), priceLabel(item));
-    b.title = item.coins !== undefined ? `${formatNumber(item.coins)} coins (about ${formatPrice(item.coins)})` : `${formatNumber(item.slime ?? 0)} Slime`;
-    b.disabled = ctx.busy;
-    b.onclick = () => {
-      if (!affordable) {
-        ctx.state.preview = item;
-        if (item.coins !== undefined && me.shop) ctx.state.category = 'coins';
-        ctx.run(async () => {
-          throw new Error(item.coins !== undefined ? `You need ${formatNumber(item.coins! - me.wallet.coins)} more coins.` : `You need ${formatNumber(item.slime! - me.wallet.slime)} more Slime: keep playing!`);
-        });
-        return;
-      }
-      if (!confirm(`Unlock the ${item.name} for ${b.title}?`)) return;
-      ctx.run(() => unlock(item.id));
-    };
-    foot.append(b);
-  }
-  c.append(foot);
+  else foot.append(el('span', 'shop-price' + (me.user && affordable(item, me) ? ' can' : ''), priceLabel(item)));
+  c.append(top, art, el('b', 'shop-card-name', item.name), foot);
   return c;
 }
 
-function coinPacks(ctx: ShopContext): HTMLElement {
+function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   const box = el('div', 'shop-coins');
   box.append(el('p', 'account-note', 'Coins are about 1p each in every pack, VAT included. They only buy looks, have no cash value, and stay with your account. Under 18? Please ask a parent or carer first.'));
   const grid = el('div', 'coin-grid');
   for (const p of COIN_PACKS) {
-    const b = el('button', 'coin-pack' + (ctx.state.pack === p.id ? ' on' : ''));
+    const b = el('button', 'coin-pack' + (state.pack === p.id ? ' on' : ''));
     b.append(el('b', '', `🪙 ${formatNumber(p.coins)}`), el('span', '', formatPrice(p.price)));
     b.onclick = () => {
-      ctx.state.pack = p.id;
+      state.pack = p.id;
       ctx.rerender();
     };
     grid.append(b);
   }
   box.append(grid);
-  const pack = COIN_PACKS.find((p) => p.id === ctx.state.pack);
-  if (pack) {
+  const pack = COIN_PACKS.find((p) => p.id === state.pack);
+  if (pack && !me.user) {
+    const b = el('button', 'big-btn', 'Sign in to buy coins');
+    b.onclick = () => ctx.go('account');
+    box.append(b);
+  } else if (pack) {
     const consent = el('label', 'account-check');
     const tick = el('input');
     tick.type = 'checkbox';
     const text = el('span');
     text.append(
       `I want my ${formatNumber(pack.coins)} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
-      ctx.legalLink('terms-of-service', 'Terms'),
+      legalLink('terms-of-service', 'Terms'),
       ' §5).',
     );
     consent.append(tick, text);

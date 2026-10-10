@@ -39,11 +39,12 @@ free without an account.
   when they connect and swaps any hat or skin they don't own for the
   default, so editing the browser's storage can't unlock anything for other
   players to see.
-- **Deleting an account** (Account → Delete account; app stores require it)
+- **Deleting an account** (Account page → Delete account; app stores require it)
   removes the user and their inventory. Purchase records are kept for the
   accounts (tax) without the link to a person.
 - **Off by default:** with no `DATABASE_URL` the server runs games exactly as
-  before, and the game hides the Account button and every shop hat.
+  before, and the menu shows only the Lobby (no Stats, Shop or Account
+  pages, and no shop hats).
 
 New shop items: add the cosmetic (a hat in `src/render/hats.ts`, a skin in
 `src/render/skins.ts`, or a `locked` weapon in `src/sim/weapons.ts` with a
@@ -151,17 +152,19 @@ once, then never change it (changing it signs everyone out). If the server
 can't reach the database it keeps running games without accounts and says why
 in `fly logs`.
 
-Check: `/api/me` now shows `{"user":null,"owned":[],"shop":true,"providers":[]}`
-and `fly logs` says "Accounts enabled". On https://tardigeddon.com/play/ the
-menu shows **👤 Sign in / Shop**.
+Check: `/api/me` now shows `"user":null` and `"shop":true`, and `fly logs`
+says "Accounts enabled". On https://tardigeddon.com/play/ the menu's top bar
+shows the **Lobby / Stats / Shop / Account** tabs and a **Sign in** button.
 
 ### 5. Test it end to end (sandbox)
 
-1. Create an account in the game, open the shop → **Get coins**, buy a pack.
+1. Create an account (top bar → **Sign in** → Create account), then
+   **Shop** → **Get coins**, and buy a pack.
    On Stripe's page pay with card `4242 4242 4242 4242`, any future date,
    any CVC.
 2. Back in the game the coins appear in your wallet within a few seconds.
-   Unlock a hat or skin with them: it shows **Owned ✓** and can be picked in
+   Pick a hat or skin and press **Unlock** on the preview stage: it shows
+   **Owned ✓**, **Wear on …** puts it on your team, and it can be picked in
    the ✎ team editor.
 3. Play an online match: the other player sees your hat and skin, and you
    earn Slime. Play a game against the CPU: a "+… Slime" banner appears.
