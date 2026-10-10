@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.3
+**Document Version:** v1.4
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -65,7 +65,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.1.4 The server keeps match information in memory only while the match or lobby is in use. It is deleted when the room closes (at the latest about two minutes after the last player leaves) or when the server restarts. We do not keep match histories or chat logs.
 
-2.1.5 If you are signed in when you play online, the server also checks which shop items your account owns, so that only the hats you own are shown to other players, and adds the result of each finished match to your account's stats. It does not tell other players who you are: they only see your Team Details.
+2.1.5 If you are signed in when you play online, the server also checks which shop items your account owns, so that only the hats you own are shown to other players, and adds the result of each finished match to your account's stats. When you finish a one-player game against the computer while signed in, the game sends us its result for your stats too. It does not tell other players who you are: they only see your Team Details.
 
 ### 2.2 Your Account (Optional)
 
@@ -76,7 +76,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
 - when your account was created and last updated;
 - the shop items your account owns, and how you got them.
-- how many online games you have played and won while signed in, shown to you on your profile (not to other players).
+- your game stats while signed in: online games and one-player games against the computer played and won, win streaks, how many tardigrades you have popped, the damage you have dealt, and your own goals (damage to, and pops of, your own team). They are shown to you, not to other players.
 
 2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
 

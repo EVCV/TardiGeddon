@@ -4,11 +4,13 @@
 // unit-tested without sockets.
 
 import { createWorld, DEFAULT_NAMES, MAX_TEAMS, tick, type TeamConfig } from '../src/sim/world';
-import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type WorldState } from '../src/sim/types';
+import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../src/sim/types';
 import { WEAPONS } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canWearHat } from '../src/shop/catalog';
+import { MatchTally } from '../src/stats/tally';
+import type { MatchResult } from './store';
 import { encodeWorld, syncHash } from '../src/net/snapshot';
 import { fromWire, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
 
@@ -25,11 +27,7 @@ export interface Member {
   userId?: string;
 }
 
-/** How one signed-in player did in a finished online match. */
-export interface MatchResult {
-  userId: string;
-  won: boolean;
-}
+export type { MatchResult };
 
 interface Slot {
   team: LobbyTeam;
@@ -139,6 +137,7 @@ export class Room {
   private teams: TeamConfig[] = [];
   private scheme: Partial<Scheme> = {};
   private cpus = new Map<number, CpuPlayer>();
+  private tally: MatchTally | null = null;
   private outbox: WireFrame[] = [];
   private outFrom = 0;
   private lastTeam = -1;
@@ -271,7 +270,9 @@ export class Room {
       if (q) slot.held = q.held;
       frame = q ?? { held: slot.held, pressed: 0 };
     }
-    tick(s, frame, []);
+    const events: SimEvent[] = [];
+    tick(s, frame, events);
+    this.tally?.add(s, events);
     this.outbox.push(toWire(frame));
     if (this.outbox.length >= FLUSH_EVERY) this.flush();
     if (s.tick % HASH_EVERY === 0) {
@@ -280,7 +281,9 @@ export class Room {
     }
     if (s.turn.phase === 'gameover') {
       this.flush();
-      const results = this.slots.flatMap((sl, i) => (sl.userId && !sl.cpu ? [{ userId: sl.userId, won: s.turn.winner === i }] : []));
+      const results: MatchResult[] = this.slots.flatMap((sl, i) =>
+        sl.userId && !sl.cpu ? [{ userId: sl.userId, mode: 'online' as const, won: s.turn.winner === i, ...this.tally!.teams[i] }] : [],
+      );
       if (results.length) this.onResult?.(results);
       // Back to the lobby for a rematch; disconnected players' slots are freed.
       this.state = null;
@@ -326,6 +329,7 @@ export class Room {
     const seed = (this.random() * 1e9) | 0;
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();
+    this.tally = new MatchTally(this.teams.length);
     this.outbox = [];
     this.outFrom = 0;
     this.lastTeam = -1;

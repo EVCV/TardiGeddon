@@ -3,7 +3,8 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { refreshAccount, wearHat } from './account/session';
+import { refreshAccount, reportCpuMatch, wearHat } from './account/session';
+import { MatchTally } from './stats/tally';
 import { openAccount } from './ui/account';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
@@ -122,6 +123,8 @@ class Match {
   private banter = new Banter();
   private cpu = new Map<number, CpuPlayer>();
   private events: SimEvent[] = [];
+  /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
+  private tally: MatchTally | null = null;
   private acc = 0;
   private last = performance.now();
   private detachKeys: () => void;
@@ -155,6 +158,8 @@ class Match {
         return { name: p.name, color: p.color, hat: wearHat(p.hat), names: matchNames(p, i), cpu };
       });
       this.local = createWorld({ seed: setup.seed, teams, scheme: setup.scheme });
+      // Only one human (the player's own team, slot 0) against the CPU counts for their stats.
+      if (!setup.players[0] && setup.players.slice(1).every(Boolean) && !this.local.race) this.tally = new MatchTally(teams.length);
       for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
     } else {
       this.net = { client: mode.client, ls: mode.ls };
@@ -255,7 +260,9 @@ class Match {
         const humanInput = this.input.frame(); // always drain
         const input = team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
         this.renderer.capturePrev(s);
+        const from = this.events.length;
         tick(s, input, this.events);
+        this.tally?.add(s, this.events.slice(from));
       }
     }
     this.renderer.handleEvents(this.events);
@@ -352,6 +359,7 @@ class Match {
             // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
             const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
             if (youLost) sfx.wahwah();
+            if (this.tally) void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] });
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
             setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
           }

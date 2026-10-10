@@ -18,7 +18,7 @@ import { CURRENCY, SHOP_ITEMS, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 
 export type { MeResponse };
-import { migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase } from './store';
+import { NO_STATS, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
 
 export interface AccountsEnv {
   DATABASE_URL?: string;
@@ -207,6 +207,41 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { url: session.url });
   }
 
+  /** Last CPU-match report per player, to stop a page spamming the stats. */
+  const lastReport = new Map<string, number>();
+
+  /**
+   * The game reports a finished match against the CPU (online matches are
+   * counted by the server itself). Players could fake these, but they only
+   * affect their own stats, so sanity limits are enough.
+   */
+  async function reportCpuMatch(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse((await readBody(req)).toString('utf8')) as Record<string, unknown>;
+    } catch {
+      return json(res, 400, { error: 'Bad request.' });
+    }
+    const now = Date.now();
+    if (now - (lastReport.get(user.id) ?? 0) < 20_000) return json(res, 429, { error: 'Too many reports.' });
+    lastReport.set(user.id, now);
+    const count = (v: unknown, max: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : 0);
+    await recordResults(db, [
+      {
+        userId: user.id,
+        mode: 'cpu',
+        won: body.won === true,
+        popped: count(body.popped, 40),
+        damage: count(body.damage, 20_000),
+        selfDamage: count(body.selfDamage, 20_000),
+        selfPopped: count(body.selfPopped, 40),
+      },
+    ]);
+    json(res, 200, { ok: true });
+  }
+
   async function webhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!stripe || !env.STRIPE_WEBHOOK_SECRET) return json(res, 503, { error: 'Not configured.' });
     const raw = await readBody(req);
@@ -274,11 +309,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           const me: MeResponse = {
             user,
             owned: user ? await ownedItems(db, user.id) : [],
-            stats: user ? await playerStats(db, user.id) : { onlinePlayed: 0, onlineWon: 0 },
+            stats: user ? await playerStats(db, user.id) : { ...NO_STATS },
             shop: stripe !== null && SHOP_ITEMS.length > 0,
             providers: Object.keys(socialProviders),
           };
           json(res, 200, me);
+        } else if (path === '/api/stats/match' && req.method === 'POST') {
+          await reportCpuMatch(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {
           await checkout(req, res);
         } else {
@@ -296,7 +333,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       return user ? { userId: user.id, owned: await ownedItems(db, user.id) } : { owned: [] };
     },
     /** Add a finished online match to the players' stats. */
-    async recordResults(results: { userId: string; won: boolean }[]): Promise<void> {
+    async recordResults(results: MatchResult[]): Promise<void> {
       await recordResults(db, results);
     },
     async close(): Promise<void> {

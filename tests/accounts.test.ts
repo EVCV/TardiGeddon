@@ -141,14 +141,25 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(cookie)).owned).toEqual([]);
   });
 
-  it('counts online games played and won', async () => {
+  it('keeps lifetime stats: online and CPU games, streaks, pops, damage and own goals', async () => {
     const { cookie, id } = await signUp('seven@example.com');
-    expect((await me(cookie)).stats).toEqual({ onlinePlayed: 0, onlineWon: 0 });
-    await accounts.recordResults([{ userId: id, won: true }]);
-    await accounts.recordResults([{ userId: id, won: false }, { userId: 'nobody', won: true }]);
+    expect((await me(cookie)).stats.onlinePlayed).toBe(0);
+    const r = (won: boolean, mode: 'online' | 'cpu' = 'online') => ({ userId: id, mode, won, popped: 2, damage: 100, selfDamage: 15, selfPopped: 1 });
+    await accounts.recordResults([r(true), r(true)]);
+    await accounts.recordResults([r(false), { ...r(true), userId: 'nobody' }]);
+    await accounts.recordResults([r(true)]);
+    // A CPU match reported by the game (silly numbers are capped).
+    const rep = await post('/api/stats/match', { won: true, popped: 999, damage: 50, selfDamage: 5, selfPopped: 0 }, cookie);
+    expect(rep.status).toBe(200);
+    expect((await post('/api/stats/match', { won: true }, cookie)).status).toBe(429); // too soon after the last
     const m = await me(cookie);
-    expect(m.stats).toEqual({ onlinePlayed: 2, onlineWon: 1 });
+    expect(m.stats).toEqual({
+      onlinePlayed: 4, onlineWon: 3, cpuPlayed: 1, cpuWon: 1,
+      popped: 8 + 40, damage: 450, selfDamage: 65, selfPopped: 4,
+      streak: 2, bestStreak: 2,
+    });
     expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
+    expect((await post('/api/stats/match', { won: true })).status).toBe(401);
   });
 
   it("explains Stripe's refusal when using test keys", async () => {
