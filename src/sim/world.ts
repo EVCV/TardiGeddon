@@ -29,7 +29,7 @@ import {
   type Team,
   type WorldState,
 } from './types';
-import { PANEL_WEAPONS, WEAPONS, type ProjectileSpec, type WeaponDef } from './weapons';
+import { PANEL_WEAPONS, WEAPONS, isWeaponId, type ProjectileSpec, type WeaponDef } from './weapons';
 
 export const GRAVITY = 0.22;
 export const TARDI_R = 7;
@@ -392,7 +392,7 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   const cmd = input.cmd;
   if (cmd && aiming) {
     if (cmd.t === 'weapon') {
-      const nd = WEAPONS[cmd.id];
+      const nd = isWeaponId(cmd.id) ? WEAPONS[cmd.id] : undefined;
       const midTurn = turn.shotsLeft < def.shots;
       if (nd && !nd.hidden && team.ammo[nd.id] !== 0 && !turn.charging && !midTurn) {
         turn.weapon = nd.id;

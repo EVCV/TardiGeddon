@@ -3,6 +3,7 @@
 // (PORT defaults to 8787).
 
 import { createServer } from 'node:http';
+import { randomInt } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Room, wearableTeam, type Member } from './room';
 import { createAccounts, type Accounts } from './accounts';
@@ -13,14 +14,26 @@ import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/pro
 import { TICK_RATE } from '../src/sim/types';
 
 const PORT = Number(process.env.PORT) || 8787;
-/** Close rooms nobody has been in for this long. */
-const EMPTY_ROOM_MS = 2 * 60_000;
+/**
+ * Close a started match nobody is connected to after this long: time enough to
+ * rejoin after a dropped connection, but abandoned matches stop costing CPU.
+ */
+const EMPTY_ROOM_MS = 45_000;
 /** Inputs allowed per second per connection (frames are 50/s; leave headroom). */
 const MSG_PER_SEC = 120;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-/** Hard cap on rooms, and how often one connection may create one. */
-const MAX_ROOMS = 2000;
+/**
+ * Hard cap on rooms. Every started match is simulated here, on one shared CPU,
+ * so this is sized to the machine; raise it (MAX_ROOMS on Fly) with the machine.
+ */
+const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 150;
+/** How often one connection may create a room, and how many rooms one address may create a minute. */
 const CREATE_COOLDOWN_MS = 5000;
+const CREATES_PER_IP_PER_MIN = 12;
+/** Open connections allowed from one address (a household or school shares one). */
+const MAX_CONN_PER_IP = 8;
+/** Drop connections that stop answering pings (a phone that lost signal, or a stalled script). */
+const HEARTBEAT_MS = 30_000;
 
 const rooms = new Map<string, Room>();
 /** Which room each connection is in. */
@@ -33,6 +46,15 @@ function leaveRoom(member: Member): void {
   roomOf.delete(member);
   room.leave(member);
   if (room.humansConnected === 0 && !room.started) rooms.delete(room.code);
+}
+
+/** End a room for everyone in it (after a crash): they're told, and go back to the online screen. */
+function closeRoom(room: Room): void {
+  for (const m of room.members) {
+    m.send({ t: 'error', msg: 'Sorry, this match hit a problem and had to stop.' });
+    roomOf.delete(m);
+  }
+  rooms.delete(room.code);
 }
 
 /** Quick play uses the short-turn style, which suits strangers on phones. */
@@ -62,7 +84,7 @@ function newRoom(): Room {
 function newCode(): string {
   for (;;) {
     let c = '';
-    for (let i = 0; i < 5; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+    for (let i = 0; i < 5; i++) c += CODE_CHARS[randomInt(CODE_CHARS.length)]; // unguessable from earlier codes
     if (!rooms.has(c)) return c;
   }
 }
@@ -89,6 +111,8 @@ const http = createServer(async (req, res) => {
       'content-type': 'application/json',
       'access-control-allow-origin': req.headers.origin ?? '*',
       'access-control-allow-credentials': 'true',
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
       vary: 'origin',
     });
     res.end(JSON.stringify(me ? { accounts: false } : { error: 'Accounts are not enabled on this server.' }));
@@ -101,7 +125,51 @@ const http = createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server: http, maxPayload: 16 * 1024 });
 
+/** Open connections, and recent room creations, per client address. */
+const connsByIp = new Map<string, number>();
+const createsByIp = new Map<string, number[]>();
+
+/** The player's address: Fly's proxy puts it in fly-client-ip. */
+function clientIp(req: import('node:http').IncomingMessage): string {
+  const fly = req.headers['fly-client-ip'];
+  return (typeof fly === 'string' && fly) || req.socket.remoteAddress || 'unknown';
+}
+
+/** Note a room creation by this address; false if it has made too many this minute. */
+function ipMayCreate(ip: string): boolean {
+  const now = Date.now();
+  const recent = (createsByIp.get(ip) ?? []).filter((t) => now - t < 60_000);
+  if (recent.length >= CREATES_PER_IP_PER_MIN) return false;
+  recent.push(now);
+  createsByIp.set(ip, recent);
+  return true;
+}
+
+const alive = new WeakMap<WebSocket, boolean>();
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (alive.get(ws) === false) {
+      ws.terminate();
+      continue;
+    }
+    alive.set(ws, false);
+    ws.ping();
+  }
+  // Forget addresses with nothing recent.
+  const now = Date.now();
+  for (const [ip, times] of createsByIp) if (times.every((t) => now - t >= 60_000)) createsByIp.delete(ip);
+}, HEARTBEAT_MS);
+
 wss.on('connection', (ws: WebSocket, req) => {
+  const ip = clientIp(req);
+  const open = connsByIp.get(ip) ?? 0;
+  if (open >= MAX_CONN_PER_IP) {
+    ws.close(1013, 'Too many connections from your network. Please close some game tabs and try again.');
+    return;
+  }
+  connsByIp.set(ip, open + 1);
+  alive.set(ws, true);
+  ws.on('pong', () => alive.set(ws, true));
   // Shop items this player owns, from their sign-in cookie (none if signed out).
   const player = accounts ? accounts.playerFor(req.headers).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
   const owned = player.then((p) => {
@@ -128,6 +196,10 @@ wss.on('connection', (ws: WebSocket, req) => {
     }
     if (rooms.size >= MAX_ROOMS) {
       fail('The server is full right now. Please try again soon.');
+      return false;
+    }
+    if (!ipMayCreate(ip)) {
+      fail('Lots of games started from your network just now. Please wait a minute and try again.');
       return false;
     }
     lastCreate = Date.now();
@@ -191,6 +263,9 @@ wss.on('connection', (ws: WebSocket, req) => {
   };
 
   ws.on('close', () => {
+    const n = (connsByIp.get(ip) ?? 1) - 1;
+    if (n > 0) connsByIp.set(ip, n);
+    else connsByIp.delete(ip);
     clearInterval(refill);
     matchmaker.remove(member);
     leaveRoom(member);
@@ -207,7 +282,15 @@ setInterval(() => {
   const tickMs = 1000 / TICK_RATE;
   while (acc >= tickMs) {
     acc -= tickMs;
-    for (const r of rooms.values()) r.step();
+    for (const r of rooms.values()) {
+      // A bug in one match must never take the whole server (and every other match) down.
+      try {
+        r.step();
+      } catch (e) {
+        console.error(`room ${r.code}: match crashed, closing it`, e);
+        closeRoom(r);
+      }
+    }
   }
   matchmaker.tick();
   for (const [code, r] of rooms) {

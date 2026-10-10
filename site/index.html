@@ -18,10 +18,8 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="A Concrete Tun slamming down through the ground onto a crowd of tardigrades." />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      // Old invite links (tardigeddon.com/?room=CODE) now belong to the game at /play/.
-      if (location.pathname === '/' && /[?&]room=/.test(location.search)) location.replace('/play/' + location.search);
-    </script>
+    <!-- A file, not inline, so the Content-Security-Policy can forbid inline scripts. -->
+    <script src="/redirect.js"></script>
   </head>
   <body>
     <div id="root"></div>

@@ -128,6 +128,12 @@ export async function playerStats(db: Pool, userId: string): Promise<PlayerStats
 export interface MatchResult {
   userId: string;
   mode: 'online' | 'cpu';
+  /**
+   * Which Slime rate applies, if not the mode's: an online match only pays the
+   * online rate when two or more different accounts played each other;
+   * otherwise it pays like a CPU game, under the daily cap.
+   */
+  slime?: 'online' | 'cpu';
   won: boolean;
   popped: number;
   damage: number;
@@ -216,9 +222,10 @@ export function slimeFor(r: { mode: 'online' | 'cpu'; won: boolean; popped: numb
  * always pay; games against the CPU are reported by the game, so they're
  * capped per day. Returns the Slime actually given.
  */
-export async function earnSlime(db: Pool, r: { userId: string; mode: 'online' | 'cpu'; won: boolean; popped: number }): Promise<number> {
-  const want = slimeFor(r);
-  if (r.mode === 'online') {
+export async function earnSlime(db: Pool, r: { userId: string; mode: 'online' | 'cpu'; slime?: 'online' | 'cpu'; won: boolean; popped: number }): Promise<number> {
+  const rate = r.slime ?? r.mode;
+  const want = slimeFor({ ...r, mode: rate });
+  if (rate === 'online') {
     await credit(db, r.userId, 0, want);
     return want;
   }

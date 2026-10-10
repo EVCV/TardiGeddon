@@ -149,8 +149,15 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     }
   }
 
+  /** Sent from one of the game's own origins, as JSON (which other sites can't send without asking us first). */
+  function fromGame(req: IncomingMessage): boolean {
+    const origin = req.headers.origin;
+    const type = req.headers['content-type'] ?? '';
+    return typeof origin === 'string' && origins.has(origin) && type.startsWith('application/json');
+  }
+
   function json(res: ServerResponse, status: number, body: unknown): void {
-    res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
     res.end(JSON.stringify(body));
   }
 
@@ -348,6 +355,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
         if (req.method === 'OPTIONS') {
           res.writeHead(204);
           res.end();
+        } else if (req.method === 'POST' && !path.startsWith('/api/auth/') && !fromGame(req)) {
+          // Our own POSTs (shop, stats) only from the game's own pages, as JSON: a page on
+          // another site, even one on a sibling subdomain, can't spend a player's coins.
+          // (Better Auth checks its own /api/auth/* requests the same way.)
+          json(res, 403, { error: 'Please use the game at tardigeddon.com.' });
         } else if (path.startsWith('/api/auth/')) {
           // Refused sign-ins are logged with the reason (never the email or password).
           res.on('finish', () => {

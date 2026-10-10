@@ -408,4 +408,13 @@ export const WEAPONS: Record<string, WeaponDef> = {
   },
 };
 
+// No inherited names: online, weapon ids come from other players, and a lookup
+// like WEAPONS['constructor'] must find nothing (it once crashed the server).
+Object.setPrototypeOf(WEAPONS, null);
+
+/** Is this a real weapon id (not an inherited object name)? */
+export function isWeaponId(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(WEAPONS, id);
+}
+
 export const PANEL_WEAPONS = Object.values(WEAPONS).filter((w) => !w.hidden);

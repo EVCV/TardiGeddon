@@ -214,7 +214,60 @@ describe('online room', () => {
     for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
     for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
     expect(reported).toHaveLength(1);
-    expect(reported[0]).toMatchObject([{ userId: 'user-a', mode: 'online', won: true }]);
+    // A signed-out opponent: stats count it online, but Slime is paid at the capped CPU rate.
+    expect(reported[0]).toMatchObject([{ userId: 'user-a', mode: 'online', slime: 'cpu', won: true }]);
+  });
+
+  /** Play a 1-tardi match to the end with team 1 popped; returns what was reported. */
+  const finish = (room: Room, host: Client): { userId: string; slime?: string }[] => {
+    const reported: { userId: string; slime?: string }[][] = [];
+    room.onResult = (r) => reported.push(r);
+    room.handle(host, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
+    for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
+    for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
+    return reported[0] ?? [];
+  };
+
+  it('pays the online Slime rate only when two different accounts play each other', () => {
+    const room = new Room('KLMNO', Date.now, () => 0.42);
+    const a = new Client();
+    a.userId = 'user-a';
+    const b = new Client();
+    b.userId = 'user-b';
+    room.join(a, team('Alpha'));
+    room.join(b, team('Bravo'));
+    expect(finish(room, a)).toMatchObject([
+      { userId: 'user-a', slime: 'online' },
+      { userId: 'user-b', slime: 'online' },
+    ]);
+  });
+
+  it('pays one account once, at the CPU rate, however many tabs it plays from', () => {
+    const room = new Room('UVWXY', Date.now, () => 0.42);
+    const a = new Client();
+    a.userId = 'user-a';
+    const a2 = new Client();
+    a2.userId = 'user-a';
+    room.join(a, team('Alpha'));
+    room.join(a2, team('Bravo'));
+    expect(finish(room, a)).toEqual([expect.objectContaining({ userId: 'user-a', slime: 'cpu' })]);
+  });
+
+  it('pays nothing to a player who left before the end (the CPU played on for them)', () => {
+    const room = new Room('ZABCD', Date.now, () => 0.42);
+    const a = new Client();
+    a.userId = 'user-a';
+    const b = new Client();
+    b.userId = 'user-b';
+    room.join(a, team('Alpha'));
+    room.join(b, team('Bravo'));
+    room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
+    room.leave(a);
+    const reported: { userId: string; slime?: string }[][] = [];
+    room.onResult = (r) => reported.push(r);
+    for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
+    for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
+    expect(reported[0]).toEqual([expect.objectContaining({ userId: 'user-b', slime: 'cpu' })]);
   });
 });
 

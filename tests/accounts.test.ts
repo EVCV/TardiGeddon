@@ -152,6 +152,20 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await post('/api/shop/unlock', { item: 'hat:party' }, cookie)).status).toBe(402);
   });
 
+  it('only accepts shop and stats requests from the game itself', async () => {
+    const { cookie } = await signUp('csrf@example.com');
+    const from = (origin: string | null, type = 'application/json') =>
+      fetch(base + '/api/shop/unlock', {
+        method: 'POST',
+        headers: { 'content-type': type, cookie, ...(origin ? { origin } : {}) },
+        body: JSON.stringify({ item: 'hat:wizard' }),
+      });
+    expect((await from('https://evil.example')).status).toBe(403);
+    expect((await from(null)).status).toBe(403);
+    expect((await from('http://localhost:5173', 'text/plain')).status).toBe(403);
+    expect((await from('http://localhost:5173')).status).toBe(402); // allowed through (no coins yet)
+  });
+
   it('records the coins each payment gave, and a refund takes back exactly that', async () => {
     const { cookie, id } = await signUp('bonus@example.com');
     await sendWebhook('checkout.session.completed', paid('cs_b1', id, 'coins:2000'));
