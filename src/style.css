@@ -562,7 +562,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .menu.hub {
   display: block;
   padding: 0;
-  background: radial-gradient(rgba(43, 27, 36, .07) 1.6px, transparent 1.8px) 0 0 / 22px 22px, var(--cream);
+  /* The same sky as the online screen and the game. */
+  background: radial-gradient(circle at 50% 30%, #d9f3ff 0%, var(--sky) 60%, #4fb3e0 100%);
 }
 .big-btn:disabled { opacity: .5; }
 
