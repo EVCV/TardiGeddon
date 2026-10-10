@@ -16,7 +16,6 @@ export function Layout({ children }: { children: ReactNode }) {
         <Link to="/" className="brand" aria-label="TardiGeddon home">
           <Mascot className="brand-mascot" label="" />
           <span className="brand-name">TardiGeddon</span>
-          <span className="beta-tag">Beta</span>
         </Link>
         <a className="btn btn-play btn-small" href={PLAY_URL}>
           Play now
@@ -58,9 +57,6 @@ export function Layout({ children }: { children: ReactNode }) {
           </nav>
         </div>
         <div className="footer-notices">
-          <p>
-            <strong>Beta.</strong> TardiGeddon is still in beta, so expect bugs and changes.
-          </p>
           <p>
             <strong>Accessibility.</strong> Accessibility features are still in development. Read our{' '}
             <Link to="/legal/accessibility-statement">Accessibility Statement</Link>.
