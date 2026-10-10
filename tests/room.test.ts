@@ -261,17 +261,24 @@ describe('online room', () => {
     b.userId = 'user-b';
     room.join(a, team('Alpha'));
     room.join(b, team('Bravo'));
+    const reported: { userId: string; slime?: string }[][] = [];
+    room.onResult = (r) => reported.push(r);
     room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
     const token = (room as unknown as { slots: { token: string }[] }).slots[0].token;
     room.leave(a);
-    for (let i = 0; i < 50 * 20; i++) room.step(); // away for 20 s while the CPU plays
-    const back = new Client();
-    back.userId = 'user-a';
-    expect(room.join(back, team('Alpha'), token)).toBe(true);
-    const reported: { userId: string; slime?: string }[][] = [];
-    room.onResult = (r) => reported.push(r);
-    for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
-    for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
+    // Away for 20 s while the CPU plays for them. With no ammo the CPU can only
+    // skip its turns, so the match is still on when they come back.
+    const ammo = room.world!.teams[0].ammo;
+    for (const k of Object.keys(ammo)) ammo[k] = 0;
+    for (let i = 0; i < 50 * 20 && room.started; i++) room.step();
+    expect(room.started).toBe(true);
+    {
+      const back = new Client();
+      back.userId = 'user-a';
+      expect(room.join(back, team('Alpha'), token)).toBe(true);
+      for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
+      for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
+    }
     // Only b is paid, and alone that's the CPU rate.
     expect(reported[0]).toEqual([expect.objectContaining({ userId: 'user-b', slime: 'cpu' })]);
   });
