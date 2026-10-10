@@ -93,6 +93,14 @@ Settings are per mode, so set them in both:
 - **Settings → Customer emails:** turn on **Successful payments** and
   **Refunds** (the Terms promise a receipt). Stripe doesn't email receipts in
   the sandbox, so you'll only see them in live mode.
+- **Settings → Billing → Customer portal:** click **Activate** (or save the
+  default settings once). This is the "Manage purchases & receipts" page:
+  allow **invoice history** and updating **customer information**; nothing
+  else is needed (there are no subscriptions). Until it's saved, the button
+  says Stripe refused.
+- Each purchase gets an **invoice** (the downloadable receipt in that
+  portal). Stripe may charge a small fee per invoice for one-off payments;
+  check your pricing. To skip them, set `STRIPE_INVOICES=off`.
 - **Developers → API keys:** copy the **Secret key** (`sk_test_…` in the
   sandbox, `sk_live_…` in live mode).
 - **Developers → Webhooks → Add destination:** events from your account,

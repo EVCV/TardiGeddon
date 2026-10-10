@@ -633,3 +633,4 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .dash { width: min(520px, 100%); }
   .dash-grid { grid-template-columns: repeat(3, 1fr); }
 }
+.shop-manage { width: 100%; margin-top: 8px; }

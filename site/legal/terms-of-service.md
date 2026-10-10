@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.1
+**Document Version:** v1.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -137,7 +137,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 5.1.2 Prices are shown in the game in pounds sterling and include VAT. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
 
-5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for that item. Stripe sends a receipt to your account's email address.
+5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for that item. Stripe sends a receipt to your account's email address, and you can see your purchases and download receipts at any time through the shop's "Manage purchases & receipts" button.
 
 5.1.4 An item you buy is digital content: a personal, non-transferable licence to use that cosmetic item in TardiGeddon with your account, for as long as we provide the Services (see Section 5.4). It has no cash value, and you cannot sell, trade, or transfer it.
 

@@ -140,6 +140,12 @@ export async function deleteAccount(password: string): Promise<void> {
   await signOut().catch(() => refreshAccount());
 }
 
+/** Off to Stripe's page with the player's purchases and receipts. */
+export async function managePurchases(): Promise<void> {
+  const r = await call<{ url?: string }>('/api/shop/portal', {});
+  if (r.url) location.href = r.url;
+}
+
 /** A finished match against the CPU, for the signed-in player's stats (online ones are counted by the server). */
 export async function reportCpuMatch(r: { won: boolean; popped: number; damage: number; selfDamage: number; selfPopped: number }): Promise<void> {
   if (!me?.user) return;

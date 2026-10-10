@@ -41,7 +41,22 @@ export async function migrate(db: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS best_streak    integer NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS self_damage    integer NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS self_popped    integer NOT NULL DEFAULT 0;
+    CREATE TABLE IF NOT EXISTS stripe_customer (
+      user_id     text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      customer_id text NOT NULL UNIQUE
+    );
   `);
+}
+
+export async function stripeCustomerId(db: Pool, userId: string): Promise<string | null> {
+  const r = await db.query<{ customer_id: string }>('SELECT customer_id FROM stripe_customer WHERE user_id = $1', [userId]);
+  return r.rows[0]?.customer_id ?? null;
+}
+
+/** Remember a player's Stripe customer; if two requests raced, the first one wins. */
+export async function setStripeCustomerId(db: Pool, userId: string, customerId: string): Promise<string> {
+  await db.query('INSERT INTO stripe_customer (user_id, customer_id) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING', [userId, customerId]);
+  return (await stripeCustomerId(db, userId)) ?? customerId;
 }
 
 /** Delete expired sign-in sessions and one-time verification codes. */

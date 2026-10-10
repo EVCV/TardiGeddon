@@ -18,7 +18,7 @@ import { CURRENCY, SHOP_ITEMS, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 
 export type { MeResponse };
-import { NO_STATS, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
+import { NO_STATS, setStripeCustomerId, stripeCustomerId, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
 
 export interface AccountsEnv {
   DATABASE_URL?: string;
@@ -40,6 +40,8 @@ export interface AccountsEnv {
   STRIPE_MANAGED_PAYMENTS?: string;
   /** Stripe product tax code for shop items (e.g. txcd_…), required by Managed Payments. */
   STRIPE_TAX_CODE?: string;
+  /** "off" to skip creating an invoice (downloadable receipt) for each purchase. */
+  STRIPE_INVOICES?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   APPLE_CLIENT_ID?: string;
@@ -175,6 +177,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     cancel.searchParams.set('shop', 'cancel');
     let session: { url: string | null };
     try {
+      const customer = await stripeCustomer(user);
       session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
@@ -194,7 +197,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       managed_payments: { enabled: env.STRIPE_MANAGED_PAYMENTS === 'on' },
       client_reference_id: user.id,
       metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString() },
-      customer_email: user.email,
+      // The player's own Stripe customer, so all their purchases appear in the purchases portal.
+      customer,
+      // An invoice per purchase: a receipt they can download from the portal any time.
+      ...(env.STRIPE_INVOICES === 'off' ? {} : { invoice_creation: { enabled: true } }),
       success_url: back.toString(),
       cancel_url: cancel.toString(),
       });
@@ -205,6 +211,32 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       return json(res, 502, { error: testMode ? `Stripe said: ${why}` : "The shop couldn't start your payment. Please try again later." });
     }
     json(res, 200, { url: session.url });
+  }
+
+  /** The player's Stripe customer id, created on their first purchase. */
+  async function stripeCustomer(user: NonNullable<MeResponse['user']>): Promise<string> {
+    const known = await stripeCustomerId(db, user.id);
+    if (known) return known;
+    const c = await stripe!.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+    return setStripeCustomerId(db, user.id, c.id);
+  }
+
+  /** Stripe's own page where players see their purchases, download receipts and update billing details. */
+  async function purchasesPortal(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!stripe) return json(res, 503, { error: 'The shop is not open yet.' });
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    const customer = await stripeCustomerId(db, user.id);
+    if (!customer) return json(res, 404, { error: "You haven't bought anything yet." });
+    try {
+      const portal = await stripe.billingPortal.sessions.create({ customer, return_url: gameUrl });
+      json(res, 200, { url: portal.url });
+    } catch (e) {
+      // e.g. the Customer Portal hasn't been set up in the Stripe dashboard yet.
+      const why = e instanceof Error ? e.message : String(e);
+      console.error('portal: Stripe refused:', why);
+      json(res, 502, { error: testMode ? `Stripe said: ${why}` : "Your purchases page isn't available right now. Please try again later." });
+    }
   }
 
   /** Last CPU-match report per player, to stop a page spamming the stats. */
@@ -316,6 +348,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           json(res, 200, me);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
+        } else if (path === '/api/shop/portal' && req.method === 'POST') {
+          await purchasesPortal(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {
           await checkout(req, res);
         } else {

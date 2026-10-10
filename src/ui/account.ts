@@ -11,6 +11,7 @@ import {
   wearHat,
   buy,
   deleteAccount,
+  managePurchases,
   onAccountChange,
   refreshAccount,
   signIn,
@@ -328,6 +329,10 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
     wrap.append(grid);
     if (!open) wrap.append(el('p', 'account-note', 'The shop opens soon.'));
     else {
+      const manage = el('button', 'hud-btn shop-manage', '🧾 Manage purchases & receipts');
+      manage.disabled = busy;
+      manage.onclick = () => void run(managePurchases);
+      wrap.append(manage);
       wrap.append(el('p', 'account-note', 'Prices include VAT. Under 18? Please ask a parent or carer before you buy.'));
       wrap.append(el('p', 'account-note', 'Wear your hats from the ✎ team editor.'));
     }
