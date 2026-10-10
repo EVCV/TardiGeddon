@@ -20,9 +20,11 @@ export interface ShopState {
   preview: ShopItem | null;
   /** Coin pack chosen, waiting for the consent tick. */
   pack: string | null;
+  /** Where the catalogue was scrolled to, on which tab. */
+  scroll: { key: Category; top: number };
 }
 
-export const newShopState = (): ShopState => ({ category: 'all', preview: null, pack: null });
+export const newShopState = (): ShopState => ({ category: 'all', preview: null, pack: null, scroll: { key: 'all', top: 0 } });
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -102,16 +104,25 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   }
   main.append(pills);
 
-  if (state.category === 'coins') main.append(coinPacks(me, ctx, state));
+  // The catalogue scrolls inside the box, so the box is the same size on every tab.
+  const body = el('div', 'shop-body');
+  main.append(body);
+  if (state.category === 'coins') body.append(coinPacks(me, ctx, state));
   else {
     const items = SHOP_ITEMS.filter((i) => state.category === 'all' || i.kind === state.category);
     const grid = el('div', 'shop-grid');
     for (const item of items) grid.append(card(item, me, ctx, state));
-    main.append(
+    body.append(
       grid,
       el('p', 'account-note', 'Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Unlocked weapons appear in the matches you start.'),
     );
   }
+  // Redraws (picking an item, unlocking) keep the scroll position; a new tab starts at the top.
+  const key = state.category;
+  body.onscroll = () => (state.scroll = { key, top: body.scrollTop });
+  queueMicrotask(() => {
+    if (state.scroll.key === key) body.scrollTop = state.scroll.top;
+  });
   return page;
 }
 

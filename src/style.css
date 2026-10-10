@@ -950,7 +950,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .shop-card-art { min-height: 60px; }
 }
 
-/* ---------- Hub: page flow, footer, background scene ---------- */
+/* ---------- Hub: page flow and footer ---------- */
 .menu.hub { display: flex; flex-direction: column; }
 .hub-bar, .hub-notice, .hub-footer { flex: none; }
 /* Pages shorter than the screen sit in the middle of it, not stuck to the top. */
@@ -982,34 +982,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hub-footer a:hover { background: var(--accent); }
 .hub-version { opacity: .7; }
 
-.hub-scene { position: fixed; left: 0; right: 0; bottom: 0; height: 26vh; min-height: 140px; pointer-events: none; z-index: 0; overflow: hidden; }
-.scene-hills { position: absolute; left: -8px; right: -8px; bottom: -6px; width: calc(100% + 16px); height: 100%; }
-.scene-bubble {
-  position: absolute;
-  bottom: 4%;
-  left: calc(4% + var(--i) * 9.6%);
-  width: calc(10px + (var(--i) * 7 % 4) * 6px);
-  aspect-ratio: 1;
-  border: 2.5px solid var(--ink);
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff 0 18%, rgba(255, 255, 255, .35) 22%);
-  opacity: 0;
-  animation: bubble-up calc(9s + (var(--i) * 5 % 7) * 1s) linear infinite;
-  animation-delay: calc(var(--i) * -1.7s);
-}
-@keyframes bubble-up {
-  0% { transform: translate(0, 0); opacity: 0; }
-  10% { opacity: .9; }
-  50% { transform: translate(14px, -40vh); }
-  90% { opacity: .9; }
-  100% { transform: translate(-6px, -80vh); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) { .scene-bubble { display: none; } }
-/* A CPU match plays behind the menu instead (attract.ts). */
-.menu.hub.live { background: rgba(127, 211, 247, .18); }
-.menu.hub.live .hub-scene { display: none; }
-.menu.hub.live .hub-footer a, .menu.hub.live .hub-version { background: var(--paper); }
-
 /* ---------- Lobby: balanced columns ---------- */
 .lobby .dash { align-self: stretch; }
 .dash .dash-buttons { margin-top: auto; }
@@ -1033,7 +1005,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .account-split { grid-template-columns: minmax(0, 1fr); padding: 14px; }
 }
 @media (max-height: 500px) and (min-width: 600px) {
-  .hub-scene { display: none; }
   .account-split { gap: 14px; padding: 12px; }
   .account-pitch .account-art svg { width: 90px; }
   .account-pitch .dash-perks { font-size: 13px; }
@@ -1079,3 +1050,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dash-goal-info b { font-family: var(--title); font-weight: normal; font-size: 20px; line-height: 1.1; }
 .dash-goal-label { font-size: 12px; font-weight: 800; }
 @media (max-height: 500px) and (min-width: 600px) { .dash-goal-art, .dash-goal-art svg { width: 52px; } .dash-goal-info b { font-size: 16px; } }
+
+/* ---------- Shop: one box size for every tab, the catalogue scrolls inside ---------- */
+@media (min-width: 981px), (max-height: 500px) and (min-width: 600px) {
+  .hub[data-tab='shop'] .hub-page { flex: 1 1 0; min-height: 520px; }
+  .hub[data-tab='shop'] .page-shop { flex: 1 1 0; min-height: 0; margin: 0; grid-template-rows: minmax(0, 1fr); }
+  .shop-main { height: 100%; min-height: 0; overflow: hidden; }
+  .shop-body { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 8px 2px; margin: -4px -6px 0 -2px; }
+}
+@media (min-width: 981px), (max-height: 500px) and (min-width: 600px) {
+  /* The stage panel never runs past the box either. */
+  .hub[data-tab='shop'] .shop-side { position: static; max-height: 100%; overflow-y: auto; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  /* Every pixel of a landscape phone goes to the shop; the links are on the other pages. */
+  .hub[data-tab='shop'] .hub-page { min-height: 0; padding-bottom: 10px; }
+  .hub[data-tab='shop'] .hub-footer { display: none; }
+}
+.shop-body { display: flex; flex-direction: column; gap: 14px; }
