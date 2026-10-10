@@ -101,13 +101,13 @@ async function boot(): Promise<void> {
   if (shop) {
     history.replaceState(null, '', location.pathname);
     if (shop === 'done') {
-      openAccount(ui, 'Thanks! Your item will appear here in a moment.');
+      openAccount(ui, 'Thanks! Your new hat will appear under "Your hats" in a moment.');
       // Stripe tells the server a few seconds after paying, so check back a few times.
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 2000));
         if (((await refreshAccount())?.owned.length ?? 0) > before) break;
       }
-    } else openAccount(ui, 'Payment cancelled: nothing was charged.');
+    } else openAccount(ui, 'Payment cancelled: nothing was charged.', 'shop');
   }
 }
 

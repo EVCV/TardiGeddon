@@ -21,12 +21,22 @@ const QUEUE_MAX = 50;
 
 export interface Member {
   send(msg: ServerMsg): void;
+  /** The player's account, if they're signed in. */
+  userId?: string;
+}
+
+/** How one signed-in player did in a finished online match. */
+export interface MatchResult {
+  userId: string;
+  won: boolean;
 }
 
 interface Slot {
   team: LobbyTeam;
   cpu: boolean;
   member: Member | null;
+  /** Account of the player who took this slot (kept if they drop out). */
+  userId?: string;
   token: string;
   queue: InputFrame[];
   held: number;
@@ -134,6 +144,8 @@ export class Room {
   private lastTeam = -1;
   /** Tick (ms clock) when the last connected human left; used to close empty rooms. */
   emptySince = 0;
+  /** Called when a match finishes, with the signed-in players' results (for account stats). */
+  onResult: ((results: MatchResult[]) => void) | null = null;
 
   constructor(
     readonly code: string,
@@ -167,6 +179,7 @@ export class Room {
     if (this.state || this.slots.length >= MAX_TEAMS) return false;
     const slot = this.newSlot(cleanTeam(team, this.slots.length), false);
     slot.member = member;
+    slot.userId = member.userId;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
     this.broadcastRoom();
@@ -267,6 +280,8 @@ export class Room {
     }
     if (s.turn.phase === 'gameover') {
       this.flush();
+      const results = this.slots.flatMap((sl, i) => (sl.userId && !sl.cpu ? [{ userId: sl.userId, won: s.turn.winner === i }] : []));
+      if (results.length) this.onResult?.(results);
       // Back to the lobby for a rematch; disconnected players' slots are freed.
       this.state = null;
       this.slots = this.slots.filter((sl) => sl.cpu || sl.member);

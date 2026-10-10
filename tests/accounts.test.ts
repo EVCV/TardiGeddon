@@ -114,7 +114,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(await sendWebhook('checkout.session.completed', paid('cs_1', id, 'hat:pirate'))).toBe(200); // retry
     expect((await me(cookie)).owned).toEqual(['hat:pirate']);
     expect((await accounts.db.query('SELECT 1 FROM purchase WHERE id = $1', ['cs_1'])).rowCount).toBe(1);
-    expect(await accounts.ownedFor({ cookie })).toEqual(['hat:pirate']);
+    expect(await accounts.playerFor({ cookie })).toEqual({ userId: id, owned: ['hat:pirate'] });
 
     // Already owned: no second checkout.
     expect((await post('/api/shop/checkout', { item: 'hat:pirate', consent: true }, cookie)).status).toBe(409);
@@ -137,6 +137,28 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await sendWebhook('checkout.session.completed', { ...paid('cs_2', id, 'hat:viking'), payment_status: 'unpaid' });
     await sendWebhook('checkout.session.completed', paid('cs_3', id, 'hat:golden'));
     expect((await me(cookie)).owned).toEqual([]);
+  });
+
+  it('counts online games played and won', async () => {
+    const { cookie, id } = await signUp('seven@example.com');
+    expect((await me(cookie)).stats).toEqual({ onlinePlayed: 0, onlineWon: 0 });
+    await accounts.recordResults([{ userId: id, won: true }]);
+    await accounts.recordResults([{ userId: id, won: false }, { userId: 'nobody', won: true }]);
+    const m = await me(cookie);
+    expect(m.stats).toEqual({ onlinePlayed: 2, onlineWon: 1 });
+    expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
+  });
+
+  it("explains Stripe's refusal when using test keys", async () => {
+    const { cookie } = await signUp('eight@example.com');
+    const real = stripe.checkout.sessions.create;
+    stripe.checkout.sessions.create = (async () => {
+      throw new Error('In order to use Checkout, you must set an account or business name.');
+    }) as unknown as typeof real;
+    const r = await post('/api/shop/checkout', { item: 'hat:viking', consent: true }, cookie);
+    stripe.checkout.sessions.create = real;
+    expect(r.status).toBe(502);
+    expect(((await r.json()) as { error: string }).error).toContain('business name');
   });
 
   it('deleting an account removes what it owned', async () => {

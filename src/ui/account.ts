@@ -1,11 +1,13 @@
-// Account & Shop: sign in / create an account, see what you own, buy shop
-// items (cosmetic only), sign out, delete the account.
+// Account panel: sign in / create an account; then a Profile tab (who you
+// are, your stats, the hats you own) and a Shop tab (cosmetic items only).
 
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { SHOP_ITEMS, formatPrice, type ShopItem } from '../shop/catalog';
 import {
+  type MeResponse,
   account,
+  wearHat,
   buy,
   deleteAccount,
   onAccountChange,
@@ -35,16 +37,17 @@ function legalLink(slug: string, text: string): HTMLAnchorElement {
   return a;
 }
 
-/** Open the Account & Shop panel. `notice` is shown at the top (e.g. after paying). */
-export function openAccount(host: HTMLElement, notice = ''): void {
+/** Open the Account panel. `notice` is shown at the top (e.g. after paying). */
+export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' | 'shop' = 'profile'): void {
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor account');
   box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-label', 'Account and shop');
+  box.setAttribute('aria-label', 'Account');
   overlay.append(box);
   host.append(overlay);
 
   let mode: 'signin' | 'signup' = 'signin';
+  let tab = startTab;
   // Typed values survive re-renders (e.g. after a failed sign-in).
   const draft: Record<string, string> = { name: '', email: '', password: '' };
   let busy = false;
@@ -75,7 +78,7 @@ export function openAccount(host: HTMLElement, notice = ''): void {
   const render = () => {
     const { me, loaded } = account();
     box.innerHTML = '';
-    box.append(el('h2', 'editor-title', me?.user ? 'Account & Shop' : 'Account'));
+    box.append(el('h2', 'editor-title', me?.user ? 'Your account' : 'Account'));
     const msg = el('p', 'account-status', status);
     box.append(msg);
 
@@ -86,28 +89,24 @@ export function openAccount(host: HTMLElement, notice = ''): void {
     } else if (!me.user) {
       box.append(signInForm(me.providers));
     } else {
-      const who = el('p', 'account-who');
-      who.append('Signed in as ', el('b', '', me.user.name), ` (${me.user.email})`);
-      box.append(who, shop(me.owned, me.shop));
+      const tabs = el('div', 'account-tabs');
+      tabs.setAttribute('role', 'tablist');
+      for (const [t, label] of [['profile', '👤 Profile'], ['shop', '🛍️ Shop']] as const) {
+        const b = el('button', 'hud-btn' + (tab === t ? ' on' : ''), label);
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', String(tab === t));
+        b.onclick = () => {
+          tab = t;
+          pending = null;
+          status = '';
+          render();
+        };
+        tabs.append(b);
+      }
+      box.append(tabs, tab === 'profile' ? profile(me) : shop(me.owned, me.shop));
     }
 
     const actions = el('div', 'editor-actions');
-    if (me?.user) {
-      const del = el('button', 'hud-btn account-delete', 'Delete account');
-      del.disabled = busy;
-      del.onclick = () => {
-        const pw = prompt('This permanently deletes your account and everything you own in the shop. Type your password to confirm (leave empty if you sign in with Google or Apple).');
-        if (pw === null) return;
-        void run(async () => {
-          await deleteAccount(pw);
-          status = 'Your account has been deleted.';
-        });
-      };
-      const out = el('button', 'hud-btn', 'Sign out');
-      out.disabled = busy;
-      out.onclick = () => void run(signOut);
-      actions.append(del, out);
-    }
     const done = el('button', 'big-btn', 'Done');
     done.onclick = close;
     actions.append(done);
@@ -151,8 +150,10 @@ export function openAccount(host: HTMLElement, notice = ''): void {
       const agree = el('label', 'account-check');
       const box = el('input');
       box.type = 'checkbox';
-      box.required = true;
+      // Checked in onsubmit with a clear message: the browser's own bubble is easy to miss.
       box.name = 'agree';
+      box.checked = draft.agree === '1';
+      box.onchange = () => (draft.agree = box.checked ? '1' : '');
       const text = el('span');
       text.append("I'm 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '. See how we use your data in the ', legalLink('privacy-policy', 'Privacy Policy'), '.');
       agree.append(box, text);
@@ -164,6 +165,12 @@ export function openAccount(host: HTMLElement, notice = ''): void {
     form.append(submit);
     form.onsubmit = (e) => {
       e.preventDefault();
+      const agreed = form.querySelector<HTMLInputElement>('input[name=agree]');
+      if (mode === 'signup' && agreed && !agreed.checked) {
+        status = "Please tick the box to confirm you're 13 or older and agree to the Terms.";
+        render();
+        return;
+      }
       void run(() => (mode === 'signup' ? signUp(name!.value.trim(), email.value.trim(), pw.value) : signIn(email.value.trim(), pw.value)));
     };
     for (const p of providers) {
@@ -180,6 +187,78 @@ export function openAccount(host: HTMLElement, notice = ''): void {
     }
     form.append(el('p', 'account-note', 'An account keeps your shop items on every device. Everything in the game is free to play without one.'));
     return form;
+  };
+
+  const profile = (me: MeResponse): HTMLElement => {
+    const user = me.user!;
+    const wrap = el('div', 'account-profile');
+    const team = loadProfiles()[0];
+    const card = el('div', 'profile-card');
+    const pic = el('div', 'profile-pic');
+    pic.innerHTML = mascotSvg(team.color, wearHat(team.hat));
+    const who = el('div', 'profile-who');
+    who.append(el('div', 'profile-name', user.name), el('div', 'profile-email', user.email));
+    const since = new Date(user.createdAt);
+    if (!Number.isNaN(since.getTime())) {
+      who.append(el('div', 'profile-since', `Playing since ${since.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`));
+    }
+    card.append(pic, who);
+
+    const { onlinePlayed, onlineWon } = me.stats;
+    const hats = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
+    const stats = el('div', 'profile-stats');
+    const tile = (value: string, label: string) => {
+      const t = el('div', 'stat-tile');
+      t.append(el('div', 'stat-value', value), el('div', 'stat-label', label));
+      stats.append(t);
+    };
+    tile(String(onlinePlayed), 'Online games');
+    tile(String(onlineWon), 'Wins');
+    tile(onlinePlayed ? `${Math.round((onlineWon / onlinePlayed) * 100)}%` : '–', 'Win rate');
+    tile(String(hats.length), 'Shop hats');
+
+    const owned = el('div', 'profile-hats');
+    owned.append(el('h3', '', 'Your hats'));
+    if (hats.length) {
+      const grid = el('div', 'editor-hats');
+      for (const item of hats) {
+        const c = el('div', 'hat-btn');
+        c.innerHTML = mascotSvg(team.color, item.ref);
+        c.append(el('span', '', item.name));
+        grid.append(c);
+      }
+      owned.append(grid, el('p', 'account-note', 'Wear them from the ✎ team editor on the main menu.'));
+    } else {
+      const p = el('p', 'account-note', 'No shop hats yet. ');
+      if (me.shop) {
+        const go = el('button', 'link-btn', 'Have a look in the shop');
+        go.onclick = () => {
+          tab = 'shop';
+          render();
+        };
+        p.append(go);
+      }
+      owned.append(p);
+    }
+    if (!onlinePlayed) owned.append(el('p', 'account-note', 'Your stats count online games played while signed in.'));
+
+    const manage = el('div', 'profile-manage');
+    const out = el('button', 'hud-btn', 'Sign out');
+    out.disabled = busy;
+    out.onclick = () => void run(signOut);
+    const del = el('button', 'link-btn account-delete', 'Delete account');
+    del.disabled = busy;
+    del.onclick = () => {
+      const pw = prompt('This permanently deletes your account, your stats and everything you own in the shop. Type your password to confirm (leave empty if you sign in with Google or Apple).');
+      if (pw === null) return;
+      void run(async () => {
+        await deleteAccount(pw);
+        status = 'Your account has been deleted.';
+      });
+    };
+    manage.append(out, del);
+    wrap.append(card, stats, owned, manage);
+    return wrap;
   };
 
   /** The item the player tapped Buy on, waiting for them to confirm. */
@@ -215,7 +294,6 @@ export function openAccount(host: HTMLElement, notice = ''): void {
 
   const shop = (owned: string[], open: boolean): HTMLElement => {
     const wrap = el('div', 'account-shop');
-    wrap.append(el('h3', '', 'Shop'));
     if (pending && open && !owned.includes(pending.id)) {
       wrap.append(confirmBuy(pending));
       return wrap;
@@ -253,5 +331,6 @@ export function openAccount(host: HTMLElement, notice = ''): void {
 
   const off = onAccountChange(render);
   render();
-  if (!account().loaded) void refreshAccount();
+  // Fresh stats and items every time it opens (a match or a purchase may have just finished).
+  void refreshAccount();
 }

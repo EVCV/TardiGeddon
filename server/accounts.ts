@@ -18,7 +18,7 @@ import { CURRENCY, SHOP_ITEMS, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 
 export type { MeResponse };
-import { migrate, ownedItems, purgeExpired, recordPurchase, revokePurchase } from './store';
+import { migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase } from './store';
 
 export interface AccountsEnv {
   DATABASE_URL?: string;
@@ -53,8 +53,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     throw new Error('BETTER_AUTH_SECRET must be set to a random string of at least 32 characters');
   }
   const gameUrl = env.GAME_URL ?? 'http://localhost:5173/';
+  const gameOrigin = new URL(gameUrl);
   const origins = new Set([
-    new URL(gameUrl).origin,
+    gameOrigin.origin,
+    // The same site with or without "www." (https://example.com <-> https://www.example.com).
+    `${gameOrigin.protocol}//${gameOrigin.hostname.startsWith('www.') ? gameOrigin.hostname.slice(4) : 'www.' + gameOrigin.hostname}${gameOrigin.port ? ':' + gameOrigin.port : ''}`,
     ...(env.TRUSTED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   ]);
 
@@ -111,17 +114,23 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   purge.unref();
   await purgeExpired(db);
 
+  const tax = env.STRIPE_AUTOMATIC_TAX === 'on';
+  const testMode = !(env.STRIPE_SECRET_KEY ?? '').includes('_live_');
   const stripe = opts.stripe ?? (env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null);
   const authHandler = toNodeHandler(auth);
 
   async function userFrom(headers: IncomingHttpHeaders): Promise<MeResponse['user']> {
     const s = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
-    return s ? { id: s.user.id, name: s.user.name, email: s.user.email } : null;
+    return s ? { id: s.user.id, name: s.user.name, email: s.user.email, createdAt: new Date(s.user.createdAt).toISOString() } : null;
   }
 
   /** CORS for the game's own origin(s), with cookies. */
   function cors(req: IncomingMessage, res: ServerResponse): void {
     const origin = req.headers.origin;
+    if (origin && !origins.has(origin)) {
+      // The browser will refuse to use our answer; say why in the server log.
+      console.warn(`api: request from untrusted origin ${origin} (allowed: ${[...origins].join(', ')})`);
+    }
     if (origin && origins.has(origin)) {
       res.setHeader('access-control-allow-origin', origin);
       res.setHeader('access-control-allow-credentials', 'true');
@@ -157,22 +166,35 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     back.searchParams.set('shop', 'done');
     const cancel = new URL(gameUrl);
     cancel.searchParams.set('shop', 'cancel');
-    const session = await stripe.checkout.sessions.create({
+    let session: { url: string | null };
+    try {
+      session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
         {
           quantity: 1,
-          // Catalogue prices include VAT.
-          price_data: { currency: CURRENCY, unit_amount: item.price, tax_behavior: 'inclusive', product_data: { name: `TardiGeddon: ${item.name}` } },
+          price_data: {
+            currency: CURRENCY,
+            unit_amount: item.price,
+            // Catalogue prices include VAT (only needs saying when Stripe Tax is on).
+            ...(tax ? { tax_behavior: 'inclusive' as const } : {}),
+            product_data: { name: `TardiGeddon: ${item.name}` },
+          },
         },
       ],
-      ...(env.STRIPE_AUTOMATIC_TAX === 'on' ? { automatic_tax: { enabled: true } } : {}),
+      ...(tax ? { automatic_tax: { enabled: true } } : {}),
       client_reference_id: user.id,
       metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString() },
       customer_email: user.email,
       success_url: back.toString(),
       cancel_url: cancel.toString(),
-    });
+      });
+    } catch (e) {
+      // Usually a Stripe setting (e.g. no business name yet). Shown to players only with test keys.
+      const why = e instanceof Error ? e.message : String(e);
+      console.error('checkout: Stripe refused:', why);
+      return json(res, 502, { error: testMode ? `Stripe said: ${why}` : "The shop couldn't start your payment. Please try again later." });
+    }
     json(res, 200, { url: session.url });
   }
 
@@ -233,12 +255,17 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           res.writeHead(204);
           res.end();
         } else if (path.startsWith('/api/auth/')) {
+          // Refused sign-ins are logged with the reason (never the email or password).
+          res.on('finish', () => {
+            if (res.statusCode >= 400) console.warn(`auth: ${req.method} ${path} -> ${res.statusCode} (origin ${req.headers.origin ?? 'none'})`);
+          });
           await authHandler(req, res);
         } else if (path === '/api/me' && req.method === 'GET') {
           const user = await userFrom(req.headers);
           const me: MeResponse = {
             user,
             owned: user ? await ownedItems(db, user.id) : [],
+            stats: user ? await playerStats(db, user.id) : { onlinePlayed: 0, onlineWon: 0 },
             shop: stripe !== null && SHOP_ITEMS.length > 0,
             providers: Object.keys(socialProviders),
           };
@@ -254,10 +281,14 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       }
       return true;
     },
-    /** Items owned by whoever these request headers (cookies) belong to; empty if signed out. */
-    async ownedFor(headers: IncomingHttpHeaders): Promise<string[]> {
+    /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
+    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[] }> {
       const user = await userFrom(headers);
-      return user ? ownedItems(db, user.id) : [];
+      return user ? { userId: user.id, owned: await ownedItems(db, user.id) } : { owned: [] };
+    },
+    /** Add a finished online match to the players' stats. */
+    async recordResults(results: { userId: string; won: boolean }[]): Promise<void> {
+      await recordResults(db, results);
     },
     async close(): Promise<void> {
       clearInterval(purge);

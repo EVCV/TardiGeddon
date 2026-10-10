@@ -8,8 +8,10 @@ import { canWearHat } from '../shop/catalog';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
-  user: { id: string; name: string; email: string } | null;
+  user: { id: string; name: string; email: string; createdAt: string } | null;
   owned: string[];
+  /** Online matches played and won with this account. */
+  stats: { onlinePlayed: number; onlineWon: number };
   /** Whether the shop can take payments. */
   shop: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
@@ -82,7 +84,7 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
     throw new Error("Can't reach the server. Check your connection and try again.");
   }
   const data = (await r.json().catch(() => ({}))) as T & { message?: string; error?: string };
-  if (!r.ok) throw new Error(data.message || data.error || 'Something went wrong. Please try again.');
+  if (!r.ok) throw new Error(data.message || data.error || `Something went wrong (error ${r.status}). Please try again.`);
   return data;
 }
 

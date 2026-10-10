@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 9 October 2026
-**Document Version:** v1.2
+**Document Version:** v1.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -65,7 +65,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.1.4 The server keeps match information in memory only while the match or lobby is in use. It is deleted when the room closes (at the latest about two minutes after the last player leaves) or when the server restarts. We do not keep match histories or chat logs.
 
-2.1.5 If you are signed in when you play online, the server also checks which shop items your account owns, so that only the hats you own are shown to other players. It does not tell other players who you are: they only see your Team Details.
+2.1.5 If you are signed in when you play online, the server also checks which shop items your account owns, so that only the hats you own are shown to other players, and adds the result of each finished match to your account's stats. It does not tell other players who you are: they only see your Team Details.
 
 ### 2.2 Your Account (Optional)
 
@@ -76,6 +76,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
 - when your account was created and last updated;
 - the shop items your account owns, and how you got them.
+- how many online games you have played and won while signed in, shown to you on your profile (not to other players).
 
 2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
 
@@ -177,7 +178,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
-5.1.4 Your account (Section 2.2.1), including the items it owns: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle.
+5.1.4 Your account (Section 2.2.1), including the items it owns and your game stats: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle.
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 
