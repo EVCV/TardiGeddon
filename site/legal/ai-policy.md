@@ -1,8 +1,8 @@
 # AI Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
-**Document Version:** v1.0
+**Last Modified:** 10 October 2026
+**Document Version:** v1.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -79,7 +79,7 @@ TardiGeddon is made with the help of artificial intelligence ("AI"). This policy
 
 ## Section 4 — Accuracy and Feedback
 
-4.0.1 TardiGeddon is in beta. Despite our reviews, mistakes can slip through, whether or not AI was involved. If you spot something wrong, unfair or inaccurate, please tell us at support@tardigeddon.com and we will look into it.
+4.0.1 Despite our reviews, mistakes can slip through, whether or not AI was involved. If you spot something wrong, unfair or inaccurate, please tell us at support@tardigeddon.com and we will look into it.
 
 ---
 
