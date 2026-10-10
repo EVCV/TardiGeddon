@@ -592,3 +592,4 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .link-btn { border: 0; background: none; padding: 0; font: inherit; font-weight: 800; text-decoration: underline; color: inherit; cursor: pointer; }
 .link-btn.account-delete { margin: 0 0 0 auto; color: var(--red); font-size: 13px; }
 @media (max-width: 420px) { .profile-stats { grid-template-columns: repeat(2, 1fr); } }
+.account-status { overflow-wrap: anywhere; }

@@ -33,6 +33,13 @@ export interface AccountsEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   /** "on" to let Stripe Tax work out VAT for the buyer's country (needs Stripe Tax set up; prices stay VAT-inclusive). */
   STRIPE_AUTOMATIC_TAX?: string;
+  /**
+   * "on" to use Stripe Managed Payments (Stripe as merchant of record). Off by
+   * default: EVCV Limited is the seller, as the Terms say. Needs STRIPE_TAX_CODE.
+   */
+  STRIPE_MANAGED_PAYMENTS?: string;
+  /** Stripe product tax code for shop items (e.g. txcd_…), required by Managed Payments. */
+  STRIPE_TAX_CODE?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   APPLE_CLIENT_ID?: string;
@@ -178,11 +185,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             unit_amount: item.price,
             // Catalogue prices include VAT (only needs saying when Stripe Tax is on).
             ...(tax ? { tax_behavior: 'inclusive' as const } : {}),
-            product_data: { name: `TardiGeddon: ${item.name}` },
+            product_data: { name: `TardiGeddon: ${item.name}`, ...(env.STRIPE_TAX_CODE ? { tax_code: env.STRIPE_TAX_CODE } : {}) },
           },
         },
       ],
       ...(tax ? { automatic_tax: { enabled: true } } : {}),
+      // Stripe turns Managed Payments on by default for new accounts; we only use it when asked to.
+      managed_payments: { enabled: env.STRIPE_MANAGED_PAYMENTS === 'on' },
       client_reference_id: user.id,
       metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString() },
       customer_email: user.email,
