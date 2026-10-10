@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 10 October 2026
-**Document Version:** v1.7
+**Document Version:** v1.8
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -74,7 +74,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - your player name and email address;
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
 - if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
-- when your account was created and last updated;
+- when your account was created and last updated, and whether you have confirmed your email address;
 - the items your account has unlocked, and how (with coins, Slime, or an earlier direct purchase);
 - your coin and Slime balances, and how much Slime you have earned from games against the computer today (for the daily limit);
 - your game stats while signed in: online games and one-player games against the computer played and won, win streaks, how many tardigrades you have popped, the damage you have dealt, and your own goals (damage to, and pops of, your own team). They are shown to you, not to other players.
@@ -84,6 +84,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 2.2.3 Your account name and email address are not shown to other players.
 
 2.2.4 When you create an account, we ask you to confirm that you are 13 or older and that you agree to our Terms of Service. We do not ask for or store your date of birth.
+
+2.2.5 Account emails. We send you an email with a link to confirm your email address when you create an account (and again if you ask), and an email with a link to choose a new password if you use "Forgot password?". These are service emails needed to keep your account secure, not marketing, and we only send them when you sign up or ask for one. Each email contains your player name and a one-time link. A password reset link works once, for one hour; we store its code until it is used or expires, then delete it. An email confirmation link works for 24 hours and is not stored by us. If you did not ask for an email, you can ignore it.
 
 ### 2.3 Purchases
 
@@ -147,13 +149,15 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files, and provides our visit statistics), Fly.io, Inc. (which runs the online game server in its London region) and Neon (which hosts our account database in London, on Amazon Web Services). They process data such as IP addresses and, for Neon, the account and purchase data described in Sections 2.2 and 2.3, to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
 
-4.0.3 Stripe, which processes payments for us. Stripe acts as our processor for taking payments, and as an independent controller for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
+4.0.3 Our email delivery provider, acting as our processor, which sends the account emails described in Section 2.2.5 on our behalf. It receives your email address, your player name and the content of the email, and keeps delivery logs for a limited time under its own policies. You can ask us which provider we currently use at privacy@tardigeddon.com.
 
-4.0.4 Google or Apple, only if you choose to sign in with them. They will know that you used your Google or Apple account to sign in to TardiGeddon, under their own privacy policies.
+4.0.4 Stripe, which processes payments for us. Stripe acts as our processor for taking payments, and as an independent controller for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
 
-4.0.5 Professional advisers, regulators, law enforcement agencies, courts, or other public authorities, where required or permitted by law, or to protect the rights, property, or safety of the Company, our players, or others.
+4.0.5 Google or Apple, only if you choose to sign in with them. They will know that you used your Google or Apple account to sign in to TardiGeddon, under their own privacy policies.
 
-4.0.6 A prospective buyer, investor, or successor entity, in connection with an actual or proposed merger, acquisition, reorganisation, or sale of some or all of the Company's assets, subject to appropriate confidentiality arrangements.
+4.0.6 Professional advisers, regulators, law enforcement agencies, courts, or other public authorities, where required or permitted by law, or to protect the rights, property, or safety of the Company, our players, or others.
+
+4.0.7 A prospective buyer, investor, or successor entity, in connection with an actual or proposed merger, acquisition, reorganisation, or sale of some or all of the Company's assets, subject to appropriate confidentiality arrangements.
 
 ### 4.1 We Do Not Sell Personal Data
 
@@ -161,7 +165,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 4.2 International Transfers
 
-4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon and Stripe) are based in the United States or operate worldwide networks, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
+4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon, Stripe and our email delivery provider) are based in the United States or operate worldwide networks, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
 
 4.2.2 You may request further information about these safeguards by contacting privacy@tardigeddon.com.
 

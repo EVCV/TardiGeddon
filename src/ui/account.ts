@@ -7,7 +7,7 @@ import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
 import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
 import { WEAPONS } from '../sim/weapons';
-import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, managePurchases, signIn, signInWith, signOut, signUp } from '../account/session';
+import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
 import type { HubContext } from './hub';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -37,8 +37,11 @@ function myTardi(): string {
 
 /** Sign-in state that survives re-renders (e.g. after a failed sign-in). */
 export interface SignInState {
-  mode: 'signin' | 'signup';
+  /** forgot: ask for a reset link; reset: choose a new password (from the emailed link). */
+  mode: 'signin' | 'signup' | 'forgot' | 'reset';
   draft: Record<string, string>;
+  /** The token from a password reset link. */
+  token?: string;
 }
 
 export const newSignInState = (): SignInState => ({ mode: 'signin', draft: { name: '', email: '', password: '' } });
@@ -46,6 +49,13 @@ export const newSignInState = (): SignInState => ({ mode: 'signin', draft: { nam
 /** The Account page. */
 export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInState): HTMLElement {
   const page = el('div', 'page page-account');
+  // A reset link works whoever is signed in on this device.
+  if (form.mode === 'reset' && form.token) {
+    const card = el('section', 'card account-reset');
+    card.append(el('h2', 'card-title', 'Choose a new password'), resetForm(ctx, form));
+    page.append(card);
+    return page;
+  }
   if (!me.user) {
     // One wide card: your tardi and why to sign in, beside the form.
     const card = el('section', 'card account-split');
@@ -62,7 +72,8 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
       list.append(el('li', '', t));
     pitch.append(art, el('h2', 'card-title', 'Why sign in?'), list);
     const formBox = el('div', 'account-form-box');
-    formBox.append(el('h2', 'card-title', form.mode === 'signup' ? 'Create your account' : 'Welcome back'), signInForm(me.providers, ctx, form));
+    if (form.mode === 'forgot') formBox.append(el('h2', 'card-title', 'Forgot your password?'), forgotForm(ctx, form));
+    else formBox.append(el('h2', 'card-title', form.mode === 'signup' ? 'Create your account' : 'Welcome back'), signInForm(me, ctx, form));
     card.append(pitch, formBox);
     page.append(card);
     return page;
@@ -83,6 +94,19 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   const wallet = el('div', 'account-wallet');
   wallet.append(statTile(`🪙 ${formatNumber(me.wallet.coins)}`, 'Coins'), statTile(`🟢 ${formatNumber(me.wallet.slime)}`, 'Slime'));
   card.append(head, wallet, el('p', 'account-note', 'Change your team name, colours, hat and skin with ✎ in the lobby.'));
+  if (me.mail && user.emailVerified === false) {
+    const box = el('div', 'account-verify');
+    box.append(el('p', '', `📧 Please confirm your email: we sent a link to ${user.email}. It's how you get back in if you ever forget your password.`));
+    const again = el('button', 'hud-btn', 'Send the link again');
+    again.disabled = ctx.busy;
+    again.onclick = () =>
+      ctx.run(async () => {
+        await resendConfirmation(user.email);
+        ctx.notify('Sent! It can take a minute; check your spam folder too.');
+      });
+    box.append(again);
+    card.append(box);
+  }
 
   const manage = el('section', 'card account-manage');
   manage.append(el('h2', 'card-title', 'Manage'));
@@ -112,7 +136,8 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   return page;
 }
 
-function signInForm(providers: string[], ctx: HubContext, state: SignInState): HTMLElement {
+function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLElement {
+  const { providers } = me;
   const { draft } = state;
   const form = el('form', 'account-form');
   const tabs = el('div', 'seg');
@@ -163,13 +188,27 @@ function signInForm(providers: string[], ctx: HubContext, state: SignInState): H
   submit.type = 'submit';
   submit.disabled = ctx.busy;
   form.append(submit);
+  if (!signup && me.mail) {
+    const forgot = el('button', 'link-btn account-forgot', 'Forgot password?');
+    forgot.type = 'button';
+    forgot.onclick = () => {
+      state.mode = 'forgot';
+      ctx.notify('');
+    };
+    form.append(forgot);
+  }
   form.onsubmit = (e) => {
     e.preventDefault();
     if (signup && draft.agree !== '1') {
       ctx.notify("Please tick the box to confirm you're 13 or older and agree to the Terms.");
       return;
     }
-    ctx.run(() => (signup ? signUp(name!.value.trim(), email.value.trim(), pw.value) : signIn(email.value.trim(), pw.value)));
+    ctx.run(async () => {
+      await (signup ? signUp(name!.value.trim(), email.value.trim(), pw.value) : signIn(email.value.trim(), pw.value));
+      // Signing out later shows "Sign in", not "Create account".
+      state.mode = 'signin';
+      draft.password = '';
+    });
   };
   for (const p of providers) {
     const b = el('button', 'hud-btn account-provider', `Continue with ${PROVIDER_NAMES[p] ?? p}`);
@@ -183,6 +222,88 @@ function signInForm(providers: string[], ctx: HubContext, state: SignInState): H
     note.append("Continuing with Google or Apple means you're 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '.');
     form.append(note);
   }
+  return form;
+}
+
+/** An email or password box for the small forms below. */
+function input(type: string, label: string, auto: string, value = ''): HTMLInputElement {
+  const inp = el('input', 'field');
+  inp.type = type;
+  inp.placeholder = label;
+  inp.required = true;
+  inp.autocomplete = auto as AutoFill;
+  inp.setAttribute('aria-label', label);
+  inp.value = value;
+  return inp;
+}
+
+function backToSignIn(ctx: HubContext, state: SignInState): HTMLButtonElement {
+  const b = el('button', 'link-btn', 'Back to sign in');
+  b.type = 'button';
+  b.onclick = () => {
+    state.mode = 'signin';
+    state.token = undefined;
+    ctx.notify('');
+  };
+  return b;
+}
+
+/** Forgot password: ask for a reset link by email. */
+function forgotForm(ctx: HubContext, state: SignInState): HTMLElement {
+  const form = el('form', 'account-form');
+  form.append(el('p', 'account-note', "Type the email you signed up with and we'll send you a link to choose a new password."));
+  const email = input('email', 'Email', 'email', state.draft.email);
+  email.oninput = () => (state.draft.email = email.value);
+  const submit = el('button', 'big-btn', 'Email me a link');
+  submit.type = 'submit';
+  submit.disabled = ctx.busy;
+  form.append(email, submit, backToSignIn(ctx, state));
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    ctx.run(async () => {
+      await requestPasswordReset(email.value.trim());
+      state.mode = 'signin';
+      // The same answer whether or not there's an account, so this can't be used to check emails.
+      ctx.notify("If there's an account for that email, we've sent a link. It can take a minute; check your spam folder too.");
+    });
+  };
+  return form;
+}
+
+/** From the emailed link: choose a new password. */
+function resetForm(ctx: HubContext, state: SignInState): HTMLElement {
+  const form = el('form', 'account-form');
+  const pw = input('password', 'New password (8+ characters)', 'new-password');
+  const again = input('password', 'Type it again', 'new-password');
+  pw.minLength = 8;
+  again.minLength = 8;
+  const submit = el('button', 'big-btn', 'Save new password');
+  submit.type = 'submit';
+  submit.disabled = ctx.busy;
+  const newLink = el('button', 'link-btn', 'Ask for a new link');
+  newLink.type = 'button';
+  newLink.onclick = () => {
+    state.mode = 'forgot';
+    state.token = undefined;
+    ctx.notify('');
+  };
+  form.append(pw, again, submit, newLink);
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    if (pw.value !== again.value) {
+      ctx.notify("The two passwords don't match. Please type them again.");
+      return;
+    }
+    ctx.run(async () => {
+      await resetPassword(state.token ?? '', pw.value);
+      state.mode = 'signin';
+      state.token = undefined;
+      state.draft.password = '';
+      // Every device was signed out, this one included.
+      await refreshAccount();
+      ctx.notify('Password changed! Sign in with your new password.');
+    });
+  };
   return form;
 }
 
