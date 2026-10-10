@@ -235,7 +235,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
     const customer = await stripeCustomerId(db, user.id);
-    if (!customer) return json(res, 404, { error: "You haven't bought anything yet." });
+    // The purchases page is made with the first coin purchase. Items bought directly,
+    // before coins existed (test payments only), have no page: don't claim "nothing bought".
+    if (!customer) return json(res, 404, { error: 'Your purchases page appears after your first coin purchase. For anything bought before then, email support@tardigeddon.com for a receipt.' });
     try {
       const portal = await stripe.billingPortal.sessions.create({ customer, return_url: gameUrl });
       json(res, 200, { url: portal.url });
