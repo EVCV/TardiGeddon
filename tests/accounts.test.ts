@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
+import { migrate } from '../server/store';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -109,9 +110,13 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(((await r.json()) as { url: string }).url).toContain('checkout.stripe.test');
     const p = checkouts.at(-1)!;
     expect(p.line_items?.[0].price_data?.unit_amount).toBe(499);
-    expect(p.line_items?.[0].price_data?.product_data?.name).toBe('TardiGeddon: 500 coins');
+    expect(p.line_items?.[0].price_data?.product_data?.name).toBe('TardiGeddon: 550 coins (500 + 50 bonus)');
     // EVCV is the seller: Stripe's Managed Payments stays off unless configured.
     expect(p.managed_payments).toEqual({ enabled: false });
+    // The biggest packs also need "18 or over, or a parent or carer agreed".
+    expect((await post('/api/shop/checkout', { item: 'coins:5000', consent: true }, cookie)).status).toBe(400);
+    expect((await post('/api/shop/checkout', { item: 'coins:5000', consent: true, grownUp: true }, cookie)).status).toBe(200);
+    expect(checkouts.at(-1)!.metadata).toHaveProperty('grownUpConfirmed');
     // One Stripe customer per player, reused; an invoice (receipt) per purchase.
     expect(p.customer).toMatch(/^cus_test_/);
     expect(p.invoice_creation).toEqual({ enabled: true });
@@ -131,20 +136,46 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(402); // no coins yet
     expect(await sendWebhook('checkout.session.completed', paid('cs_c1', id, 'coins:500'))).toBe(200);
     expect(await sendWebhook('checkout.session.completed', paid('cs_c1', id, 'coins:500'))).toBe(200); // retry: once only
-    expect((await me(cookie)).wallet.coins).toBe(500);
+    expect((await me(cookie)).wallet.coins).toBe(550); // 500 + 50 bonus
     expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(200);
     expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(409); // already have it
-    expect((await post('/api/shop/unlock', { item: 'skin:gold' }, cookie)).status).toBe(402); // 300 left, costs 500
+    expect((await post('/api/shop/unlock', { item: 'skin:gold' }, cookie)).status).toBe(402); // 350 left, costs 500
     // Coins never buy Slime-only things (weapons).
     expect((await post('/api/shop/unlock', { item: 'weapon:megaspore' }, cookie)).status).toBe(402);
     let m = await me(cookie);
-    expect(m.wallet).toEqual({ coins: 300, slime: 0 });
+    expect(m.wallet).toEqual({ coins: 350, slime: 0 });
     expect(m.owned).toEqual(['hat:wizard']);
-    // Refund: the coins go back, even though some were spent (balance below zero blocks spending).
+    // Refund: the coins go back (all 550 the payment gave), even though some were spent (balance below zero blocks spending).
     await sendWebhook('charge.refunded', { id: 'ch_c1', refunded: true, payment_intent: 'pi_cs_c1' });
     m = await me(cookie);
     expect(m.wallet.coins).toBe(-200);
     expect((await post('/api/shop/unlock', { item: 'hat:party' }, cookie)).status).toBe(402);
+  });
+
+  it('records the coins each payment gave, and a refund takes back exactly that', async () => {
+    const { cookie, id } = await signUp('bonus@example.com');
+    await sendWebhook('checkout.session.completed', paid('cs_b1', id, 'coins:2000'));
+    expect((await me(cookie)).wallet.coins).toBe(2400); // 2,000 + 400 bonus
+    const row = await accounts.db.query('SELECT coins FROM purchase WHERE id = $1', ['cs_b1']);
+    expect(row.rows[0].coins).toBe(2400);
+    // Pretend the pack gave fewer coins when it was bought (e.g. before a bonus changed).
+    await accounts.db.query('UPDATE purchase SET coins = 2000 WHERE id = $1', ['cs_b1']);
+    await sendWebhook('charge.refunded', { id: 'ch_b1', refunded: true, payment_intent: 'pi_cs_b1' });
+    expect((await me(cookie)).wallet.coins).toBe(400);
+  });
+
+  it('treats coin packs bought before bonus coins as giving their base amount', async () => {
+    const { cookie, id } = await signUp('legacy@example.com');
+    await sendWebhook('checkout.session.completed', paid('cs_l1', id, 'coins:2000'));
+    // An old purchase: no record of the coins it gave, and it gave 2,000 (no bonus then).
+    await accounts.db.query('UPDATE purchase SET coins = NULL WHERE id = $1', ['cs_l1']);
+    await accounts.db.query('UPDATE wallet SET coins = 2000 WHERE user_id = $1', [id]);
+    await migrate(accounts.db);
+    expect((await accounts.db.query('SELECT coins FROM purchase WHERE id = $1', ['cs_l1'])).rows[0].coins).toBe(2000);
+    // And a refund with no record at all still takes back only the base amount.
+    await accounts.db.query('UPDATE purchase SET coins = NULL WHERE id = $1', ['cs_l1']);
+    await sendWebhook('charge.refunded', { id: 'ch_l1', refunded: true, payment_intent: 'pi_cs_l1' });
+    expect((await me(cookie)).wallet.coins).toBe(0);
   });
 
   it('pays Slime for matches (CPU games capped per day) and Slime unlocks weapons', async () => {

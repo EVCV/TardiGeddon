@@ -6,7 +6,7 @@
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
-import { coinPack, shopItem } from '../src/shop/catalog';
+import { coinPack, packTotal, shopItem } from '../src/shop/catalog';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -28,6 +28,10 @@ export async function migrate(db: Pool): Promise<void> {
       created_at     timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS purchase_payment_intent ON purchase (payment_intent);
+    -- Coins a coin-pack payment gave, bonus included (taken back exactly on a refund).
+    ALTER TABLE purchase ADD COLUMN IF NOT EXISTS coins integer;
+    -- Coin packs bought before bonus coins existed gave exactly their base amount (the number in the id).
+    UPDATE purchase SET coins = split_part(item, ':', 2)::int WHERE coins IS NULL AND item ~ '^coins:[0-9]+$';
     CREATE TABLE IF NOT EXISTS player_stats (
       user_id       text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       online_played integer NOT NULL DEFAULT 0,
@@ -291,7 +295,13 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
     );
     if (ins.rowCount === 1) {
       const pack = coinPack(p.item);
-      if (pack) await credit(c, p.userId, pack.coins, 0);
+      if (pack) {
+        // Remember what this payment gave, so a refund takes back exactly that
+        // even if pack sizes or bonuses change later.
+        const coins = packTotal(pack);
+        await c.query('UPDATE purchase SET coins = $2 WHERE id = $1', [p.sessionId, coins]);
+        await credit(c, p.userId, coins, 0);
+      }
       else {
         // Items sold directly for money before coins existed.
         await c.query(
@@ -317,14 +327,15 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
  * spending until it's topped up).
  */
 export async function revokePurchase(db: Pool, paymentIntent: string, status: 'refunded' | 'disputed'): Promise<void> {
-  const r = await db.query<{ user_id: string | null; item: string }>(
-    `UPDATE purchase SET status = $2 WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item`,
+  const r = await db.query<{ user_id: string | null; item: string; coins: number | null }>(
+    `UPDATE purchase SET status = $2 WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item, coins`,
     [paymentIntent, status],
   );
   for (const row of r.rows) {
     if (!row.user_id) continue;
     const pack = coinPack(row.item);
-    if (pack) await credit(db, row.user_id, -pack.coins, 0);
+    // No record means an old purchase, from before bonus coins: it gave the base amount.
+    if (pack) await credit(db, row.user_id, -(row.coins ?? pack.coins), 0);
     else await db.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
   }
 }

@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 10 October 2026
-**Document Version:** v1.6
+**Document Version:** v1.7
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -89,7 +89,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.3.1 Payments are handled by Stripe on its own secure payment page. Your card or other payment details go directly to Stripe; we never see or store your full card number.
 
-2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account, and Stripe creates an invoice that serves as your receipt. You can see your purchases and download receipts on Stripe's page through the shop's "Manage purchases & receipts" button. We receive back, and keep, a purchase record: the item, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, and the time you confirmed that you wanted the item straight away (see our Terms of Service, Section 5).
+2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account, and Stripe creates an invoice that serves as your receipt. You can see your purchases and download receipts on Stripe's page through the shop's "Manage purchases & receipts" button. We receive back, and keep, a purchase record: the item, how many coins it gave, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, the time you confirmed that you wanted the item straight away and, for coin packs of £20 or more, the time you confirmed you were 18 or over or had a parent's or guardian's agreement (see our Terms of Service, Section 5).
 
 2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
 

@@ -33,19 +33,51 @@ export interface ShopItem {
 export interface CoinPack {
   id: string;
   coins: number;
+  /** Extra coins on top, so bigger packs give more coins per pound. */
+  bonus: number;
   /** Price in pence (CURRENCY), VAT included. */
   price: number;
 }
 
 export const CURRENCY = 'gbp';
 
-/** 1 coin is about 1p in every pack (no bulk bonuses), so prices are easy to compare. */
+/**
+ * Bigger packs include bonus coins (Terms 5.1.2): from about 1p a coin in the
+ * smallest pack to about 0.77p in the biggest. Never rename an id: purchase
+ * records store it.
+ */
 export const COIN_PACKS: CoinPack[] = [
-  { id: 'coins:200', coins: 200, price: 199 },
-  { id: 'coins:500', coins: 500, price: 499 },
-  { id: 'coins:1000', coins: 1000, price: 999 },
-  { id: 'coins:2000', coins: 2000, price: 1999 },
+  { id: 'coins:200', coins: 200, bonus: 0, price: 199 },
+  { id: 'coins:500', coins: 500, bonus: 50, price: 499 },
+  { id: 'coins:1000', coins: 1000, bonus: 150, price: 999 },
+  { id: 'coins:2000', coins: 2000, bonus: 400, price: 1999 },
+  { id: 'coins:5000', coins: 5000, bonus: 1250, price: 4999 },
+  { id: 'coins:10000', coins: 10000, bonus: 3000, price: 9999 },
 ];
+
+/**
+ * Packs at or above this price (pence) also need the buyer to confirm they're
+ * 18 or over, or that a parent or carer has agreed (Terms 5.1.1).
+ */
+export const BIG_PACK_PRICE = 2000;
+
+/** All the coins a pack gives, bonus included. */
+export function packTotal(p: CoinPack): number {
+  return p.coins + p.bonus;
+}
+
+/** Pence per coin in a pack. */
+export function pencePerCoin(p: CoinPack): number {
+  return p.price / packTotal(p);
+}
+
+/** What some coins are worth in pounds: "£1.67–£1.99", from the biggest pack's rate to the smallest's. */
+export function coinValue(coins: number): string {
+  const rates = COIN_PACKS.map(pencePerCoin);
+  const lo = formatPrice(Math.round(coins * Math.min(...rates)));
+  const hi = formatPrice(Math.round(coins * Math.max(...rates)));
+  return lo === hi ? lo : `${lo}–${hi}`;
+}
 
 const hat = (ref: string, name: string, blurb: string, rarity: Rarity, price: { coins?: number; slime?: number }): ShopItem => ({
   id: `hat:${ref}`, kind: 'hat', ref, name, blurb, rarity, ...price,

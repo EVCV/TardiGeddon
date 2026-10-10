@@ -1,5 +1,5 @@
-// Cartoon art for the coin packs: a pouch, a stack, a chest and a treasure
-// pile, drawn in the game's ink-outlined style (docs/STYLE_GUIDE.md).
+// Cartoon art for the coin packs: a pouch, a stack, a chest, a treasure pile,
+// a mountain of coins and a dragon's hoard, drawn in the game's ink-outlined style (docs/STYLE_GUIDE.md).
 
 const INK = '#2b1b24';
 const GOLD = '#ffd84a';
@@ -48,9 +48,23 @@ const ART: Record<string, string> = {
     <path d="M46 40 L52 26 L60 36 L68 26 L74 40 Z" fill="${GOLD}" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
     <circle cx="60" cy="34" r="3" fill="#e04848" stroke="${INK}" stroke-width="2"/>
     ${sparkle(22, 40, 8)}${sparkle(100, 46, 6)}`,
+  mountain: `
+    <path d="M10 98 L40 44 L56 64 L72 30 L110 98 Z" fill="${GOLD}" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M72 30 L72 12" stroke="${INK}" stroke-width="3"/>
+    <path d="M72 12 L90 17 L72 23 Z" fill="#e04848" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
+    ${coin(36, 82, 9)}${coin(56, 86, 9)}${coin(78, 80, 9)}${coin(94, 90, 8)}${coin(48, 66, 8)}${coin(70, 58, 8)}${coin(24, 92, 7)}
+    ${stack(16, 100, 3, 12)}${stack(106, 100, 4, 12)}${sparkle(100, 34, 7)}${sparkle(24, 48, 6)}`,
+  dragon: `
+    <path d="M14 98 Q20 60 60 56 Q100 60 106 98 Z" fill="${GOLD}" stroke="${INK}" stroke-width="4"/>
+    ${coin(34, 86, 9)}${coin(54, 78, 10)}${coin(76, 84, 9)}${coin(92, 92, 8)}${coin(64, 94, 8)}${coin(42, 70, 8)}
+    <path d="M70 52 Q74 30 92 26 Q104 24 108 32 Q100 34 98 40 Q94 34 88 38 Q82 44 84 56 Z" fill="#6dbb58" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+    <circle cx="96" cy="31" r="2.6" fill="${INK}"/>
+    <path d="M84 30 L80 20 L88 26 M92 26 L92 16 L97 25" fill="#6dbb58" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M30 56 Q24 40 34 34 Q36 46 44 50" fill="#6dbb58" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+    ${sparkle(20, 30, 7)}${sparkle(56, 40, 5)}`,
 };
 
-/** SVG for a pack's picture: 'pouch' | 'stack' | 'chest' | 'vault'. */
+/** SVG for a pack's picture: 'pouch', 'stack', 'chest', 'vault', 'mountain' or 'dragon'. */
 export function packArt(kind: string): string {
   return `<svg viewBox="0 0 120 110" aria-hidden="true">${ART[kind] ?? ART.pouch}</svg>`;
 }
