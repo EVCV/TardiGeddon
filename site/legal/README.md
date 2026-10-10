@@ -56,7 +56,7 @@ Owner to confirm before the shop opens:
 
 - The legal entity names of Neon and Stripe for the processors list (Privacy 4.0.2–4.0.3).
 - That Stripe sends receipts (Stripe → Settings → Emails → successful payments): Terms 5.1.3 promises one.
-- The 30 days' notice before closing the shop or Services (Terms 5.4.2) and the liability cap (9.1.3).
+- The 30 days' notice before closing the shop or Services (Terms 5.5.3) and the liability cap (9.1.3).
 - VAT on sales outside the UK: see docs/ACCOUNTS.md.
 - The Children's Privacy promise of no time-limited pressure to buy (1.2.3) rules out countdown sales; revisit before adding a daily shop or season pass.
 

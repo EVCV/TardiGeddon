@@ -1,10 +1,12 @@
-// The stats dashboard beside the main menu. Signed in: your tardigrade and
-// lifetime stats. Signed out: a nudge to sign in. Hidden when the server has
-// accounts turned off.
+// The career panel beside the match setup in the lobby. Signed in: your
+// tardigrade, wallet and lifetime stats. Signed out: a nudge to sign in.
+// Hidden when the server has accounts turned off.
 
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
-import { account, wearHat, type PlayerStats } from '../account/session';
+import { SHOP_ITEMS } from '../shop/catalog';
+import { account, wearHat, wearSkin, type PlayerStats } from '../account/session';
+import type { HubTab } from './hub';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -24,21 +26,28 @@ export function totals(s: PlayerStats): { played: number; won: number; rate: str
   return { played, won, rate: played ? `${Math.round((won / played) * 100)}%` : '–' };
 }
 
-/** Fill `box` with the dashboard for the current account state. */
-export function renderDashboard(box: HTMLElement, open: (tab: 'profile' | 'shop') => void): void {
+/** A stat tile: big number over a small label. */
+export function statTile(value: string, label: string, cls = ''): HTMLElement {
+  const d = el('div', 'stat-tile' + (cls ? ' ' + cls : ''));
+  d.append(el('div', 'stat-value', value), el('div', 'stat-label', label));
+  return d;
+}
+
+/** Fill `box` with the career panel for the current account state. */
+export function renderDashboard(box: HTMLElement, go: (tab: HubTab) => void): void {
   const { me } = account();
   box.innerHTML = '';
   box.classList.toggle('hidden', !me);
   if (!me) return;
 
+  box.append(el('h2', 'card-title', me.user ? 'Career' : 'Your career'));
   if (!me.user) {
     box.classList.add('dash-teaser');
-    box.append(el('h2', 'dash-title', 'Track your stats'));
     const list = el('ul', 'dash-perks');
-    for (const t of ['🏆 Wins and win streaks', '💥 Tardigrades popped', '🤦 Your funniest own goals', '🎩 Your hats on every device']) list.append(el('li', '', t));
-    const go = el('button', 'big-btn dash-go', 'Sign in');
-    go.onclick = () => open('profile');
-    box.append(list, go, el('p', 'dash-note', 'Free, and everything in the game stays playable without one.'));
+    for (const t of ['🏆 Wins and win streaks', '💥 Tardigrades popped', '🤦 Your funniest own goals', '🟢 Earn Slime to unlock weapons', '🎩 Your hats on every device']) list.append(el('li', '', t));
+    const signIn = el('button', 'big-btn dash-go', 'Sign in');
+    signIn.onclick = () => go('account');
+    box.append(list, signIn, el('p', 'dash-note', 'Free, and everything in the game stays playable without one.'));
     return;
   }
   box.classList.remove('dash-teaser');
@@ -47,43 +56,45 @@ export function renderDashboard(box: HTMLElement, open: (tab: 'profile' | 'shop'
   const t = totals(s);
   const team = loadProfiles()[0];
   const head = el('button', 'dash-head');
-  head.setAttribute('aria-label', 'Open your profile');
-  head.onclick = () => open('profile');
+  head.setAttribute('aria-label', 'Open your account');
+  head.onclick = () => go('account');
   const pic = el('span', 'dash-pic');
-  pic.innerHTML = mascotSvg(team.color, wearHat(team.hat));
+  pic.innerHTML = mascotSvg(team.color, wearHat(team.hat), wearSkin(team.skin));
   const who = el('span', 'dash-who');
   who.append(el('span', 'dash-name', me.user.name));
-  if (s.streak > 1) who.append(el('span', 'dash-streak', `🔥 ${s.streak} wins in a row`));
+  who.append(el('span', 'dash-streak', s.streak > 1 ? `🔥 ${s.streak} wins in a row` : `${compact(t.played)} games played`));
   head.append(pic, who);
 
-  const big = el('div', 'dash-big');
-  const stat = (parent: HTMLElement, value: string, label: string, cls = 'dash-stat') => {
-    const d = el('div', cls);
-    d.append(el('div', 'dash-value', value), el('div', 'dash-label', label));
-    parent.append(d);
-  };
-  stat(big, compact(t.won), 'Wins');
-  stat(big, t.rate, 'Win rate');
-
   const grid = el('div', 'dash-grid');
-  stat(grid, compact(t.played), 'Games');
-  stat(grid, compact(s.bestStreak), 'Best streak');
-  stat(grid, compact(s.popped), '💥 Popped');
-  stat(grid, compact(s.damage), 'Damage dealt');
-  stat(grid, compact(s.selfPopped), '🤦 Own goals');
-  stat(grid, compact(s.selfDamage), 'Hurt yourself');
+  grid.append(
+    statTile(compact(t.won), 'Wins', 'gold'),
+    statTile(t.rate, 'Win rate', 'gold'),
+    statTile(compact(s.bestStreak), 'Best streak'),
+    statTile(compact(s.popped), '💥 Popped'),
+    statTile(compact(s.damage), 'Damage dealt'),
+    statTile(compact(s.selfPopped), '🤦 Own goals'),
+    statTile(compact(s.selfDamage), 'Hurt yourself'),
+    statTile(compact(t.played), 'Games'),
+  );
 
-  const split = el('p', 'dash-split', `Online ${s.onlineWon}/${s.onlinePlayed} · vs CPU ${s.cpuWon}/${s.cpuPlayed} won`);
+  // Collection progress: what you've unlocked out of the whole shop.
+  const owned = SHOP_ITEMS.filter((i) => me.owned.includes(i.id)).length;
+  const coll = el('button', 'dash-collection');
+  coll.onclick = () => go('shop');
+  const bar = el('span', 'dash-bar');
+  const fill = el('span', 'dash-bar-fill');
+  fill.style.width = `${Math.round((owned / SHOP_ITEMS.length) * 100)}%`;
+  bar.append(fill);
+  coll.append(el('span', 'dash-coll-label', `🎩 Collection ${owned}/${SHOP_ITEMS.length} unlocked`), bar);
 
   const buttons = el('div', 'dash-buttons');
-  const prof = el('button', 'hud-btn', '👤 Profile');
-  prof.onclick = () => open('profile');
+  const stats = el('button', 'hud-btn', '📊 All stats');
+  stats.onclick = () => go('stats');
   const shop = el('button', 'hud-btn', '🛍️ Shop');
-  shop.onclick = () => open('shop');
-  buttons.append(prof);
-  if (me.shop) buttons.append(shop);
+  shop.onclick = () => go('shop');
+  buttons.append(stats, shop);
 
-  box.append(head, big, grid, split);
+  box.append(head, grid, coll);
   if (!t.played) box.append(el('p', 'dash-note', 'Play online, or one-on-one against the CPU, to fill these in.'));
   box.append(buttons);
 }

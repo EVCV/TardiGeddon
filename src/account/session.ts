@@ -4,15 +4,17 @@
 // the copy cached here only decides what this device shows as unlocked.
 
 import { serverUrl } from '../net/client';
-import { canWearHat } from '../shop/catalog';
+import { canUse, unlockedWeapons } from '../shop/catalog';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
   user: { id: string; name: string; email: string; createdAt: string } | null;
   owned: string[];
+  /** Coins (bought) and Slime (earned). */
+  wallet: { coins: number; slime: number };
   /** Lifetime stats for this account. */
   stats: PlayerStats;
-  /** Whether the shop can take payments. */
+  /** Whether coins can be bought (Stripe is set up). */
   shop: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
@@ -82,7 +84,17 @@ export function ownedItems(): string[] {
 
 /** The hat to actually wear: a shop hat this device hasn't unlocked falls back to the beanie. */
 export function wearHat(hat: string): string {
-  return canWearHat(hat, ownedItems()) ? hat : 'beanie';
+  return canUse('hat', hat, ownedItems()) ? hat : 'beanie';
+}
+
+/** Likewise for skins. */
+export function wearSkin(skin: string): string {
+  return canUse('skin', skin, ownedItems()) ? skin : 'classic';
+}
+
+/** Season weapons the signed-in player has unlocked (switched on in the matches they start). */
+export function myUnlockedWeapons(): string[] {
+  return unlockedWeapons(ownedItems());
 }
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -108,7 +120,7 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 export async function refreshAccount(): Promise<MeResponse | null> {
   try {
     const r = await call<MeResponse>('/api/me');
-    set(Array.isArray(r.owned) ? r : null);
+    set(Array.isArray(r.owned) ? { ...r, wallet: r.wallet ?? { coins: 0, slime: 0 } } : null);
   } catch {
     set(null);
   }
@@ -140,6 +152,12 @@ export async function deleteAccount(password: string): Promise<void> {
   await signOut().catch(() => refreshAccount());
 }
 
+/** Spend coins or Slime on an item. */
+export async function unlock(item: string): Promise<void> {
+  await call('/api/shop/unlock', { item });
+  await refreshAccount();
+}
+
 /** Off to Stripe's page with the player's purchases and receipts. */
 export async function managePurchases(): Promise<void> {
   const r = await call<{ url?: string }>('/api/shop/portal', {});
@@ -147,14 +165,16 @@ export async function managePurchases(): Promise<void> {
 }
 
 /** A finished match against the CPU, for the signed-in player's stats (online ones are counted by the server). */
-export async function reportCpuMatch(r: { won: boolean; popped: number; damage: number; selfDamage: number; selfPopped: number }): Promise<void> {
-  if (!me?.user) return;
+export async function reportCpuMatch(r: { won: boolean; popped: number; damage: number; selfDamage: number; selfPopped: number }): Promise<number> {
+  if (!me?.user) return 0;
+  let slime = 0;
   try {
-    await call('/api/stats/match', r);
+    slime = (await call<{ slime?: number }>('/api/stats/match', r)).slime ?? 0;
   } catch {
     /* stats are a nice-to-have */
   }
   await refreshAccount();
+  return slime;
 }
 
 /** Google / Apple: off to the provider, then back to the game. */
@@ -164,10 +184,10 @@ export async function signInWith(provider: string): Promise<void> {
 }
 
 /**
- * Off to Stripe's payment page for one item. `consent`: the player asked for
- * the item straight away and accepted losing the 14-day cancellation right.
+ * Off to Stripe's payment page for a coin pack. `consent`: the player asked
+ * for the coins straight away and accepted losing the 14-day cancellation right.
  */
-export async function buy(item: string, consent: boolean): Promise<void> {
-  const r = await call<{ url?: string }>('/api/shop/checkout', { item, consent });
+export async function buyCoins(pack: string, consent: boolean): Promise<void> {
+  const r = await call<{ url?: string }>('/api/shop/checkout', { item: pack, consent });
   if (r.url) location.href = r.url;
 }

@@ -23,7 +23,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
   The sim is driven only by `InputFrame`s, one per tick at 50 Hz. This is what makes
   replays, the CPU's look-ahead and online lockstep play possible.
 - `src/render/` — PixiJS view of the state; reads state, never writes it. Interpolates between ticks.
-- `src/ui/` — DOM menus/HUD/touch controls. `src/input/` — keyboard/touch → `InputFrame`.
+- `src/ui/` — DOM menus/HUD/touch controls. The menu is one hub (`ui/hub.ts`) of pages, not pop-ups: Lobby, Stats, Shop, Account. `src/input/` — keyboard/touch → `InputFrame`.
 - `server/` + `src/net/` — online play: the server runs the sim and streams lockstep input frames; clients replay them.
 - `server/accounts.ts` + `src/account/` + `src/shop/` — optional accounts (Better Auth on Neon Postgres) and the
   Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
@@ -35,4 +35,5 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 
 - Any gameplay change needs a sim test; keep `tests/soak.test.ts` green (it catches soft-locks).
 - Never copy Worms Armageddon assets or signature names (see plan §1).
-- Purchases are cosmetic only — never sell gameplay power.
+- Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only.
+  Weapons unlock with Slime, which is earned by playing and must never be buyable or convertible from coins.

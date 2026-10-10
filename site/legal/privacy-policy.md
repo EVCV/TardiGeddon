@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
-**Document Version:** v1.5
+**Last Modified:** 10 October 2026
+**Document Version:** v1.6
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -75,7 +75,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
 - if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
 - when your account was created and last updated;
-- the shop items your account owns, and how you got them.
+- the items your account has unlocked, and how (with coins, Slime, or an earlier direct purchase);
+- your coin and Slime balances, and how much Slime you have earned from games against the computer today (for the daily limit);
 - your game stats while signed in: online games and one-player games against the computer played and won, win streaks, how many tardigrades you have popped, the damage you have dealt, and your own goals (damage to, and pops of, your own team). They are shown to you, not to other players.
 
 2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
@@ -88,7 +89,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.3.1 Payments are handled by Stripe on its own secure payment page. Your card or other payment details go directly to Stripe; we never see or store your full card number.
 
-2.3.2 When you buy your first item, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the item and its price and an identifier for your account, and Stripe creates an invoice that serves as your receipt. You can see your purchases and download receipts on Stripe's page through the shop's "Manage purchases & receipts" button. We receive back, and keep, a purchase record: the item, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, and the time you confirmed that you wanted the item straight away (see our Terms of Service, Section 5).
+2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account, and Stripe creates an invoice that serves as your receipt. You can see your purchases and download receipts on Stripe's page through the shop's "Manage purchases & receipts" button. We receive back, and keep, a purchase record: the item, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, and the time you confirmed that you wanted the item straight away (see our Terms of Service, Section 5).
 
 2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
 
@@ -178,7 +179,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
-5.1.4 Your account (Section 2.2.1), including the items it owns and your game stats: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle.
+5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, and your game stats: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle.
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 

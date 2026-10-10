@@ -94,34 +94,84 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(sess.rows).toEqual([{ ipAddress: null, userAgent: null }]);
   });
 
-  it('starts checkout at the catalogue price, only for signed-in players', async () => {
-    expect((await post('/api/shop/checkout', { item: 'hat:wizard' })).status).toBe(401);
+  it('sells coin packs (only) at the catalogue price, to signed-in players', async () => {
+    expect((await post('/api/shop/checkout', { item: 'coins:500' })).status).toBe(401);
     expect((await post('/api/shop/portal', {})).status).toBe(401);
     const { cookie, id } = await signUp('two@example.com');
-    expect((await post('/api/shop/checkout', { item: 'hat:nope' }, cookie)).status).toBe(400);
+    expect((await post('/api/shop/checkout', { item: 'coins:3', consent: true }, cookie)).status).toBe(400);
+    // Money never buys items (or weapons) directly: only coins.
+    expect((await post('/api/shop/checkout', { item: 'hat:wizard', consent: true }, cookie)).status).toBe(400);
+    expect((await post('/api/shop/checkout', { item: 'weapon:megaspore', consent: true }, cookie)).status).toBe(400);
     // No checkout without consent to immediate supply (losing the 14-day cancellation right).
-    expect((await post('/api/shop/checkout', { item: 'hat:wizard' }, cookie)).status).toBe(400);
-    const r = await post('/api/shop/checkout', { item: 'hat:wizard', price: 1, consent: true }, cookie);
+    expect((await post('/api/shop/checkout', { item: 'coins:500' }, cookie)).status).toBe(400);
+    const r = await post('/api/shop/checkout', { item: 'coins:500', price: 1, consent: true }, cookie);
     expect(r.status).toBe(200);
     expect(((await r.json()) as { url: string }).url).toContain('checkout.stripe.test');
     const p = checkouts.at(-1)!;
-    expect(p.line_items?.[0].price_data?.unit_amount).toBe(199);
+    expect(p.line_items?.[0].price_data?.unit_amount).toBe(499);
+    expect(p.line_items?.[0].price_data?.product_data?.name).toBe('TardiGeddon: 500 coins');
     // EVCV is the seller: Stripe's Managed Payments stays off unless configured.
     expect(p.managed_payments).toEqual({ enabled: false });
     // One Stripe customer per player, reused; an invoice (receipt) per purchase.
     expect(p.customer).toMatch(/^cus_test_/);
     expect(p.invoice_creation).toEqual({ enabled: true });
-    await post('/api/shop/checkout', { item: 'hat:pirate', consent: true }, cookie);
+    await post('/api/shop/checkout', { item: 'coins:200', consent: true }, cookie);
     expect(checkouts.at(-1)!.customer).toBe(p.customer);
     // ...and their purchases page opens on that customer.
     const portal = await post('/api/shop/portal', {}, cookie);
     expect(portal.status).toBe(200);
     expect(((await portal.json()) as { url: string }).url).toBe(`https://billing.stripe.test/${p.customer}`);
-    expect(p.metadata).toMatchObject({ userId: id, item: 'hat:wizard' });
+    expect(p.metadata).toMatchObject({ userId: id, item: 'coins:500' });
     expect(Date.parse(String(p.metadata?.immediateSupplyConsent))).toBeGreaterThan(0);
   });
 
-  it('grants an item once Stripe confirms payment, once, and takes it back on refund', async () => {
+  it('credits coins once Stripe confirms payment, spends them on items, and takes them back on refund', async () => {
+    const { cookie, id } = await signUp('coins@example.com');
+    expect((await me(cookie)).wallet).toEqual({ coins: 0, slime: 0 });
+    expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(402); // no coins yet
+    expect(await sendWebhook('checkout.session.completed', paid('cs_c1', id, 'coins:500'))).toBe(200);
+    expect(await sendWebhook('checkout.session.completed', paid('cs_c1', id, 'coins:500'))).toBe(200); // retry: once only
+    expect((await me(cookie)).wallet.coins).toBe(500);
+    expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(200);
+    expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(409); // already have it
+    expect((await post('/api/shop/unlock', { item: 'skin:gold' }, cookie)).status).toBe(402); // 300 left, costs 500
+    // Coins never buy Slime-only things (weapons).
+    expect((await post('/api/shop/unlock', { item: 'weapon:megaspore' }, cookie)).status).toBe(402);
+    let m = await me(cookie);
+    expect(m.wallet).toEqual({ coins: 300, slime: 0 });
+    expect(m.owned).toEqual(['hat:wizard']);
+    // Refund: the coins go back, even though some were spent (balance below zero blocks spending).
+    await sendWebhook('charge.refunded', { id: 'ch_c1', refunded: true, payment_intent: 'pi_cs_c1' });
+    m = await me(cookie);
+    expect(m.wallet.coins).toBe(-200);
+    expect((await post('/api/shop/unlock', { item: 'hat:party' }, cookie)).status).toBe(402);
+  });
+
+  it('pays Slime for matches (CPU games capped per day) and Slime unlocks weapons', async () => {
+    const { cookie, id } = await signUp('slime@example.com');
+    // Online: 20 for playing, 30 for winning, 5 per pop (up to 8).
+    await accounts.recordResults([{ userId: id, mode: 'online', won: true, popped: 3, damage: 0, selfDamage: 0, selfPopped: 0 }]);
+    expect((await me(cookie)).wallet.slime).toBe(65);
+    // CPU games pay less and stop at 200 a day.
+    const r = (await (await post('/api/stats/match', { won: true, popped: 2 }, cookie)).json()) as { slime: number };
+    expect(r.slime).toBe(29);
+    await accounts.db.query('UPDATE wallet SET cpu_slime_today = 190 WHERE user_id = $1', [id]);
+    await accounts.db.query("UPDATE wallet SET cpu_slime_day = current_date WHERE user_id = $1", [id]);
+    accounts.resetLimits();
+    const r2 = (await (await post('/api/stats/match', { won: true, popped: 2 }, cookie)).json()) as { slime: number };
+    expect(r2.slime).toBe(10);
+    expect((await me(cookie)).wallet.slime).toBe(65 + 29 + 10);
+    // Spend it: 600 for the Pollen Pinball.
+    expect((await post('/api/shop/unlock', { item: 'weapon:pinball' }, cookie)).status).toBe(402);
+    await accounts.db.query('UPDATE wallet SET slime = 700 WHERE user_id = $1', [id]);
+    expect((await post('/api/shop/unlock', { item: 'weapon:pinball' }, cookie)).status).toBe(200);
+    const m = await me(cookie);
+    expect(m.wallet.slime).toBe(100);
+    expect(m.owned).toContain('weapon:pinball');
+    expect(await accounts.playerFor({ cookie })).toMatchObject({ owned: ['weapon:pinball'] });
+  });
+
+  it('still grants items bought directly for money before coins existed, and takes them back on refund', async () => {
     const { cookie, id } = await signUp('three@example.com');
     expect(await sendWebhook('checkout.session.completed', paid('cs_1', id, 'hat:pirate'), 'whsec_wrong')).toBe(400);
     expect((await me(cookie)).owned).toEqual([]);
@@ -131,9 +181,6 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(cookie)).owned).toEqual(['hat:pirate']);
     expect((await accounts.db.query('SELECT 1 FROM purchase WHERE id = $1', ['cs_1'])).rowCount).toBe(1);
     expect(await accounts.playerFor({ cookie })).toEqual({ userId: id, owned: ['hat:pirate'] });
-
-    // Already owned: no second checkout.
-    expect((await post('/api/shop/checkout', { item: 'hat:pirate', consent: true }, cookie)).status).toBe(409);
 
     expect(await sendWebhook('charge.refunded', { id: 'ch_1', refunded: true, payment_intent: 'pi_cs_1' })).toBe(200);
     expect((await me(cookie)).owned).toEqual([]);
@@ -183,7 +230,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     stripe.checkout.sessions.create = (async () => {
       throw new Error('In order to use Checkout, you must set an account or business name.');
     }) as unknown as typeof real;
-    const r = await post('/api/shop/checkout', { item: 'hat:viking', consent: true }, cookie);
+    const r = await post('/api/shop/checkout', { item: 'coins:200', consent: true }, cookie);
     stripe.checkout.sessions.create = real;
     expect(r.status).toBe(502);
     expect(((await r.json()) as { error: string }).error).toContain('business name');

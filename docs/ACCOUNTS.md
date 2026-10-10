@@ -1,38 +1,57 @@
 # Accounts and the shop
 
-Players can create a free account, buy cosmetic items (hats, for now) and
-wear them on any device. Nothing for sale changes how a team plays
-(GAME_PLAN §8). Everything in the game stays free without an account.
+Players can create a free account, earn **Slime** by playing, buy **coins**,
+and unlock hats, skins and season weapons that follow them to any device.
+Money only buys coins, and coins only buy looks; weapons are unlocked with
+Slime, which can't be bought (GAME_PLAN §8). Everything in the game stays
+free without an account.
 
 ## How it works
 
 - **Database:** Postgres on **Neon**. The game server creates its tables on
   start-up: Better Auth's `user`, `session`, `account` and `verification`,
-  plus `inventory` (who owns what) and `purchase` (every payment).
+  plus `inventory` (who owns what), `wallet` (coins and Slime),
+  `player_stats`, `stripe_customer` and `purchase` (every payment).
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
   on `server.tardigeddon.com`, which the game at `tardigeddon.com` can use
   because both are the same site.
-- **Paying:** the game asks the server for a **Stripe Checkout** page
-  (`POST /api/shop/checkout`). The price comes from `src/shop/catalog.ts` on
-  the server, never from the browser. After payment Stripe calls
-  `POST /api/stripe/webhook`; the server checks Stripe's signature and only
-  then adds the item to the player's `inventory`. Refunds and chargebacks
-  take it back. Webhook retries are harmless.
-- **Wearing:** the game shows shop hats as unlocked when `/api/me` says the
-  player owns them. Online, the server reads the player's cookie when they
-  connect and swaps any shop hat they don't own for the beanie, so editing
-  the browser's storage can't unlock anything for other players to see.
-- **Deleting an account** (Account → Delete account; app stores require it)
+- **Buying coins:** the game asks the server for a **Stripe Checkout** page
+  for a coin pack (`POST /api/shop/checkout`; packs and prices are in
+  `src/shop/catalog.ts`, never taken from the browser). After payment Stripe
+  calls `POST /api/stripe/webhook`; the server checks Stripe's signature and
+  only then credits the coins. Refunds and chargebacks take the coins back
+  (the balance can go below zero). Webhook retries are harmless.
+- **Earning Slime:** online matches pay Slime from the server's own count
+  (20 for playing, +30 for a win, +5 per pop up to 8); games against the CPU
+  are reported by the game and pay less (10, +15, +2 per pop), at most 200 a
+  day (`server/store.ts`).
+- **Unlocking:** `POST /api/shop/unlock` spends coins or Slime and adds the
+  item to the `inventory`, all or nothing.
+- **Season weapons** (`locked: true` in `src/sim/weapons.ts`) are off unless
+  the match rules list them in `Scheme.unlocked`. The game sets that from
+  the player's unlocks for local matches; online, the server sets it from
+  the host's unlocks (a client can't add its own), and quick play never
+  has them. Every team in the match gets them.
+- **Wearing:** the game shows shop hats and skins as unlocked when `/api/me`
+  says the player owns them. Online, the server reads the player's cookie
+  when they connect and swaps any hat or skin they don't own for the
+  default, so editing the browser's storage can't unlock anything for other
+  players to see.
+- **Deleting an account** (Account page → Delete account; app stores require it)
   removes the user and their inventory. Purchase records are kept for the
   accounts (tax) without the link to a person.
 - **Off by default:** with no `DATABASE_URL` the server runs games exactly as
-  before, and the game hides the Account button and every shop hat.
+  before, and the menu shows only the Lobby (no Stats, Shop or Account
+  pages, and no shop hats).
 
-New shop items: add the cosmetic (e.g. a hat in `src/render/hats.ts`), then
-list it in `SHOP_ITEMS` in `src/shop/catalog.ts` with a price. Never rename an
-item's `id` once sold: inventories store it.
+New shop items: add the cosmetic (a hat in `src/render/hats.ts`, a skin in
+`src/render/skins.ts`, or a `locked` weapon in `src/sim/weapons.ts` with a
+sim test), then list it in `SHOP_ITEMS` in `src/shop/catalog.ts` with a price
+in `coins` (looks only) or `slime`. Weapons must be priced in Slime only
+(`tests/season.test.ts` checks). Never rename an item's `id` once sold:
+inventories store it.
 
 ## Before switching it on for real players
 
@@ -56,6 +75,11 @@ Still to decide or set up (owner):
   for the EU's non-Union OSS scheme), and some other countries have similar
   rules. Options: Stripe Tax, or selling only to UK buyers at first. Ask your
   accountant.
+- **Stripe Managed Payments** (Stripe as merchant of record, handling VAT
+  worldwide) is off by default. To use it, check in Stripe that it accepts
+  in-game currency (coin packs) and which tax code applies, then set
+  `STRIPE_MANAGED_PAYMENTS=on` and `STRIPE_TAX_CODE=txcd_…`. Update the
+  Terms (Stripe becomes the seller) before switching it on.
 - **Receipts:** turn on Stripe → Settings → Customer emails → Successful
   payments. The Terms promise a receipt by email.
 - **Password reset** isn't built yet (it needs an email-sending service).
@@ -128,19 +152,24 @@ once, then never change it (changing it signs everyone out). If the server
 can't reach the database it keeps running games without accounts and says why
 in `fly logs`.
 
-Check: `/api/me` now shows `{"user":null,"owned":[],"shop":true,"providers":[]}`
-and `fly logs` says "Accounts enabled". On https://tardigeddon.com/play/ the
-menu shows **👤 Sign in / Shop**.
+Check: `/api/me` now shows `"user":null` and `"shop":true`, and `fly logs`
+says "Accounts enabled". On https://tardigeddon.com/play/ the menu's top bar
+shows the **Lobby / Stats / Shop / Account** tabs and a **Sign in** button.
 
 ### 5. Test it end to end (sandbox)
 
-1. Create an account in the game, open the shop, buy a hat. On Stripe's page
-   pay with card `4242 4242 4242 4242`, any future date, any CVC.
-2. Back in the game the hat shows **Owned ✓** within a few seconds, and it
-   can be picked in the ✎ team editor.
-3. Play an online match: the other player sees your hat.
+1. Create an account (top bar → **Sign in** → Create account), then
+   **Shop** → **Get coins**, and buy a pack.
+   On Stripe's page pay with card `4242 4242 4242 4242`, any future date,
+   any CVC.
+2. Back in the game the coins appear in your wallet within a few seconds.
+   Pick a hat or skin and press **Unlock** on the preview stage: it shows
+   **Owned ✓**, **Wear on …** puts it on your team, and it can be picked in
+   the ✎ team editor.
+3. Play an online match: the other player sees your hat and skin, and you
+   earn Slime. Play a game against the CPU: a "+… Slime" banner appears.
 4. In Stripe (sandbox) → **Payments**, refund the payment: within a few
-   seconds the hat is gone from your account.
+   seconds the pack's coins are taken back from your wallet.
 5. **Developers → Webhooks** → your endpoint shows the deliveries as
    succeeded.
 6. Try Account → Delete account.
@@ -159,18 +188,22 @@ the test card.
 3. Switch the server to live keys:
    `fly secrets set STRIPE_SECRET_KEY='sk_live_…' STRIPE_WEBHOOK_SECRET='whsec_…'`
    (the live webhook's own secret).
-4. Remove the hats granted by sandbox payments. In the Neon console, **SQL
-   Editor**, run:
+4. Remove the coins from sandbox payments, and what was unlocked with them
+   (Slime and Slime unlocks stay: they were earned by playing). In the Neon
+   console, **SQL Editor**, run:
 
    ```sql
+   DELETE FROM inventory WHERE source = 'coins';
    DELETE FROM inventory i USING purchase p
      WHERE p.id LIKE 'cs_test_%' AND i.user_id = p.user_id AND i.item = p.item AND i.source = 'purchase';
+   UPDATE wallet SET coins = 0;
    DELETE FROM purchase WHERE id LIKE 'cs_test_%';
    ```
 
+   Run this only at the switch to live, before anyone buys real coins.
    (With a live key the server also ignores any further sandbox events.)
-5. Buy one hat yourself with a real card, check it arrives along with the
-   receipt email, then refund it in Stripe.
+5. Buy the smallest coin pack yourself with a real card, check the coins and
+   the receipt email arrive, then refund it in Stripe.
 
 Done: the shop is live.
 

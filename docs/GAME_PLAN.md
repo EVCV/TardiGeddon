@@ -520,10 +520,15 @@ are avoiding. All gameplay content (weapons, modes, missions) is free.
 
 ### 8.2 Currency & economy
 
-- Soft currency **"Moss"** — earned by playing (wins, daily challenges,
-  season pass). Buys standard cosmetics.
-- Premium currency **"Crystals"** — bought with real money; also small
-  amounts from the season pass. Buys premium cosmetics, bundles, pass.
+- Earned currency **Slime**: from every online match and from games
+  against the CPU (capped per day). Unlocks season weapons and some
+  cosmetics. **Can never be bought.**
+- Bought currency **Coins**: coin packs are the only thing sold for money
+  (Stripe). Coins buy cosmetics only. Coins never convert to Slime, so
+  money can never buy weapons.
+- Unlocked season weapons are switched on for *everyone* in matches the
+  unlocker starts (local, or online rooms they host); quick play uses the
+  standard set. Built: see docs/ACCOUNTS.md and src/shop/catalog.ts.
 - Show real-money price equivalents; no loot boxes / random paid
   rewards (avoids gambling regulation in e.g. Belgium/Netherlands and
   App Store odds-disclosure rules). Rotating **daily shop** instead.

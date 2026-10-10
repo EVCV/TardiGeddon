@@ -1,8 +1,8 @@
 # Children's Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
-**Document Version:** v1.2
+**Last Modified:** 10 October 2026
+**Document Version:** v1.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -49,7 +49,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 1.2.2 If we learn that an account belongs to a child under 13, we will delete it (see Section 2.0).
 
-1.2.3 The shop sells cosmetic items only, which change how a team looks and never how it plays. There are no loot boxes or random paid rewards, no time-limited pressure to buy, and nothing in the game that requires a purchase. Players under 18 are asked to get a parent's or carer's permission before buying anything. Payments are made on Stripe's payment page, and parents and carers can ask us about a child's purchase at support@tardigeddon.com (see our Terms of Service, Section 5).
+1.2.3 Money only buys coins, and coins only buy cosmetic items, which change how a team looks and never how it plays. Season weapons are unlocked with Slime, which is earned by playing and cannot be bought, and coin prices are always shown with their value in pounds. There are no loot boxes or random paid rewards, no time-limited pressure to buy, and nothing in the game that requires a purchase. Players under 18 are asked to get a parent's or carer's permission before buying anything. Payments are made on Stripe's payment page, and parents and carers can ask us about a child's purchase at support@tardigeddon.com (see our Terms of Service, Section 5).
 
 ## Section 2 — Parental Notice and Rights
 

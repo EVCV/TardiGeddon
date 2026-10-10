@@ -8,7 +8,7 @@ import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEven
 import { WEAPONS } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { CpuPlayer } from '../src/ai/cpu';
-import { canWearHat } from '../src/shop/catalog';
+import { canUse } from '../src/shop/catalog';
 import { MatchTally } from '../src/stats/tally';
 import type { MatchResult } from './store';
 import { encodeWorld, syncHash } from '../src/net/snapshot';
@@ -25,6 +25,8 @@ export interface Member {
   send(msg: ServerMsg): void;
   /** The player's account, if they're signed in. */
   userId?: string;
+  /** Season weapons they've unlocked (switched on in matches they host). */
+  unlocked?: string[];
 }
 
 export type { MatchResult };
@@ -35,6 +37,7 @@ interface Slot {
   member: Member | null;
   /** Account of the player who took this slot (kept if they drop out). */
   userId?: string;
+  unlocked?: string[];
   token: string;
   queue: InputFrame[];
   held: number;
@@ -58,6 +61,7 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
     name: cleanText(v.name, 18) || TEAM_NAMES[slot % TEAM_NAMES.length],
     color: typeof v.color === 'number' && TEAM_COLORS.includes(v.color) ? v.color : TEAM_COLORS[slot % TEAM_COLORS.length],
     hat: typeof v.hat === 'string' && /^[a-z]{1,16}$/.test(v.hat) ? v.hat : 'beanie',
+    skin: typeof v.skin === 'string' && /^[a-z]{1,16}$/.test(v.skin) ? v.skin : 'classic',
     names,
   };
 }
@@ -68,9 +72,11 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
  */
 export function wearableTeam<T>(t: T, owned: readonly string[]): T {
   if (!t || typeof t !== 'object') return t;
-  const hat = (t as { hat?: unknown }).hat;
-  if (typeof hat === 'string' && !canWearHat(hat, owned)) return { ...t, hat: 'beanie' };
-  return t;
+  const { hat, skin } = t as { hat?: unknown; skin?: unknown };
+  let out = t;
+  if (typeof hat === 'string' && !canUse('hat', hat, owned)) out = { ...out, hat: 'beanie' };
+  if (typeof skin === 'string' && !canUse('skin', skin, owned)) out = { ...out, skin: 'classic' };
+  return out;
 }
 
 /** Only known scheme fields, clamped to sane ranges. */
@@ -179,6 +185,7 @@ export class Room {
     const slot = this.newSlot(cleanTeam(team, this.slots.length), false);
     slot.member = member;
     slot.userId = member.userId;
+    slot.unlocked = member.unlocked;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
     this.broadcastRoom();
@@ -217,7 +224,8 @@ export class Room {
         }
         break;
       case 'start':
-        if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme);
+        // The host's unlocked season weapons are switched on for everyone in the room.
+        if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme, slot.unlocked ?? []);
         break;
       case 'input':
         if (this.state && this.state.turn.teamIdx === idx && slot.queue.length < QUEUE_MAX) {
@@ -240,9 +248,9 @@ export class Room {
     this.broadcastRoom();
   }
 
-  /** Start the match now (used by quick play, which has no host to press Start). */
+  /** Start the match now (used by quick play, which has no host: standard weapons only). */
   start(scheme: unknown): void {
-    if (!this.state && this.slots.length >= 2) this.startMatch(scheme);
+    if (!this.state && this.slots.length >= 2) this.startMatch(scheme, []);
   }
 
   /** Advance the match by one tick (call at 50 Hz). */
@@ -323,9 +331,9 @@ export class Room {
     this.host = h < 0 ? 0 : h;
   }
 
-  private startMatch(rawScheme: unknown): void {
-    this.scheme = cleanScheme(rawScheme);
-    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, names: s.team.names, cpu: s.cpu }));
+  private startMatch(rawScheme: unknown, unlocked: string[]): void {
+    this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => WEAPONS[id]?.locked) };
+    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();
