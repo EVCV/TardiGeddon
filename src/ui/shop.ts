@@ -5,6 +5,7 @@
 // stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
+import { coinIcon, packArt } from './coinArt';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
@@ -112,6 +113,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
     const items = SHOP_ITEMS.filter((i) => state.category === 'all' || i.kind === state.category);
     const grid = el('div', 'shop-grid');
     for (const item of items) grid.append(card(item, me, ctx, state));
+    if (state.category === 'all') body.append(featureBanner(me, ctx, state));
     body.append(
       grid,
       el('p', 'account-note', 'Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Unlocked weapons appear in the matches you start.'),
@@ -119,6 +121,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   }
   // Redraws (picking an item, unlocking) keep the scroll position; a new tab starts at the top.
   const key = state.category;
+  if (state.scroll.key !== key) state.scroll = { key, top: 0 };
   body.onscroll = () => (state.scroll = { key, top: body.scrollTop });
   queueMicrotask(() => {
     if (state.scroll.key === key) body.scrollTop = state.scroll.top;
@@ -211,13 +214,105 @@ function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState)
   return c;
 }
 
+/**
+ * How each pack is dressed up. Value is the same in every pack (about 1p a
+ * coin), so no "best value" claims, and no "most popular" without the sales
+ * to back it up (CMA: no misleading claims).
+ */
+const PACK_LOOKS: Record<string, { art: string; name: string; tag?: string }> = {
+  'coins:200': { art: 'pouch', name: 'Pocket pouch' },
+  'coins:500': { art: 'stack', name: 'Coin stack', tag: 'Starter' },
+  'coins:1000': { art: 'chest', name: 'Treasure chest', tag: 'Collector' },
+  'coins:2000': { art: 'vault', name: 'Royal hoard', tag: 'Biggest pack' },
+};
+
+/** Up to three looks a pack could unlock, priciest first, skipping what you own. */
+function examples(coins: number, owned: string[]): ShopItem[] {
+  const out: ShopItem[] = [];
+  let left = coins;
+  for (const item of SHOP_ITEMS.filter((i) => i.coins !== undefined && !owned.includes(i.id)).sort((a, b) => b.coins! - a.coins!)) {
+    if (out.length === 3) break;
+    if (item.coins! <= left && !out.some((o) => o.kind === item.kind && o.coins === item.coins)) {
+      out.push(item);
+      left -= item.coins!;
+    }
+  }
+  return out;
+}
+
+/** Today's featured looks: three epic or legendary coin items, a different set each day. */
+function featured(owned: string[]): ShopItem[] {
+  const pool = SHOP_ITEMS.filter((i) => i.coins !== undefined && (i.rarity === 'legendary' || i.rarity === 'epic'));
+  const fresh = pool.filter((i) => !owned.includes(i.id));
+  const list = fresh.length >= 3 ? fresh : pool;
+  const day = Math.floor(Date.now() / 86_400_000);
+  return [0, 1, 2].map((k) => list[(day * 3 + k) % list.length]);
+}
+
+/** A banner of featured looks at the top of the shop. Picking one shows it on the stage. */
+function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  const items = featured(me.owned);
+  const banner = el('section', 'shop-banner');
+  const hero = el('div', 'banner-hero');
+  hero.innerHTML = itemArt(items[0]);
+  const text = el('div', 'banner-text');
+  text.append(el('span', 'banner-kicker', '✨ Featured looks'), el('b', 'banner-title', items[0].name), el('span', 'banner-sub', items[0].blurb));
+  const go = el('button', 'big-btn banner-go', 'Try it on');
+  go.onclick = () => {
+    state.preview = items[0];
+    if (state.category === 'coins') state.category = 'all';
+    ctx.rerender();
+  };
+  text.append(go);
+  const minis = el('div', 'banner-minis');
+  for (const item of items) {
+    const b = el('button', 'banner-mini');
+    b.setAttribute('aria-label', `Show ${item.name}`);
+    const art = el('span', 'banner-mini-art');
+    art.innerHTML = itemArt(item);
+    b.append(el('span', `rarity rarity-${item.rarity}`, item.rarity), art, el('span', 'banner-mini-name', item.name), el('span', 'shop-price', priceLabel(item)));
+    b.onclick = () => {
+      state.preview = item;
+      ctx.rerender();
+    };
+    minis.append(b);
+  }
+  banner.append(hero, text, minis);
+  return banner;
+}
+
 function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   const box = el('div', 'shop-coins');
-  box.append(el('p', 'account-note', 'Coins are about 1p each in every pack, VAT included. They only buy looks, have no cash value, and stay with your account. Under 18? Please ask a parent or carer first.'));
+  box.append(featureBanner(me, ctx, state));
+
+  const head = el('div', 'coins-head');
+  const icon = el('span', 'coins-head-icon');
+  icon.innerHTML = coinIcon();
+  head.append(icon, el('h3', '', 'Get coins'), el('span', '', 'Coins unlock hats and skins. About 1p a coin in every pack, VAT included.'));
+  box.append(head);
+
   const grid = el('div', 'coin-grid');
   for (const p of COIN_PACKS) {
-    const b = el('button', 'coin-pack' + (state.pack === p.id ? ' on' : ''));
-    b.append(el('b', '', `🪙 ${formatNumber(p.coins)}`), el('span', '', formatPrice(p.price)));
+    const look = PACK_LOOKS[p.id] ?? { art: 'pouch', name: `${formatNumber(p.coins)} coins` };
+    const b = el('button', 'coin-pack' + (state.pack === p.id ? ' on' : '') + (look.tag ? ' tagged' : ''));
+    b.setAttribute('aria-label', `${formatNumber(p.coins)} coins for ${formatPrice(p.price)}`);
+    if (look.tag) b.append(el('span', 'pack-tag', look.tag));
+    const art = el('span', 'pack-art');
+    art.innerHTML = packArt(look.art);
+    const ex = examples(p.coins, me.owned);
+    const exBox = el('span', 'pack-examples');
+    if (ex.length) {
+      exBox.append(el('span', 'pack-eg', 'Enough for e.g.'));
+      const row = el('span', 'pack-eg-row');
+      for (const item of ex) {
+        const m = el('span', 'pack-eg-item');
+        m.title = `${item.name} (${priceLabel(item)})`;
+        m.innerHTML = itemArt(item);
+        row.append(m);
+      }
+      exBox.append(row);
+    }
+    b.append(art, el('span', 'pack-name', look.name), el('b', 'pack-coins', `🪙 ${formatNumber(p.coins)}`), exBox, el('span', 'pack-price', formatPrice(p.price)));
     b.onclick = () => {
       state.pack = p.id;
       ctx.rerender();
@@ -225,27 +320,37 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
     grid.append(b);
   }
   box.append(grid);
+
   const pack = COIN_PACKS.find((p) => p.id === state.pack);
-  if (pack && !me.user) {
-    const b = el('button', 'big-btn', 'Sign in to buy coins');
-    b.onclick = () => ctx.go('account');
-    box.append(b);
-  } else if (pack) {
-    const consent = el('label', 'account-check');
-    const tick = el('input');
-    tick.type = 'checkbox';
-    const text = el('span');
-    text.append(
-      `I want my ${formatNumber(pack.coins)} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
-      legalLink('terms-of-service', 'Terms'),
-      ' §5).',
-    );
-    consent.append(tick, text);
-    const pay = el('button', 'big-btn', `Pay ${formatPrice(pack.price)}`);
-    pay.disabled = true;
-    tick.onchange = () => (pay.disabled = !tick.checked || ctx.busy);
-    pay.onclick = () => ctx.run(() => buyCoins(pack.id, tick.checked));
-    box.append(consent, pay);
-  }
+  if (pack) {
+    const checkout = el('div', 'coin-checkout');
+    checkout.append(el('b', '', `${PACK_LOOKS[pack.id]?.name ?? 'Coins'}: 🪙 ${formatNumber(pack.coins)} for ${formatPrice(pack.price)}`));
+    if (!me.user) {
+      const b = el('button', 'big-btn', 'Sign in to buy coins');
+      b.onclick = () => ctx.go('account');
+      checkout.append(b);
+    } else {
+      const consent = el('label', 'account-check');
+      const tick = el('input');
+      tick.type = 'checkbox';
+      const text = el('span');
+      text.append(
+        `I want my ${formatNumber(pack.coins)} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
+        legalLink('terms-of-service', 'Terms'),
+        ' §5).',
+      );
+      consent.append(tick, text);
+      const pay = el('button', 'big-btn', `Pay ${formatPrice(pack.price)}`);
+      pay.disabled = true;
+      tick.onchange = () => (pay.disabled = !tick.checked || ctx.busy);
+      pay.onclick = () => ctx.run(() => buyCoins(pack.id, tick.checked));
+      checkout.append(consent, pay);
+    }
+    box.append(checkout);
+  } else box.append(el('p', 'coins-pick', '👆 Pick a pack to continue'));
+
+  const trust = el('ul', 'coin-trust');
+  for (const t of ['🔒 Secure checkout by Stripe', '🧾 Receipt by email', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win']) trust.append(el('li', '', t));
+  box.append(trust, el('p', 'account-note', 'Coins have no cash value. Under 18? Please ask a parent or carer before buying.'));
   return box;
 }
