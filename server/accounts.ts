@@ -16,11 +16,12 @@ import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import { BIG_PACK_PRICE, CURRENCY, coinPack, formatNumber, packTotal, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
+import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 
 export type { MeResponse };
 import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
 
-export interface AccountsEnv {
+export interface AccountsEnv extends MailEnv {
   DATABASE_URL?: string;
   BETTER_AUTH_SECRET?: string;
   /** This server's public URL, e.g. https://server.tardigeddon.com */
@@ -53,7 +54,7 @@ const MAX_BODY = 64 * 1024;
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
 
-export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe } = {}) {
+export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null } = {}) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
   const db = opts.db ?? new Pool({ connectionString: env.DATABASE_URL, max: 5 });
   const baseURL = env.BETTER_AUTH_URL ?? 'http://localhost:8787';
@@ -69,6 +70,23 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     `${gameOrigin.protocol}//${gameOrigin.hostname.startsWith('www.') ? gameOrigin.hostname.slice(4) : 'www.' + gameOrigin.hostname}${gameOrigin.port ? ':' + gameOrigin.port : ''}`,
     ...(env.TRUSTED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   ]);
+
+  // Password reset and email confirmation need an email service (SMTP_* secrets).
+  const mailer = opts.mailer === undefined ? smtpMailer(env) : opts.mailer;
+  /** Not awaited: a slow email service mustn't hold up the request, or show by its timing whether an account exists. */
+  const send = (mail: Mail) => {
+    if (!mailer) return;
+    // Never log addresses (docs/SECURITY.md), not even inside the email service's error.
+    mailer(mail).catch((e: unknown) =>
+      console.error(`mail: "${mail.subject}" not sent: ${(e instanceof Error ? e.message : String(e)).replace(/\S+@\S+/g, '<address>')}`),
+    );
+  };
+  /** A link into the game: the game finishes the job (choose a new password, confirm the email). */
+  const gameLink = (param: string, token: string) => {
+    const u = new URL(gameUrl);
+    u.searchParams.set(param, token);
+    return u.href;
+  };
 
   const socialProviders: Record<string, { clientId: string; clientSecret: string; appBundleIdentifier?: string }> = {};
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
@@ -88,7 +106,36 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     secret: env.BETTER_AUTH_SECRET,
     // Apple posts its sign-in result back from its own origin.
     trustedOrigins: [...origins, ...(socialProviders.apple ? ['https://appleid.apple.com'] : [])],
-    emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      // Signed out everywhere once the password changes (whoever knew the old one too).
+      revokeSessionsOnPasswordReset: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      ...(mailer
+        ? {
+            sendResetPassword: async ({ user, token }: { user: { email: string; name: string }; token: string }) =>
+              send(resetEmail(user.email, user.name, gameLink('reset', token))),
+          }
+        : {}),
+    },
+    ...(mailer
+      ? {
+          emailVerification: {
+            sendOnSignUp: true,
+            expiresIn: 24 * 60 * 60,
+            sendVerificationEmail: async ({ user, token }: { user: { email: string; name: string }; token: string }) =>
+              send(verifyEmail(user.email, user.name, gameLink('verify', token))),
+          },
+        }
+      : {}),
+    // 3 of these emails a minute per IP address, so nobody can use us to flood an inbox.
+    rateLimit: {
+      customRules: {
+        '/request-password-reset': { window: 60, max: 3 },
+        '/send-verification-email': { window: 60, max: 3 },
+      },
+    },
     socialProviders,
     // Fly.io passes the player's IP in this header. It is used, in memory only,
     // to rate-limit sign-in attempts; it is never written to the database.
@@ -130,7 +177,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
 
   async function userFrom(headers: IncomingHttpHeaders): Promise<MeResponse['user']> {
     const s = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
-    return s ? { id: s.user.id, name: s.user.name, email: s.user.email, createdAt: new Date(s.user.createdAt).toISOString() } : null;
+    return s ? { id: s.user.id, name: s.user.name, email: s.user.email, emailVerified: s.user.emailVerified, createdAt: new Date(s.user.createdAt).toISOString() } : null;
   }
 
   /** CORS for the game's own origin(s), with cookies. */
@@ -378,6 +425,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // Whether coins can be bought (Slime unlocks work without Stripe).
             shop: stripe !== null,
             providers: Object.keys(socialProviders),
+            // Whether password reset and email confirmation work (an email service is set up).
+            mail: mailer !== null,
           };
           json(res, 200, me);
         } else if (path === '/api/stats/match' && req.method === 'POST') {

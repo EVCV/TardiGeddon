@@ -3,7 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
+import { confirmEmail, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
@@ -98,8 +98,23 @@ async function boot(): Promise<void> {
     online({ code: room.toUpperCase() });
   } else menu();
 
+  // Links from our emails: ?reset=TOKEN (choose a new password), ?verify=TOKEN (confirm the email).
+  // Taken out of the address bar straight away, so they don't linger in history.
+  const reset = params.get('reset');
+  const verify = params.get('verify');
+  if (reset || verify) history.replaceState(null, '', location.pathname);
+  if (reset) hub?.resetPassword(reset);
+
   // Who's signed in (and what they own); the menu updates when this lands.
   const before = (await refreshAccount())?.wallet.coins ?? 0;
+  if (verify) {
+    try {
+      await confirmEmail(verify);
+      hub?.go('account', 'Thanks! Your email is confirmed.');
+    } catch (e) {
+      hub?.go('account', e instanceof Error ? e.message : String(e));
+    }
+  }
   // Back from Stripe's payment page.
   const shop = params.get('shop');
   if (shop) {

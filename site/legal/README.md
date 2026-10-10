@@ -54,7 +54,7 @@ rather than separate pages (templates 15 and 18).
 
 Owner to confirm before the shop opens:
 
-- The legal entity names of Neon and Stripe for the processors list (Privacy 4.0.2–4.0.3).
+- The legal entity names of Neon and Stripe for the processors list (Privacy 4.0.2–4.0.4; also name the email delivery provider once chosen).
 - That Stripe sends receipts (Stripe → Settings → Emails → successful payments): Terms 5.1.3 promises one.
 - The 30 days' notice before closing the shop or Services (Terms 5.5.3) and the liability cap (9.1.3).
 - VAT on sales outside the UK: see docs/ACCOUNTS.md.

@@ -216,6 +216,53 @@ the test card.
 
 Done: the shop is live.
 
+### 7. Password reset and email confirmation (email over SMTP)
+
+Without this, "Forgot password?" is hidden and nobody can recover a
+forgotten password. Any email service with SMTP works, and changing service
+later is only a change of secrets (`server/mail.ts`):
+
+- **Your own hosting's mail server.** The game server on Fly.io connects out
+  to it like any email program. Make a mailbox such as `noreply@tardigeddon.com`.
+- **Emailit, Resend, Postmark, Amazon SES, ...** Make SMTP credentials with
+  sending access only.
+
+1. **DNS in Cloudflare** (the domain's DNS lives there even though the mail
+   server is elsewhere). Add exactly what your email service gives you:
+   - **SPF**: a TXT record on `tardigeddon.com`. There can only be one SPF
+     record per name: if one exists, add the new `include:` to it rather than
+     adding a second record.
+   - **DKIM**: a TXT (or CNAME) record, e.g. `default._domainkey`.
+   - **DMARC**, if there isn't one yet: TXT on `_dmarc` with
+     `v=DMARC1; p=none; rua=mailto:postmaster@tardigeddon.com`; tighten it to
+     `p=quarantine` once mail is arriving fine.
+   - Mail records must be **DNS only** (grey cloud), never proxied.
+   Without SPF and DKIM, Gmail and Outlook will put the emails in spam or
+   refuse them.
+2. **Secrets** (in PowerShell, never in chat or in the code):
+
+   ```
+   fly secrets set SMTP_HOST=mail.example.com SMTP_PORT=587 SMTP_USER=noreply@tardigeddon.com SMTP_PASS=...
+   ```
+
+   Port 587 (STARTTLS) or 465 (TLS). The server refuses to send without
+   encryption. Optional: `MAIL_FROM="TardiGeddon <noreply@tardigeddon.com>"`
+   (the default); it must be an address the service lets you send from.
+3. **Test:** sign out, "Forgot password?", your email. The email should arrive
+   within a minute, and not in spam. Click the link, choose a new password,
+   sign in with it. If nothing arrives: `fly logs` shows `mail: ... not sent:`
+   with the reason (wrong password, port blocked, sender not allowed, ...).
+   Check the email's headers say `spf=pass` and `dkim=pass`.
+
+How it works: links in the emails go to the game
+(`https://tardigeddon.com/play/?reset=...` or `?verify=...`), which finishes the
+job. A reset link works once, for an hour, and signs the account out on every
+device; a confirmation link works for 24 hours. The server answers "Forgot
+password?" the same way whether or not the email has an account, sends in
+the background (so the timing doesn't tell either), allows 3 such requests a
+minute per IP address, and never logs addresses. Email confirmation is
+encouraged on the Account page but not required to play or buy.
+
 ### Optional: Google and Apple sign-in
 
 - **Google:** console.cloud.google.com → APIs & Services → Credentials →
