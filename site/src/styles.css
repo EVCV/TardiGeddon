@@ -253,16 +253,6 @@ h1, h2, h3 { line-height: 1.1; }
 .footer-mascot svg { width: 84px; }
 .site-footer h2 { font-family: var(--title); font-weight: normal; font-size: 22px; color: var(--accent); margin: 0 0 8px; }
 .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.beta-tag {
-  font-family: var(--title);
-  font-size: 13px;
-  line-height: 1;
-  background: var(--accent);
-  border: 2px solid var(--ink);
-  border-radius: 8px;
-  padding: 4px 6px 2px;
-  color: var(--ink);
-}
 .footer-notices {
   max-width: var(--wide);
   margin: 32px auto 0;
@@ -321,9 +311,8 @@ h1, h2, h3 { line-height: 1.1; }
   .brand { padding-left: 12px; }
 }
 
-/* Smallest phones (and big zoom): drop the Beta badge so the brand and Play fit side by side. */
+/* Smallest phones (and big zoom): a tighter Play button so it fits beside the brand. */
 @media (max-width: 370px) {
-  .beta-tag { display: none; }
   .site-header .btn-small { font-size: 16px; padding: 9px 12px 6px; }
 }
 
