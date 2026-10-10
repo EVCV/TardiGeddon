@@ -10,12 +10,28 @@ import { canWearHat } from '../shop/catalog';
 export interface MeResponse {
   user: { id: string; name: string; email: string; createdAt: string } | null;
   owned: string[];
-  /** Online matches played and won with this account. */
-  stats: { onlinePlayed: number; onlineWon: number };
+  /** Lifetime stats for this account. */
+  stats: PlayerStats;
   /** Whether the shop can take payments. */
   shop: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
+}
+
+export interface PlayerStats {
+  onlinePlayed: number;
+  onlineWon: number;
+  cpuPlayed: number;
+  cpuWon: number;
+  /** Enemy tardis popped, and damage dealt to enemies. */
+  popped: number;
+  damage: number;
+  /** Wins in a row, and the best run so far. */
+  streak: number;
+  bestStreak: number;
+  /** Own goals: damage to your own team, your own tardis popped. */
+  selfDamage: number;
+  selfPopped: number;
 }
 
 const OWNED_KEY = 'tardigeddon.owned';
@@ -122,6 +138,23 @@ export async function signOut(): Promise<void> {
 export async function deleteAccount(password: string): Promise<void> {
   await call('/api/auth/delete-user', password ? { password } : {});
   await signOut().catch(() => refreshAccount());
+}
+
+/** Off to Stripe's page with the player's purchases and receipts. */
+export async function managePurchases(): Promise<void> {
+  const r = await call<{ url?: string }>('/api/shop/portal', {});
+  if (r.url) location.href = r.url;
+}
+
+/** A finished match against the CPU, for the signed-in player's stats (online ones are counted by the server). */
+export async function reportCpuMatch(r: { won: boolean; popped: number; damage: number; selfDamage: number; selfPopped: number }): Promise<void> {
+  if (!me?.user) return;
+  try {
+    await call('/api/stats/match', r);
+  } catch {
+    /* stats are a nice-to-have */
+  }
+  await refreshAccount();
 }
 
 /** Google / Apple: off to the provider, then back to the game. */

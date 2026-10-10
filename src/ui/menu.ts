@@ -9,6 +9,7 @@ import { hex } from '../render/palette';
 import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
 import { openAccount } from './account';
+import { renderDashboard } from './dashboard';
 import { account, onAccountChange, wearHat } from '../account/session';
 
 export interface MatchSetup {
@@ -90,6 +91,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
   const styleOptions = SCHEME_PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
   root.innerHTML = `
     <div class="menu">
+      <div class="menu-layout">
       <div class="menu-card">
         <button class="hud-btn account-btn hidden">👤 Account</button>
         <div class="mascot">${MASCOT_SVG}</div>
@@ -123,6 +125,8 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
           1–5 fuse · Tab or right-click for weapons · click map to target · drag to look around · wheel to zoom</p>
           <p><b>Touch:</b> on-screen pads · tap map to target · drag to look · pinch to zoom</p>
         </details>
+      </div>
+      <aside class="dash hidden" aria-label="Your stats"></aside>
       </div>
     </div>`;
 
@@ -249,6 +253,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
 
   const accountBtn = root.querySelector<HTMLButtonElement>('.account-btn')!;
   accountBtn.onclick = () => openAccount(root);
+  const dash = root.querySelector<HTMLElement>('.dash')!;
   const showAccount = () => {
     if (!accountBtn.isConnected) return off();
     const { me } = account();
@@ -258,6 +263,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
     accountBtn.textContent = user ? `👤 ${user.name}` : '👤 Sign in / Shop';
     // Hats may have been bought or lost (signed out): redraw the team pictures.
     renderSlots();
+    renderDashboard(dash, (tab) => openAccount(root, '', tab));
   };
   const off = onAccountChange(showAccount);
   showAccount();

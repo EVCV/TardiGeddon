@@ -184,12 +184,13 @@ describe('online room', () => {
     const b = new Client(); // signed out: not reported
     room.join(a, team('Alpha'));
     room.join(b, team('Bravo'));
-    const reported: { userId: string; won: boolean }[][] = [];
+    const reported: { userId: string; mode: string; won: boolean }[][] = [];
     room.onResult = (r) => reported.push(r);
     room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
     for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
     for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
-    expect(reported).toEqual([[{ userId: 'user-a', won: true }]]);
+    expect(reported).toHaveLength(1);
+    expect(reported[0]).toMatchObject([{ userId: 'user-a', mode: 'online', won: true }]);
   });
 });
 

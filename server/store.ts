@@ -32,7 +32,31 @@ export async function migrate(db: Pool): Promise<void> {
       online_won    integer NOT NULL DEFAULT 0,
       updated_at    timestamptz NOT NULL DEFAULT now()
     );
+    ALTER TABLE player_stats
+      ADD COLUMN IF NOT EXISTS cpu_played     integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS cpu_won        integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS popped         integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS damage         integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS streak         integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS best_streak    integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS self_damage    integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS self_popped    integer NOT NULL DEFAULT 0;
+    CREATE TABLE IF NOT EXISTS stripe_customer (
+      user_id     text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      customer_id text NOT NULL UNIQUE
+    );
   `);
+}
+
+export async function stripeCustomerId(db: Pool, userId: string): Promise<string | null> {
+  const r = await db.query<{ customer_id: string }>('SELECT customer_id FROM stripe_customer WHERE user_id = $1', [userId]);
+  return r.rows[0]?.customer_id ?? null;
+}
+
+/** Remember a player's Stripe customer; if two requests raced, the first one wins. */
+export async function setStripeCustomerId(db: Pool, userId: string, customerId: string): Promise<string> {
+  await db.query('INSERT INTO stripe_customer (user_id, customer_id) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING', [userId, customerId]);
+  return (await stripeCustomerId(db, userId)) ?? customerId;
 }
 
 /** Delete expired sign-in sessions and one-time verification codes. */
@@ -49,24 +73,88 @@ export async function ownedItems(db: Pool, userId: string): Promise<string[]> {
 export interface PlayerStats {
   onlinePlayed: number;
   onlineWon: number;
+  cpuPlayed: number;
+  cpuWon: number;
+  /** Enemy tardis popped (killed or drowned) on this player's turns. */
+  popped: number;
+  /** Damage dealt to enemy tardis. */
+  damage: number;
+  /** Wins in a row (online and against the CPU), and the best run so far. */
+  streak: number;
+  bestStreak: number;
+  /** Own goals: damage to their own team, and their own tardis popped. */
+  selfDamage: number;
+  selfPopped: number;
 }
+
+export const NO_STATS: PlayerStats = { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0 };
 
 export async function playerStats(db: Pool, userId: string): Promise<PlayerStats> {
-  const r = await db.query<{ online_played: number; online_won: number }>('SELECT online_played, online_won FROM player_stats WHERE user_id = $1', [userId]);
-  return { onlinePlayed: r.rows[0]?.online_played ?? 0, onlineWon: r.rows[0]?.online_won ?? 0 };
+  const r = await db.query(
+    `SELECT online_played, online_won, cpu_played, cpu_won, popped, damage, streak, best_streak, self_damage, self_popped
+       FROM player_stats WHERE user_id = $1`,
+    [userId],
+  );
+  const x = r.rows[0] as Record<string, number> | undefined;
+  if (!x) return { ...NO_STATS };
+  return {
+    onlinePlayed: x.online_played,
+    onlineWon: x.online_won,
+    cpuPlayed: x.cpu_played,
+    cpuWon: x.cpu_won,
+    popped: x.popped,
+    damage: x.damage,
+    streak: x.streak,
+    bestStreak: x.best_streak,
+    selfDamage: x.self_damage,
+    selfPopped: x.self_popped,
+  };
 }
 
-/** Count one finished online match for each signed-in player in it. */
-export async function recordResults(db: Pool, results: { userId: string; won: boolean }[]): Promise<void> {
+/** One finished match for one signed-in player. */
+export interface MatchResult {
+  userId: string;
+  mode: 'online' | 'cpu';
+  won: boolean;
+  popped: number;
+  damage: number;
+  selfDamage: number;
+  selfPopped: number;
+}
+
+/** Add finished matches to the players' stats. */
+export async function recordResults(db: Pool, results: MatchResult[]): Promise<void> {
   for (const r of results) {
+    const online = r.mode === 'online';
     await db.query(
-      `INSERT INTO player_stats (user_id, online_played, online_won)
-       SELECT $1, 1, $2 WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)
+      `INSERT INTO player_stats AS p
+         (user_id, online_played, online_won, cpu_played, cpu_won, popped, damage, self_damage, self_popped, streak, best_streak)
+       SELECT $1, $2::int, $3::int, $4::int, $5::int, $6::int, $7::int, $8::int, $9::int, $10::int, $10::int
+        WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)
        ON CONFLICT (user_id) DO UPDATE SET
-         online_played = player_stats.online_played + 1,
-         online_won = player_stats.online_won + EXCLUDED.online_won,
-         updated_at = now()`,
-      [r.userId, r.won ? 1 : 0],
+         online_played = p.online_played + $2::int,
+         online_won    = p.online_won + $3::int,
+         cpu_played    = p.cpu_played + $4::int,
+         cpu_won       = p.cpu_won + $5::int,
+         popped        = p.popped + $6::int,
+         damage        = p.damage + $7::int,
+         self_damage   = p.self_damage + $8::int,
+         self_popped   = p.self_popped + $9::int,
+         streak        = CASE WHEN $10::int = 1 THEN p.streak + 1 ELSE 0 END,
+         best_streak   = GREATEST(p.best_streak, CASE WHEN $10::int = 1 THEN p.streak + 1 ELSE 0 END),
+         updated_at    = now()`,
+      [
+        r.userId,
+        online ? 1 : 0,
+        online && r.won ? 1 : 0,
+        online ? 0 : 1,
+        !online && r.won ? 1 : 0,
+        r.popped,
+        r.damage,
+        r.selfDamage,
+        r.selfPopped,
+        r.won ? 1 : 0,
+      ],
     );
   }
 }

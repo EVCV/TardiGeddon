@@ -36,6 +36,10 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     return { url: 'https://checkout.stripe.test/s' };
   }) as unknown as typeof stripe.checkout.sessions.create;
 
+  let customers = 0;
+  stripe.customers.create = (async () => ({ id: `cus_test_${++customers}` })) as unknown as typeof stripe.customers.create;
+  stripe.billingPortal.sessions.create = (async (p: { customer: string }) => ({ url: `https://billing.stripe.test/${p.customer}` })) as unknown as typeof stripe.billingPortal.sessions.create;
+
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET },
@@ -92,6 +96,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   it('starts checkout at the catalogue price, only for signed-in players', async () => {
     expect((await post('/api/shop/checkout', { item: 'hat:wizard' })).status).toBe(401);
+    expect((await post('/api/shop/portal', {})).status).toBe(401);
     const { cookie, id } = await signUp('two@example.com');
     expect((await post('/api/shop/checkout', { item: 'hat:nope' }, cookie)).status).toBe(400);
     // No checkout without consent to immediate supply (losing the 14-day cancellation right).
@@ -103,6 +108,15 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(p.line_items?.[0].price_data?.unit_amount).toBe(199);
     // EVCV is the seller: Stripe's Managed Payments stays off unless configured.
     expect(p.managed_payments).toEqual({ enabled: false });
+    // One Stripe customer per player, reused; an invoice (receipt) per purchase.
+    expect(p.customer).toMatch(/^cus_test_/);
+    expect(p.invoice_creation).toEqual({ enabled: true });
+    await post('/api/shop/checkout', { item: 'hat:pirate', consent: true }, cookie);
+    expect(checkouts.at(-1)!.customer).toBe(p.customer);
+    // ...and their purchases page opens on that customer.
+    const portal = await post('/api/shop/portal', {}, cookie);
+    expect(portal.status).toBe(200);
+    expect(((await portal.json()) as { url: string }).url).toBe(`https://billing.stripe.test/${p.customer}`);
     expect(p.metadata).toMatchObject({ userId: id, item: 'hat:wizard' });
     expect(Date.parse(String(p.metadata?.immediateSupplyConsent))).toBeGreaterThan(0);
   });
@@ -136,19 +150,31 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   it('ignores unpaid sessions and unknown items', async () => {
     const { cookie, id } = await signUp('four@example.com');
+    expect((await post('/api/shop/portal', {}, cookie)).status).toBe(404); // nothing bought yet
     await sendWebhook('checkout.session.completed', { ...paid('cs_2', id, 'hat:viking'), payment_status: 'unpaid' });
     await sendWebhook('checkout.session.completed', paid('cs_3', id, 'hat:golden'));
     expect((await me(cookie)).owned).toEqual([]);
   });
 
-  it('counts online games played and won', async () => {
+  it('keeps lifetime stats: online and CPU games, streaks, pops, damage and own goals', async () => {
     const { cookie, id } = await signUp('seven@example.com');
-    expect((await me(cookie)).stats).toEqual({ onlinePlayed: 0, onlineWon: 0 });
-    await accounts.recordResults([{ userId: id, won: true }]);
-    await accounts.recordResults([{ userId: id, won: false }, { userId: 'nobody', won: true }]);
+    expect((await me(cookie)).stats.onlinePlayed).toBe(0);
+    const r = (won: boolean, mode: 'online' | 'cpu' = 'online') => ({ userId: id, mode, won, popped: 2, damage: 100, selfDamage: 15, selfPopped: 1 });
+    await accounts.recordResults([r(true), r(true)]);
+    await accounts.recordResults([r(false), { ...r(true), userId: 'nobody' }]);
+    await accounts.recordResults([r(true)]);
+    // A CPU match reported by the game (silly numbers are capped).
+    const rep = await post('/api/stats/match', { won: true, popped: 999, damage: 50, selfDamage: 5, selfPopped: 0 }, cookie);
+    expect(rep.status).toBe(200);
+    expect((await post('/api/stats/match', { won: true }, cookie)).status).toBe(429); // too soon after the last
     const m = await me(cookie);
-    expect(m.stats).toEqual({ onlinePlayed: 2, onlineWon: 1 });
+    expect(m.stats).toEqual({
+      onlinePlayed: 4, onlineWon: 3, cpuPlayed: 1, cpuWon: 1,
+      popped: 8 + 40, damage: 450, selfDamage: 65, selfPopped: 4,
+      streak: 2, bestStreak: 2,
+    });
     expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
+    expect((await post('/api/stats/match', { won: true })).status).toBe(401);
   });
 
   it("explains Stripe's refusal when using test keys", async () => {

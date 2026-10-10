@@ -3,6 +3,7 @@
 
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
+import { compact, totals } from './dashboard';
 import { SHOP_ITEMS, formatPrice, type ShopItem } from '../shop/catalog';
 import {
   type MeResponse,
@@ -10,6 +11,7 @@ import {
   wearHat,
   buy,
   deleteAccount,
+  managePurchases,
   onAccountChange,
   refreshAccount,
   signIn,
@@ -204,7 +206,7 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
     }
     card.append(pic, who);
 
-    const { onlinePlayed, onlineWon } = me.stats;
+    const t = totals(me.stats);
     const hats = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
     const stats = el('div', 'profile-stats');
     const tile = (value: string, label: string) => {
@@ -212,10 +214,14 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
       t.append(el('div', 'stat-value', value), el('div', 'stat-label', label));
       stats.append(t);
     };
-    tile(String(onlinePlayed), 'Online games');
-    tile(String(onlineWon), 'Wins');
-    tile(onlinePlayed ? `${Math.round((onlineWon / onlinePlayed) * 100)}%` : '–', 'Win rate');
-    tile(String(hats.length), 'Shop hats');
+    tile(compact(t.played), 'Games');
+    tile(compact(t.won), 'Wins');
+    tile(t.rate, 'Win rate');
+    tile(compact(me.stats.bestStreak), 'Best streak');
+    tile(compact(me.stats.popped), '💥 Popped');
+    tile(compact(me.stats.damage), 'Damage dealt');
+    tile(compact(me.stats.selfPopped), '🤦 Own goals');
+    tile(compact(me.stats.selfDamage), 'Hurt yourself');
 
     const owned = el('div', 'profile-hats');
     owned.append(el('h3', '', 'Your hats'));
@@ -240,7 +246,7 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
       }
       owned.append(p);
     }
-    if (!onlinePlayed) owned.append(el('p', 'account-note', 'Your stats count online games played while signed in.'));
+    if (!t.played) owned.append(el('p', 'account-note', 'Stats count online games, and one-on-one games against the CPU, played while signed in.'));
 
     const manage = el('div', 'profile-manage');
     const out = el('button', 'hud-btn', 'Sign out');
@@ -323,6 +329,10 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
     wrap.append(grid);
     if (!open) wrap.append(el('p', 'account-note', 'The shop opens soon.'));
     else {
+      const manage = el('button', 'hud-btn shop-manage', '🧾 Manage purchases & receipts');
+      manage.disabled = busy;
+      manage.onclick = () => void run(managePurchases);
+      wrap.append(manage);
       wrap.append(el('p', 'account-note', 'Prices include VAT. Under 18? Please ask a parent or carer before you buy.'));
       wrap.append(el('p', 'account-note', 'Wear your hats from the ✎ team editor.'));
     }
