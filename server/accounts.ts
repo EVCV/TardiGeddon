@@ -14,11 +14,11 @@ import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, SHOP_ITEMS, shopItem } from '../src/shop/catalog';
+import { CURRENCY, coinPack, formatNumber, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 
 export type { MeResponse };
-import { NO_STATS, setStripeCustomerId, stripeCustomerId, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
 
 export interface AccountsEnv {
   DATABASE_URL?: string;
@@ -164,13 +164,12 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     } catch {
       return json(res, 400, { error: 'Bad request.' });
     }
-    // Prices come from the catalogue here, never from the browser.
-    const item = typeof body.item === 'string' ? shopItem(body.item) : undefined;
-    if (!item) return json(res, 400, { error: 'No such item.' });
-    if ((await ownedItems(db, user.id)).includes(item.id)) return json(res, 409, { error: 'You already own that.' });
+    // Money only ever buys coin packs; prices come from the catalogue, never the browser.
+    const item = typeof body.item === 'string' ? coinPack(body.item) : undefined;
+    if (!item) return json(res, 400, { error: 'No such coin pack.' });
     // UK consumer law: digital content supplied straight away needs the buyer's express
     // consent and acknowledgement that they lose the 14-day right to cancel (Terms §5).
-    if (body.consent !== true) return json(res, 400, { error: 'Please confirm you want the item straight away.' });
+    if (body.consent !== true) return json(res, 400, { error: 'Please confirm you want the coins straight away.' });
     const back = new URL(gameUrl);
     back.searchParams.set('shop', 'done');
     const cancel = new URL(gameUrl);
@@ -188,7 +187,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             unit_amount: item.price,
             // Catalogue prices include VAT (only needs saying when Stripe Tax is on).
             ...(tax ? { tax_behavior: 'inclusive' as const } : {}),
-            product_data: { name: `TardiGeddon: ${item.name}`, ...(env.STRIPE_TAX_CODE ? { tax_code: env.STRIPE_TAX_CODE } : {}) },
+            product_data: { name: `TardiGeddon: ${formatNumber(item.coins)} coins`, ...(env.STRIPE_TAX_CODE ? { tax_code: env.STRIPE_TAX_CODE } : {}) },
           },
         },
       ],
@@ -260,17 +259,34 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     if (now - (lastReport.get(user.id) ?? 0) < 20_000) return json(res, 429, { error: 'Too many reports.' });
     lastReport.set(user.id, now);
     const count = (v: unknown, max: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : 0);
-    await recordResults(db, [
-      {
-        userId: user.id,
-        mode: 'cpu',
-        won: body.won === true,
-        popped: count(body.popped, 40),
-        damage: count(body.damage, 20_000),
-        selfDamage: count(body.selfDamage, 20_000),
-        selfPopped: count(body.selfPopped, 40),
-      },
-    ]);
+    const result: MatchResult = {
+      userId: user.id,
+      mode: 'cpu',
+      won: body.won === true,
+      popped: count(body.popped, 40),
+      damage: count(body.damage, 20_000),
+      selfDamage: count(body.selfDamage, 20_000),
+      selfPopped: count(body.selfPopped, 40),
+    };
+    await recordResults(db, [result]);
+    json(res, 200, { ok: true, slime: await earnSlime(db, result) });
+  }
+
+  /** Spend coins or Slime on a shop item. */
+  async function unlock(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    let body: { item?: unknown };
+    try {
+      body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
+    } catch {
+      return json(res, 400, { error: 'Bad request.' });
+    }
+    const item = typeof body.item === 'string' ? shopItem(body.item) : undefined;
+    if (!item) return json(res, 400, { error: 'No such item.' });
+    const r = await unlockItem(db, user.id, item.id);
+    if (r === 'owned') return json(res, 409, { error: 'You already have that.' });
+    if (r === 'poor') return json(res, 402, { error: item.coins !== undefined ? 'Not enough coins.' : 'Not enough Slime yet: keep playing!' });
     json(res, 200, { ok: true });
   }
 
@@ -294,7 +310,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       o.payment_status === 'paid'
     ) {
       const meta = (o.metadata ?? {}) as Record<string, string>;
-      if (meta.userId && meta.item && shopItem(meta.item)) {
+      if (meta.userId && meta.item && (coinPack(meta.item) || shopItem(meta.item))) {
         await recordPurchase(db, {
           sessionId: String(o.id),
           userId: meta.userId,
@@ -341,13 +357,17 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           const me: MeResponse = {
             user,
             owned: user ? await ownedItems(db, user.id) : [],
+            wallet: user ? await walletOf(db, user.id) : { coins: 0, slime: 0 },
             stats: user ? await playerStats(db, user.id) : { ...NO_STATS },
-            shop: stripe !== null && SHOP_ITEMS.length > 0,
+            // Whether coins can be bought (Slime unlocks work without Stripe).
+            shop: stripe !== null,
             providers: Object.keys(socialProviders),
           };
           json(res, 200, me);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
+        } else if (path === '/api/shop/unlock' && req.method === 'POST') {
+          await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
           await purchasesPortal(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {
@@ -369,6 +389,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Add a finished online match to the players' stats. */
     async recordResults(results: MatchResult[]): Promise<void> {
       await recordResults(db, results);
+      for (const r of results) await earnSlime(db, r);
+    },
+    /** Tests only: forget the per-player rate limits. */
+    resetLimits(): void {
+      lastReport.clear();
     },
     async close(): Promise<void> {
       clearInterval(purge);

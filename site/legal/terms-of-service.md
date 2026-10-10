@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
-**Document Version:** v1.2
+**Last Modified:** 10 October 2026
+**Document Version:** v1.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -123,49 +123,70 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 4.2.1 The Company reserves the right, but has no obligation, to monitor use of the Services (for example, activity on the online server) to ensure compliance with these Terms and applicable law.
 
-## Section 5 — Purchases
+## Section 5 — Coins, Slime and Purchases
 
 ### 5.0 The Game Is Free
 
-5.0.1 TardiGeddon is free to play, and every part of the game, including every weapon and game mode, is available without paying. There are no adverts in the game.
+5.0.1 TardiGeddon is free to play, and every part of the game, including every weapon and game mode, can be played or unlocked without paying. There are no adverts in the game.
 
-5.0.2 The shop sells optional cosmetic items (such as hats) that change only how your team looks. We will never sell items that give a gameplay advantage. There are no loot boxes or random paid rewards: you always know exactly what you are buying.
+5.0.2 The game has two kinds of in-game currency, kept strictly apart:
 
-### 5.1 Buying Items
+- **Slime** is earned by playing (see Section 5.6). It cannot be bought. You can spend it to unlock season weapons and some cosmetic items.
+- **Coins** are bought with real money in coin packs (see Section 5.1). You can spend them only on cosmetic items (such as hats and skins), which change how your team looks and never how it plays.
 
-5.1.1 You need an account to buy items. If you are under 18, you must have permission from a parent or guardian before buying anything.
+There is no way to exchange coins for Slime, so money can never buy a gameplay advantage. There are no loot boxes or random paid rewards: you always see exactly what you are unlocking before you unlock it.
 
-5.1.2 Prices are shown in the game in pounds sterling and include VAT. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
+### 5.1 Buying Coins
 
-5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for that item. Stripe sends a receipt to your account's email address, and you can see your purchases and download receipts at any time through the shop's "Manage purchases & receipts" button.
+5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything.
 
-5.1.4 An item you buy is digital content: a personal, non-transferable licence to use that cosmetic item in TardiGeddon with your account, for as long as we provide the Services (see Section 5.4). It has no cash value, and you cannot sell, trade, or transfer it.
+5.1.2 Coin packs are priced in pounds sterling, including VAT, and each coin costs about 1p in every pack. Wherever coin prices are shown, you can see what they are worth in pounds. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
 
-5.1.5 Your item is added to your account straight away, normally within a few seconds of payment. If it has not appeared within an hour, please contact support@tardigeddon.com.
+5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for the coin pack. Stripe sends a receipt to your account's email address, and you can see your purchases and download receipts at any time through the shop's "Manage purchases & receipts" button.
+
+5.1.4 Your coins are added to your account straight away, normally within a few seconds of payment. If they have not appeared within an hour, please contact support@tardigeddon.com.
 
 ### 5.2 Your Right to Cancel
 
-5.2.1 Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you normally have 14 days to cancel a contract made online. For digital content like our items, that right ends once supply begins, if you have asked for it to start straight away and acknowledged that you will lose the right to cancel.
+5.2.1 Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you normally have 14 days to cancel a contract made online. For digital content like coins, that right ends once supply begins, if you have asked for it to start straight away and acknowledged that you will lose the right to cancel.
 
-5.2.2 Before you pay, we ask you to confirm that you want your item straight away and that you understand you will lose your right to cancel once it is delivered. Because your item is delivered as soon as you pay, you will not be able to cancel the purchase after that. This does not affect your rights if the item is faulty (Section 5.3).
+5.2.2 Before you pay, we ask you to confirm that you want your coins straight away and that you understand you will lose your right to cancel once they are delivered. Because coins are delivered as soon as you pay, you will not be able to cancel the purchase after that. This does not affect your rights if something is faulty (Section 5.3).
 
 ### 5.3 If Something Goes Wrong
 
-5.3.1 Under the Consumer Rights Act 2015, the items you buy must be as described, fit for purpose, and of satisfactory quality. If an item is faulty or is not delivered, you are entitled to a repair or replacement, or, if that is not possible or not done within a reasonable time and without significant inconvenience to you, a price reduction or a refund. Please contact support@tardigeddon.com.
+5.3.1 Under the Consumer Rights Act 2015, what you buy must be as described, fit for purpose, and of satisfactory quality. If your coins, or an item you unlocked with them, are faulty or not delivered, you are entitled to a repair or replacement, or, if that is not possible or not done within a reasonable time and without significant inconvenience to you, a price reduction or a refund. Please contact support@tardigeddon.com.
 
-5.3.2 You may also have rights against your card issuer. If you dispute a payment with your bank or card issuer, or a payment is refunded, the item will be removed from your account.
+5.3.2 You may also have rights against your card issuer. If you dispute a payment with your bank or card issuer, or a payment is refunded, the coins from that payment are taken back from your account, even if you have already spent them; your coin balance may then go below zero, and you will not be able to spend coins until it is back above zero.
 
-5.3.3 Apart from your rights under this Section, we do not normally give refunds for items you have bought, but we will consider any request fairly. Please contact support@tardigeddon.com.
+5.3.3 Apart from your rights under this Section, we do not normally give refunds for coins, but we will consider any request fairly. Please contact support@tardigeddon.com.
 
-### 5.4 Changes to Items and the Services
+### 5.4 What Coins, Slime and Items Are
 
-5.4.1 We may update how an item looks to fix a problem or keep it consistent with the game's art style, as long as it stays substantially the same as what you bought.
+5.4.1 Coins, Slime, and the items you unlock with them are digital content: a personal, non-transferable licence to use them in TardiGeddon with your account, for as long as we provide the Services (see Section 5.5). They have no cash value, cannot be exchanged for money, and cannot be sold, traded, or transferred to anyone else.
 
-5.4.2 If we decide to close the shop, or to stop providing the Services, we will give at least 30 days' notice in the game and on the Website. Your rights under the Consumer Rights Act 2015 are not affected.
+5.4.2 Unlocking an item with coins or Slime is final, unless the item is faulty (Section 5.3). Items you bought directly for money before coins were introduced remain yours on the same terms.
 
-### 5.5 App Stores
+5.4.3 If you delete your account, your coins, Slime, and unlocked items are deleted with it and cannot be restored or refunded.
 
-5.5.1 If you buy items in a TardiGeddon app from an app store in future, that purchase will be made through the app store's own payment system and will also be subject to that store's terms, including its refund policy.
+### 5.5 Changes to Items and the Services
+
+5.5.1 We may update how an item looks to fix a problem or keep it consistent with the game's art style, as long as it stays substantially the same as what you unlocked. We may rebalance weapons (for example their damage or ammunition) to keep the game fair and fun; this applies to every player equally.
+
+5.5.2 We may change how much Slime the game awards, and the prices of items in coins or Slime, but a change never affects an item you have already unlocked.
+
+5.5.3 If we decide to close the shop, or to stop providing the Services, we will give at least 30 days' notice in the game and on the Website. Your rights under the Consumer Rights Act 2015 are not affected.
+
+### 5.6 Earning Slime
+
+5.6.1 You earn Slime while signed in: for each online match you finish, and for one-player games against the computer, up to a daily limit. The amounts are shown in the game.
+
+5.6.2 Unlocked season weapons are switched on for every player in the matches you start (including private online rooms you host), so everyone in that match can use them. Quick play online matches use the standard weapons only.
+
+5.6.3 Earning Slime by cheating, automated play, or exploiting bugs breaks these Terms (Section 4.1); we may remove Slime and items obtained that way.
+
+### 5.7 App Stores
+
+5.7.1 If you buy coins in a TardiGeddon app from an app store in future, that purchase will be made through the app store's own payment system and will also be subject to that store's terms, including its refund policy.
 
 ## Section 6 — Intellectual Property
 
@@ -211,7 +232,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 
 ### 9.0 No Warranties
 
-9.0.1 Except for items you buy, which are covered by Section 5.3, the Services are provided free of charge on an "as is" and "as available" basis, without warranties of any kind, either express or implied, including but not limited to implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, or that the Services will be uninterrupted, timely, secure, or error-free, to the fullest extent permitted by applicable law.
+9.0.1 Except for coins you buy and items you unlock with them, which are covered by Section 5.3, the Services are provided free of charge on an "as is" and "as available" basis, without warranties of any kind, either express or implied, including but not limited to implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, or that the Services will be uninterrupted, timely, secure, or error-free, to the fullest extent permitted by applicable law.
 
 9.0.2 Nothing in this Section 9 affects any statutory rights you have as a consumer that cannot be excluded or limited by law.
 

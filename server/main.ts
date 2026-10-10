@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Room, wearableTeam, type Member } from './room';
 import { createAccounts, type Accounts } from './accounts';
+import { unlockedWeapons } from '../src/shop/catalog';
 import { Matchmaker } from './matchmaker';
 import { SCHEME_PRESETS } from '../src/sim/schemes';
 import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/protocol';
@@ -105,6 +106,7 @@ wss.on('connection', (ws: WebSocket, req) => {
   const player = accounts ? accounts.playerFor(req.headers).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
   const owned = player.then((p) => {
     member.userId = 'userId' in p ? p.userId : undefined;
+    member.unlocked = unlockedWeapons(p.owned);
     return p.owned;
   });
   // Messages are handled in order, once we know what the player owns.

@@ -10,7 +10,7 @@ import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './t
 import { openTeamEditor } from './teamEditor';
 import { openAccount } from './account';
 import { renderDashboard } from './dashboard';
-import { account, onAccountChange, wearHat } from '../account/session';
+import { account, onAccountChange, wearHat, wearSkin } from '../account/session';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -153,7 +153,7 @@ export function showMenu(root: HTMLElement, onStart: (s: MatchSetup) => void, on
       toggle.setAttribute('aria-label', `${p.name}: ${cpu ? 'CPU' : 'Human'} (tap to switch)`);
       const pic = document.createElement('span');
       pic.className = 'slot-pic';
-      pic.innerHTML = mascotSvg(p.color, wearHat(p.hat));
+      pic.innerHTML = mascotSvg(p.color, wearHat(p.hat), wearSkin(p.skin));
       const name = document.createElement('span');
       name.className = 'slot-name';
       name.textContent = p.name; // player-entered text: never innerHTML

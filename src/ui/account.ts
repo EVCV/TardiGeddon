@@ -4,14 +4,15 @@
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { compact, totals } from './dashboard';
-import { SHOP_ITEMS, formatPrice, type ShopItem } from '../shop/catalog';
+import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
+import { WEAPONS } from '../sim/weapons';
+import { newShopState, renderShop } from './shop';
 import {
   type MeResponse,
   account,
   wearHat,
-  buy,
+  wearSkin,
   deleteAccount,
-  managePurchases,
   onAccountChange,
   refreshAccount,
   signIn,
@@ -99,13 +100,18 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
         b.setAttribute('aria-selected', String(tab === t));
         b.onclick = () => {
           tab = t;
-          pending = null;
           status = '';
           render();
         };
         tabs.append(b);
       }
-      box.append(tabs, tab === 'profile' ? profile(me) : shop(me.owned, me.shop));
+      box.classList.toggle('wide', tab === 'shop');
+      box.append(
+        tabs,
+        tab === 'profile'
+          ? profile(me)
+          : renderShop(me, { state: shopState, busy, run: (fn) => void run(fn), rerender: render, legalLink }),
+      );
     }
 
     const actions = el('div', 'editor-actions');
@@ -197,17 +203,18 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
     const team = loadProfiles()[0];
     const card = el('div', 'profile-card');
     const pic = el('div', 'profile-pic');
-    pic.innerHTML = mascotSvg(team.color, wearHat(team.hat));
+    pic.innerHTML = mascotSvg(team.color, wearHat(team.hat), wearSkin(team.skin));
     const who = el('div', 'profile-who');
     who.append(el('div', 'profile-name', user.name), el('div', 'profile-email', user.email));
     const since = new Date(user.createdAt);
     if (!Number.isNaN(since.getTime())) {
       who.append(el('div', 'profile-since', `Playing since ${since.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`));
     }
+    who.append(el('div', 'profile-wallet', `🪙 ${formatNumber(me.wallet.coins)} coins · 🟢 ${formatNumber(me.wallet.slime)} Slime`));
     card.append(pic, who);
 
     const t = totals(me.stats);
-    const hats = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
+    const mine = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
     const stats = el('div', 'profile-stats');
     const tile = (value: string, label: string) => {
       const t = el('div', 'stat-tile');
@@ -224,26 +231,29 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
     tile(compact(me.stats.selfDamage), 'Hurt yourself');
 
     const owned = el('div', 'profile-hats');
-    owned.append(el('h3', '', 'Your hats'));
-    if (hats.length) {
+    owned.append(el('h3', '', 'Your collection'));
+    if (mine.length) {
       const grid = el('div', 'editor-hats');
-      for (const item of hats) {
+      for (const item of mine) {
         const c = el('div', 'hat-btn');
-        c.innerHTML = mascotSvg(team.color, item.ref);
+        c.innerHTML =
+          item.kind === 'hat'
+            ? mascotSvg(team.color, item.ref, wearSkin(team.skin))
+            : item.kind === 'skin'
+              ? mascotSvg(team.color, wearHat(team.hat), item.ref)
+              : `<span class="shop-weapon-icon">${WEAPONS[item.ref]?.icon ?? '💥'}</span>`;
         c.append(el('span', '', item.name));
         grid.append(c);
       }
-      owned.append(grid, el('p', 'account-note', 'Wear them from the ✎ team editor on the main menu.'));
+      owned.append(grid, el('p', 'account-note', 'Wear hats and skins from the ✎ team editor; unlocked weapons appear in the matches you start.'));
     } else {
-      const p = el('p', 'account-note', 'No shop hats yet. ');
-      if (me.shop) {
-        const go = el('button', 'link-btn', 'Have a look in the shop');
-        go.onclick = () => {
-          tab = 'shop';
-          render();
-        };
-        p.append(go);
-      }
+      const p = el('p', 'account-note', 'Nothing unlocked yet. ');
+      const go = el('button', 'link-btn', 'Have a look in the shop');
+      go.onclick = () => {
+        tab = 'shop';
+        render();
+      };
+      p.append(go);
       owned.append(p);
     }
     if (!t.played) owned.append(el('p', 'account-note', 'Stats count online games, and one-on-one games against the CPU, played while signed in.'));
@@ -267,77 +277,7 @@ export function openAccount(host: HTMLElement, notice = '', startTab: 'profile' 
     return wrap;
   };
 
-  /** The item the player tapped Buy on, waiting for them to confirm. */
-  let pending: ShopItem | null = null;
-
-  const confirmBuy = (item: ShopItem): HTMLElement => {
-    const box = el('div', 'shop-confirm');
-    box.append(el('p', '', `Buy the ${item.name} for ${formatPrice(item.price)} (including VAT)? You'll pay on Stripe's secure page and get it straight away.`));
-    const consent = el('label', 'account-check');
-    const tick = el('input');
-    tick.type = 'checkbox';
-    const text = el('span');
-    text.append(
-      "I want it straight away, and I understand that once it's delivered I lose my 14-day right to cancel. My other rights, such as if it doesn't work, aren't affected (",
-      legalLink('terms-of-service', 'Terms'),
-      ' §5).',
-    );
-    consent.append(tick, text);
-    const row = el('div', 'editor-actions');
-    const back = el('button', 'hud-btn', 'Cancel');
-    back.onclick = () => {
-      pending = null;
-      render();
-    };
-    const pay = el('button', 'big-btn', 'Pay');
-    pay.disabled = true;
-    tick.onchange = () => (pay.disabled = !tick.checked || busy);
-    pay.onclick = () => void run(() => buy(item.id, tick.checked));
-    row.append(back, pay);
-    box.append(consent, row);
-    return box;
-  };
-
-  const shop = (owned: string[], open: boolean): HTMLElement => {
-    const wrap = el('div', 'account-shop');
-    if (pending && open && !owned.includes(pending.id)) {
-      wrap.append(confirmBuy(pending));
-      return wrap;
-    }
-    pending = null;
-    wrap.append(el('p', 'account-note', 'Just for looks: nothing in the shop changes how your team plays.'));
-    const grid = el('div', 'editor-hats');
-    const color = loadProfiles()[0].color;
-    for (const item of SHOP_ITEMS) {
-      const has = owned.includes(item.id);
-      const card = el('div', 'hat-btn shop-item' + (has ? ' on' : ''));
-      card.innerHTML = mascotSvg(color, item.ref);
-      card.append(el('span', '', item.name));
-      if (has) card.append(el('span', 'shop-owned', 'Owned ✓'));
-      else {
-        const b = el('button', 'hud-btn', open ? formatPrice(item.price) : 'Soon');
-        b.disabled = busy || !open;
-        b.onclick = () => {
-          pending = item;
-          status = '';
-          render();
-        };
-        card.append(b);
-      }
-      grid.append(card);
-    }
-    wrap.append(grid);
-    if (!open) wrap.append(el('p', 'account-note', 'The shop opens soon.'));
-    else {
-      const manage = el('button', 'hud-btn shop-manage', '🧾 Manage purchases & receipts');
-      manage.disabled = busy;
-      manage.onclick = () => void run(managePurchases);
-      wrap.append(manage);
-      wrap.append(el('p', 'account-note', 'Prices include VAT. Under 18? Please ask a parent or carer before you buy.'));
-      wrap.append(el('p', 'account-note', 'Wear your hats from the ✎ team editor.'));
-    }
-    return wrap;
-  };
+  const shopState = newShopState();
 
   const off = onAccountChange(render);
   render();

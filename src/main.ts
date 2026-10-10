@@ -3,7 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { refreshAccount, reportCpuMatch, wearHat } from './account/session';
+import { myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { openAccount } from './ui/account';
 import { Application } from 'pixi.js';
@@ -96,17 +96,17 @@ async function boot(): Promise<void> {
   } else menu();
 
   // Who's signed in (and what they own); the menu updates when this lands.
-  const before = (await refreshAccount())?.owned.length ?? 0;
+  const before = (await refreshAccount())?.wallet.coins ?? 0;
   // Back from Stripe's payment page.
   const shop = params.get('shop');
   if (shop) {
     history.replaceState(null, '', location.pathname);
     if (shop === 'done') {
-      openAccount(ui, 'Thanks! Your new hat will appear under "Your hats" in a moment.');
+      openAccount(ui, 'Thanks! Your coins will appear in your wallet in a moment.', 'shop');
       // Stripe tells the server a few seconds after paying, so check back a few times.
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 2000));
-        if (((await refreshAccount())?.owned.length ?? 0) > before) break;
+        if (((await refreshAccount())?.wallet.coins ?? 0) > before) break;
       }
     } else openAccount(ui, 'Payment cancelled: nothing was charged.', 'shop');
   }
@@ -132,6 +132,7 @@ class Match {
   private pinchDist = 0;
   private muted = false;
   private over = false;
+  private destroyed = false;
   private tickerFn = () => this.frame();
   // Online bookkeeping
   private offNet: (() => void) | null = null;
@@ -155,9 +156,10 @@ class Match {
       const setup = mode.setup;
       const teams: TeamConfig[] = setup.players.map((cpu, i) => {
         const p = setup.teams[i];
-        return { name: p.name, color: p.color, hat: wearHat(p.hat), names: matchNames(p, i), cpu };
+        return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), names: matchNames(p, i), cpu };
       });
-      this.local = createWorld({ seed: setup.seed, teams, scheme: setup.scheme });
+      // Season weapons this player has unlocked are switched on for everyone in the match.
+      this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
       // Only one human (the player's own team, slot 0) against the CPU counts for their stats.
       if (!setup.players[0] && setup.players.slice(1).every(Boolean) && !this.local.race) this.tally = new MatchTally(teams.length);
       for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
@@ -359,7 +361,11 @@ class Match {
             // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
             const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
             if (youLost) sfx.wahwah();
-            if (this.tally) void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] });
+            if (this.tally) {
+              void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] }).then((slime) => {
+                if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);
+              });
+            }
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
             setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
           }
@@ -468,6 +474,7 @@ class Match {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.offNet?.();
     if (this.net) this.net.client.onDrop = null;
     this.net = null;

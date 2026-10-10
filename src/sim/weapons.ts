@@ -47,6 +47,11 @@ export interface WeaponDef {
   super?: boolean;
   /** Hidden from the weapon panel (sub-munitions). */
   hidden?: boolean;
+  /**
+   * Season weapon, unlocked with Slime (src/shop/catalog.ts). Off unless the
+   * match rules list it in Scheme.unlocked; then every team gets it.
+   */
+  locked?: boolean;
   icon: string;
 }
 
@@ -85,6 +90,55 @@ export const WEAPONS: Record<string, WeaponDef> = {
       speed: 15,
       cluster: { count: 5, weapon: 'clusterlet' },
     },
+  },
+  // Season 1 weapons (locked: unlocked with Slime, see Scheme.unlocked).
+  pinball: {
+    id: 'pinball',
+    name: 'Pollen Pinball',
+    kind: 'charge',
+    ammo: 3,
+    shots: 1,
+    locked: true,
+    icon: '🟡',
+    projectile: { windFactor: 0, bounce: 0.85, playerFuse: true, radius: 28, damage: 40, speed: 16 },
+  },
+  megaspore: {
+    id: 'megaspore',
+    name: 'Mega Spore',
+    kind: 'charge',
+    ammo: 1,
+    shots: 1,
+    locked: true,
+    icon: '🍄',
+    projectile: { windFactor: 1.3, bounce: null, playerFuse: false, radius: 55, damage: 70, speed: 12 },
+  },
+  swarm: {
+    id: 'swarm',
+    name: 'Spore Swarm',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    locked: true,
+    icon: '🫧',
+    projectile: {
+      windFactor: 0,
+      bounce: 0.4,
+      playerFuse: true,
+      radius: 20,
+      damage: 15,
+      speed: 15,
+      cluster: { count: 8, weapon: 'clusterlet' },
+    },
+  },
+  balloon: {
+    id: 'balloon',
+    name: 'Water Balloon',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    locked: true,
+    icon: '🎈',
+    projectile: { windFactor: 1.5, bounce: null, playerFuse: false, radius: 75, damage: 30, speed: 14 },
   },
   clusterlet: {
     id: 'clusterlet',

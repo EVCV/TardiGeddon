@@ -4,11 +4,13 @@
 import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/world';
 import { TEAM_COLORS, TEAM_NAMES } from '../render/palette';
 import { HATS } from '../render/hats';
+import { SKINS } from '../render/skins';
 
 export interface TeamProfile {
   name: string;
   color: number;
   hat: string;
+  skin: string;
   /** Up to 4 tardi names; blanks fall back to the defaults. */
   names: string[];
 }
@@ -22,7 +24,7 @@ export function defaultTardiNames(slot: number): string[] {
 }
 
 export function defaultProfile(slot: number): TeamProfile {
-  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', names: ['', '', '', ''] };
+  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', skin: 'classic', names: ['', '', '', ''] };
 }
 
 /** Trim, collapse spaces, drop control characters and cap the length. */
@@ -42,6 +44,7 @@ function valid(p: unknown, slot: number): TeamProfile {
     name: typeof v.name === 'string' && cleanName(v.name, TEAM_NAME_MAX) ? cleanName(v.name, TEAM_NAME_MAX) : d.name,
     color: typeof v.color === 'number' && TEAM_COLORS.includes(v.color) ? v.color : d.color,
     hat: typeof v.hat === 'string' && HATS.some((h) => h.id === v.hat) ? v.hat : d.hat,
+    skin: typeof v.skin === 'string' && SKINS.some((k) => k.id === v.skin) ? v.skin : d.skin,
     names: Array.from({ length: 4 }, (_, i) =>
       Array.isArray(v.names) && typeof v.names[i] === 'string' ? cleanName(v.names[i], TARDI_NAME_MAX) : '',
     ),

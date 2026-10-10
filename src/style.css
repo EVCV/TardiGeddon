@@ -634,3 +634,47 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .dash-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .shop-manage { width: 100%; margin-top: 8px; }
+
+/* ---------- Shop (coins + Slime) ---------- */
+.editor.account.wide { width: min(640px, 100%); }
+.shop { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.shop-wallet { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.wallet-chip { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 96px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; padding: 4px 10px; box-shadow: 0 3px 0 var(--ink); }
+.wallet-chip b { font-family: var(--title); font-weight: normal; font-size: 20px; line-height: 1.1; }
+.wallet-chip span { font-size: 11px; font-weight: 800; }
+.wallet-get { margin-left: auto; background: var(--accent); }
+.shop-fair { margin: 0; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 10px; background: #e3f6d6; font-size: 12px; font-weight: 700; }
+.shop-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.shop-pill { flex: none; border: 2.5px solid var(--ink); border-radius: 999px; background: #fff; padding: 5px 12px; font: inherit; font-weight: 800; font-size: 13px; color: inherit; cursor: pointer; }
+.shop-pill.on { background: var(--accent); box-shadow: 0 2px 0 var(--ink); }
+.shop-stage { display: flex; align-items: center; gap: 12px; border: 3px solid var(--ink); border-radius: 16px; padding: 8px 12px; background: radial-gradient(circle at 30% 50%, #fffbe6, #ffe8b0); }
+.shop-stage-art svg { width: 120px; height: auto; display: block; animation: bob 1.6s ease-in-out infinite; }
+.shop-stage-art .shop-weapon-icon { font-size: 64px; }
+.shop-stage-info { display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 600; }
+.shop-stage-info b { font-family: var(--title); font-weight: normal; font-size: 22px; line-height: 1.1; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.shop-card { display: flex; flex-direction: column; gap: 4px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; padding: 6px; box-shadow: 0 3px 0 var(--ink); }
+.shop-card.previewing { outline: 3px solid var(--accent); outline-offset: 1px; }
+.shop-card.owned { background: #f1fbe9; }
+.shop-card-top { display: flex; justify-content: space-between; }
+.shop-card-art { border: 0; background: #fff8ec; border-radius: 10px; padding: 4px; cursor: zoom-in; display: flex; align-items: center; justify-content: center; min-height: 64px; }
+.shop-card-art svg { width: 84px; height: auto; display: block; }
+.shop-weapon-icon { font-size: 40px; line-height: 1; }
+.shop-card-name { font-size: 13px; line-height: 1.15; }
+.shop-card-foot { margin-top: auto; display: flex; justify-content: flex-end; }
+.shop-buy { padding: 3px 10px; min-height: 32px; font-size: 13px; }
+.shop-buy.can { background: var(--accent); }
+.rarity { display: inline-block; align-self: flex-start; border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.rarity-common { background: #eee8dd; }
+.rarity-rare { background: #a5f78c; }
+.rarity-epic { background: #9bcaff; }
+.rarity-legendary { background: var(--accent); }
+.shop-coins { display: flex; flex-direction: column; gap: 10px; }
+.coin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.coin-pack { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; padding: 10px 6px; box-shadow: 0 3px 0 var(--ink); font: inherit; color: inherit; cursor: pointer; }
+.coin-pack b { font-family: var(--title); font-weight: normal; font-size: 22px; }
+.coin-pack span { font-weight: 800; }
+.coin-pack.on { background: var(--accent); }
+.profile-wallet { font-size: 12px; font-weight: 800; margin-top: 2px; }
+.dash-wallet { display: flex; justify-content: center; gap: 10px; font-weight: 800; font-size: 13px; }
+.dash-wallet span { border: 2px solid var(--ink); border-radius: 999px; background: #fff; padding: 1px 8px; }

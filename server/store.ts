@@ -1,10 +1,12 @@
-// Player data in Postgres (Neon in production): what each player owns, and
-// a record of every purchase. Better Auth keeps its own tables (user,
+// Player data in Postgres (Neon in production): what each player owns, their
+// wallet (coins bought with money, Slime earned by playing), stats, and a
+// record of every purchase. Better Auth keeps its own tables (user,
 // session, account, verification) in the same database.
 //
 // The server is the only thing that grants items: the game never does.
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
+import { coinPack, shopItem } from '../src/shop/catalog';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -41,6 +43,13 @@ export async function migrate(db: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS best_streak    integer NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS self_damage    integer NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS self_popped    integer NOT NULL DEFAULT 0;
+    CREATE TABLE IF NOT EXISTS wallet (
+      user_id         text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      coins           integer NOT NULL DEFAULT 0,
+      slime           integer NOT NULL DEFAULT 0,
+      cpu_slime_day   date,
+      cpu_slime_today integer NOT NULL DEFAULT 0
+    );
     CREATE TABLE IF NOT EXISTS stripe_customer (
       user_id     text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       customer_id text NOT NULL UNIQUE
@@ -170,6 +179,107 @@ export interface PaidCheckout {
 }
 
 /** Record a completed payment and grant the item. Safe to call twice for the same session. */
+export interface Wallet {
+  coins: number;
+  slime: number;
+}
+
+export async function walletOf(db: Pool, userId: string): Promise<Wallet> {
+  const r = await db.query<Wallet>('SELECT coins, slime FROM wallet WHERE user_id = $1', [userId]);
+  return r.rows[0] ?? { coins: 0, slime: 0 };
+}
+
+/** Add (or with a negative amount, take) coins or Slime. Only for the user if they still exist. */
+async function credit(c: Pool | PoolClient, userId: string, coins: number, slime: number): Promise<void> {
+  await c.query(
+    `INSERT INTO wallet (user_id, coins, slime) SELECT $1, $2::int, $3::int WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)
+     ON CONFLICT (user_id) DO UPDATE SET coins = wallet.coins + $2::int, slime = wallet.slime + $3::int`,
+    [userId, coins, slime],
+  );
+}
+
+/** Slime most players can earn from games against the CPU in one (UTC) day. */
+export const CPU_SLIME_PER_DAY = 200;
+
+/** Slime for one finished match (before the daily CPU cap). */
+export function slimeFor(r: { mode: 'online' | 'cpu'; won: boolean; popped: number }): number {
+  const pops = Math.min(r.popped, 8);
+  return r.mode === 'online' ? 20 + (r.won ? 30 : 0) + pops * 5 : 10 + (r.won ? 15 : 0) + pops * 2;
+}
+
+/**
+ * Pay out a match's Slime. Online matches are counted by the server, so they
+ * always pay; games against the CPU are reported by the game, so they're
+ * capped per day. Returns the Slime actually given.
+ */
+export async function earnSlime(db: Pool, r: { userId: string; mode: 'online' | 'cpu'; won: boolean; popped: number }): Promise<number> {
+  const want = slimeFor(r);
+  if (r.mode === 'online') {
+    await credit(db, r.userId, 0, want);
+    return want;
+  }
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    await c.query(`INSERT INTO wallet (user_id) SELECT $1 WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1) ON CONFLICT DO NOTHING`, [r.userId]);
+    const row = await c.query<{ today: boolean; used: number }>(
+      'SELECT cpu_slime_day = current_date AS today, cpu_slime_today AS used FROM wallet WHERE user_id = $1 FOR UPDATE',
+      [r.userId],
+    );
+    if (!row.rows[0]) {
+      await c.query('ROLLBACK');
+      return 0;
+    }
+    const used = row.rows[0].today ? row.rows[0].used : 0;
+    const give = Math.max(0, Math.min(want, CPU_SLIME_PER_DAY - used));
+    await c.query('UPDATE wallet SET slime = slime + $2::int, cpu_slime_day = current_date, cpu_slime_today = $3::int WHERE user_id = $1', [
+      r.userId,
+      give,
+      used + give,
+    ]);
+    await c.query('COMMIT');
+    return give;
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+export type UnlockResult = 'ok' | 'owned' | 'unknown' | 'poor';
+
+/** Spend coins or Slime on a shop item, all or nothing. */
+export async function unlockItem(db: Pool, userId: string, itemId: string): Promise<UnlockResult> {
+  const item = shopItem(itemId);
+  if (!item) return 'unknown';
+  const currency = item.coins !== undefined ? 'coins' : 'slime';
+  const price = item.coins ?? item.slime ?? 0;
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    const have = await c.query('SELECT 1 FROM inventory WHERE user_id = $1 AND item = $2', [userId, item.id]);
+    if (have.rowCount) {
+      await c.query('ROLLBACK');
+      return 'owned';
+    }
+    const paid = await c.query(`UPDATE wallet SET ${currency} = ${currency} - $2::int WHERE user_id = $1 AND ${currency} >= $2::int`, [userId, price]);
+    if (paid.rowCount !== 1) {
+      await c.query('ROLLBACK');
+      return 'poor';
+    }
+    await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, $3)`, [userId, item.id, currency]);
+    await c.query('COMMIT');
+    return 'ok';
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+/** Record a completed payment and grant what was bought. Safe to call twice for the same session. */
 export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
   const c = await db.connect();
   try {
@@ -180,13 +290,17 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
       [p.sessionId, p.userId, p.item, p.amount, p.currency, p.paymentIntent],
     );
     if (ins.rowCount === 1) {
-      // The user may have deleted their account in the meantime: then there's no one to grant to.
-      await c.query(
-        `INSERT INTO inventory (user_id, item, source)
-         SELECT $1, $2, 'purchase' WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)
-         ON CONFLICT DO NOTHING`,
-        [p.userId, p.item],
-      );
+      const pack = coinPack(p.item);
+      if (pack) await credit(c, p.userId, pack.coins, 0);
+      else {
+        // Items sold directly for money before coins existed.
+        await c.query(
+          `INSERT INTO inventory (user_id, item, source)
+           SELECT $1, $2, 'purchase' WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)
+           ON CONFLICT DO NOTHING`,
+          [p.userId, p.item],
+        );
+      }
     }
     await c.query('COMMIT');
   } catch (e) {
@@ -197,13 +311,20 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
   }
 }
 
-/** A refund or chargeback: take the item back. */
+/**
+ * A refund or chargeback: take back what was bought. Coins are taken back
+ * even if already spent (the balance can go below zero, which blocks
+ * spending until it's topped up).
+ */
 export async function revokePurchase(db: Pool, paymentIntent: string, status: 'refunded' | 'disputed'): Promise<void> {
-  const r = await db.query<{ user_id: string; item: string }>(
+  const r = await db.query<{ user_id: string | null; item: string }>(
     `UPDATE purchase SET status = $2 WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item`,
     [paymentIntent, status],
   );
   for (const row of r.rows) {
-    await db.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
+    if (!row.user_id) continue;
+    const pack = coinPack(row.item);
+    if (pack) await credit(db, row.user_id, -pack.coins, 0);
+    else await db.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
   }
 }

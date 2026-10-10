@@ -2,7 +2,9 @@
 
 import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
-import { canWearHat, formatPrice, hatItem } from '../shop/catalog';
+import { canUse, itemFor } from '../shop/catalog';
+import { SKINS } from '../render/skins';
+import { priceLabel } from './shop';
 import { account, ownedItems } from '../account/session';
 import { TEAM_COLORS, hex } from '../render/palette';
 import {
@@ -27,7 +29,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
  */
 export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfile, onSave: (p: TeamProfile) => void): void {
   let draft: TeamProfile = { ...start, names: [...start.names] };
-  if (!canWearHat(draft.hat, ownedItems())) draft.hat = 'beanie';
+  if (!canUse('hat', draft.hat, ownedItems())) draft.hat = 'beanie';
+  if (!canUse('skin', draft.skin, ownedItems())) draft.skin = 'classic';
 
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor');
@@ -44,6 +47,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
 
   const colours = el('div', 'editor-swatches');
   const hats = el('div', 'editor-hats');
+  const skins = el('div', 'editor-hats');
   const hatHint = el('p', 'account-note');
   const names = el('div', 'editor-tardis');
   const defaults = defaultTardiNames(slot);
@@ -58,7 +62,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   });
 
   const refresh = () => {
-    preview.innerHTML = mascotSvg(draft.color, draft.hat);
+    preview.innerHTML = mascotSvg(draft.color, draft.hat, draft.skin);
     title.style.color = hex(draft.color);
     colours.innerHTML = '';
     for (const c of TEAM_COLORS) {
@@ -71,26 +75,32 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       };
       colours.append(b);
     }
-    hats.innerHTML = '';
     const owned = ownedItems();
-    const shopOpen = account().me?.shop === true;
-    for (const h of HATS) {
-      const locked = !canWearHat(h.id, owned);
-      if (locked && !shopOpen) continue; // shop hats are only advertised while the shop is open
-      const b = el('button', 'hat-btn' + (h.id === draft.hat ? ' on' : '') + (locked ? ' locked' : ''));
-      b.innerHTML = mascotSvg(draft.color, h.id);
-      b.append(el('span', '', locked ? `🔒 ${formatPrice(hatItem(h.id)!.price)}` : h.name));
-      b.setAttribute('aria-label', locked ? `${h.name} (in the shop)` : h.name);
-      b.onclick = () => {
-        if (locked) {
-          hatHint.textContent = `The ${h.name} is in the shop: tap 👤 on the main menu.`;
-          return;
-        }
-        draft.hat = h.id;
-        refresh();
-      };
-      hats.append(b);
-    }
+    // Shop items are only advertised when accounts are on.
+    const shopOn = account().me !== null;
+    const pick = (box: HTMLElement, kind: 'hat' | 'skin', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
+      box.innerHTML = '';
+      for (const it of list) {
+        const locked = !canUse(kind, it.id, owned);
+        if (locked && !shopOn) continue;
+        const b = el('button', 'hat-btn' + (it.id === current ? ' on' : '') + (locked ? ' locked' : ''));
+        b.innerHTML = kind === 'hat' ? mascotSvg(draft.color, it.id, draft.skin) : mascotSvg(draft.color, draft.hat, it.id);
+        const item = itemFor(kind, it.id);
+        b.append(el('span', '', locked && item ? `🔒 ${priceLabel(item)}` : it.name));
+        b.setAttribute('aria-label', locked ? `${it.name} (in the shop)` : it.name);
+        b.onclick = () => {
+          if (locked) {
+            hatHint.textContent = `The ${it.name} is in the shop: tap 👤 on the main menu.`;
+            return;
+          }
+          set(it.id);
+          refresh();
+        };
+        box.append(b);
+      }
+    };
+    pick(hats, 'hat', HATS, draft.hat, (id) => (draft.hat = id));
+    pick(skins, 'skin', SKINS, draft.skin, (id) => (draft.skin = id));
   };
 
   const close = () => overlay.remove();
@@ -110,6 +120,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       name: cleanName(draft.name, TEAM_NAME_MAX) || defaultProfile(slot).name,
       color: draft.color,
       hat: draft.hat,
+      skin: draft.skin,
       names: draft.names.map((n) => cleanName(n, TARDI_NAME_MAX)),
     });
     close();
@@ -127,6 +138,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     colours,
     el('h3', '', 'Hat'),
     hats,
+    el('h3', '', 'Skin'),
+    skins,
     hatHint,
     el('h3', '', 'Tardi names'),
     names,

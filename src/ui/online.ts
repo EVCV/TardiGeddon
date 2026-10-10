@@ -8,7 +8,7 @@ import { MAX_TEAMS } from '../sim/world';
 import { loadProfiles, matchNames } from './teams';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
-import { wearHat } from '../account/session';
+import { wearHat, wearSkin } from '../account/session';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
 
@@ -29,7 +29,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 /** Our team (the first saved team profile), as sent to the server. */
 function myTeam(): LobbyTeam {
   const p = loadProfiles()[0];
-  return { name: p.name, color: p.color, hat: wearHat(p.hat), names: matchNames(p, 0) };
+  return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), names: matchNames(p, 0) };
 }
 
 /** Remember the room so a dropped connection (or reload) can rejoin our slot. */
@@ -135,7 +135,7 @@ export function showOnline(
     }
     const team = myTeam();
     const who = el('div', 'online-me');
-    who.innerHTML = mascotSvg(team.color, team.hat);
+    who.innerHTML = mascotSvg(team.color, team.hat, team.skin);
     const name = el('span', 'online-me-name', team.name);
     name.style.color = hex(team.color);
     who.append(name);
@@ -199,7 +199,7 @@ export function showOnline(
     card.innerHTML = '';
     card.append(el('h1', 'title-small', 'Quick play'));
     const spin = el('div', 'queue-spin');
-    spin.innerHTML = mascotSvg(myTeam().color, myTeam().hat);
+    spin.innerHTML = mascotSvg(myTeam().color, myTeam().hat, myTeam().skin);
     card.append(spin, el('p', 'online-note', waiting > 1 ? `${waiting} players waiting… starting soon!` : 'Looking for players…'), el('div', 'queue-time', '0:00'));
     const cpu = el('button', 'big-btn secondary', 'Play a CPU instead');
     cpu.onclick = () => client?.send({ t: 'quickCpu' });
@@ -234,7 +234,7 @@ export function showOnline(
       const row = el('div', 'lobby-slot' + (s.connected ? '' : ' gone'));
       row.style.setProperty('--team', hex(s.team.color));
       const pic = el('span', 'lobby-pic');
-      pic.innerHTML = mascotSvg(s.team.color, s.team.hat);
+      pic.innerHTML = mascotSvg(s.team.color, s.team.hat, s.team.skin);
       const name = el('span', 'lobby-name', s.team.name); // player text: never innerHTML
       const tag = el('span', 'lobby-tag', s.cpu ? '🤖 CPU' : s.host ? '👑 Host' : i === room.you ? 'You' : '👤');
       if (i === room.you && !s.cpu) tag.textContent = s.host ? '👑 You' : 'You';

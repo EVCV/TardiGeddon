@@ -4,7 +4,7 @@
 
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
-import { account, wearHat, type PlayerStats } from '../account/session';
+import { account, wearHat, wearSkin, type PlayerStats } from '../account/session';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -50,7 +50,7 @@ export function renderDashboard(box: HTMLElement, open: (tab: 'profile' | 'shop'
   head.setAttribute('aria-label', 'Open your profile');
   head.onclick = () => open('profile');
   const pic = el('span', 'dash-pic');
-  pic.innerHTML = mascotSvg(team.color, wearHat(team.hat));
+  pic.innerHTML = mascotSvg(team.color, wearHat(team.hat), wearSkin(team.skin));
   const who = el('span', 'dash-who');
   who.append(el('span', 'dash-name', me.user.name));
   if (s.streak > 1) who.append(el('span', 'dash-streak', `🔥 ${s.streak} wins in a row`));
@@ -73,6 +73,8 @@ export function renderDashboard(box: HTMLElement, open: (tab: 'profile' | 'shop'
   stat(grid, compact(s.selfPopped), '🤦 Own goals');
   stat(grid, compact(s.selfDamage), 'Hurt yourself');
 
+  const wallet = el('div', 'dash-wallet');
+  wallet.append(el('span', '', `🪙 ${compact(me.wallet.coins)}`), el('span', '', `🟢 ${compact(me.wallet.slime)} Slime`));
   const split = el('p', 'dash-split', `Online ${s.onlineWon}/${s.onlinePlayed} · vs CPU ${s.cpuWon}/${s.cpuPlayed} won`);
 
   const buttons = el('div', 'dash-buttons');
@@ -83,7 +85,7 @@ export function renderDashboard(box: HTMLElement, open: (tab: 'profile' | 'shop'
   buttons.append(prof);
   if (me.shop) buttons.append(shop);
 
-  box.append(head, big, grid, split);
+  box.append(head, wallet, big, grid, split);
   if (!t.played) box.append(el('p', 'dash-note', 'Play online, or one-on-one against the CPU, to fill these in.'));
   box.append(buttons);
 }

@@ -35,4 +35,5 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 
 - Any gameplay change needs a sim test; keep `tests/soak.test.ts` green (it catches soft-locks).
 - Never copy Worms Armageddon assets or signature names (see plan §1).
-- Purchases are cosmetic only — never sell gameplay power.
+- Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only.
+  Weapons unlock with Slime, which is earned by playing and must never be buyable or convertible from coins.

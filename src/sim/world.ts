@@ -84,6 +84,7 @@ export interface TeamConfig {
   cpu: boolean;
   names?: string[];
   hat?: string;
+  skin?: string;
 }
 
 export interface WorldConfig {
@@ -178,8 +179,9 @@ export function createWorld(cfg: WorldConfig): WorldState {
         const listed = scheme.weapons?.[def.id];
         const base = def.super ? scheme.supers : def.ammo;
         ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? base : (listed ?? 0);
+        if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map.

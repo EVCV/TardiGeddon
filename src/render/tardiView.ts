@@ -5,24 +5,30 @@ import { Container, Graphics, Text } from 'pixi.js';
 import type { Tardi } from '../sim/types';
 import { PALETTE, hex } from './palette';
 import { drawHatPixi } from './hats';
+import { patternMarks, skinById, type SkinDef } from './skins';
 
 const O = PALETTE.outline;
 
-export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie'): void {
+export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie', skinId = 'classic'): void {
+  const skin = skinById(skinId);
   // Back legs (darker, behind the body)
   for (const lx of [-5, 4]) {
-    g.roundRect(lx - 1.6, 1, 3.4, 6.5, 1.6).fill(PALETTE.tardiShade).stroke({ width: 1.2, color: O });
+    g.roundRect(lx - 1.6, 1, 3.4, 6.5, 1.6).fill(skin.shade).stroke({ width: 1.2, color: O });
   }
   // Body: plump segmented capsule
-  g.ellipse(0, -1, 12, 7.5).fill(PALETTE.tardiBody).stroke({ width: 1.6, color: O });
+  g.ellipse(0, -1, 12, 7.5).fill(skin.body).stroke({ width: 1.6, color: O });
+  // Skin pattern (spots, stripes...)
+  const marks = patternMarks(skin.pattern);
+  for (const [x0, y0, x1, y1] of marks.stripes) g.moveTo(x0, y0).lineTo(x1, y1).stroke({ width: 1.6, color: skin.mark, cap: 'round' });
+  for (const [x, y, r] of marks.circles) g.circle(x, y, r).fill(skin.mark);
   // Belly shade
-  g.ellipse(-1, 2.5, 9, 3).fill({ color: PALETTE.tardiShade, alpha: 0.55 });
+  g.ellipse(-1, 2.5, 9, 3).fill({ color: skin.shade, alpha: 0.55 });
   // Segment creases
   for (const sx of [-6, -1.5, 3]) {
-    g.moveTo(sx, -7).quadraticCurveTo(sx - 1.5, -2, sx, 2).stroke({ width: 0.9, color: PALETTE.tardiShade });
+    g.moveTo(sx, -7).quadraticCurveTo(sx - 1.5, -2, sx, 2).stroke({ width: 0.9, color: skin.shade });
   }
   // Round mouth / snout
-  g.circle(11.5, 0.5, 2.4).fill(PALETTE.tardiMouth).stroke({ width: 1.2, color: O });
+  g.circle(11.5, 0.5, 2.4).fill(skin.mouth).stroke({ width: 1.2, color: O });
   g.circle(11.9, 0.5, 0.9).fill(O);
   // Eyes (big and expressive)
   g.circle(4.5, -4.5, 2.1).fill(PALETTE.eyeWhite).stroke({ width: 1, color: O });
@@ -60,14 +66,17 @@ export class TardiView {
   private hpText: Text;
   private shownHp: number;
   private chute = new Graphics();
+  private skin: SkinDef;
 
   constructor(
     t: Tardi,
     teamColor: number,
     hat = 'beanie',
+    skin = 'classic',
   ) {
+    this.skin = skinById(skin);
     const g = new Graphics();
-    drawTardiBody(g, teamColor, hat);
+    drawTardiBody(g, teamColor, hat, skin);
     this.body.addChild(g, this.legs);
     // Lift the art so the claws rest on the physics circle's bottom.
     this.body.y = -2;
@@ -110,7 +119,7 @@ export class TardiView {
     legXs.forEach((lx, i) => {
       const lift = t.airborne ? -1.5 : Math.max(0, Math.sin(phase + i * 1.6)) * 1.6;
       const sway = t.airborne ? (i - 1.5) * 0.8 : 0;
-      g.roundRect(lx - 1.7 + sway, 2, 3.6, 6 - lift, 1.7).fill(PALETTE.tardiBody).stroke({ width: 1.2, color: O });
+      g.roundRect(lx - 1.7 + sway, 2, 3.6, 6 - lift, 1.7).fill(this.skin.body).stroke({ width: 1.2, color: O });
       // Claws
       g.moveTo(lx - 1 + sway, 8 - lift).lineTo(lx - 1.6 + sway, 9.2 - lift).stroke({ width: 0.9, color: O });
       g.moveTo(lx + 1 + sway, 8 - lift).lineTo(lx + 1.6 + sway, 9.2 - lift).stroke({ width: 0.9, color: O });

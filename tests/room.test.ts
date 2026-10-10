@@ -10,6 +10,7 @@ import { makeWorld, run } from './helpers';
 /** A fake connection that records what the server sends and keeps a lockstep copy. */
 class Client implements Member {
   userId?: string;
+  unlocked?: string[];
   msgs: ServerMsg[] = [];
   ls: Lockstep | null = null;
   send(msg: ServerMsg): void {
@@ -175,6 +176,29 @@ describe('online room', () => {
     for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
     expect(room.started).toBe(false);
     expect(a.last('room')!.started).toBe(false);
+  });
+
+  it("switches on the host's unlocked season weapons for everyone; quick play stays standard", () => {
+    const room = new Room('KLMNO', Date.now, () => 0.42);
+    const host = new Client();
+    host.unlocked = ['megaspore', 'notaweapon'];
+    const guest = new Client(); // unlocked nothing
+    room.join(host, team('Alpha'));
+    room.join(guest, team('Bravo'));
+    room.handle(host, { t: 'start', scheme: { unlocked: ['balloon'] } as never }); // a client can't add its own
+    for (const tm of room.world!.teams) {
+      expect(tm.ammo.megaspore).toBe(1);
+      expect(tm.ammo.balloon).toBe(0);
+    }
+    expect(guest.ls!.state.scheme.unlocked).toEqual(['megaspore']);
+
+    const quick = new Room('PQRST', Date.now, () => 0.42);
+    const a = new Client();
+    a.unlocked = ['megaspore'];
+    quick.join(a, team('Alpha'));
+    quick.addCpu();
+    quick.start({});
+    expect(quick.world!.teams[0].ammo.megaspore).toBe(0);
   });
 
   it("reports signed-in players' results when the match ends", () => {

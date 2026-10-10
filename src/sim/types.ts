@@ -51,6 +51,8 @@ export interface Scheme {
   raceRounds: number;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
+  /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
+  unlocked?: string[];
 }
 
 export const DEFAULT_SCHEME: Scheme = {
@@ -205,6 +207,7 @@ export interface Team {
   weapon: string;
   /** Cosmetic only (never affects play). */
   hat: string;
+  skin: string;
   ammo: Record<string, number>;
 }
 

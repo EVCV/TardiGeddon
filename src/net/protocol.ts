@@ -8,13 +8,14 @@
 import type { Command, InputFrame, Scheme } from '../sim/types';
 import type { TeamConfig } from '../sim/world';
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** A player's team as shown in the lobby. */
 export interface LobbyTeam {
   name: string;
   color: number;
   hat: string;
+  skin?: string;
   /** Tardi names (cleaned up by the server). */
   names: string[];
 }

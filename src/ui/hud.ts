@@ -222,6 +222,8 @@ export class Hud {
       const id = cell.dataset.id!;
       const a = team.ammo[id];
       cell.disabled = a === 0;
+      // Season weapons only show up in matches that have them switched on.
+      cell.hidden = !!WEAPONS[id]?.locked && !s.scheme.unlocked?.includes(id);
       cell.classList.toggle('selected', id === turn.weapon);
       cell.querySelector('.wa')!.textContent = a < 0 ? '∞' : `×${a}`;
     }
