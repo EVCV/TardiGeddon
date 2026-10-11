@@ -4,6 +4,8 @@ import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
 import { canUse, itemFor } from '../shop/catalog';
 import { SKINS } from '../render/skins';
+import { AIM_STYLES, FX_STYLES } from '../render/cosmetics';
+import { aimSvg, fxSvg } from './cosmeticArt';
 import { priceLabel } from './shop';
 import { account, ownedItems } from '../account/session';
 import { TEAM_COLORS, hex } from '../render/palette';
@@ -31,6 +33,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   let draft: TeamProfile = { ...start, names: [...start.names] };
   if (!canUse('hat', draft.hat, ownedItems())) draft.hat = 'beanie';
   if (!canUse('skin', draft.skin, ownedItems())) draft.skin = 'classic';
+  if (!canUse('aim', draft.aim, ownedItems())) draft.aim = 'classic';
+  if (!canUse('fx', draft.fx, ownedItems())) draft.fx = 'classic';
 
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor');
@@ -48,6 +52,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   const colours = el('div', 'editor-swatches');
   const hats = el('div', 'editor-hats');
   const skins = el('div', 'editor-hats');
+  const aims = el('div', 'editor-hats');
+  const effects = el('div', 'editor-hats');
   const hatHint = el('p', 'account-note');
   const names = el('div', 'editor-tardis');
   const defaults = defaultTardiNames(slot);
@@ -78,19 +84,26 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     const owned = ownedItems();
     // Shop items are only advertised when accounts are on.
     const shopOn = account().me !== null;
-    const pick = (box: HTMLElement, kind: 'hat' | 'skin', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
+    const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
       box.innerHTML = '';
       for (const it of list) {
         const locked = !canUse(kind, it.id, owned);
         if (locked && !shopOn) continue;
         const b = el('button', 'hat-btn' + (it.id === current ? ' on' : '') + (locked ? ' locked' : ''));
-        b.innerHTML = kind === 'hat' ? mascotSvg(draft.color, it.id, draft.skin) : mascotSvg(draft.color, draft.hat, it.id);
+        b.innerHTML =
+          kind === 'hat'
+            ? mascotSvg(draft.color, it.id, draft.skin)
+            : kind === 'skin'
+              ? mascotSvg(draft.color, draft.hat, it.id)
+              : kind === 'aim'
+                ? aimSvg(it.id, draft.color)
+                : fxSvg(it.id);
         const item = itemFor(kind, it.id);
         b.append(el('span', '', locked && item ? `🔒 ${priceLabel(item)}` : it.name));
         b.setAttribute('aria-label', locked ? `${it.name} (in the shop)` : it.name);
         b.onclick = () => {
           if (locked) {
-            hatHint.textContent = `The ${it.name} is in the shop: tap 👤 on the main menu.`;
+            hatHint.textContent = `The ${it.name} is in the Shop: open the 🛍️ Shop tab in the menu.`;
             return;
           }
           set(it.id);
@@ -101,6 +114,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     };
     pick(hats, 'hat', HATS, draft.hat, (id) => (draft.hat = id));
     pick(skins, 'skin', SKINS, draft.skin, (id) => (draft.skin = id));
+    pick(aims, 'aim', AIM_STYLES, draft.aim, (id) => (draft.aim = id));
+    pick(effects, 'fx', FX_STYLES, draft.fx, (id) => (draft.fx = id));
   };
 
   const close = () => overlay.remove();
@@ -121,6 +136,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       color: draft.color,
       hat: draft.hat,
       skin: draft.skin,
+      aim: draft.aim,
+      fx: draft.fx,
       names: draft.names.map((n) => cleanName(n, TARDI_NAME_MAX)),
     });
     close();
@@ -140,6 +157,10 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     hats,
     el('h3', '', 'Skin'),
     skins,
+    el('h3', '', 'Aim style'),
+    aims,
+    el('h3', '', 'Explosion effect'),
+    effects,
     hatHint,
     el('h3', '', 'Tardi names'),
     names,

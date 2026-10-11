@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 11 October 2026
-**Document Version:** v1.6
+**Document Version:** v1.7
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -132,7 +132,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 5.0.2 The game has two kinds of in-game currency, kept strictly apart:
 
 - **Slime** is earned by playing (see Section 5.6). It cannot be bought. You can spend it to unlock season weapons and some cosmetic items.
-- **Coins** are bought with real money in coin packs (see Section 5.1). You can spend them only on cosmetic items (such as hats and skins), which change how your team looks and never how it plays.
+- **Coins** are bought with real money in coin packs (see Section 5.1). You can spend them only on cosmetic items (such as hats, skins, aim styles and explosion effects), which change how your team looks and never how it plays.
 
 There is no way to exchange coins for Slime, so money can never buy a gameplay advantage. There are no loot boxes or random paid rewards: you always see exactly what you are unlocking before you unlock it.
 
@@ -164,9 +164,11 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 5.4.1 Coins, Slime, and the items you unlock with them are digital content: a personal, non-transferable licence to use them in TardiGeddon with your account, for as long as we provide the Services (see Section 5.5). They have no cash value, cannot be exchanged for money, and cannot be sold, traded, or transferred to anyone else.
 
-5.4.2 Unlocking an item with coins or Slime is final, unless the item is faulty (Section 5.3). Items you bought directly for money before coins were introduced remain yours on the same terms.
+5.4.2 Some items are also sold together in bundles, for fewer coins than the items cost one by one. The shop shows what each bundle contains, what its items would cost separately and how many coins you save. If you already own some of a bundle's items, you pay only for the others, at the same discount, and the shop shows that lower price before you unlock it.
 
-5.4.3 If you delete your account, your coins, Slime, and unlocked items are deleted with it and cannot be restored or refunded.
+5.4.3 Unlocking an item or bundle with coins or Slime is final, unless the item is faulty (Section 5.3). Items you bought directly for money before coins were introduced remain yours on the same terms.
+
+5.4.4 If you delete your account, your coins, Slime, and unlocked items are deleted with it and cannot be restored or refunded.
 
 ### 5.5 Changes to Items and the Services
 

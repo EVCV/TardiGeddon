@@ -6,9 +6,9 @@ import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
 import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
-import { WEAPONS } from '../sim/weapons';
 import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
 import type { HubContext } from './hub';
+import { itemArt } from './shop';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -66,7 +66,7 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
     for (const t of [
       '📊 Your stats: wins, streaks, pops and own goals',
       '🟢 Earn Slime by playing, and unlock season weapons',
-      '🎩 Hats and skins that follow you to any device',
+      '🎩 Hats, skins, aim styles and effects on every device',
       '🆓 Free: everything in the game stays playable without one',
     ])
       list.append(el('li', '', t));
@@ -359,23 +359,17 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   const coll = el('section', 'card stats-collection');
   const mine = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
   coll.append(el('h2', 'card-title', `Collection · ${me.user ? mine.length : 0}/${SHOP_ITEMS.length}`));
-  const team = loadProfiles()[0];
   if (me.user && mine.length) {
     const grid = el('div', 'collection-grid');
     for (const item of mine) {
       const c = el('div', 'hat-btn');
-      c.innerHTML =
-        item.kind === 'hat'
-          ? mascotSvg(team.color, item.ref, wearSkin(team.skin))
-          : item.kind === 'skin'
-            ? mascotSvg(team.color, wearHat(team.hat), item.ref)
-            : `<span class="shop-weapon-icon">${WEAPONS[item.ref]?.icon ?? '💥'}</span>`;
+      c.innerHTML = itemArt(item);
       c.append(el('span', '', item.name));
       grid.append(c);
     }
-    coll.append(grid, el('p', 'account-note', 'Wear hats and skins from the ✎ team editor in the lobby; unlocked weapons appear in the matches you start.'));
+    coll.append(grid, el('p', 'account-note', 'Pick hats, skins, aim styles and effects in the ✎ team editor in the lobby; unlocked weapons appear in the matches you start.'));
   } else {
-    const p = el('p', 'account-note', me.user ? 'Nothing unlocked yet. ' : 'Hats, skins and weapons you unlock show up here. ');
+    const p = el('p', 'account-note', me.user ? 'Nothing unlocked yet. ' : 'Hats, skins, aim styles, effects and weapons you unlock show up here. ');
     const go = el('button', 'link-btn', 'Have a look in the shop');
     go.onclick = () => ctx.go('shop');
     p.append(go);

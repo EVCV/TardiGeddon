@@ -208,6 +208,9 @@ export interface Team {
   /** Cosmetic only (never affects play). */
   hat: string;
   skin: string;
+  /** Aim marker style and explosion effect (cosmetic only). */
+  aim: string;
+  fx: string;
   ammo: Record<string, number>;
 }
 

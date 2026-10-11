@@ -5,25 +5,29 @@
 // stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
+import { aimSvg, fxSvg } from './cosmeticArt';
 import { coinIcon, packArt } from './coinArt';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
-import { COIN_PACKS, SHOP_ITEMS, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type CoinPack, type ShopItem } from '../shop/catalog';
+import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
 import { buyCoins, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
+import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
 
-type Category = 'all' | 'hat' | 'skin' | 'weapon' | 'coins';
+type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'bundle' | 'weapon' | 'coins';
 
 export interface ShopState {
   category: Category;
-  /** Item shown on the preview stage. */
+  /** Item shown on the preview stage... */
   preview: ShopItem | null;
+  /** ...or a bundle. */
+  bundle: Bundle | null;
   /** Where the catalogue was scrolled to, on which tab. */
   scroll: { key: Category; top: number };
 }
 
-export const newShopState = (): ShopState => ({ category: 'all', preview: null, scroll: { key: 'all', top: 0 } });
+export const newShopState = (): ShopState => ({ category: 'all', preview: null, bundle: null, scroll: { key: 'all', top: 0 } });
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -38,11 +42,13 @@ export function priceLabel(item: ShopItem): string {
 }
 
 /** The picture for an item: your team's tardi wearing it, or the weapon's icon. */
-function itemArt(item: ShopItem | null): string {
+export function itemArt(item: ShopItem | null): string {
   const team = loadProfiles()[0];
   if (!item) return mascotSvg(team.color, wearHat(team.hat), wearSkin(team.skin));
   if (item.kind === 'hat') return mascotSvg(team.color, item.ref, wearSkin(team.skin));
   if (item.kind === 'skin') return mascotSvg(team.color, wearHat(team.hat), item.ref);
+  if (item.kind === 'aim') return aimSvg(item.ref, team.color);
+  if (item.kind === 'fx') return fxSvg(item.ref);
   return `<span class="shop-weapon-icon">${WEAPONS[item.ref]?.icon ?? '💥'}</span>`;
 }
 
@@ -50,6 +56,9 @@ const CATEGORIES: [Category, string][] = [
   ['all', 'All'],
   ['hat', '🎩 Hats'],
   ['skin', '🎨 Skins'],
+  ['aim', '🎯 Aim'],
+  ['fx', '✨ Effects'],
+  ['bundle', '🎁 Bundles'],
   ['weapon', '💥 Weapons'],
   ['coins', '🪙 Get coins'],
 ];
@@ -106,11 +115,13 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   const body = el('div', 'shop-body');
   main.append(body);
   if (state.category === 'coins') body.append(coinPacks(me, ctx, state));
-  else {
+  else if (state.category === 'bundle') {
+    body.append(bundleGrid(me, ctx, state), el('p', 'account-note', 'A bundle costs less than its looks one by one. Already own some of it? You only pay for the rest, at the same discount.'));
+  } else {
     const items = SHOP_ITEMS.filter((i) => state.category === 'all' || i.kind === state.category);
     const grid = el('div', 'shop-grid');
     for (const item of items) grid.append(card(item, me, ctx, state));
-    if (state.category === 'all') body.append(featureBanner(me, ctx, state));
+    if (state.category === 'all') body.append(featureBanner(me, ctx, state), el('h3', 'shop-section', '🎁 Bundles'), bundleGrid(me, ctx, state), el('h3', 'shop-section', 'Everything'));
     body.append(
       grid,
       el('p', 'account-note', 'Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Unlocked weapons appear in the matches you start.'),
@@ -128,6 +139,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
 
 /** The preview stage: the picked item on your own tardi, and what you can do with it. */
 function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  if (state.bundle) return bundleStage(state.bundle, me, ctx, state);
   const item = state.preview;
   const box = el('div', 'shop-stage');
   const art = el('div', 'shop-stage-art');
@@ -148,12 +160,12 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
     action.append(el('span', 'shop-owned', 'Owned ✓'));
     if (item.kind !== 'weapon') {
       const team = loadProfiles()[0];
-      const wearing = item.kind === 'hat' ? team.hat === item.ref : team.skin === item.ref;
-      const wear = el('button', 'hud-btn', wearing ? 'Wearing ✓' : `Wear on ${team.name}`);
+      const wearing = team[item.kind] === item.ref;
+      const verb = item.kind === 'hat' || item.kind === 'skin' ? 'Wear' : 'Use';
+      const wear = el('button', 'hud-btn', wearing ? `${verb === 'Wear' ? 'Wearing' : 'Using'} ✓` : `${verb} on ${team.name}`);
       wear.disabled = wearing;
       wear.onclick = () => {
-        const next = item.kind === 'hat' ? { ...team, hat: item.ref } : { ...team, skin: item.ref };
-        saveProfiles(updateProfile(loadProfiles(), 0, next));
+        saveProfiles(updateProfile(loadProfiles(), 0, { ...team, [item.kind]: item.ref }));
         ctx.rerender();
       };
       action.append(wear);
@@ -196,6 +208,7 @@ function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState)
   c.setAttribute('aria-label', `${item.name}, ${has ? 'owned' : priceLabel(item)}`);
   c.onclick = () => {
     state.preview = item;
+    state.bundle = null;
     ctx.rerender();
     // On narrow screens the stage is above the grid: bring it into view.
     document.querySelector('.shop-stage')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -209,6 +222,112 @@ function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState)
   else foot.append(el('span', 'shop-price' + (me.user && affordable(item, me) ? ' can' : ''), priceLabel(item)));
   c.append(top, art, el('b', 'shop-card-name', item.name), foot);
   return c;
+}
+
+/** A bundle's picture: your tardi in its hat and skin, with its aim style and effect beside. */
+function bundleArt(b: Bundle): string {
+  const team = loadProfiles()[0];
+  const ref = (kind: string, fallback: string) => b.items.map(shopItem).find((i) => i?.kind === kind)?.ref ?? fallback;
+  const aim = b.items.map(shopItem).find((i) => i?.kind === 'aim');
+  const fx = b.items.map(shopItem).find((i) => i?.kind === 'fx');
+  return `<span class="bundle-art"><span class="bundle-main">${mascotSvg(team.color, ref('hat', wearHat(team.hat)), ref('skin', wearSkin(team.skin)))}</span>${
+    aim ? `<span class="bundle-chip">${aimSvg(aim.ref, team.color)}</span>` : ''
+  }${fx ? `<span class="bundle-chip">${fxSvg(fx.ref)}</span>` : ''}</span>`;
+}
+
+function bundleGrid(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  const grid = el('div', 'shop-grid bundle-grid');
+  for (const b of BUNDLES) {
+    const price = bundlePrice(b, me.owned);
+    const worth = bundleValue(b, me.owned);
+    const c = el('button', 'shop-card bundle-card' + (price === 0 ? ' owned' : '') + (state.bundle === b ? ' previewing' : ''));
+    c.setAttribute('aria-label', `${b.name} bundle, ${price === 0 ? 'owned' : `${formatNumber(price)} coins`}`);
+    c.onclick = () => {
+      state.bundle = b;
+      state.preview = null;
+      ctx.rerender();
+      document.querySelector('.shop-stage')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+    const top = el('span', 'shop-card-top');
+    top.append(el('span', 'rarity rarity-bundle', `${b.items.length} looks`));
+    if (price > 0 && worth > price) top.append(el('span', 'bundle-save', `Save ${Math.round((1 - price / worth) * 100)}%`));
+    const art = el('span', 'shop-card-art');
+    art.innerHTML = bundleArt(b);
+    const foot = el('span', 'shop-card-foot');
+    if (price === 0) foot.append(el('span', 'shop-owned', 'Owned ✓'));
+    else {
+      foot.append(el('s', 'bundle-was', formatNumber(worth)), el('span', 'shop-price' + (me.user && me.wallet.coins >= price ? ' can' : ''), `🪙 ${formatNumber(price)}`));
+    }
+    c.append(top, art, el('b', 'shop-card-name', b.name), foot);
+    grid.append(c);
+  }
+  return grid;
+}
+
+/** The stage for a bundle: what's in it, what it costs, and unlocking or wearing the whole set. */
+function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
+  const box = el('div', 'shop-stage');
+  const art = el('div', 'shop-stage-art');
+  art.innerHTML = bundleArt(b);
+  const info = el('div', 'shop-stage-info');
+  box.append(art, info);
+  info.append(el('span', 'rarity rarity-bundle', 'Bundle'), el('b', '', b.name), el('span', '', b.blurb));
+  const list = el('ul', 'bundle-list');
+  for (const id of b.items) {
+    const item = shopItem(id);
+    if (!item) continue;
+    const owned = me.owned.includes(id);
+    list.append(el('li', owned ? 'owned' : '', `${owned ? '✓' : '•'} ${item.name} (${priceLabel(item)})`));
+  }
+  info.append(list);
+  const action = el('div', 'shop-stage-action');
+  info.append(action);
+  const price = bundlePrice(b, me.owned);
+  const worth = bundleValue(b, me.owned);
+  if (price === 0) {
+    action.append(el('span', 'shop-owned', 'Owned ✓'));
+    const team = loadProfiles()[0];
+    const looks = b.items.map(shopItem).filter((i): i is ShopItem => !!i && i.kind !== 'weapon');
+    const wearing = looks.every((i) => team[i.kind as 'hat' | 'skin' | 'aim' | 'fx'] === i.ref);
+    const wear = el('button', 'hud-btn', wearing ? 'Wearing the set ✓' : `Wear the set on ${team.name}`);
+    wear.disabled = wearing;
+    wear.onclick = () => {
+      const next: TeamProfile = { ...team };
+      for (const id of b.items) {
+        const item = shopItem(id);
+        if (item && item.kind !== 'weapon') next[item.kind] = item.ref;
+      }
+      saveProfiles(updateProfile(loadProfiles(), 0, next));
+      ctx.rerender();
+    };
+    action.append(wear);
+    return box;
+  }
+  action.append(el('span', 'bundle-deal', `Worth 🪙 ${formatNumber(worth)} · you save 🪙 ${formatNumber(worth - price)}`));
+  if (!me.user) {
+    const s = el('button', 'big-btn', 'Sign in to unlock');
+    s.onclick = () => ctx.go('account');
+    action.append(s);
+    return box;
+  }
+  if (me.wallet.coins < price) {
+    action.append(el('span', 'shop-short', `🪙 ${formatNumber(price)} · you need ${formatNumber(price - me.wallet.coins)} more coins`));
+    if (me.shop) {
+      const get = el('button', 'big-btn', 'Get coins');
+      get.onclick = () => {
+        state.category = 'coins';
+        ctx.rerender();
+      };
+      action.append(get);
+    }
+    return box;
+  }
+  const buy = el('button', 'big-btn', `Unlock the set for 🪙 ${formatNumber(price)}`);
+  buy.title = `${formatNumber(price)} coins (${coinValue(price)})`;
+  buy.disabled = ctx.busy;
+  buy.onclick = () => ctx.run(() => unlock(b.id));
+  action.append(buy);
+  return box;
 }
 
 /**
@@ -279,6 +398,7 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
   const go = el('button', 'big-btn banner-go', 'Try it on');
   go.onclick = () => {
     state.preview = items[0];
+    state.bundle = null;
     if (state.category === 'coins') state.category = 'all';
     ctx.rerender();
   };
@@ -292,6 +412,7 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
     b.append(el('span', `rarity rarity-${item.rarity}`, item.rarity), art, el('span', 'banner-mini-name', item.name), el('span', 'shop-price', priceLabel(item)));
     b.onclick = () => {
       state.preview = item;
+      state.bundle = null;
       ctx.rerender();
     };
     minis.append(b);
@@ -411,7 +532,7 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   const head = el('div', 'coins-head');
   const icon = el('span', 'coins-head-icon');
   icon.innerHTML = coinIcon();
-  head.append(icon, el('h3', '', 'Get coins'), el('span', '', 'Coins unlock hats and skins. Bigger packs come with bonus coins. Prices include VAT.'));
+  head.append(icon, el('h3', '', 'Get coins'), el('span', '', 'Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include VAT.'));
   box.append(head);
 
   const grid = el('div', 'coin-grid');

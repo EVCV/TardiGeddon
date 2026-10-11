@@ -6,7 +6,7 @@
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
-import { coinPack, packTotal, shopItem } from '../src/shop/catalog';
+import { bundle, bundlePrice, coinPack, packTotal, shopItem } from '../src/shop/catalog';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -280,6 +280,43 @@ export async function unlockItem(db: Pool, userId: string, itemId: string): Prom
       return 'poor';
     }
     await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, $3)`, [userId, item.id, currency]);
+    await c.query('COMMIT');
+    return 'ok';
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+/**
+ * Unlock every item in a bundle the player doesn't own yet, for the bundle's
+ * price on what's left (bundlePrice), all at once or not at all.
+ */
+export async function unlockBundle(db: Pool, userId: string, bundleId: string): Promise<UnlockResult> {
+  const b = bundle(bundleId);
+  if (!b) return 'unknown';
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    // Lock the wallet first, so two bundle buys can't both price against the same inventory.
+    await c.query('SELECT 1 FROM wallet WHERE user_id = $1 FOR UPDATE', [userId]);
+    const have = await c.query<{ item: string }>('SELECT item FROM inventory WHERE user_id = $1 AND item = ANY($2::text[])', [userId, b.items]);
+    const owned = have.rows.map((r) => r.item);
+    const price = bundlePrice(b, owned);
+    if (price === 0) {
+      await c.query('ROLLBACK');
+      return 'owned';
+    }
+    const paid = await c.query('UPDATE wallet SET coins = coins - $2::int WHERE user_id = $1 AND coins >= $2::int', [userId, price]);
+    if (paid.rowCount !== 1) {
+      await c.query('ROLLBACK');
+      return 'poor';
+    }
+    for (const id of b.items) {
+      if (!owned.includes(id)) await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, 'coins')`, [userId, id]);
+    }
     await c.query('COMMIT');
     return 'ok';
   } catch (e) {

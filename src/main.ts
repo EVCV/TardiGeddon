@@ -3,7 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { confirmEmail, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearHat, wearSkin } from './account/session';
+import { confirmEmail, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearFx, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
@@ -174,7 +174,7 @@ class Match {
       const setup = mode.setup;
       const teams: TeamConfig[] = setup.players.map((cpu, i) => {
         const p = setup.teams[i];
-        return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), names: matchNames(p, i), cpu };
+        return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, i), cpu };
       });
       // Season weapons this player has unlocked are switched on for everyone in the match.
       this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });

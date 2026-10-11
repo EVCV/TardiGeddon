@@ -6,7 +6,7 @@
 import type { Graphics } from 'pixi.js';
 import { PALETTE, hex } from './palette';
 
-type Fill = 'team' | 'ink' | 'white' | 'gold' | 'red' | 'green' | 'blue' | 'pink' | 'brown' | 'grey' | 'orange' | 'purple' | 'black';
+type Fill = 'team' | 'ink' | 'white' | 'gold' | 'red' | 'green' | 'blue' | 'pink' | 'brown' | 'grey' | 'orange' | 'purple' | 'black' | 'glass' | 'silver' | 'cyan';
 
 type Shape =
   | { k: 'circle'; x: number; y: number; r: number; fill: Fill }
@@ -30,6 +30,15 @@ const flowerPetals: Shape[] = [0, 1, 2, 3, 4].map((i) => {
   ][i];
   return { k: 'circle', x: pts[0], y: -1 + pts[1], r: 0.42, fill: 'team' } as Shape;
 });
+
+/** A flat ring (seen at an angle), as one polygon: the outer edge, then the inner edge back. */
+function ring(cx: number, cy: number, rx: number, ry: number, t: number): number[] {
+  const n = 20;
+  const pts: number[] = [];
+  for (let i = 0; i <= n; i++) pts.push(cx + Math.cos((i / n) * Math.PI * 2) * rx, cy + Math.sin((i / n) * Math.PI * 2) * ry);
+  for (let i = n; i >= 0; i--) pts.push(cx + Math.cos((i / n) * Math.PI * 2) * (rx - t), cy + Math.sin((i / n) * Math.PI * 2) * (ry - t * 0.6));
+  return pts;
+}
 
 export const HATS: HatDef[] = [
   {
@@ -295,6 +304,111 @@ export const HATS: HatDef[] = [
       { k: 'poly', pts: [-1, 0.05, -1, -0.25, 1, -0.25, 1, 0.05], fill: 'gold' },
     ],
   },
+  // Stage 2 shop hats.
+  {
+    id: 'catears',
+    name: 'Cat ears',
+    shapes: [
+      { k: 'poly', pts: [-0.95, 0.05, -0.8, -1.25, -0.15, -0.55], fill: 'team' },
+      { k: 'poly', pts: [0.95, 0.05, 0.8, -1.25, 0.15, -0.55], fill: 'team' },
+      { k: 'poly', pts: [-0.72, -0.2, -0.68, -0.92, -0.33, -0.52], fill: 'pink' },
+      { k: 'poly', pts: [0.72, -0.2, 0.68, -0.92, 0.33, -0.52], fill: 'pink' },
+    ],
+  },
+  {
+    id: 'beret',
+    name: 'Beret',
+    shapes: [
+      { k: 'poly', pts: [-1.25, -0.05, -1.1, -0.55, -0.5, -0.85, 0.3, -0.9, 1.0, -0.7, 1.3, -0.3, 1.1, 0.05], fill: 'team' },
+      { k: 'circle', x: 0.1, y: -0.95, r: 0.13, fill: 'ink' },
+    ],
+  },
+  {
+    id: 'santa',
+    name: 'Santa hat',
+    shapes: [
+      { k: 'poly', pts: [-0.9, -0.1, -0.5, -1.1, 0.3, -1.65, 1.15, -1.15, 0.6, -1.0, 0.9, -0.1], fill: 'red' },
+      { k: 'poly', pts: [-1.05, 0.12, -1.05, -0.25, 1.05, -0.25, 1.05, 0.12], fill: 'white' },
+      { k: 'circle', x: 1.2, y: -1.1, r: 0.3, fill: 'white' },
+    ],
+  },
+  {
+    id: 'witch',
+    name: 'Witch hat',
+    shapes: [
+      { k: 'poly', pts: [-1.7, 0.15, -1.4, -0.2, 1.4, -0.2, 1.7, 0.15], fill: 'purple' },
+      { k: 'poly', pts: [-0.85, -0.15, -0.2, -2.0, 0.55, -2.55, 0.3, -1.9, 0.85, -0.15], fill: 'purple' },
+      { k: 'poly', pts: [-0.85, -0.15, -0.78, -0.5, 0.78, -0.5, 0.85, -0.15], fill: 'green' },
+      { k: 'poly', pts: [-0.18, -0.18, -0.18, -0.48, 0.18, -0.48, 0.18, -0.18], fill: 'gold' },
+    ],
+  },
+  {
+    id: 'unicorn',
+    name: 'Unicorn horn',
+    shapes: [
+      { k: 'circle', x: -0.85, y: -0.15, r: 0.38, fill: 'pink' },
+      { k: 'circle', x: -1.15, y: 0.25, r: 0.3, fill: 'purple' },
+      { k: 'circle', x: -0.45, y: -0.55, r: 0.3, fill: 'cyan' },
+      { k: 'poly', pts: [-0.35, -0.05, 0.05, -2.3, 0.35, -0.05], fill: 'gold' },
+      { k: 'poly', pts: [-0.27, -0.55, 0.27, -0.75, 0.25, -0.9, -0.23, -0.7], fill: 'white' },
+      { k: 'poly', pts: [-0.18, -1.15, 0.2, -1.32, 0.17, -1.47, -0.14, -1.3], fill: 'white' },
+    ],
+  },
+  {
+    id: 'halo',
+    name: 'Halo',
+    shapes: [{ k: 'poly', pts: ring(0, -1.55, 1.05, 0.38, 0.22), fill: 'gold' }],
+  },
+  {
+    id: 'flame',
+    name: 'Flame crown',
+    shapes: [
+      { k: 'poly', pts: [-1.0, 0.05, -1.1, -0.9, -0.6, -0.5, -0.5, -1.6, 0, -0.9, 0.2, -2.1, 0.55, -0.8, 0.9, -1.4, 1.05, 0.05], fill: 'red' },
+      { k: 'poly', pts: [-0.75, 0.05, -0.75, -0.6, -0.35, -0.35, -0.25, -1.1, 0.1, -0.55, 0.3, -1.45, 0.5, -0.45, 0.75, -0.8, 0.8, 0.05], fill: 'orange' },
+      { k: 'poly', pts: [-0.45, 0.05, -0.3, -0.45, 0, -0.25, 0.2, -0.8, 0.35, -0.25, 0.5, 0.05], fill: 'gold' },
+    ],
+  },
+  {
+    id: 'astronaut',
+    name: 'Space helmet',
+    shapes: [
+      { k: 'poly', pts: [0.7, -0.9, 1.1, -1.8, 1.2, -1.76, 0.82, -0.85], fill: 'ink' },
+      { k: 'circle', x: 1.17, y: -1.85, r: 0.18, fill: 'red' },
+      { k: 'dome', x: 0, y: 0.3, r: 1.45, fill: 'glass' },
+      { k: 'circle', x: -0.6, y: -0.55, r: 0.2, fill: 'white' },
+      { k: 'poly', pts: [-1.55, 0.42, -1.55, 0.1, 1.55, 0.1, 1.55, 0.42], fill: 'silver' },
+    ],
+  },
+  {
+    id: 'dragon',
+    name: 'Dragon hood',
+    shapes: [
+      { k: 'poly', pts: [-0.95, -0.25, -1.4, -0.95, -0.6, -0.7], fill: 'gold' },
+      { k: 'poly', pts: [-0.5, -0.75, -0.55, -1.6, -0.05, -0.95], fill: 'gold' },
+      { k: 'poly', pts: [0.1, -0.95, 0.4, -1.75, 0.6, -0.85], fill: 'gold' },
+      { k: 'poly', pts: [0.7, -0.6, 1.35, -1.15, 1.0, -0.3], fill: 'gold' },
+      { k: 'dome', x: 0, y: 0.05, r: 1.08, fill: 'green' },
+      { k: 'circle', x: -0.45, y: -0.5, r: 0.13, fill: 'gold' },
+      { k: 'circle', x: 0.15, y: -0.7, r: 0.13, fill: 'gold' },
+      { k: 'circle', x: 0.6, y: -0.35, r: 0.13, fill: 'gold' },
+    ],
+  },
+  {
+    id: 'imperial',
+    name: 'Imperial crown',
+    shapes: [
+      { k: 'dome', x: 0, y: -0.35, r: 0.85, fill: 'red' },
+      { k: 'poly', pts: [-1.05, -0.35, -1.15, -1.5, -0.55, -0.9, 0, -1.8, 0.55, -0.9, 1.15, -1.5, 1.05, -0.35], fill: 'gold' },
+      { k: 'poly', pts: [-1.08, 0.05, -1.08, -0.42, 1.08, -0.42, 1.08, 0.05], fill: 'gold' },
+      { k: 'circle', x: -0.6, y: -0.18, r: 0.14, fill: 'red' },
+      { k: 'circle', x: 0, y: -0.18, r: 0.17, fill: 'blue' },
+      { k: 'circle', x: 0.6, y: -0.18, r: 0.14, fill: 'green' },
+      { k: 'circle', x: 0, y: -1.0, r: 0.2, fill: 'red' },
+      { k: 'circle', x: -1.15, y: -1.55, r: 0.14, fill: 'white' },
+      { k: 'circle', x: 1.15, y: -1.55, r: 0.14, fill: 'white' },
+      { k: 'circle', x: 0, y: -1.95, r: 0.2, fill: 'gold' },
+    ],
+  },
 ];
 
 export function hatById(id: string): HatDef {
@@ -329,6 +443,12 @@ function fillColor(f: Fill, team: number): number {
       return 0x8f5bd6;
     case 'black':
       return 0x2b1b24;
+    case 'glass':
+      return 0xd9f3ff;
+    case 'silver':
+      return 0xd6dbe4;
+    case 'cyan':
+      return 0x7fd3f7;
   }
 }
 
