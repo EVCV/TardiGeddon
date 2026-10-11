@@ -227,6 +227,12 @@ later is only a change of secrets (`server/mail.ts`):
 - **Emailit, Resend, Postmark, Amazon SES, ...** Make SMTP credentials with
   sending access only.
 
+In use now: **20i** (`SMTP_HOST=smtp.stackmail.com`, mailbox
+`noreply@tardigeddon.com`, DKIM selector `s1`). Incoming mail stays with
+Cloudflare Email Routing, so the MX records point at Cloudflare and the SPF
+record includes both: `v=spf1 include:_spf.mx.cloudflare.net include:spf.stackmail.com ~all`.
+If you change provider, update Privacy Policy 4.0.3 too.
+
 1. **DNS in Cloudflare** (the domain's DNS lives there even though the mail
    server is elsewhere). Add exactly what your email service gives you:
    - **SPF**: a TXT record on `tardigeddon.com`. There can only be one SPF
