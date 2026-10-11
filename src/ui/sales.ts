@@ -149,7 +149,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   const people = el('div', 'stats-grid sales-people');
   people.append(
     statTile(formatNumber(r.players.total), 'Players (all time)'),
-    statTile(formatNumber(r.players.joined), r.days ? 'New players' : 'Signed up'),
+    statTile(formatNumber(r.players.joined), r.days || r.resetAt ? 'New players' : 'Signed up'),
     statTile(formatNumber(r.players.buyers), 'Paying players'),
     statTile(
       r.players.buyers && currencies.length === 1 ? money(Math.round(currencies[0][1].amount / r.players.buyers), currencies[0][0]) : '–',
