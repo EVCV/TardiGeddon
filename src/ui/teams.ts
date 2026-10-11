@@ -5,12 +5,16 @@ import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/world';
 import { TEAM_COLORS, TEAM_NAMES } from '../render/palette';
 import { HATS } from '../render/hats';
 import { SKINS } from '../render/skins';
+import { AIM_STYLES, FX_STYLES } from '../render/cosmetics';
 
 export interface TeamProfile {
   name: string;
   color: number;
   hat: string;
   skin: string;
+  /** Aim marker style and explosion effect (shop cosmetics). */
+  aim: string;
+  fx: string;
   /** Up to 4 tardi names; blanks fall back to the defaults. */
   names: string[];
 }
@@ -24,7 +28,7 @@ export function defaultTardiNames(slot: number): string[] {
 }
 
 export function defaultProfile(slot: number): TeamProfile {
-  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', skin: 'classic', names: ['', '', '', ''] };
+  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', skin: 'classic', aim: 'classic', fx: 'classic', names: ['', '', '', ''] };
 }
 
 /** Trim, collapse spaces, drop control characters and cap the length. */
@@ -45,6 +49,8 @@ function valid(p: unknown, slot: number): TeamProfile {
     color: typeof v.color === 'number' && TEAM_COLORS.includes(v.color) ? v.color : d.color,
     hat: typeof v.hat === 'string' && HATS.some((h) => h.id === v.hat) ? v.hat : d.hat,
     skin: typeof v.skin === 'string' && SKINS.some((k) => k.id === v.skin) ? v.skin : d.skin,
+    aim: typeof v.aim === 'string' && AIM_STYLES.some((a) => a.id === v.aim) ? v.aim : d.aim,
+    fx: typeof v.fx === 'string' && FX_STYLES.some((f) => f.id === v.fx) ? v.fx : d.fx,
     names: Array.from({ length: 4 }, (_, i) =>
       Array.isArray(v.names) && typeof v.names[i] === 'string' ? cleanName(v.names[i], TARDI_NAME_MAX) : '',
     ),

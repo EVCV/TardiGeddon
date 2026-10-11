@@ -98,6 +98,15 @@ export function wearSkin(skin: string): string {
   return canUse('skin', skin, ownedItems()) ? skin : 'classic';
 }
 
+/** Likewise for aim styles and explosion effects. */
+export function wearAim(aim: string): string {
+  return canUse('aim', aim, ownedItems()) ? aim : 'classic';
+}
+
+export function wearFx(fx: string): string {
+  return canUse('fx', fx, ownedItems()) ? fx : 'classic';
+}
+
 /** Season weapons the signed-in player has unlocked (switched on in the matches they start). */
 export function myUnlockedWeapons(): string[] {
   return unlockedWeapons(ownedItems());

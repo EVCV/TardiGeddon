@@ -68,6 +68,8 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
     color: typeof v.color === 'number' && TEAM_COLORS.includes(v.color) ? v.color : TEAM_COLORS[slot % TEAM_COLORS.length],
     hat: typeof v.hat === 'string' && /^[a-z]{1,16}$/.test(v.hat) ? v.hat : 'beanie',
     skin: typeof v.skin === 'string' && /^[a-z]{1,16}$/.test(v.skin) ? v.skin : 'classic',
+    aim: typeof v.aim === 'string' && /^[a-z]{1,16}$/.test(v.aim) ? v.aim : 'classic',
+    fx: typeof v.fx === 'string' && /^[a-z]{1,16}$/.test(v.fx) ? v.fx : 'classic',
     names,
   };
 }
@@ -78,10 +80,12 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
  */
 export function wearableTeam<T>(t: T, owned: readonly string[]): T {
   if (!t || typeof t !== 'object') return t;
-  const { hat, skin } = t as { hat?: unknown; skin?: unknown };
+  const { hat, skin, aim, fx } = t as { hat?: unknown; skin?: unknown; aim?: unknown; fx?: unknown };
   let out = t;
   if (typeof hat === 'string' && !canUse('hat', hat, owned)) out = { ...out, hat: 'beanie' };
   if (typeof skin === 'string' && !canUse('skin', skin, owned)) out = { ...out, skin: 'classic' };
+  if (typeof aim === 'string' && !canUse('aim', aim, owned)) out = { ...out, aim: 'classic' };
+  if (typeof fx === 'string' && !canUse('fx', fx, owned)) out = { ...out, fx: 'classic' };
   return out;
 }
 
@@ -355,7 +359,7 @@ export class Room {
 
   private startMatch(rawScheme: unknown, unlocked: string[]): void {
     this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => isWeaponId(id) && WEAPONS[id].locked) };
-    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, names: s.team.names, cpu: s.cpu }));
+    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();

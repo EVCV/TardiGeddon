@@ -32,6 +32,17 @@ export const SKINS: SkinDef[] = [
   { id: 'robot', name: 'Robo-Tardi', body: 0xc3cad6, shade: 0x8e97a8, mouth: 0x5d6678, pattern: 'rivets', mark: 0x6c7488 },
   { id: 'gold', name: 'Solid Gold', body: 0xffd84a, shade: 0xe0a920, mouth: 0xc98a12, pattern: 'shine', mark: 0xfff6c2 },
   { id: 'zombie', name: 'Zombie', body: 0xa8c49a, shade: 0x7d9b72, mouth: 0x6b3a4a, pattern: 'spots', mark: 0x8a6a7a },
+  { id: 'mint', name: 'Mint', body: 0xb8f0d8, shade: 0x86d1b0, mouth: 0x4fae8a, pattern: 'none', mark: 0 },
+  { id: 'chocolate', name: 'Chocolate', body: 0x9a6442, shade: 0x6f4329, mouth: 0x4a2a1a, pattern: 'none', mark: 0 },
+  { id: 'camo', name: 'Camo', body: 0x8a9a5b, shade: 0x6b7a42, mouth: 0x4a5a2a, pattern: 'spots', mark: 0x4f5a2e },
+  { id: 'candy', name: 'Candy stripe', body: 0xffe2ee, shade: 0xf2b4cc, mouth: 0xe04878, pattern: 'stripes', mark: 0xe04848 },
+  { id: 'panda', name: 'Panda', body: 0xf7f7f2, shade: 0xd8d8d0, mouth: 0x2b1b24, pattern: 'spots', mark: 0x2b1b24 },
+  { id: 'leopard', name: 'Leopard', body: 0xf2c46a, shade: 0xd9a24a, mouth: 0xa8653a, pattern: 'spots', mark: 0x6a3a1e },
+  { id: 'neon', name: 'Neon', body: 0xff4fd8, shade: 0xd02fb0, mouth: 0x7a2fff, pattern: 'shine', mark: 0xbff7ff },
+  { id: 'toxic', name: 'Toxic', body: 0xb6f23a, shade: 0x86c41e, mouth: 0x4a7a1a, pattern: 'spots', mark: 0x7a3ad0 },
+  { id: 'frost', name: 'Frostbite', body: 0xd8f2ff, shade: 0xa6d4ef, mouth: 0x6aa6d0, pattern: 'seeds', mark: 0x5a9bd0 },
+  { id: 'galaxy', name: 'Galaxy', body: 0x3a2a6a, shade: 0x271c4c, mouth: 0xa86af0, pattern: 'seeds', mark: 0xfff6c2 },
+  { id: 'diamond', name: 'Diamond', body: 0xbff3ff, shade: 0x8fd6ef, mouth: 0x6ab0d8, pattern: 'shine', mark: 0xffffff },
 ];
 
 export function skinById(id: string | undefined): SkinDef {

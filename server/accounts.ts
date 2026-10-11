@@ -14,12 +14,12 @@ import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, coinPack, formatNumber, packTotal, shopItem } from '../src/shop/catalog';
+import { CURRENCY, bundle, coinPack, formatNumber, packTotal, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
 
 export interface AccountsEnv extends MailEnv {
   DATABASE_URL?: string;
@@ -348,6 +348,14 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
     } catch {
       return json(res, 400, { error: 'Bad request.' });
+    }
+    // A whole bundle at once.
+    const set = typeof body.item === 'string' ? bundle(body.item) : undefined;
+    if (set) {
+      const r = await unlockBundle(db, user.id, set.id);
+      if (r === 'owned') return json(res, 409, { error: 'You already have everything in that bundle.' });
+      if (r === 'poor') return json(res, 402, { error: 'Not enough coins.' });
+      return json(res, 200, { ok: true });
     }
     const item = typeof body.item === 'string' ? shopItem(body.item) : undefined;
     if (!item) return json(res, 400, { error: 'No such item.' });

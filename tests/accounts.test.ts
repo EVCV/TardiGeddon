@@ -10,6 +10,7 @@ import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
 import { migrate } from '../server/store';
 import type { Mail } from '../server/mail';
+import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -201,6 +202,25 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     m = await me(cookie);
     expect(m.wallet.coins).toBe(-200);
     expect((await post('/api/shop/unlock', { item: 'hat:party' }, cookie)).status).toBe(402);
+  });
+
+  it('sells bundles at their discount, charging only for the looks you are missing, all at once', async () => {
+    const { cookie, id } = await signUp('bundles@example.com');
+    // Not enough coins: nothing changes.
+    expect((await post('/api/shop/unlock', { item: 'bundle:sweet' }, cookie)).status).toBe(402);
+    expect(await sendWebhook('checkout.session.completed', paid('cs_bundle1', id, 'coins:2000'))).toBe(200);
+    expect((await me(cookie)).wallet.coins).toBe(2400);
+    // Owning the party hat (100 of the bundle's 1,800 coins of looks) makes it cheaper.
+    expect((await post('/api/shop/unlock', { item: 'hat:party' }, cookie)).status).toBe(200);
+    const sweet = BUNDLES.find((b) => b.id === 'bundle:sweet')!;
+    const price = bundlePrice(sweet, ['hat:party']);
+    expect(price).toBe(Math.round((1450 * 1700) / 1800));
+    expect((await post('/api/shop/unlock', { item: 'bundle:sweet' }, cookie)).status).toBe(200);
+    const m = await me(cookie);
+    expect(m.wallet.coins).toBe(2400 - 100 - price);
+    expect([...m.owned].sort()).toEqual([...sweet.items].sort());
+    expect((await post('/api/shop/unlock', { item: 'bundle:sweet' }, cookie)).status).toBe(409);
+    expect((await post('/api/shop/unlock', { item: 'bundle:nope' }, cookie)).status).toBe(400);
   });
 
   it('only accepts shop and stats requests from the game itself', async () => {

@@ -8,7 +8,7 @@ import { MAX_TEAMS } from '../sim/world';
 import { loadProfiles, matchNames } from './teams';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
-import { wearHat, wearSkin } from '../account/session';
+import { wearAim, wearFx, wearHat, wearSkin } from '../account/session';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
 
@@ -29,7 +29,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 /** Our team (the first saved team profile), as sent to the server. */
 function myTeam(): LobbyTeam {
   const p = loadProfiles()[0];
-  return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), names: matchNames(p, 0) };
+  return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0) };
 }
 
 /** Remember the room so a dropped connection (or reload) can rejoin our slot. */

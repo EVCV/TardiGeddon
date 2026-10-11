@@ -85,6 +85,8 @@ export interface TeamConfig {
   names?: string[];
   hat?: string;
   skin?: string;
+  aim?: string;
+  fx?: string;
 }
 
 export interface WorldConfig {
@@ -181,7 +183,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? base : (listed ?? 0);
         if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map.
@@ -988,7 +990,7 @@ export function explode(
   events: SimEvent[],
 ): void {
   const rect = carveCircle(s.terrain, x, y, radius);
-  events.push({ t: 'explosion', x, y, r: radius, rect });
+  events.push({ t: 'explosion', x, y, r: radius, rect, team: s.turn.teamIdx });
   const reach = radius + TARDI_R;
   for (const t of s.tardis) {
     if (!t.alive) continue;

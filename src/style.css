@@ -872,6 +872,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .rarity-rare { background: #a5f78c; }
 .rarity-epic { background: #9bcaff; }
 .rarity-legendary { background: var(--accent); }
+.rarity-bundle { background: #ffb6dc; }
+.shop-section { margin: 4px 2px -2px; font-family: var(--title); font-weight: normal; font-size: 20px; }
+/* Bundles: the set's tardi with its aim style and effect beside it. */
+.bundle-art { position: relative; display: flex; align-items: center; justify-content: center; }
+.shop-card-art .bundle-main svg, .shop-stage-art .bundle-main svg { animation: none; }
+.bundle-chip { display: flex; flex-direction: column; }
+.shop-card-art .bundle-chip svg { width: 34px; }
+.shop-stage-art .bundle-chip svg { width: 56px; }
+.shop-card-art .bundle-main svg { width: 76px; }
+.bundle-card .shop-card-top { gap: 4px; align-items: center; }
+.bundle-card .rarity, .bundle-save { white-space: nowrap; }
+.bundle-card .shop-card-foot { flex-wrap: nowrap; align-items: center; justify-content: flex-end; }
+.bundle-card .shop-price { white-space: nowrap; }
+.bundle-save { margin-left: auto; font-size: 11px; font-weight: 900; background: var(--red); color: #fff; border-radius: 999px; padding: 1px 7px; }
+.bundle-was { color: #8a7a80; font-size: 12px; font-weight: 800; margin-right: 6px; }
+.bundle-list { margin: 4px 0 0; padding: 0; list-style: none; font-size: 13px; font-weight: 700; }
+.bundle-list li.owned { color: #3f7d2a; }
+.bundle-deal { font-size: 13px; font-weight: 800; }
 .shop-coins { display: flex; flex-direction: column; gap: 12px; }
 .shop-coins .big-btn { align-self: flex-start; }
 .coin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }

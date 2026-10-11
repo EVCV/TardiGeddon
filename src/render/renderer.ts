@@ -9,6 +9,7 @@ import { TerrainView } from './terrainView';
 import { TardiView, type Mood } from './tardiView';
 import { ObjectView } from './objectView';
 import { PALETTE, hex } from './palette';
+import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
@@ -25,6 +26,10 @@ interface Particle {
   r: number;
   color: number;
   kind: 'flash' | 'smoke' | 'debris' | 'spark' | 'confetti';
+  /** Bits thrown out by explosion effects and aim styles (shop cosmetics). */
+  shape?: 'heart' | 'star' | 'coin' | 'snow' | 'bit';
+  /** Gravity per 60 fps frame. */
+  grav?: number;
 }
 
 interface FloatText {
@@ -150,7 +155,7 @@ export class GameRenderer {
       switch (e.t) {
         case 'explosion':
           this.terrainView.crater(e.x, e.y, e.r, e.rect);
-          this.spawnExplosion(e.x, e.y, e.r);
+          this.spawnExplosion(e.x, e.y, e.r, this.state.teams[e.team]?.fx);
           break;
         case 'shot':
           this.tracers.push({ ...e, life: 0.25 });
@@ -360,8 +365,10 @@ export class GameRenderer {
     this.floats.push({ text, life: 1.6 });
   }
 
-  private spawnExplosion(x: number, y: number, r: number): void {
-    this.particles.push({ x, y, vx: 0, vy: 0, life: 0.25, max: 0.25, r: r * 1.3, color: 0xfff6c2, kind: 'flash' });
+  /** A blast, in the explosion effect `style` (a shop cosmetic; 'classic' by default). */
+  private spawnExplosion(x: number, y: number, r: number, style?: string): void {
+    const st = fxStyle(style);
+    this.particles.push({ x, y, vx: 0, vy: 0, life: 0.25, max: 0.25, r: r * 1.3, color: st.flash, kind: 'flash' });
     const n = Math.round(r / 2);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -369,7 +376,7 @@ export class GameRenderer {
       this.particles.push({
         x: x + Math.cos(a) * r * 0.4, y: y + Math.sin(a) * r * 0.4,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.6,
-        life: 1 + Math.random() * 0.6, max: 1.6, r: 4 + Math.random() * r * 0.25, color: 0x6b5d63, kind: 'smoke',
+        life: 1 + Math.random() * 0.6, max: 1.6, r: 4 + Math.random() * r * 0.25, color: st.smoke[i % st.smoke.length], kind: 'smoke',
       });
     }
     for (let i = 0; i < n; i++) {
@@ -377,8 +384,24 @@ export class GameRenderer {
       const sp = 2 + Math.random() * 4;
       this.particles.push({
         x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 1.2, max: 1.2, r: 1.5 + Math.random() * 1.5, color: PALETTE.soil[2], kind: 'debris',
+        life: 1.2, max: 1.2, r: 1.5 + Math.random() * 1.5, color: st.debris ? st.debris[i % st.debris.length] : PALETTE.soil[2], kind: 'debris',
       });
+    }
+    if (st.extra) {
+      const { kind, colors } = st.extra;
+      const count = Math.round(r / 1.5) + 6;
+      for (let i = 0; i < count; i++) {
+        const a = -Math.PI * (0.1 + Math.random() * 0.8);
+        const sp = 1.5 + Math.random() * 3.5;
+        const life = 1 + Math.random() * 0.8;
+        this.particles.push({
+          x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life, max: life, r: kind === 'snow' ? 1.5 + Math.random() * 1.5 : 3 + Math.random() * 2.5,
+          color: colors[i % colors.length], kind: 'spark',
+          shape: kind === 'confetti' ? 'bit' : kind,
+          grav: kind === 'snow' ? 0.03 : kind === 'star' ? 0.06 : 0.12,
+        });
+      }
     }
     if (r >= 20) this.floatText(r >= 30 ? 'POW!' : 'BIFF!', x, y - r - 10, 0xffd84a);
   }
@@ -522,7 +545,9 @@ export class GameRenderer {
     const canAimNow = active && !active.rope && (!active.airborne || def.kind === 'rope' || def.kind === 'parachute');
     if (active && showAim && s.turn.phase === 'aim' && canAimNow) {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
-      const color = s.teams[active.team].color;
+      const teamColor = s.teams[active.team].color;
+      const style = aimStyle(s.teams[active.team].aim);
+      const color = style.marker === 'team' ? teamColor : style.marker === 'rainbow' ? rainbowAt(this.time * 0.5) : style.marker;
       if (def.girder && s.turn.target) {
         // Ghost girder at the target, rotated by the aim.
         const { dx, dy } = aimVector(active.facing, s.turn.aim);
@@ -540,31 +565,52 @@ export class GameRenderer {
         const { dx, dy } = aimVector(active.facing, s.turn.aim);
         const cx = ap.x + dx * 46;
         const cy = ap.y + dy * 46;
-        ov.circle(cx, cy, 7).stroke({ width: 2.5, color: PALETTE.outline });
-        ov.circle(cx, cy, 7).stroke({ width: 1.5, color });
-        ov.moveTo(cx - 10, cy).lineTo(cx - 4, cy).moveTo(cx + 4, cy).lineTo(cx + 10, cy);
-        ov.moveTo(cx, cy - 10).lineTo(cx, cy - 4).moveTo(cx, cy + 4).lineTo(cx, cy + 10);
-        ov.stroke({ width: 2, color });
+        if (style.laser !== undefined) {
+          ov.moveTo(ap.x + dx * 12, ap.y + dy * 12).lineTo(cx, cy).stroke({ width: 3.5, color: style.laser, alpha: 0.25 });
+          ov.moveTo(ap.x + dx * 12, ap.y + dy * 12).lineTo(cx, cy).stroke({ width: 1.3, color: style.laser, alpha: 0.9 });
+        }
+        this.drawMarker(ov, cx, cy, 7, color, style);
         if (s.turn.charging) {
-          // Power wedge: grows and reddens with charge.
+          // Power wedge: grows with charge, in the aim style's colours.
           const f = s.turn.power / 1000;
           const len = 14 + f * 60;
           const nx = -dy;
           const ny = dx;
           const w = 2 + f * 9;
-          const col = lerpColor(0xffe14a, 0xe5332a, f);
+          const N = 8;
+          for (let i = 0; i < N; i++) {
+            const t0 = i / N;
+            const t1 = (i + 1) / N;
+            const l0 = 12 + (len - 12) * t0;
+            const l1 = 12 + (len - 12) * t1;
+            const w0 = w * t0;
+            const w1 = w * t1;
+            ov.poly([
+              ap.x + dx * l0 + nx * w0, ap.y + dy * l0 + ny * w0,
+              ap.x + dx * l1 + nx * w1, ap.y + dy * l1 + ny * w1,
+              ap.x + dx * l1 - nx * w1, ap.y + dy * l1 - ny * w1,
+              ap.x + dx * l0 - nx * w0, ap.y + dy * l0 - ny * w0,
+            ]).fill({ color: barColor(style, f, (i + 0.5) / N, i, this.time), alpha: 0.92 });
+          }
           ov.poly([
             ap.x + dx * 12, ap.y + dy * 12,
             ap.x + dx * len + nx * w, ap.y + dy * len + ny * w,
             ap.x + dx * len - nx * w, ap.y + dy * len - ny * w,
-          ]).fill({ color: col, alpha: 0.9 }).stroke({ width: 1.5, color: PALETTE.outline });
+          ]).stroke({ width: 1.5, color: PALETTE.outline });
+          if (style.tail && Math.random() < dt * 40) {
+            // Comet: sparks streaming back off the tip.
+            this.particles.push({
+              x: ap.x + dx * len, y: ap.y + dy * len, vx: -dx * (1 + Math.random()) + (Math.random() - 0.5), vy: -dy * (1 + Math.random()) + (Math.random() - 0.5),
+              life: 0.45, max: 0.45, r: 2 + Math.random() * 2, color: Math.random() < 0.5 ? 0xffffff : 0x7fd3f7, kind: 'spark', shape: 'star',
+            });
+          }
         }
+        this.sparkleAround(cx, cy, 14, style, dt);
       }
       if (s.turn.target && !def.girder) {
         const { x, y } = s.turn.target;
-        ov.circle(x, y, 12).stroke({ width: 3, color: PALETTE.outline });
-        ov.circle(x, y, 12).stroke({ width: 2, color });
-        ov.moveTo(x - 16, y).lineTo(x + 16, y).moveTo(x, y - 16).lineTo(x, y + 16).stroke({ width: 2, color });
+        this.drawMarker(ov, x, y, 12, color, style);
+        this.sparkleAround(x, y, 20, style, dt);
       }
       // Bouncing arrow over the active tardi during its turn
     }
@@ -578,6 +624,33 @@ export class GameRenderer {
     this.updateFx(dt);
     this.drawWater(s);
     this.updateCamera(s, dt, alpha);
+  }
+
+  /** The aim marker: a ring and cross hairs, or the style's heart / star, with an optional glow. */
+  private drawMarker(ov: Graphics, x: number, y: number, r: number, color: number, style: AimStyle): void {
+    if (style.glow !== undefined) ov.circle(x, y, r * 1.9).fill({ color: style.glow, alpha: 0.18 + 0.1 * Math.sin(this.time * 6) });
+    if (style.shape) {
+      drawBit(ov, style.shape, x, y, r * 1.1, color, 1, this.time);
+      return;
+    }
+    const arm = r * (16 / 12);
+    const gap = r * (4 / 7);
+    ov.circle(x, y, r).stroke({ width: r > 9 ? 3 : 2.5, color: PALETTE.outline });
+    ov.circle(x, y, r).stroke({ width: r > 9 ? 2 : 1.5, color });
+    ov.moveTo(x - arm, y).lineTo(x - gap, y).moveTo(x + gap, y).lineTo(x + arm, y);
+    ov.moveTo(x, y - arm).lineTo(x, y - gap).moveTo(x, y + gap).lineTo(x, y + arm);
+    ov.stroke({ width: 2, color });
+  }
+
+  /** Sparkler / golden aim: a few sparkles fizzing round the marker. */
+  private sparkleAround(x: number, y: number, spread: number, style: AimStyle, dt: number): void {
+    if (!style.sparkle || Math.random() > dt * 25) return;
+    const a = Math.random() * Math.PI * 2;
+    const d = spread * (0.5 + Math.random() * 0.6);
+    this.particles.push({
+      x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, vx: Math.cos(a) * 0.3, vy: Math.sin(a) * 0.3 - 0.2,
+      life: 0.5, max: 0.5, r: 1.8 + Math.random() * 1.8, color: style.sparkle[Math.floor(Math.random() * style.sparkle.length)], kind: 'spark', shape: 'star',
+    });
   }
 
   private updateFx(dt: number): void {
@@ -597,6 +670,7 @@ export class GameRenderer {
       p.x += p.vx * f;
       p.y += p.vy * f;
       if (p.kind === 'debris') p.vy += 0.25 * f;
+      if (p.grav) p.vy += p.grav * f;
       if (p.kind === 'confetti') p.vx = Math.sin(this.time * 4 + p.r * 7) * 0.8;
       if (p.kind === 'smoke') {
         p.vy -= 0.01 * f;
@@ -607,6 +681,8 @@ export class GameRenderer {
         g.circle(p.x, p.y, p.r * (0.8 - k * 0.3)).fill({ color: p.color, alpha: k });
       } else if (p.kind === 'smoke') {
         g.circle(p.x, p.y, p.r * (1.6 - k * 0.6)).fill({ color: p.color, alpha: k * 0.55 });
+      } else if (p.shape) {
+        drawBit(g, p.shape, p.x, p.y, p.r, p.color, Math.min(1, k * 2), this.time + p.r);
       } else if (p.kind === 'confetti') {
         const w = 5 * Math.abs(Math.sin(this.time * 6 + p.r * 11));
         g.rect(p.x - w / 2, p.y - 2, w + 0.5, 4).fill({ color: p.color, alpha: Math.min(1, k * 3) });
@@ -708,6 +784,44 @@ export class GameRenderer {
 function clamp(v: number, lo: number, hi: number, fallback: number): number {
   if (lo > hi) return fallback;
   return Math.max(lo, Math.min(hi, v));
+}
+
+/** Colour of one slice of the power bar: `f` is the charge, `t` how far along the bar. */
+function barColor(style: AimStyle, f: number, t: number, i: number, time: number): number {
+  const bar = style.bar;
+  if (bar === 'heat') return lerpColor(0xffe14a, 0xe5332a, f * t);
+  if (bar === 'rainbow') return rainbowAt(t * 0.85 - time * 0.4);
+  if (bar === 'stripes') return i % 2 === 0 ? 0xe04848 : 0xffffff;
+  return mixColor(bar[0], bar[1], f * t);
+}
+
+/** A little shape thrown out by effects: a heart, a star, a coin, a snowflake or a scrap of confetti. */
+function drawBit(g: Graphics, shape: 'heart' | 'star' | 'coin' | 'snow' | 'bit', x: number, y: number, r: number, color: number, alpha: number, spin: number): void {
+  const O = PALETTE.outline;
+  if (shape === 'heart') {
+    g.moveTo(x, y + r)
+      .bezierCurveTo(x - r * 1.6, y - r * 0.2, x - r * 0.7, y - r * 1.4, x, y - r * 0.45)
+      .bezierCurveTo(x + r * 0.7, y - r * 1.4, x + r * 1.6, y - r * 0.2, x, y + r)
+      .closePath()
+      .fill({ color, alpha })
+      .stroke({ width: 1.2, color: O, alpha });
+  } else if (shape === 'star') {
+    const pts: number[] = [];
+    for (let i = 0; i < 10; i++) {
+      const a = spin * 2 + (i * Math.PI) / 5 - Math.PI / 2;
+      const rr = i % 2 === 0 ? r : r * 0.45;
+      pts.push(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    g.poly(pts).fill({ color, alpha }).stroke({ width: 1, color: O, alpha: alpha * 0.8 });
+  } else if (shape === 'coin') {
+    const w = r * Math.max(0.2, Math.abs(Math.cos(spin * 5)));
+    g.ellipse(x, y, w, r).fill({ color, alpha }).stroke({ width: 1.2, color: O, alpha });
+  } else if (shape === 'snow') {
+    g.circle(x, y, r).fill({ color, alpha });
+  } else {
+    const w = r * 1.4 * Math.abs(Math.sin(spin * 6));
+    g.rect(x - w / 2, y - r * 0.6, w + 0.5, r * 1.2).fill({ color, alpha });
+  }
 }
 
 function lerpColor(a: number, b: number, f: number): number {
