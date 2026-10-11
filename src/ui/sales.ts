@@ -149,13 +149,17 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   const people = el('div', 'stats-grid sales-people');
   people.append(
     statTile(formatNumber(r.players.total), 'Players (all time)'),
-    statTile(formatNumber(r.players.joined), r.days ? 'New players' : 'Signed up'),
+    statTile(formatNumber(r.players.joined), r.days || r.resetAt ? 'New players' : 'Signed up'),
     statTile(formatNumber(r.players.buyers), 'Paying players'),
     statTile(
       r.players.buyers && currencies.length === 1 ? money(Math.round(currencies[0][1].amount / r.players.buyers), currencies[0][0]) : '–',
       'Average per paying player',
     ),
   );
+  if (r.resetAt) {
+    const when = new Date(r.resetAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    big.append(el('p', 'account-note', `Counting from ${when}, when the figures were last started from zero.`));
+  }
   big.append(tiles, people, el('p', 'account-note', "Money is what players paid in this period, VAT included, before refunds. Refunds count on the day they happened. Stripe's dashboard shows what reaches your bank after VAT and fees."));
   page.append(big);
 

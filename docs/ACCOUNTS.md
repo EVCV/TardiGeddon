@@ -294,18 +294,22 @@ signing up with your address. Anyone else asking for the figures gets "not
 found". Stripe's dashboard remains the record of what reaches your bank after
 VAT and fees.
 
-**Starting the figures from zero** (e.g. after testing) keeps players'
-accounts, items, coins and Slime. In Neon's **SQL Editor**:
+**Starting the figures from zero** (e.g. after testing): in Neon's **SQL
+Editor** run
 
 ```sql
-DELETE FROM purchase;
-DELETE FROM spend;
+INSERT INTO done_once (name) VALUES ('sales_reset')
+  ON CONFLICT (name) DO UPDATE SET at = now();
 ```
 
-Do this only while every purchase is a test. A real purchase's record is
-what lets a later refund take its coins back. The log isn't refilled
-afterwards: the one-time fill from older unlocks is recorded in `done_once`.
-"Most owned" counts the items players own, so it keeps any test unlocks.
+From then on the page counts only sales, refunds, spends, new players and
+paying players after that moment, and says so at the top. Nothing is deleted:
+- Each purchase's record is what lets a later refund take its coins back.
+- It also stops Stripe re-sending an old payment from crediting it twice.
+- Accounts, items, coins and Slime are untouched.
+
+"Players (all time)" still counts every account. "Most owned" still counts
+what players own now. Run it again any time to move the start to now.
 
 ### Optional: Google and Apple sign-in
 
