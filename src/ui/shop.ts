@@ -84,7 +84,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
     side.append(cta);
   }
   side.append(el('p', 'shop-fair', '✅ Fair play: coins only buy looks. Weapons are unlocked with Slime, which you earn by playing.'));
-  if (me.shop && me.user) {
+  if (me.shop && me.user && me.receipts !== false) {
     const manage = el('button', 'hud-btn shop-manage', '🧾 Purchases & receipts');
     manage.disabled = ctx.busy;
     manage.onclick = () => ctx.run(managePurchases);

@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 10 October 2026
-**Document Version:** v1.4
+**Last Modified:** 11 October 2026
+**Document Version:** v1.5
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -140,9 +140,9 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. For coin packs costing £20 or more, we also ask you to confirm, before you pay, that you are 18 or over or that a parent or guardian has agreed to the purchase.
 
-5.1.2 Coin packs are priced in pounds sterling, including VAT. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or time-limited offers to pressure you into buying. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page; your bank or card issuer may charge fees for payments in a foreign currency.
+5.1.2 Coin packs are priced in pounds sterling, including VAT or any similar sales tax for your country. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or time-limited offers to pressure you into buying. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page, which may also show you the price in your own currency; your bank or card issuer may charge fees for payments in a foreign currency.
 
-5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for the coin pack. Stripe sends a receipt to your account's email address, and you can see your purchases and download receipts at any time through the shop's "Manage purchases & receipts" button.
+5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for the coin pack. Payments are processed by Stripe, which acts as the merchant of record for the payment: it takes the payment, under any terms it shows on its payment page; works out, collects and pays the VAT or sales tax that applies to your purchase; sends a receipt to the email address you give on its payment page; and can help with questions about the payment itself. Nothing in this Section affects your legal rights.
 
 5.1.4 Your coins are added to your account straight away, normally within a few seconds of payment. If they have not appeared within an hour, please contact support@tardigeddon.com.
 

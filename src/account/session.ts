@@ -16,6 +16,8 @@ export interface MeResponse {
   stats: PlayerStats;
   /** Whether coins can be bought (Stripe is set up). */
   shop: boolean;
+  /** Whether "Purchases & receipts" (Stripe's customer portal) is offered. */
+  receipts?: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
   /** Whether the server can send email (password reset, confirming your email). */

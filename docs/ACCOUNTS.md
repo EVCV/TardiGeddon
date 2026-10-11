@@ -79,20 +79,23 @@ Their promises are also code rules, so keep them true:
 
 Still to decide or set up (owner):
 
-- **VAT outside the UK.** Selling digital items to consumers in the EU means
-  charging VAT at the buyer's country's rate from the first sale (registering
-  for the EU's non-Union OSS scheme), and some other countries have similar
-  rules. Options: Stripe Tax, or selling only to UK buyers at first. Ask your
-  accountant.
-- **Stripe Managed Payments** (Stripe as merchant of record, handling VAT
-  worldwide) is off by default. To use it, check in Stripe that it accepts
-  in-game currency (coin packs) and which tax code applies, then set
-  `STRIPE_MANAGED_PAYMENTS=on` and `STRIPE_TAX_CODE=txcd_…`. Update the
-  Terms (Stripe becomes the seller) before switching it on.
+- **VAT: decided.** We use **Stripe Managed Payments**: Stripe is the
+  merchant of record for the payment and works out, collects and pays VAT
+  and sales tax in the countries it supports (80+), for an extra fee per
+  sale. EVCV stays the seller of the coins (Terms 5.1.3). Before going live,
+  check in Stripe what happens to buyers in countries it doesn't cover
+  (whether their checkouts are refused or fall back to a normal payment that
+  leaves the tax with us), and confirm the plan with the accountant. Switched on with
+  `STRIPE_MANAGED_PAYMENTS=on`; the Terms (5.1.3) and Privacy Policy (4.0.4)
+  are written for it. With it on, the server marks prices VAT-inclusive (so
+  players pay exactly the shop price), sends tax code `txcd_10201000`
+  (video games, downloaded, permanent rights; override with
+  `STRIPE_TAX_CODE`), creates no invoices (Stripe sends its own receipts) and
+  hides "Purchases & receipts". If it's ever switched off, update Terms
+  5.1.3 and Privacy Policy 2.3.2 and 4.0.4 first (Stripe is then only our
+  payment processor, and the tax is ours to handle).
 - **Receipts:** turn on Stripe → Settings → Customer emails → Successful
   payments. The Terms promise a receipt by email.
-- **Password reset** isn't built yet (it needs an email-sending service).
-  Until then players who forget their password must email support.
 
 ## Going live: step by step
 
@@ -190,12 +193,11 @@ the test card.
 
 1. Activate the Stripe account (business details for EVCV Limited, bank
    account for payouts) and do step 3 again in **live mode**.
-2. Decide how to handle VAT outside the UK (see "Still to decide" above).
-   To let Stripe Tax work it out, set it up in Stripe (Settings → Tax), then
-   add `STRIPE_AUTOMATIC_TAX=on` to the command below. Prices stay
-   VAT-inclusive either way.
-3. Switch the server to live keys:
-   `fly secrets set STRIPE_SECRET_KEY='sk_live_…' STRIPE_WEBHOOK_SECRET='whsec_…'`
+2. Turn on **Managed Payments** in live mode (Stripe dashboard; Stripe
+   checks the account is eligible). The customer portal and invoice settings
+   from step 3 aren't used with it.
+3. Switch the server to live keys and Managed Payments:
+   `fly secrets set STRIPE_SECRET_KEY='sk_live_…' STRIPE_WEBHOOK_SECRET='whsec_…' STRIPE_MANAGED_PAYMENTS=on`
    (the live webhook's own secret).
 4. Remove the coins from sandbox payments, and what was unlocked with them
    (Slime and Slime unlocks stay: they were earned by playing). In the Neon
