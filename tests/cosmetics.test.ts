@@ -4,7 +4,8 @@ import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
 import { cleanTeam, wearableTeam } from '../server/room';
-import { createWorld } from '../src/sim/world';
+import { createWorld, explode } from '../src/sim/world';
+import type { SimEvent } from '../src/sim/types';
 
 describe('shop catalogue', () => {
   it('has unique ids, and everything it sells exists in the game', () => {
@@ -70,5 +71,17 @@ describe('aim styles and effects online', () => {
     const w = createWorld({ seed: 1, teams: [{ name: 'A', color: 0xff0000, cpu: false, aim: 'laser', fx: 'hearts' }, { name: 'B', color: 0x00ff00, cpu: true }] });
     expect(w.teams[0]).toMatchObject({ aim: 'laser', fx: 'hearts' });
     expect(w.teams[1]).toMatchObject({ aim: 'classic', fx: 'classic' });
+  });
+});
+
+describe('explosion effects', () => {
+  it('remember whose turn it was, so catch-up replays use the right effect', () => {
+    const w = createWorld({ seed: 1, teams: [{ name: 'A', color: 0xff0000, cpu: false, fx: 'gold' }, { name: 'B', color: 0x00ff00, cpu: true }] });
+    const ev: SimEvent[] = [];
+    w.turn.teamIdx = 1;
+    explode(w, 500, 300, 20, 0, ev);
+    w.turn.teamIdx = 0;
+    explode(w, 600, 300, 20, 0, ev);
+    expect(ev.map((e) => (e.t === 'explosion' ? e.team : -1))).toEqual([1, 0]);
   });
 });

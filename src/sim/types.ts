@@ -237,7 +237,7 @@ export interface WorldState {
 }
 
 export type SimEvent =
-  | { t: 'explosion'; x: number; y: number; r: number; rect: Rect }
+  | { t: 'explosion'; x: number; y: number; r: number; rect: Rect; /** Whose turn it was: picks the explosion effect. */ team: number }
   | { t: 'fire'; weapon: string; x: number; y: number }
   | { t: 'shot'; x0: number; y0: number; x1: number; y1: number }
   | { t: 'splash'; x: number }

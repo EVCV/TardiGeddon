@@ -990,7 +990,7 @@ export function explode(
   events: SimEvent[],
 ): void {
   const rect = carveCircle(s.terrain, x, y, radius);
-  events.push({ t: 'explosion', x, y, r: radius, rect });
+  events.push({ t: 'explosion', x, y, r: radius, rect, team: s.turn.teamIdx });
   const reach = radius + TARDI_R;
   for (const t of s.tardis) {
     if (!t.alive) continue;

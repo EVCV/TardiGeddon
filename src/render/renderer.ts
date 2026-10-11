@@ -155,7 +155,7 @@ export class GameRenderer {
       switch (e.t) {
         case 'explosion':
           this.terrainView.crater(e.x, e.y, e.r, e.rect);
-          this.spawnExplosion(e.x, e.y, e.r, this.state.teams[this.state.turn.teamIdx]?.fx);
+          this.spawnExplosion(e.x, e.y, e.r, this.state.teams[e.team]?.fx);
           break;
         case 'shot':
           this.tracers.push({ ...e, life: 0.25 });
