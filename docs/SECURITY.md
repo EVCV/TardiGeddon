@@ -18,6 +18,11 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   JSON (`fromGame` in `server/accounts.ts`), so another website can't spend a
   player's coins.
 - Logs never contain emails, passwords, tokens or IP addresses.
+- Password reset links work once, for an hour, and sign the account out
+  everywhere. "Forgot password?" gives the same answer whether or not an
+  account exists, and is limited to 3 requests a minute per address.
+  Player names are escaped in emails, and the server only sends over an
+  encrypted connection.
 - Deleting an account deletes its data; purchase records are kept for the
   accounts without the link to the person.
 
@@ -82,10 +87,10 @@ game's code. Please:
 
 ## Still to do
 
-- **Password reset and email verification** need an email-sending service
-  (e.g. Resend or Postmark). Without them a player who forgets their password
-  loses their account, and anyone can sign up with someone else's email.
-  Highest priority before a public launch.
+- **Turn on password reset and email confirmation:** the code is in
+  (`server/mail.ts`); it needs SMTP secrets and the SPF/DKIM DNS records
+  (docs/ACCOUNTS.md, step 7). Until then a player who forgets their password
+  loses their account. Highest priority.
 - **Stripe customer records** stay at Stripe when an account is deleted.
   Decide (with your accountant) whether to delete or redact them; Stripe
   keeps payment records for its own legal reasons either way.

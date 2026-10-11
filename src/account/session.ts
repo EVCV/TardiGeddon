@@ -8,7 +8,7 @@ import { canUse, unlockedWeapons } from '../shop/catalog';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
-  user: { id: string; name: string; email: string; createdAt: string } | null;
+  user: { id: string; name: string; email: string; emailVerified?: boolean; createdAt: string } | null;
   owned: string[];
   /** Coins (bought) and Slime (earned). */
   wallet: { coins: number; slime: number };
@@ -18,6 +18,8 @@ export interface MeResponse {
   shop: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
+  /** Whether the server can send email (password reset, confirming your email). */
+  mail?: boolean;
   /** Set only on Cloudflare preview builds that can't reach the server (see refreshAccount). */
   preview?: boolean;
 }
@@ -158,6 +160,37 @@ export async function signIn(email: string, password: string): Promise<void> {
 export async function signUp(name: string, email: string, password: string): Promise<void> {
   await call('/api/auth/sign-up/email', { name, email, password });
   await refreshAccount();
+}
+
+/** Email a password reset link (if there's an account for that email; the answer is the same either way). */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await call('/api/auth/request-password-reset', { email });
+}
+
+/** Set a new password with the token from the reset link. Signs out every device. */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  try {
+    await call('/api/auth/reset-password', { token, newPassword });
+  } catch (e) {
+    // Better Auth says "Invalid token" for expired and used links alike.
+    if (e instanceof Error && /token/i.test(e.message)) throw new Error('That reset link has expired or was already used. Ask for a new one below.');
+    throw e;
+  }
+}
+
+/** Confirm the email address with the token from the "confirm your email" link. */
+export async function confirmEmail(token: string): Promise<void> {
+  try {
+    await call(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+  } catch {
+    throw new Error('That confirmation link has expired or was already used. Sign in and ask for a new one on your Account page.');
+  }
+  await refreshAccount();
+}
+
+/** Send the "confirm your email" link again. */
+export async function resendConfirmation(email: string): Promise<void> {
+  await call('/api/auth/send-verification-email', { email });
 }
 
 export async function signOut(): Promise<void> {

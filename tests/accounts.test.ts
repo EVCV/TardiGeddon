@@ -9,6 +9,7 @@ import { createAccounts, type Accounts, type MeResponse } from '../server/accoun
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
 import { migrate } from '../server/store';
+import type { Mail } from '../server/mail';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -41,10 +42,24 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   stripe.customers.create = (async () => ({ id: `cus_test_${++customers}` })) as unknown as typeof stripe.customers.create;
   stripe.billingPortal.sessions.create = (async (p: { customer: string }) => ({ url: `https://billing.stripe.test/${p.customer}` })) as unknown as typeof stripe.billingPortal.sessions.create;
 
+  // No email service in tests: keep what would have been sent.
+  const sent: Mail[] = [];
+  const mailer = async (m: Mail) => void sent.push(m);
+  /** The next email to `to` (they're sent in the background, so wait a moment). */
+  async function mailTo(to: string, subject: RegExp): Promise<Mail> {
+    for (let i = 0; i < 100; i++) {
+      const m = sent.find((x) => x.to === to && subject.test(x.subject));
+      if (m) return m;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    throw new Error(`no email to ${to}`);
+  }
+  const linkToken = (m: Mail, param: string) => new RegExp(`^${GAME.replace(/[.?/]/g, '\\$&')}\\?${param}=(\\S+)$`, 'm').exec(m.text)?.[1] ?? '';
+
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET },
-      { stripe },
+      { stripe, mailer },
     );
     await accounts.db.query('DELETE FROM purchase; DELETE FROM "user";');
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -279,6 +294,50 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     stripe.checkout.sessions.create = real;
     expect(r.status).toBe(502);
     expect(((await r.json()) as { error: string }).error).toContain('business name');
+  });
+
+  it('emails a reset link into the game, which sets a new password and signs out everywhere', async () => {
+    const { cookie } = await signUp('forgetful@example.com');
+    expect((await me(cookie)).mail).toBe(true);
+    sent.length = 0;
+
+    // The same answer for an unknown email, and nothing is sent.
+    expect((await post('/api/auth/request-password-reset', { email: 'nobody@example.com' })).status).toBe(200);
+    expect((await post('/api/auth/request-password-reset', { email: 'forgetful@example.com' })).status).toBe(200);
+    const mail = await mailTo('forgetful@example.com', /reset/i);
+    expect(sent.some((m) => m.to === 'nobody@example.com')).toBe(false);
+    const token = linkToken(mail, 'reset');
+    expect(token).toMatch(/^\w{20,}$/);
+    expect(mail.html).toContain(`${GAME}?reset=${token}`);
+
+    expect((await post('/api/auth/reset-password', { token, newPassword: 'short' })).status).toBe(400);
+    expect((await post('/api/auth/reset-password', { token, newPassword: 'brand new password' })).status).toBe(200);
+    // Used once only; the old sign-in is gone; only the new password works.
+    expect((await post('/api/auth/reset-password', { token, newPassword: 'another password' })).status).toBe(400);
+    expect((await me(cookie)).user).toBeNull();
+    expect((await post('/api/auth/sign-in/email', { email: 'forgetful@example.com', password: 'correct horse' })).status).toBe(401);
+    expect((await post('/api/auth/sign-in/email', { email: 'forgetful@example.com', password: 'brand new password' })).status).toBe(200);
+  });
+
+  it('confirms a new email address from the link in the welcome email', async () => {
+    sent.length = 0;
+    const { cookie } = await signUp('new@example.com');
+    expect((await me(cookie)).user!.emailVerified).toBe(false);
+    const token = linkToken(await mailTo('new@example.com', /confirm/i), 'verify');
+    expect(token.length).toBeGreaterThan(20);
+    expect((await fetch(`${base}/api/auth/verify-email?token=${encodeURIComponent(token + 'x')}`, { headers: { cookie } })).status).toBeGreaterThanOrEqual(400);
+    const r = await fetch(`${base}/api/auth/verify-email?token=${encodeURIComponent(token)}`, { headers: { cookie } });
+    expect(r.status).toBe(200);
+    expect((await me(cookie)).user!.emailVerified).toBe(true);
+  });
+
+  it("puts a player's name into emails as text, never as HTML", async () => {
+    sent.length = 0;
+    const r = await post('/api/auth/sign-up/email', { email: 'html@example.com', password: 'correct horse', name: '<img src=x onerror=alert(1)>' });
+    expect(r.status).toBe(200);
+    const mail = await mailTo('html@example.com', /confirm/i);
+    expect(mail.html).not.toContain('<img');
+    expect(mail.html).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
   it('deleting an account removes what it owned', async () => {

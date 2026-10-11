@@ -28,6 +28,8 @@ export interface HubContext {
 
 export interface Hub {
   go: (tab: HubTab, notice?: string) => void;
+  /** Open the Account page at "choose a new password", for the token from a reset email. */
+  resetPassword: (token: string) => void;
 }
 
 const TABS: [HubTab, string, string][] = [
@@ -152,8 +154,8 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   const render = () => {
     if (!shell.isConnected) return off();
     const { me, loaded } = account();
-    // The tab may have gone (accounts off, or a failed load).
-    if (!me && tab !== 'lobby') tab = 'lobby';
+    // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
+    if (loaded && !me && tab !== 'lobby') tab = 'lobby';
     shell.dataset.tab = tab;
     renderBar();
 
@@ -188,7 +190,14 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
 
   const off = onAccountChange(render);
   render();
-  return { go };
+  return {
+    go,
+    resetPassword: (token) => {
+      signInState.mode = 'reset';
+      signInState.token = token;
+      go('account');
+    },
+  };
 }
 
 declare const __APP_VERSION__: string;
