@@ -3,7 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { confirmEmail, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearFx, wearHat, wearSkin } from './account/session';
+import { confirmEmail, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
@@ -12,6 +12,7 @@ import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
 import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
+import { arenaTheme } from './render/arenas';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard } from './input/input';
@@ -186,7 +187,7 @@ class Match {
       this.listenNet();
     }
 
-    this.renderer = new GameRenderer(app, this.state);
+    this.renderer = new GameRenderer(app, this.state, arenaTheme(wearArena()));
     this.renderer.onSound = (name) => sfx[name]();
     this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => this.toggleMute() }, touchMode);
     ui.append(this.hud.root);
@@ -219,7 +220,7 @@ class Match {
           this.resyncAsked = false;
           // The world was replaced wholesale: redraw it from scratch.
           this.renderer.destroy();
-          this.renderer = new GameRenderer(this.app, this.state);
+          this.renderer = new GameRenderer(this.app, this.state, arenaTheme(wearArena()));
           this.renderer.onSound = (name) => sfx[name]();
           break;
         case 'room': this.lastRoom = msg; break;
@@ -347,6 +348,7 @@ class Match {
         case 'mineArmed': sfx.tick(); break;
         case 'crateDrop': sfx.chute(); break;
         case 'collect': sfx.collect(); break;
+        case 'heal': sfx.collect(); break;
         case 'dud': sfx.bounce(); break;
         case 'suddenDeath':
           sfx.suddenDeath();

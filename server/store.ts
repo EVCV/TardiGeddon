@@ -6,8 +6,9 @@
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
-import { SHOP_ITEMS, bundle, bundlePrice, coinPack, packTotal, shopItem } from '../src/shop/catalog';
-import type { SalesReport } from '../src/account/session';
+import { createHash, randomInt } from 'node:crypto';
+import { GIFTS_PER_DAY, GIFT_ALPHABET, GIFT_MESSAGES, SHOP_ITEMS, bundle, bundlePrice, coinPack, giftable, normaliseGiftCode, packTotal, shopItem } from '../src/shop/catalog';
+import type { GiftSent, SalesReport } from '../src/account/session';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -67,6 +68,23 @@ export async function migrate(db: Pool): Promise<void> {
       at       timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS spend_at ON spend (at);
+    -- Gifts: bought with the sender's coins, claimed once with a code. Only a
+    -- hash of the code is kept, so the table alone can't be used to claim them.
+    CREATE TABLE IF NOT EXISTS gift (
+      id           bigserial PRIMARY KEY,
+      code_hash    text NOT NULL UNIQUE,
+      hint         text NOT NULL,
+      item         text NOT NULL,
+      coins        integer NOT NULL,
+      message      text NOT NULL DEFAULT 'none',
+      from_user    text REFERENCES "user"(id) ON DELETE SET NULL,
+      to_user      text REFERENCES "user"(id) ON DELETE SET NULL,
+      spend_id     bigint,
+      created_at   timestamptz NOT NULL DEFAULT now(),
+      redeemed_at  timestamptz,
+      cancelled_at timestamptz
+    );
+    CREATE INDEX IF NOT EXISTS gift_from ON gift (from_user, created_at);
     -- One-off data jobs that have run, so they never run twice.
     CREATE TABLE IF NOT EXISTS done_once (
       name text PRIMARY KEY,
@@ -491,4 +509,138 @@ export async function salesReport(db: Pool, days: number): Promise<SalesReport> 
     spends: spends.rows.map((r) => ({ item: r.item, currency: r.currency, buys: n(r.buys), amount: n(r.amount) })),
     owners: owners.rows.map((r) => ({ item: r.item, owners: n(r.owners) })),
   };
+}
+
+// ---------------------------------------------------------------- gifts
+
+const hashCode = (code: string) => createHash('sha256').update(normaliseGiftCode(code)).digest('hex');
+
+/** A new gift code: 12 letters and digits in three groups, about 59 bits of chance. */
+export function newGiftCode(): string {
+  let c = '';
+  for (let i = 0; i < 12; i++) c += GIFT_ALPHABET[randomInt(GIFT_ALPHABET.length)];
+  return `${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8)}`;
+}
+
+export type GiftBuyResult = { ok: true; code: string } | { ok: false; why: 'unknown' | 'poor' | 'limit' };
+
+/** Spend the sender's coins on a gift, all or nothing, and return its code (shown to them once). */
+export async function buyGift(db: Pool, userId: string, itemId: string, message: string): Promise<GiftBuyResult> {
+  const g = giftable(itemId);
+  if (!g) return { ok: false, why: 'unknown' };
+  const msg = Object.prototype.hasOwnProperty.call(GIFT_MESSAGES, message) ? message : 'none';
+  const code = newGiftCode();
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    // Lock the wallet so two gifts at once can't both pass the daily limit.
+    await c.query('SELECT 1 FROM wallet WHERE user_id = $1 FOR UPDATE', [userId]);
+    const today = await c.query<{ n: string }>(`SELECT count(*) AS n FROM gift WHERE from_user = $1 AND created_at > now() - interval '24 hours'`, [userId]);
+    if (Number(today.rows[0].n) >= GIFTS_PER_DAY) {
+      await c.query('ROLLBACK');
+      return { ok: false, why: 'limit' };
+    }
+    const paid = await c.query('UPDATE wallet SET coins = coins - $2::int WHERE user_id = $1 AND coins >= $2::int', [userId, g.coins]);
+    if (paid.rowCount !== 1) {
+      await c.query('ROLLBACK');
+      return { ok: false, why: 'poor' };
+    }
+    const spend = await c.query<{ id: string }>(`INSERT INTO spend (item, currency, amount) VALUES ($1, 'coins', $2) RETURNING id`, [itemId, g.coins]);
+    await c.query(
+      `INSERT INTO gift (code_hash, hint, item, coins, message, from_user, spend_id) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [hashCode(code), code.slice(-4), itemId, g.coins, msg, userId, spend.rows[0].id],
+    );
+    await c.query('COMMIT');
+    return { ok: true, code };
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+export type GiftRedeemResult =
+  | { ok: true; item: string; items: string[]; from: string | null; message: string }
+  | { ok: false; why: 'unknown' | 'used' | 'own' | 'owned' };
+
+/** Claim a gift with its code: its items go to this player, once. */
+export async function redeemGift(db: Pool, userId: string, code: string): Promise<GiftRedeemResult> {
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    const r = await c.query<{ id: string; item: string; message: string; from_user: string | null; redeemed_at: Date | null; cancelled_at: Date | null; from_name: string | null }>(
+      `SELECT g.id, g.item, g.message, g.from_user, g.redeemed_at, g.cancelled_at, u.name AS from_name
+       FROM gift g LEFT JOIN "user" u ON u.id = g.from_user
+       WHERE g.code_hash = $1 FOR UPDATE OF g`,
+      [hashCode(code)],
+    );
+    const gift = r.rows[0];
+    const fail = async (why: 'unknown' | 'used' | 'own' | 'owned'): Promise<GiftRedeemResult> => {
+      await c.query('ROLLBACK');
+      return { ok: false, why };
+    };
+    if (!gift || gift.cancelled_at) return fail('unknown');
+    if (gift.redeemed_at) return fail('used');
+    if (gift.from_user === userId) return fail('own');
+    const items = giftable(gift.item)?.items ?? [];
+    const have = await c.query<{ item: string }>('SELECT item FROM inventory WHERE user_id = $1 AND item = ANY($2::text[])', [userId, items]);
+    const missing = items.filter((i) => !have.rows.some((h) => h.item === i));
+    // Already has it all: the code stays unused, so it can go to someone else.
+    if (!missing.length) return fail('owned');
+    for (const i of missing) await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, 'gift')`, [userId, i]);
+    await c.query('UPDATE gift SET to_user = $2, redeemed_at = now() WHERE id = $1', [gift.id, userId]);
+    await c.query('COMMIT');
+    return { ok: true, item: gift.item, items: missing, from: gift.from_name, message: GIFT_MESSAGES[gift.message] ?? '' };
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+/** Take back a gift nobody has claimed yet: the coins go back to the sender. */
+export async function cancelGift(db: Pool, userId: string, giftId: number): Promise<boolean> {
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    const r = await c.query<{ coins: number; spend_id: string | null }>(
+      `UPDATE gift SET cancelled_at = now()
+       WHERE id = $1 AND from_user = $2 AND redeemed_at IS NULL AND cancelled_at IS NULL
+       RETURNING coins, spend_id`,
+      [giftId, userId],
+    );
+    const g = r.rows[0];
+    if (!g) {
+      await c.query('ROLLBACK');
+      return false;
+    }
+    await credit(c, userId, g.coins, 0);
+    // Not a sale after all.
+    if (g.spend_id) await c.query('DELETE FROM spend WHERE id = $1', [g.spend_id]);
+    await c.query('COMMIT');
+    return true;
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+/** Gifts this player has sent (never who claimed them). */
+export async function giftsSent(db: Pool, userId: string): Promise<GiftSent[]> {
+  const r = await db.query<{ id: string; item: string; hint: string; message: string; created_at: Date; redeemed_at: Date | null; cancelled_at: Date | null }>(
+    `SELECT id, item, hint, message, created_at, redeemed_at, cancelled_at FROM gift WHERE from_user = $1 ORDER BY created_at DESC LIMIT 50`,
+    [userId],
+  );
+  return r.rows.map((g) => ({
+    id: Number(g.id),
+    item: g.item,
+    hint: g.hint,
+    message: g.message,
+    createdAt: g.created_at.toISOString(),
+    status: g.cancelled_at ? 'cancelled' : g.redeemed_at ? 'claimed' : 'waiting',
+  }));
 }

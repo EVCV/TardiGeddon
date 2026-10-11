@@ -11,7 +11,8 @@ free without an account.
 - **Database:** Postgres on **Neon**. The game server creates its tables on
   start-up: Better Auth's `user`, `session`, `account` and `verification`,
   plus `inventory` (who owns what), `wallet` (coins and Slime),
-  `player_stats`, `stripe_customer` and `purchase` (every payment).
+  `player_stats`, `stripe_customer`, `purchase` (every payment), `gift`,
+  `spend` (the Sales page's log, not linked to players) and `done_once`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -35,6 +36,19 @@ free without an account.
   day (`server/store.ts`).
 - **Unlocking:** `POST /api/shop/unlock` spends coins or Slime and adds the
   item to the `inventory`, all or nothing.
+- **Gifts** (Terms 5.8): `POST /api/gift/buy` spends the sender's coins on a
+  look or bundle (never weapons or coins) and returns a one-use code like
+  `ABCD-EFGH-JKMN`, shown once; only its SHA-256 hash and last 4 characters
+  are stored. The sender needs a confirmed email and a day-old account, and
+  may buy 5 gifts per 24 hours. `POST /api/gift/redeem` gives the items to
+  the signed-in player (only what they're missing; if they own it all the
+  code stays unused), at most 10 tries a minute per player.
+  `POST /api/gift/cancel` takes back an unclaimed gift and refunds the coins;
+  `GET /api/gift/sent` lists your gifts. Only preset messages
+  (`GIFT_MESSAGES`), no free text.
+- **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
+  but the choice is per device (`tardigeddon.arena` in local storage), not
+  per team: each player sees their own arena, so nothing changes online.
 - **Season weapons** (`locked: true` in `src/sim/weapons.ts`) are off unless
   the match rules list them in `Scheme.unlocked`. The game sets that from
   the player's unlocks for local matches; online, the server sets it from
@@ -53,7 +67,8 @@ free without an account.
   pages, and no shop hats).
 
 New shop items: add the cosmetic (a hat in `src/render/hats.ts`, a skin in
-`src/render/skins.ts`, or a `locked` weapon in `src/sim/weapons.ts` with a
+`src/render/skins.ts`, an aim style or effect in `src/render/cosmetics.ts`,
+an arena in `src/render/arenas.ts`, or a `locked` weapon in `src/sim/weapons.ts` with a
 sim test), then list it in `SHOP_ITEMS` in `src/shop/catalog.ts` with a price
 in `coins` (looks only) or `slime`. Weapons must be priced in Slime only
 (`tests/season.test.ts` checks). Never rename an item's `id` once sold:

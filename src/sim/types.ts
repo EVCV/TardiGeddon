@@ -243,6 +243,8 @@ export type SimEvent =
   | { t: 'splash'; x: number }
   | { t: 'drown'; id: number }
   | { t: 'damage'; id: number; amount: number }
+  /** Leech Lobber: the shooter got some health back. */
+  | { t: 'heal'; id: number; amount: number }
   | { t: 'death'; id: number }
   | { t: 'jump'; id: number }
   | { t: 'teleport'; id: number; x: number; y: number }

@@ -3,6 +3,7 @@ import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, pack
 import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
+import { ARENAS, arenaTheme } from '../src/render/arenas';
 import { cleanTeam, wearableTeam } from '../server/room';
 import { createWorld, explode } from '../src/sim/world';
 import type { SimEvent } from '../src/sim/types';
@@ -15,13 +16,14 @@ describe('shop catalogue', () => {
       skin: SKINS.map((s) => s.id),
       aim: AIM_STYLES.map((a) => a.id),
       fx: FX_STYLES.map((f) => f.id),
+      arena: ARENAS.map((a) => a.id),
     };
     for (const item of SHOP_ITEMS) {
       expect(item.id).toBe(`${item.kind}:${item.ref}`);
       if (item.kind !== 'weapon') expect(known[item.kind], item.id).toContain(item.ref);
       // Exactly one price; aim styles and effects are coins only.
       expect((item.coins === undefined) !== (item.slime === undefined), item.id).toBe(true);
-      if (item.kind === 'aim' || item.kind === 'fx') expect(item.coins, item.id).toBeGreaterThan(0);
+      if (item.kind === 'aim' || item.kind === 'fx' || item.kind === 'arena') expect(item.coins, item.id).toBeGreaterThan(0);
       // Money never buys weapons.
       if (item.kind === 'weapon') expect(item.coins, item.id).toBeUndefined();
     }
@@ -53,6 +55,18 @@ describe('shop catalogue', () => {
     expect(fxStyle(undefined).id).toBe('classic');
     expect(rainbowAt(0)).toBe(0xe04848);
     expect(rainbowAt(1)).toBe(0xe04848);
+    expect(arenaTheme('nope').id).toBe('classic');
+  });
+
+  it('has a full palette for every arena, and the meadow is free', () => {
+    expect(new Set(ARENAS.map((a) => a.id)).size).toBe(ARENAS.length);
+    expect(SHOP_ITEMS.some((i) => i.id === 'arena:classic')).toBe(false);
+    for (const a of ARENAS) {
+      expect(a.skyTop, a.id).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(a.skyBottom, a.id).toMatch(/^#[0-9a-f]{6}$/i);
+      for (const c of [a.hillFar, a.hillNear, a.water, a.waterLight, ...a.grass, ...a.soil]) expect(c, a.id).toBeLessThanOrEqual(0xffffff);
+      if (a.id !== 'classic') expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
+    }
   });
 });
 

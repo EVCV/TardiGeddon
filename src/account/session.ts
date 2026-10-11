@@ -46,6 +46,17 @@ export interface SalesReport {
   owners: { item: string; owners: number }[];
 }
 
+/** A gift this player has sent (the full code is only shown once, when it's bought). */
+export interface GiftSent {
+  id: number;
+  item: string;
+  /** Last 4 characters of the code. */
+  hint: string;
+  message: string;
+  createdAt: string;
+  status: 'waiting' | 'claimed' | 'cancelled';
+}
+
 export interface PlayerStats {
   onlinePlayed: number;
   onlineWon: number;
@@ -106,6 +117,31 @@ export function ownedItems(): string[] {
   } catch {
     return [];
   }
+}
+
+const ARENA_KEY = 'tardigeddon.arena';
+
+/** The arena theme this player picked (only they see it), whether or not they own it. */
+export function chosenArena(): string {
+  try {
+    return localStorage.getItem(ARENA_KEY) ?? 'classic';
+  } catch {
+    return 'classic';
+  }
+}
+
+export function chooseArena(id: string): void {
+  try {
+    localStorage.setItem(ARENA_KEY, id);
+  } catch {
+    // Private mode: the choice lasts until the page closes.
+  }
+}
+
+/** The arena to actually show: one this device hasn't unlocked falls back to the meadow. */
+export function wearArena(): string {
+  const id = chosenArena();
+  return canUse('arena', id, ownedItems()) ? id : 'classic';
 }
 
 /** The hat to actually wear: a shop hat this device hasn't unlocked falls back to the beanie. */
@@ -248,6 +284,30 @@ export async function unlock(item: string): Promise<void> {
 /** The owner's sales figures for the last `days` days (0 = all time). */
 export function salesReport(days: number): Promise<SalesReport> {
   return call<SalesReport>(`/api/admin/sales?days=${days}`);
+}
+
+/** Spend coins on a gift for someone else; returns its one-use code. */
+export async function buyGift(item: string, message: string): Promise<string> {
+  const r = await call<{ code: string }>('/api/gift/buy', { item, message });
+  await refreshAccount();
+  return r.code;
+}
+
+/** Claim a gift with its code. */
+export async function redeemGift(code: string): Promise<{ item: string; items: string[]; from: string | null; message: string }> {
+  const r = await call<{ item: string; items: string[]; from: string | null; message: string }>('/api/gift/redeem', { code });
+  await refreshAccount();
+  return r;
+}
+
+/** Take back an unclaimed gift (the coins come back). */
+export async function cancelGift(id: number): Promise<void> {
+  await call('/api/gift/cancel', { id });
+  await refreshAccount();
+}
+
+export async function sentGifts(): Promise<GiftSent[]> {
+  return (await call<{ gifts: GiftSent[] }>('/api/gift/sent')).gifts;
 }
 
 /** Off to Stripe's page with the player's purchases and receipts. */

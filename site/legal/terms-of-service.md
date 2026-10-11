@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 11 October 2026
-**Document Version:** v1.7
+**Document Version:** v1.8
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -132,7 +132,7 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 5.0.2 The game has two kinds of in-game currency, kept strictly apart:
 
 - **Slime** is earned by playing (see Section 5.6). It cannot be bought. You can spend it to unlock season weapons and some cosmetic items.
-- **Coins** are bought with real money in coin packs (see Section 5.1). You can spend them only on cosmetic items (such as hats, skins, aim styles and explosion effects), which change how your team looks and never how it plays.
+- **Coins** are bought with real money in coin packs (see Section 5.1). You can spend them only on cosmetic items (such as hats, skins, aim styles, explosion effects and arena themes), which change how your team, or your own view of the game, looks and never how it plays. You can also spend them on gifts of cosmetic items for other players (Section 5.8).
 
 There is no way to exchange coins for Slime, so money can never buy a gameplay advantage. There are no loot boxes or random paid rewards: you always see exactly what you are unlocking before you unlock it.
 
@@ -162,13 +162,15 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.4 What Coins, Slime and Items Are
 
-5.4.1 Coins, Slime, and the items you unlock with them are digital content: a personal, non-transferable licence to use them in TardiGeddon with your account, for as long as we provide the Services (see Section 5.5). They have no cash value, cannot be exchanged for money, and cannot be sold, traded, or transferred to anyone else.
+5.4.1 Coins, Slime, and the items you unlock with them are digital content: a personal, non-transferable licence to use them in TardiGeddon with your account, for as long as we provide the Services (see Section 5.5). They have no cash value, cannot be exchanged for money, and cannot be sold, traded, or transferred to anyone else, except by giving a gift as described in Section 5.8.
 
 5.4.2 Some items are also sold together in bundles, for fewer coins than the items cost one by one. The shop shows what each bundle contains, what its items would cost separately and how many coins you save. If you already own some of a bundle's items, you pay only for the others, at the same discount, and the shop shows that lower price before you unlock it.
 
 5.4.3 Unlocking an item or bundle with coins or Slime is final, unless the item is faulty (Section 5.3). Items you bought directly for money before coins were introduced remain yours on the same terms.
 
 5.4.4 If you delete your account, your coins, Slime, and unlocked items are deleted with it and cannot be restored or refunded.
+
+5.4.5 An arena theme changes the sky, landscape and colours of the game on your own screen only. Other players in the same match see their own choice of arena.
 
 ### 5.5 Changes to Items and the Services
 
@@ -189,6 +191,18 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 ### 5.7 App Stores
 
 5.7.1 If you buy coins in a TardiGeddon app from an app store in future, that purchase will be made through the app store's own payment system and will also be subject to that store's terms, including its refund policy.
+
+### 5.8 Gifts
+
+5.8.1 You can spend your own coins on a cosmetic item or bundle as a gift for someone else. Weapons, Slime and coins cannot be given. To send gifts you need an account with a confirmed email address that is at least a day old, and you can buy up to five gifts in any 24 hours.
+
+5.8.2 When you buy a gift you get a one-use gift code, which is shown to you once. Anyone who has the code can claim the gift, so share it only with the person it is for. We cannot show a lost code again, but until the gift is claimed you can take it back in the shop and your coins are returned to you.
+
+5.8.3 A gift is claimed by entering its code in the shop while signed in to an account. The items it contains are then added to that account. If that account already owns some of a bundle's items, it receives the others; if it already owns everything in the gift, the code is not used up, so it can be given to someone else. You cannot claim a gift you bought yourself. Once claimed, a gift is final, and the items belong to the account that claimed it on the same terms as any other item (Section 5.4).
+
+5.8.4 A gift can carry one of the preset messages shown in the shop; you cannot write your own. The person who claims a gift sees your account name and the message you chose.
+
+5.8.5 Gift codes must not be sold, traded or used for anything other than giving a gift. If a gift is connected with fraud, a disputed or refunded payment, or a breach of these Terms, we may cancel it or take back the items it gave.
 
 ## Section 6 — Intellectual Property
 

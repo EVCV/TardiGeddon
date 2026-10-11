@@ -23,6 +23,14 @@ export interface ProjectileSpec {
   walker?: { fuseTicks: number; speed: number };
   /** Smashes down through the ground, exploding on each of this many hits. */
   crusher?: { slams: number };
+  /** Sticks where it first touches the ground, until its fixed fuse runs out. */
+  sticky?: boolean;
+  /** Burrows through the ground, exploding this many ticks after it goes in. */
+  drill?: number;
+  /** Knock-back multiplier for its blast. */
+  knock?: number;
+  /** Heals the shooter by this share of the damage it does to other teams. */
+  drain?: number;
 }
 
 export type WeaponKind = 'charge' | 'hitscan' | 'target' | 'instant' | 'rope' | 'parachute' | 'melee' | 'walker' | 'drop';
@@ -139,6 +147,47 @@ export const WEAPONS: Record<string, WeaponDef> = {
     locked: true,
     icon: '🎈',
     projectile: { windFactor: 1.5, bounce: null, playerFuse: false, radius: 75, damage: 30, speed: 14 },
+  },
+  // Season 2 weapons (locked: unlocked with Slime).
+  gloop: {
+    id: 'gloop',
+    name: 'Gloop Bomb',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    locked: true,
+    icon: '🟣',
+    projectile: { windFactor: 0.5, bounce: 0, playerFuse: false, radius: 40, damage: 55, speed: 15, fuseTicks: 150, sticky: true },
+  },
+  drill: {
+    id: 'drill',
+    name: 'Earthworm Drill',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    locked: true,
+    icon: '🪱',
+    projectile: { windFactor: 0.5, bounce: null, playerFuse: false, radius: 38, damage: 50, speed: 17, drill: 25 },
+  },
+  gale: {
+    id: 'gale',
+    name: 'Gale Gourd',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    locked: true,
+    icon: '🌬️',
+    projectile: { windFactor: 0, bounce: 0.4, playerFuse: true, radius: 45, damage: 12, speed: 15, knock: 7 },
+  },
+  leech: {
+    id: 'leech',
+    name: 'Leech Lobber',
+    kind: 'charge',
+    ammo: 2,
+    shots: 1,
+    locked: true,
+    icon: '💚',
+    projectile: { windFactor: 1, bounce: null, playerFuse: false, radius: 30, damage: 40, speed: 16, drain: 0.5 },
   },
   clusterlet: {
     id: 'clusterlet',

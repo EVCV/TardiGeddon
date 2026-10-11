@@ -14,12 +14,12 @@ import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, bundle, coinPack, formatNumber, packTotal, shopItem } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packTotal, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, buyGift, redeemGift, cancelGift, giftsSent, type MatchResult } from './store';
 
 export interface AccountsEnv extends MailEnv {
   DATABASE_URL?: string;
@@ -371,6 +371,73 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { ok: true });
   }
 
+  /** Gift-code tries per player per minute: codes can't be guessed by brute force. */
+  const redeemTries = new Map<string, { at: number; n: number }>();
+
+  async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+    try {
+      const v = JSON.parse((await readBody(req)).toString('utf8')) as unknown;
+      return v && typeof v === 'object' ? (v as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Buy a gift with your coins: you get a one-use code to pass on. */
+  async function giftBuy(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    // A confirmed email and a day-old account, so a stolen card can't be turned straight into gifts.
+    if (!user.emailVerified) return json(res, 403, { error: 'Confirm your email first (on the Account page) to send gifts.' });
+    if (Date.now() - Date.parse(user.createdAt) < GIFT_MIN_ACCOUNT_HOURS * 3600_000) {
+      return json(res, 403, { error: 'New accounts can send gifts after their first day.' });
+    }
+    const body = await readJson(req);
+    if (!body || typeof body.item !== 'string' || !giftable(body.item)) return json(res, 400, { error: 'That can’t be given as a gift.' });
+    const r = await buyGift(db, user.id, body.item, typeof body.message === 'string' ? body.message : 'none');
+    if (!r.ok) {
+      if (r.why === 'poor') return json(res, 402, { error: 'Not enough coins.' });
+      if (r.why === 'limit') return json(res, 429, { error: `You can send up to ${GIFTS_PER_DAY} gifts a day. Try again tomorrow.` });
+      return json(res, 400, { error: 'That can’t be given as a gift.' });
+    }
+    json(res, 200, { code: r.code });
+  }
+
+  /** Claim a gift with its code. */
+  async function giftRedeem(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    const now = Date.now();
+    const t = redeemTries.get(user.id);
+    const tries = t && now - t.at < 60_000 ? t : { at: now, n: 0 };
+    if (tries.n >= 10) return json(res, 429, { error: 'Too many tries. Wait a minute and check the code.' });
+    tries.n++;
+    redeemTries.set(user.id, tries);
+    const body = await readJson(req);
+    const code = body && typeof body.code === 'string' ? body.code.slice(0, 40) : '';
+    if (!code) return json(res, 400, { error: 'Type in the gift code.' });
+    const r = await redeemGift(db, user.id, code);
+    if (!r.ok) {
+      const why = {
+        unknown: "That code doesn't match a gift. Check it and try again.",
+        used: 'That gift has already been claimed.',
+        own: "That's a gift you bought: give the code to a friend.",
+        owned: 'You already have everything in that gift. The code still works, so it can go to someone else.',
+      }[r.why];
+      return json(res, r.why === 'unknown' ? 404 : 409, { error: why });
+    }
+    json(res, 200, { item: r.item, items: r.items, from: r.from, message: r.message });
+  }
+
+  async function giftCancel(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    const body = await readJson(req);
+    const id = body && typeof body.id === 'number' && Number.isSafeInteger(body.id) ? body.id : 0;
+    if (!(await cancelGift(db, user.id, id))) return json(res, 409, { error: 'That gift has already been claimed or cancelled.' });
+    json(res, 200, { ok: true });
+  }
+
   async function webhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!stripe || !env.STRIPE_WEBHOOK_SECRET) return json(res, 503, { error: 'Not configured.' });
     const raw = await readBody(req);
@@ -455,6 +522,16 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           };
           if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
+        } else if (path === '/api/gift/buy' && req.method === 'POST') {
+          await giftBuy(req, res);
+        } else if (path === '/api/gift/redeem' && req.method === 'POST') {
+          await giftRedeem(req, res);
+        } else if (path === '/api/gift/cancel' && req.method === 'POST') {
+          await giftCancel(req, res);
+        } else if (path === '/api/gift/sent' && req.method === 'GET') {
+          const user = await userFrom(req.headers);
+          if (!user) json(res, 401, { error: 'Please sign in first.' });
+          else json(res, 200, { gifts: await giftsSent(db, user.id) });
         } else if (path === '/api/admin/sales' && req.method === 'GET') {
           // Anyone else gets "not found", so the page isn't even known to exist.
           const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
@@ -490,6 +567,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Tests only: forget the per-player rate limits. */
     resetLimits(): void {
       lastReport.clear();
+      redeemTries.clear();
     },
     async close(): Promise<void> {
       clearInterval(purge);

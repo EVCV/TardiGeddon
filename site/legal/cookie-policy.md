@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
-**Document Version:** v1.2
+**Last Modified:** 11 October 2026
+**Document Version:** v1.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -56,6 +56,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | Name | Type | Provider | Purpose | Category | Duration |
 |---|---|---|---|---|---|
 | `tardigeddon.teams` | Local storage | TardiGeddon (first party) | Your team names, colours, hats and tardigrade names | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.arena` | Local storage | TardiGeddon (first party) | The arena theme you chose to play in | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.menu` | Local storage | TardiGeddon (first party) | Your game style, custom rules, players and CPU skill | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.rejoin` | Session storage | TardiGeddon (first party) | Room code and rejoin token, so you can get back into an online match | Strictly necessary | Until you close the tab |
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
