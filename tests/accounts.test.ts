@@ -261,15 +261,19 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(year.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 1, amount: 9999, refunded: 1 });
   });
 
-  it('fills the sales log from unlocks made before it existed, once', async () => {
+  it('fills the sales log from unlocks made before it existed, only ever once', async () => {
     const count = async (sql: string) => Number((await accounts.db.query<{ n: string }>(sql)).rows[0].n);
     const unlocks = await count(`SELECT count(*) AS n FROM inventory WHERE source IN ('coins', 'slime')`);
     expect(unlocks).toBeGreaterThan(0);
+    await accounts.db.query(`DELETE FROM spend; DELETE FROM done_once`);
+    await migrate(accounts.db);
+    expect(await count('SELECT count(*) AS n FROM spend')).toBe(unlocks);
+    await migrate(accounts.db);
+    expect(await count('SELECT count(*) AS n FROM spend')).toBe(unlocks);
+    // Emptied on purpose later (a fresh start for the sales page): it stays empty.
     await accounts.db.query('DELETE FROM spend');
     await migrate(accounts.db);
-    expect(await count('SELECT count(*) AS n FROM spend')).toBe(unlocks);
-    await migrate(accounts.db);
-    expect(await count('SELECT count(*) AS n FROM spend')).toBe(unlocks);
+    expect(await count('SELECT count(*) AS n FROM spend')).toBe(0);
   });
 
   it('only accepts shop and stats requests from the game itself', async () => {

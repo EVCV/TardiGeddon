@@ -67,6 +67,11 @@ export async function migrate(db: Pool): Promise<void> {
       at       timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS spend_at ON spend (at);
+    -- One-off data jobs that have run, so they never run twice.
+    CREATE TABLE IF NOT EXISTS done_once (
+      name text PRIMARY KEY,
+      at   timestamptz NOT NULL DEFAULT now()
+    );
     CREATE TABLE IF NOT EXISTS stripe_customer (
       user_id     text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       customer_id text NOT NULL UNIQUE
@@ -87,9 +92,12 @@ async function backfillSpends(db: Pool): Promise<void> {
   const c = await db.connect();
   try {
     await c.query('BEGIN');
-    // One server at a time, and all of it or none: an empty log means it hasn't run yet.
+    // One server at a time, all of it or none, and only ever once: after that the
+    // log may be emptied on purpose (a fresh start for the sales page) and must stay so.
     await c.query("SELECT pg_advisory_xact_lock(hashtext('spend_backfill'))");
-    const logged = await c.query('SELECT 1 FROM spend LIMIT 1');
+    const done = await c.query(`SELECT 1 FROM done_once WHERE name = 'spend_backfill'`);
+    // A log with rows came from a server from before done_once: it already ran.
+    const logged = done.rowCount ? done : await c.query('SELECT 1 FROM spend LIMIT 1');
     if (!logged.rowCount) {
       await c.query(
         `INSERT INTO spend (item, currency, amount, at)
@@ -99,6 +107,7 @@ async function backfillSpends(db: Pool): Promise<void> {
         [priced.map((p) => p.item), priced.map((p) => p.currency), priced.map((p) => p.price)],
       );
     }
+    await c.query(`INSERT INTO done_once (name) VALUES ('spend_backfill') ON CONFLICT DO NOTHING`);
     await c.query('COMMIT');
   } catch (e) {
     await c.query('ROLLBACK');
