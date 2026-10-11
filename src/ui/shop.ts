@@ -314,9 +314,13 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-modal', 'true');
   box.setAttribute('aria-labelledby', 'coin-dialog-title');
+  // Everything behind the dialog is out of reach (Tab, clicks, screen readers) until it closes.
+  const behind = document.querySelector<HTMLElement>('.hub');
+  if (behind) behind.inert = true;
   const close = () => {
     overlay.remove();
     document.removeEventListener('keydown', onKey);
+    if (behind) behind.inert = false;
     from.focus();
   };
   const onKey = (e: KeyboardEvent) => {
