@@ -25,9 +25,9 @@ free without an account.
   Refunds and chargebacks take back exactly that many (the balance can go
   below zero). Webhook retries are harmless.
 - **Coin packs** (£1.99 to £99.99): bigger packs include bonus coins (+10% to
-  +30%), so coins cost from about 1p down to 0.77p each (Terms 5.1.2). Packs
-  of £20 or more also need the buyer to confirm they're 18+ or a parent or
-  carer agreed; the server refuses without it and records the time in the
+  +30%), so coins cost from about 1p down to 0.77p each (Terms 5.1.2). Every
+  pack also needs the buyer to confirm they're 18+ or a parent or carer
+  agreed; the server refuses without it and records the time in the
   Stripe session's metadata. Never rename a pack's `id`.
 - **Earning Slime:** online matches pay Slime from the server's own count
   (20 for playing, +30 for a win, +5 per pop up to 8); games against the CPU
@@ -72,7 +72,7 @@ Their promises are also code rules, so keep them true:
 - Checkout needs the player's consent to immediate supply (losing the 14-day
   cancellation right); the server refuses without it and records the time in
   the Stripe session's metadata.
-- Packs of £20 or more need the 18+ / parent's agreement tick (Terms 5.1.1).
+- Every pack needs the 18+ / parent's agreement tick (Terms 5.1.1).
 - Each pack shows its coins (bonus included), price and price per coin; item
   prices show their £ value as a range (Terms 5.1.2). No countdowns.
 - Prices include VAT and are in pounds.

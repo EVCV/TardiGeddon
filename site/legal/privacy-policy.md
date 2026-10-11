@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 11 October 2026
-**Document Version:** v2.0
+**Document Version:** v2.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -91,7 +91,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.3.1 Payments are handled by Stripe on its own secure payment page. Your card or other payment details go directly to Stripe; we never see or store your full card number.
 
-2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account. Stripe acts as the merchant of record for the payment (see our Terms of Service, Section 5.1.3): on its payment page it asks for the details it needs to take payment and work out the VAT or sales tax that applies, such as your country or address, and it emails you a receipt. We receive back, and keep, a purchase record: the item, how many coins it gave, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, the time you confirmed that you wanted the item straight away and, for coin packs of £20 or more, the time you confirmed you were 18 or over or had a parent's or guardian's agreement (see our Terms of Service, Section 5).
+2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account. Stripe acts as the merchant of record for the payment (see our Terms of Service, Section 5.1.3): on its payment page it asks for the details it needs to take payment and work out the VAT or sales tax that applies, such as your country or address, and it emails you a receipt. We receive back, and keep, a purchase record: the item, how many coins it gave, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, the time you confirmed that you wanted the item straight away, and the time you confirmed you were 18 or over or had a parent's or guardian's agreement (see our Terms of Service, Section 5).
 
 2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
 
