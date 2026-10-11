@@ -9,7 +9,7 @@ import { coinIcon, packArt } from './coinArt';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
-import { BIG_PACK_PRICE, COIN_PACKS, SHOP_ITEMS, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type ShopItem } from '../shop/catalog';
+import { BIG_PACK_PRICE, COIN_PACKS, SHOP_ITEMS, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type CoinPack, type ShopItem } from '../shop/catalog';
 import { buyCoins, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { HubContext } from './hub';
 
@@ -19,13 +19,11 @@ export interface ShopState {
   category: Category;
   /** Item shown on the preview stage. */
   preview: ShopItem | null;
-  /** Coin pack chosen, waiting for the consent tick. */
-  pack: string | null;
   /** Where the catalogue was scrolled to, on which tab. */
   scroll: { key: Category; top: number };
 }
 
-export const newShopState = (): ShopState => ({ category: 'all', preview: null, pack: null, scroll: { key: 'all', top: 0 } });
+export const newShopState = (): ShopState => ({ category: 'all', preview: null, scroll: { key: 'all', top: 0 } });
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -98,7 +96,6 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
     const b = el('button', 'seg-btn' + (state.category === c ? ' on' : ''), label);
     b.onclick = () => {
       state.category = c;
-      state.pack = null;
       ctx.rerender();
     };
     pills.append(b);
@@ -303,6 +300,108 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
   return banner;
 }
 
+/**
+ * The purchase confirmation, over the whole menu (like the team editor): the
+ * pack, what it costs, the ticks the law needs, and Pay. Esc, the ×, or a tap
+ * outside closes it; focus goes back to the pack.
+ */
+function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTMLElement): void {
+  const host = document.getElementById('ui') ?? document.body;
+  const look = PACK_LOOKS[pack.id] ?? { art: 'pouch', name: 'Coins' };
+  const total = packTotal(pack);
+  const overlay = el('div', 'editor-overlay checkout-overlay');
+  const box = el('div', 'coin-dialog');
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-labelledby', 'coin-dialog-title');
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKey);
+    from.focus();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') close();
+  };
+  document.addEventListener('keydown', onKey);
+  overlay.onclick = (e) => {
+    if (e.target === overlay) close();
+  };
+  const x = el('button', 'coin-dialog-x', '×');
+  x.setAttribute('aria-label', 'Close');
+  x.onclick = close;
+
+  const art = el('div', 'coin-dialog-art');
+  art.innerHTML = packArt(look.art);
+  const title = el('h2', 'coin-dialog-title', look.name);
+  title.id = 'coin-dialog-title';
+  const coins = el('div', 'coin-dialog-coins', `🪙 ${formatNumber(total)} coins`);
+  const sub = el('div', 'coin-dialog-sub', pack.bonus ? `${formatNumber(pack.coins)} + ${formatNumber(pack.bonus)} bonus · ${perCoin(pencePerCoin(pack))}` : perCoin(pencePerCoin(pack)));
+  // The pack on top (on the left on short landscape screens), what to do below (or beside).
+  const head = el('div', 'coin-dialog-head');
+  head.append(art, title, coins, sub);
+  const body = el('div', 'coin-dialog-body');
+  box.append(x, head, body);
+
+  if (!me.user) {
+    const b = el('button', 'big-btn', 'Sign in to buy coins');
+    b.onclick = () => {
+      close();
+      ctx.go('account');
+    };
+    body.append(el('p', 'account-note', 'Coins are kept on your account, so you need one to buy them. It only takes a moment.'), b);
+  } else {
+    const consent = el('label', 'account-check');
+    const tick = el('input');
+    tick.type = 'checkbox';
+    const text = el('span');
+    text.append(
+      `I want my ${formatNumber(total)} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
+      legalLink('terms-of-service', 'Terms'),
+      ' §5).',
+    );
+    consent.append(tick, text);
+    // The biggest packs also need a grown-up's say-so (Terms 5.1.1).
+    const big = pack.price >= BIG_PACK_PRICE;
+    const adult = el('label', 'account-check');
+    const adultTick = el('input');
+    adultTick.type = 'checkbox';
+    adult.append(adultTick, el('span', '', "I'm 18 or over, or a parent or carer has said yes to this purchase."));
+    const pay = el('button', 'big-btn coin-dialog-pay', `Pay ${formatPrice(pack.price)}`);
+    const error = el('p', 'coin-dialog-error');
+    error.setAttribute('role', 'alert');
+    const hint = el('p', 'coin-dialog-hint', big ? 'Tick both boxes to continue' : 'Tick the box to continue');
+    let busy = false;
+    const update = () => {
+      const ready = tick.checked && (!big || adultTick.checked);
+      pay.disabled = !ready || busy;
+      hint.hidden = ready;
+    };
+    tick.onchange = update;
+    adultTick.onchange = update;
+    pay.onclick = async () => {
+      busy = true;
+      pay.textContent = 'Opening secure checkout…';
+      update();
+      error.textContent = '';
+      try {
+        await buyCoins(pack.id, tick.checked, big && adultTick.checked);
+      } catch (e) {
+        error.textContent = e instanceof Error ? e.message : String(e);
+        busy = false;
+        pay.textContent = `Pay ${formatPrice(pack.price)}`;
+        update();
+      }
+    };
+    body.append(consent);
+    if (big) body.append(adult);
+    body.append(pay, hint, error, el('p', 'coin-dialog-small', '🔒 You pay on Stripe\'s secure page. Prices include VAT.'));
+    update();
+  }
+  overlay.append(box);
+  host.append(overlay);
+  (box.querySelector<HTMLElement>('input, .big-btn') ?? x).focus();
+}
+
 function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   const box = el('div', 'shop-coins');
   box.append(featureBanner(me, ctx, state));
@@ -319,7 +418,7 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
     const look = PACK_LOOKS[p.id] ?? { art: 'pouch', name: `${formatNumber(p.coins)} coins` };
     const total = packTotal(p);
     const tag = p.id === best ? 'Best value' : p.bonus ? `+${Math.round((p.bonus / p.coins) * 100)}% bonus` : '';
-    const b = el('button', 'coin-pack' + (state.pack === p.id ? ' on' : '') + (tag ? ' tagged' : '') + (p.id === best ? ' best' : ''));
+    const b = el('button', 'coin-pack' + (tag ? ' tagged' : '') + (p.id === best ? ' best' : ''));
     b.setAttribute('aria-label', `${formatNumber(total)} coins for ${formatPrice(p.price)}`);
     if (tag) b.append(el('span', 'pack-tag', tag));
     const art = el('span', 'pack-art');
@@ -348,53 +447,10 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
       el('span', 'pack-rate', perCoin(pencePerCoin(p))),
       el('span', 'pack-price', formatPrice(p.price)),
     );
-    b.onclick = () => {
-      state.pack = p.id;
-      ctx.rerender();
-    };
+    b.onclick = () => openCheckout(me, ctx, p, b);
     grid.append(b);
   }
-  box.append(grid);
-
-  const pack = COIN_PACKS.find((p) => p.id === state.pack);
-  if (pack) {
-    const checkout = el('div', 'coin-checkout');
-    checkout.append(
-      el('b', '', `${PACK_LOOKS[pack.id]?.name ?? 'Coins'}: 🪙 ${formatNumber(packTotal(pack))} for ${formatPrice(pack.price)}${pack.bonus ? ` (${formatNumber(pack.coins)} + ${formatNumber(pack.bonus)} bonus)` : ''}`),
-    );
-    if (!me.user) {
-      const b = el('button', 'big-btn', 'Sign in to buy coins');
-      b.onclick = () => ctx.go('account');
-      checkout.append(b);
-    } else {
-      const consent = el('label', 'account-check');
-      const tick = el('input');
-      tick.type = 'checkbox';
-      const text = el('span');
-      text.append(
-        `I want my ${formatNumber(packTotal(pack))} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
-        legalLink('terms-of-service', 'Terms'),
-        ' §5).',
-      );
-      consent.append(tick, text);
-      // The biggest packs also need a grown-up's say-so (Terms 5.1.1).
-      const big = pack.price >= BIG_PACK_PRICE;
-      const adult = el('label', 'account-check');
-      const adultTick = el('input');
-      adultTick.type = 'checkbox';
-      adult.append(adultTick, el('span', '', "I'm 18 or over, or a parent or carer has said yes to this purchase."));
-      const pay = el('button', 'big-btn', `Pay ${formatPrice(pack.price)}`);
-      pay.disabled = true;
-      const update = () => (pay.disabled = !tick.checked || (big && !adultTick.checked) || ctx.busy);
-      tick.onchange = update;
-      adultTick.onchange = update;
-      pay.onclick = () => ctx.run(() => buyCoins(pack.id, tick.checked, big && adultTick.checked));
-      checkout.append(consent);
-      if (big) checkout.append(adult);
-      checkout.append(pay);
-    }
-    box.append(checkout);
-  } else box.append(el('p', 'coins-pick', '👆 Pick a pack to continue'));
+  box.append(grid, el('p', 'coins-pick', '👆 Tap a pack to buy it'));
 
   const trust = el('ul', 'coin-trust');
   for (const t of ['🔒 Secure checkout by Stripe', '🧾 Receipt by email', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win']) trust.append(el('li', '', t));
