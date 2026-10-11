@@ -79,16 +79,21 @@ Their promises are also code rules, so keep them true:
 
 Still to decide or set up (owner):
 
-- **VAT: decided.** We use **Stripe Managed Payments**: Stripe is the seller
-  (merchant of record) and charges and pays VAT and sales tax in every
-  country, for an extra fee per sale. Switched on with
+- **VAT: decided.** We use **Stripe Managed Payments**: Stripe is the
+  merchant of record for the payment and works out, collects and pays VAT
+  and sales tax in the countries it supports (80+), for an extra fee per
+  sale. EVCV stays the seller of the coins (Terms 5.1.3). Before going live,
+  check in Stripe what happens to buyers in countries it doesn't cover
+  (whether their checkouts are refused or fall back to a normal payment that
+  leaves the tax with us), and confirm the plan with the accountant. Switched on with
   `STRIPE_MANAGED_PAYMENTS=on`; the Terms (5.1.3) and Privacy Policy (4.0.4)
   are written for it. With it on, the server marks prices VAT-inclusive (so
   players pay exactly the shop price), sends tax code `txcd_10201000`
   (video games, downloaded, permanent rights; override with
   `STRIPE_TAX_CODE`), creates no invoices (Stripe sends its own receipts) and
-  hides "Purchases & receipts". If it's ever switched off, change the Terms
-  and Privacy Policy back first (EVCV becomes the seller again).
+  hides "Purchases & receipts". If it's ever switched off, update Terms
+  5.1.3 and Privacy Policy 2.3.2 and 4.0.4 first (Stripe is then only our
+  payment processor, and the tax is ours to handle).
 - **Receipts:** turn on Stripe → Settings → Customer emails → Successful
   payments. The Terms promise a receipt by email.
 
