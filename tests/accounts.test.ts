@@ -259,6 +259,23 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(week.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 0, refunded: 1, refundedAmount: 9999 });
     const year = (await (await sales(boss.cookie, 365)).json()) as SalesReport;
     expect(year.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 1, amount: 9999, refunded: 1 });
+
+    // Starting the figures from zero: nothing before counts, and nothing is deleted.
+    const before = Number((await accounts.db.query<{ n: string }>('SELECT count(*) AS n FROM purchase')).rows[0].n);
+    await accounts.db.query(`INSERT INTO done_once (name) VALUES ('sales_reset') ON CONFLICT (name) DO UPDATE SET at = now()`);
+    const fresh = (await (await sales(boss.cookie, 0)).json()) as SalesReport;
+    expect(fresh.resetAt).not.toBeNull();
+    expect(fresh.packs).toEqual([]);
+    expect(fresh.spends).toEqual([]);
+    expect(fresh.players).toMatchObject({ joined: 0, buyers: 0 });
+    expect(fresh.players.total).toBeGreaterThan(0);
+    expect(Number((await accounts.db.query<{ n: string }>('SELECT count(*) AS n FROM purchase')).rows[0].n)).toBe(before);
+    // A sale after the reset counts.
+    expect(await sendWebhook('checkout.session.completed', paid('cs_after_reset', boss.id, 'coins:200'))).toBe(200);
+    const after = (await (await sales(boss.cookie, 0)).json()) as SalesReport;
+    expect(after.packs).toEqual([expect.objectContaining({ item: 'coins:200', sold: 1 })]);
+    expect(after.players.buyers).toBe(1);
+    await accounts.db.query(`DELETE FROM done_once WHERE name = 'sales_reset'`);
   });
 
   it('fills the sales log from unlocks made before it existed, only ever once', async () => {

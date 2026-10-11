@@ -443,14 +443,19 @@ export async function revokePurchase(db: Pool, paymentIntent: string, status: 'r
 }
 
 export async function salesReport(db: Pool, days: number): Promise<SalesReport> {
-  // $1 = 0 means all time.
-  const since = `($1::int = 0 OR %s >= now() - make_interval(days => $1::int))`;
+  // The owner can start the figures from zero (docs/ACCOUNTS.md): nothing
+  // before then counts. Records are kept, as refunds and Stripe's retries need them.
+  const reset = await db.query<{ at: Date }>(`SELECT at FROM done_once WHERE name = 'sales_reset'`);
+  const resetAt = reset.rows[0]?.at ?? null;
+  // $1 = 0 means all time; $2 is the reset (or none).
+  const since = `(%s >= greatest(CASE WHEN $1::int = 0 THEN '-infinity'::timestamptz ELSE now() - make_interval(days => $1::int) END, coalesce($2::timestamptz, '-infinity')))`;
+  const args = [days, resetAt];
   const [players, packs, spends, owners] = await Promise.all([
     db.query<{ total: string; joined: string; buyers: string }>(
       `SELECT (SELECT count(*) FROM "user") AS total,
               (SELECT count(*) FROM "user" WHERE ${since.replace('%s', '"createdAt"')}) AS joined,
               (SELECT count(DISTINCT user_id) FROM purchase WHERE status = 'paid' AND ${since.replace('%s', 'created_at')}) AS buyers`,
-      [days],
+      args,
     ),
     // Sales count in the period they were made, refunds in the period they happened
     // (refunds from before refunded_at existed count on the purchase date).
@@ -466,13 +471,13 @@ export async function salesReport(db: Pool, days: number): Promise<SalesReport> 
          SELECT item, currency, amount, false FROM purchase WHERE status <> 'paid' AND ${since.replace('%s', 'coalesce(refunded_at, created_at)')}
        ) AS p
        GROUP BY item, currency ORDER BY amount DESC`,
-      [days],
+      args,
     ),
     db.query<{ item: string; currency: string; buys: string; amount: string }>(
       `SELECT item, currency, count(*) AS buys, sum(amount) AS amount
        FROM spend WHERE ${since.replace('%s', 'at')}
        GROUP BY item, currency ORDER BY amount DESC`,
-      [days],
+      args,
     ),
     db.query<{ item: string; owners: string }>('SELECT item, count(*) AS owners FROM inventory GROUP BY item ORDER BY owners DESC, item'),
   ]);
@@ -480,6 +485,7 @@ export async function salesReport(db: Pool, days: number): Promise<SalesReport> 
   const p = players.rows[0];
   return {
     days,
+    resetAt: resetAt ? resetAt.toISOString() : null,
     players: { total: n(p.total), joined: n(p.joined), buyers: n(p.buyers) },
     packs: packs.rows.map((r) => ({ item: r.item, currency: r.currency, sold: n(r.sold), amount: n(r.amount), refunded: n(r.refunded), refundedAmount: n(r.refunded_amount) })),
     spends: spends.rows.map((r) => ({ item: r.item, currency: r.currency, buys: n(r.buys), amount: n(r.amount) })),

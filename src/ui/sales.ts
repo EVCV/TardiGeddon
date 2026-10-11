@@ -156,6 +156,10 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
       'Average per paying player',
     ),
   );
+  if (r.resetAt) {
+    const when = new Date(r.resetAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    big.append(el('p', 'account-note', `Counting from ${when}, when the figures were last started from zero.`));
+  }
   big.append(tiles, people, el('p', 'account-note', "Money is what players paid in this period, VAT included, before refunds. Refunds count on the day they happened. Stripe's dashboard shows what reaches your bank after VAT and fees."));
   page.append(big);
 

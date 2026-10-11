@@ -32,6 +32,8 @@ export interface MeResponse {
 export interface SalesReport {
   /** Days covered (0 = all time). */
   days: number;
+  /** When the owner last started the figures from zero (nothing before counts), if ever. */
+  resetAt: string | null;
   players: { total: number; joined: number; buyers: number };
   /**
    * Coin packs per pack and currency (amounts in minor units, VAT included):
