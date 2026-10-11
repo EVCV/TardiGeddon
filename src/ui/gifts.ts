@@ -15,6 +15,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 }
 
 export interface GiftsState {
+  /** Whose gifts these are: everything is cleared when someone else signs in. */
+  user: string | null;
   code: string;
   /** What the last claim gave (shown until the next one). */
   claimed: { name: string; from: string | null; message: string } | null;
@@ -22,7 +24,7 @@ export interface GiftsState {
   loading: boolean;
 }
 
-export const newGiftsState = (): GiftsState => ({ code: '', claimed: null, sent: null, loading: false });
+export const newGiftsState = (): GiftsState => ({ user: null, code: '', claimed: null, sent: null, loading: false });
 
 /** Why this player can't send gifts yet, or '' if they can. */
 export function giftBlocker(me: MeResponse): string {
@@ -34,6 +36,9 @@ export function giftBlocker(me: MeResponse): string {
 
 /** The Gifts tab: claim a code, and the gifts you've sent. */
 export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nameOf: (id: string) => string): HTMLElement {
+  const uid = me.user?.id ?? null;
+  // A shared device: never show one player's codes or gifts to the next.
+  if (state.user !== uid) Object.assign(state, newGiftsState(), { user: uid });
   const box = el('div', 'gifts');
 
   const claim = el('section', 'gift-claim');
@@ -54,6 +59,7 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
     e.preventDefault();
     ctx.run(async () => {
       const r = await redeemGift(state.code);
+      if (state.user !== uid) return;
       state.code = '';
       state.claimed = { name: nameOf(r.item), from: r.from, message: r.message };
     });
@@ -86,10 +92,15 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
       if (!state.loading) {
         state.loading = true;
         sentGifts()
-          .then((g) => (state.sent = g))
-          .catch(() => (state.sent = []))
+          .then((g) => {
+            // Ignore an answer for someone who has since signed out.
+            if (state.user === uid) state.sent = g;
+          })
+          .catch(() => {
+            if (state.user === uid) state.sent = [];
+          })
           .finally(() => {
-            state.loading = false;
+            if (state.user === uid) state.loading = false;
             ctx.rerender();
           });
       }

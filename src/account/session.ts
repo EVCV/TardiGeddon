@@ -120,9 +120,12 @@ export function ownedItems(): string[] {
 }
 
 const ARENA_KEY = 'tardigeddon.arena';
+/** The choice made on this page, for when the browser won't let us store it. */
+let arenaThisPage: string | null = null;
 
 /** The arena theme this player picked (only they see it), whether or not they own it. */
 export function chosenArena(): string {
+  if (arenaThisPage) return arenaThisPage;
   try {
     return localStorage.getItem(ARENA_KEY) ?? 'classic';
   } catch {
@@ -131,10 +134,11 @@ export function chosenArena(): string {
 }
 
 export function chooseArena(id: string): void {
+  arenaThisPage = id;
   try {
     localStorage.setItem(ARENA_KEY, id);
   } catch {
-    // Private mode: the choice lasts until the page closes.
+    // Storage blocked: the choice lasts until the page closes.
   }
 }
 
