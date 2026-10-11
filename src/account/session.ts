@@ -33,7 +33,10 @@ export interface SalesReport {
   /** Days covered (0 = all time). */
   days: number;
   players: { total: number; joined: number; buyers: number };
-  /** Coin packs paid for with money, per pack and currency (amounts in minor units, VAT included). */
+  /**
+   * Coin packs per pack and currency (amounts in minor units, VAT included):
+   * sold in the period (refunded later or not), and refunds made in the period.
+   */
   packs: { item: string; currency: string; sold: number; amount: number; refunded: number; refundedAmount: number }[];
   /** Coins and Slime spent in the shop, per item or bundle. */
   spends: { item: string; currency: string; buys: number; amount: number }[];

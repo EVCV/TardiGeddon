@@ -6,7 +6,7 @@
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
-import { bundle, bundlePrice, coinPack, packTotal, shopItem } from '../src/shop/catalog';
+import { SHOP_ITEMS, bundle, bundlePrice, coinPack, packTotal, shopItem } from '../src/shop/catalog';
 import type { SalesReport } from '../src/account/session';
 
 export async function migrate(db: Pool): Promise<void> {
@@ -31,6 +31,8 @@ export async function migrate(db: Pool): Promise<void> {
     CREATE INDEX IF NOT EXISTS purchase_payment_intent ON purchase (payment_intent);
     -- Coins a coin-pack payment gave, bonus included (taken back exactly on a refund).
     ALTER TABLE purchase ADD COLUMN IF NOT EXISTS coins integer;
+    -- When a refund or chargeback happened, so the sales page counts it on that day.
+    ALTER TABLE purchase ADD COLUMN IF NOT EXISTS refunded_at timestamptz;
     -- Coin packs bought before bonus coins existed gave exactly their base amount (the number in the id).
     UPDATE purchase SET coins = split_part(item, ':', 2)::int WHERE coins IS NULL AND item ~ '^coins:[0-9]+$';
     CREATE TABLE IF NOT EXISTS player_stats (
@@ -78,16 +80,31 @@ export async function migrate(db: Pool): Promise<void> {
  * price (bundles bought then show as their separate items).
  */
 async function backfillSpends(db: Pool): Promise<void> {
-  const logged = await db.query('SELECT 1 FROM spend LIMIT 1');
-  if (logged.rowCount) return;
-  const old = await db.query<{ item: string; source: string; granted_at: Date }>(
-    `SELECT item, source, granted_at FROM inventory WHERE source IN ('coins', 'slime')`,
-  );
-  for (const r of old.rows) {
-    const item = shopItem(r.item);
-    const price = r.source === 'coins' ? item?.coins : item?.slime;
-    if (price === undefined) continue;
-    await db.query('INSERT INTO spend (item, currency, amount, at) VALUES ($1, $2, $3, $4)', [r.item, r.source, price, r.granted_at]);
+  const priced = SHOP_ITEMS.flatMap((i) => [
+    ...(i.coins !== undefined ? [{ item: i.id, currency: 'coins', price: i.coins }] : []),
+    ...(i.slime !== undefined ? [{ item: i.id, currency: 'slime', price: i.slime }] : []),
+  ]);
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    // One server at a time, and all of it or none: an empty log means it hasn't run yet.
+    await c.query("SELECT pg_advisory_xact_lock(hashtext('spend_backfill'))");
+    const logged = await c.query('SELECT 1 FROM spend LIMIT 1');
+    if (!logged.rowCount) {
+      await c.query(
+        `INSERT INTO spend (item, currency, amount, at)
+         SELECT i.item, i.source, p.price, i.granted_at
+         FROM inventory i
+         JOIN unnest($1::text[], $2::text[], $3::int[]) AS p(item, currency, price) ON p.item = i.item AND p.currency = i.source`,
+        [priced.map((p) => p.item), priced.map((p) => p.currency), priced.map((p) => p.price)],
+      );
+    }
+    await c.query('COMMIT');
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
   }
 }
 
@@ -404,7 +421,7 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
  */
 export async function revokePurchase(db: Pool, paymentIntent: string, status: 'refunded' | 'disputed'): Promise<void> {
   const r = await db.query<{ user_id: string | null; item: string; coins: number | null }>(
-    `UPDATE purchase SET status = $2 WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item, coins`,
+    `UPDATE purchase SET status = $2, refunded_at = now() WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item, coins`,
     [paymentIntent, status],
   );
   for (const row of r.rows) {
@@ -426,13 +443,19 @@ export async function salesReport(db: Pool, days: number): Promise<SalesReport> 
               (SELECT count(DISTINCT user_id) FROM purchase WHERE status = 'paid' AND ${since.replace('%s', 'created_at')}) AS buyers`,
       [days],
     ),
+    // Sales count in the period they were made, refunds in the period they happened
+    // (refunds from before refunded_at existed count on the purchase date).
     db.query<{ item: string; currency: string; sold: string; amount: string; refunded: string; refunded_amount: string }>(
       `SELECT item, currency,
-              count(*) FILTER (WHERE status = 'paid') AS sold,
-              coalesce(sum(amount) FILTER (WHERE status = 'paid'), 0) AS amount,
-              count(*) FILTER (WHERE status <> 'paid') AS refunded,
-              coalesce(sum(amount) FILTER (WHERE status <> 'paid'), 0) AS refunded_amount
-       FROM purchase WHERE ${since.replace('%s', 'created_at')}
+              count(*) FILTER (WHERE sale) AS sold,
+              coalesce(sum(amount) FILTER (WHERE sale), 0) AS amount,
+              count(*) FILTER (WHERE NOT sale) AS refunded,
+              coalesce(sum(amount) FILTER (WHERE NOT sale), 0) AS refunded_amount
+       FROM (
+         SELECT item, currency, amount, true AS sale FROM purchase WHERE ${since.replace('%s', 'created_at')}
+         UNION ALL
+         SELECT item, currency, amount, false FROM purchase WHERE status <> 'paid' AND ${since.replace('%s', 'coalesce(refunded_at, created_at)')}
+       ) AS p
        GROUP BY item, currency ORDER BY amount DESC`,
       [days],
     ),

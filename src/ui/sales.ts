@@ -142,7 +142,10 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
 
   const big = el('section', 'card');
   const tiles = el('div', 'stats-big sales-big');
-  tiles.append(statTile(takings, 'Paid by players', 'gold'), statTile(formatNumber(sold), 'Coin packs sold', 'gold'), statTile(formatNumber(refunds), 'Refunds'), statTile(`🪙 ${formatNumber(coinsSpent)}`, 'Coins spent'));
+  tiles.append(statTile(takings, 'Paid by players', 'gold'), statTile(formatNumber(sold), 'Coin packs sold', 'gold'), statTile(
+      refunds && currencies.length === 1 ? `${refunds} · ${money(currencies[0][1].refunded, currencies[0][0])}` : formatNumber(refunds),
+      'Refunds',
+    ), statTile(`🪙 ${formatNumber(coinsSpent)}`, 'Coins spent'));
   const people = el('div', 'stats-grid sales-people');
   people.append(
     statTile(formatNumber(r.players.total), 'Players (all time)'),
@@ -153,7 +156,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
       'Average per paying player',
     ),
   );
-  big.append(tiles, people, el('p', 'account-note', "Money is what players paid, VAT included. Stripe's dashboard shows what reaches your bank after VAT and fees."));
+  big.append(tiles, people, el('p', 'account-note', "Money is what players paid in this period, VAT included, before refunds. Refunds count on the day they happened. Stripe's dashboard shows what reaches your bank after VAT and fees."));
   page.append(big);
 
   page.append(

@@ -9,7 +9,7 @@ import { createAccounts, type Accounts, type MeResponse } from '../server/accoun
 import type { SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
-import { migrate } from '../server/store';
+import { migrate, revokePurchase } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 
@@ -248,6 +248,17 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     // Totals only: nothing about who bought what.
     expect(JSON.stringify(report)).not.toMatch(/@|user_?id/i);
     expect((await (await sales(boss.cookie, 0)).json()).days).toBe(0);
+
+    // A pack bought 60 days ago and refunded today: a refund this week, not a sale.
+    await accounts.db.query(
+      `INSERT INTO purchase (id, user_id, item, amount, currency, payment_intent, status, created_at)
+       VALUES ('cs_old', NULL, 'coins:10000', 9999, 'gbp', 'pi_old', 'paid', now() - interval '60 days')`,
+    );
+    await revokePurchase(accounts.db, 'pi_old', 'refunded');
+    const week = (await (await sales(boss.cookie, 7)).json()) as SalesReport;
+    expect(week.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 0, refunded: 1, refundedAmount: 9999 });
+    const year = (await (await sales(boss.cookie, 365)).json()) as SalesReport;
+    expect(year.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 1, amount: 9999, refunded: 1 });
   });
 
   it('fills the sales log from unlocks made before it existed, once', async () => {
