@@ -128,6 +128,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(p.line_items?.[0].price_data?.product_data?.name).toBe('TardiGeddon: 550 coins (500 + 50 bonus)');
     // EVCV is the seller: Stripe's Managed Payments stays off unless configured.
     expect(p.managed_payments).toEqual({ enabled: false });
+    expect(p.line_items?.[0].price_data?.tax_behavior).toBeUndefined();
+    expect((await me(cookie)).receipts).toBe(true);
     // The biggest packs also need "18 or over, or a parent or carer agreed".
     expect((await post('/api/shop/checkout', { item: 'coins:5000', consent: true }, cookie)).status).toBe(400);
     expect((await post('/api/shop/checkout', { item: 'coins:5000', consent: true, grownUp: true }, cookie)).status).toBe(200);
@@ -143,6 +145,39 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(((await portal.json()) as { url: string }).url).toBe(`https://billing.stripe.test/${p.customer}`);
     expect(p.metadata).toMatchObject({ userId: id, item: 'coins:500' });
     expect(Date.parse(String(p.metadata?.immediateSupplyConsent))).toBeGreaterThan(0);
+  });
+
+  it('with Managed Payments, keeps prices VAT-inclusive, sends a tax code and leaves receipts to Stripe', async () => {
+    // A second server on the same database, with Stripe as the seller.
+    const managed = await createAccounts(
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'y'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, STRIPE_MANAGED_PAYMENTS: 'on', STRIPE_AUTOMATIC_TAX: 'on' },
+      { stripe, mailer: null },
+    );
+    const srv = createServer((req, res) => void managed.handle(req, res));
+    await new Promise<void>((r) => srv.listen(0, r));
+    const url = `http://localhost:${(srv.address() as AddressInfo).port}`;
+    try {
+      const send = (path: string, body: unknown, cookie = '') =>
+        fetch(url + path, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:5173', cookie }, body: JSON.stringify(body) });
+      const su = await send('/api/auth/sign-up/email', { email: 'managed@example.com', password: 'correct horse', name: 'Tester' });
+      const cookie = su.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+      expect((await send('/api/shop/checkout', { item: 'coins:500', consent: true }, cookie)).status).toBe(200);
+      const p = checkouts.at(-1)!;
+      expect(p.managed_payments).toEqual({ enabled: true });
+      // Without "inclusive", Stripe would add tax on top of the price the shop shows.
+      expect(p.line_items?.[0].price_data?.tax_behavior).toBe('inclusive');
+      expect(p.line_items?.[0].price_data?.unit_amount).toBe(499);
+      expect(p.line_items?.[0].price_data?.product_data?.tax_code).toBe('txcd_10201000');
+      // Not allowed with Managed Payments: Stripe handles tax and receipts itself.
+      expect(p.automatic_tax).toBeUndefined();
+      expect(p.invoice_creation).toBeUndefined();
+      const m = (await (await fetch(url + '/api/me', { headers: { cookie } })).json()) as MeResponse;
+      expect(m.receipts).toBe(false);
+      expect((await send('/api/shop/portal', {}, cookie)).status).toBe(404);
+    } finally {
+      srv.close();
+      await managed.close();
+    }
   });
 
   it('credits coins once Stripe confirms payment, spends them on items, and takes them back on refund', async () => {

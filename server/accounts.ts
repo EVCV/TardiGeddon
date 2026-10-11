@@ -170,7 +170,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   purge.unref();
   await purgeExpired(db);
 
-  const tax = env.STRIPE_AUTOMATIC_TAX === 'on';
+  // Managed Payments: Stripe is the seller (merchant of record) and handles VAT and sales tax
+  // everywhere, sends its own receipts, and needs a tax code for what's sold.
+  const managed = env.STRIPE_MANAGED_PAYMENTS === 'on';
+  // Stripe Tax on our own account (not needed, or allowed, with Managed Payments).
+  const tax = env.STRIPE_AUTOMATIC_TAX === 'on' && !managed;
+  // Video games, downloaded, non-subscription, permanent rights: Stripe's own example for a coin bundle.
+  const taxCode = env.STRIPE_TAX_CODE || (managed ? 'txcd_10201000' : undefined);
   const testMode = !(env.STRIPE_SECRET_KEY ?? '').includes('_live_');
   const stripe = opts.stripe ?? (env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null);
   const authHandler = toNodeHandler(auth);
@@ -241,21 +247,22 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           price_data: {
             currency: CURRENCY,
             unit_amount: item.price,
-            // Catalogue prices include VAT (only needs saying when Stripe Tax is on).
-            ...(tax ? { tax_behavior: 'inclusive' as const } : {}),
-            product_data: { name: `TardiGeddon: ${formatNumber(packTotal(item))} coins${item.bonus ? ` (${formatNumber(item.coins)} + ${formatNumber(item.bonus)} bonus)` : ''}`, ...(env.STRIPE_TAX_CODE ? { tax_code: env.STRIPE_TAX_CODE } : {}) },
+            // Catalogue prices include VAT. Must be said whenever Stripe works out tax, or it adds tax on top.
+            ...(tax || managed ? { tax_behavior: 'inclusive' as const } : {}),
+            product_data: { name: `TardiGeddon: ${formatNumber(packTotal(item))} coins${item.bonus ? ` (${formatNumber(item.coins)} + ${formatNumber(item.bonus)} bonus)` : ''}`, ...(taxCode ? { tax_code: taxCode } : {}) },
           },
         },
       ],
       ...(tax ? { automatic_tax: { enabled: true } } : {}),
       // Stripe turns Managed Payments on by default for new accounts; we only use it when asked to.
-      managed_payments: { enabled: env.STRIPE_MANAGED_PAYMENTS === 'on' },
+      managed_payments: { enabled: managed },
       client_reference_id: user.id,
       metadata: { userId: user.id, item: item.id, immediateSupplyConsent: new Date().toISOString(), ...(item.price >= BIG_PACK_PRICE ? { grownUpConfirmed: new Date().toISOString() } : {}) },
       // The player's own Stripe customer, so all their purchases appear in the purchases portal.
       customer,
       // An invoice per purchase: a receipt they can download from the portal any time.
-      ...(env.STRIPE_INVOICES === 'off' ? {} : { invoice_creation: { enabled: true } }),
+      // (With Managed Payments, Stripe sends its own receipts instead.)
+      ...(managed || env.STRIPE_INVOICES === 'off' ? {} : { invoice_creation: { enabled: true } }),
       success_url: back.toString(),
       cancel_url: cancel.toString(),
       });
@@ -281,6 +288,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     if (!stripe) return json(res, 503, { error: 'The shop is not open yet.' });
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    // With Managed Payments there are no invoices for the page to list: Stripe emails the receipts.
+    if (managed) return json(res, 404, { error: 'Your receipts are in the emails from Stripe. For help with a purchase, email support@tardigeddon.com.' });
     const customer = await stripeCustomerId(db, user.id);
     // The purchases page is made with the first coin purchase. Items bought directly,
     // before coins existed (test payments only), have no page: don't claim "nothing bought".
@@ -424,6 +433,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             stats: user ? await playerStats(db, user.id) : { ...NO_STATS },
             // Whether coins can be bought (Slime unlocks work without Stripe).
             shop: stripe !== null,
+            // The "Purchases & receipts" page (not with Managed Payments: Stripe emails receipts).
+            receipts: stripe !== null && !managed,
             providers: Object.keys(socialProviders),
             // Whether password reset and email confirmation work (an email service is set up).
             mail: mailer !== null,

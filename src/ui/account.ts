@@ -110,7 +110,7 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
 
   const manage = el('section', 'card account-manage');
   manage.append(el('h2', 'card-title', 'Manage'));
-  if (me.shop) {
+  if (me.shop && me.receipts !== false) {
     const receipts = el('button', 'hud-btn', '🧾 Purchases & receipts');
     receipts.disabled = ctx.busy;
     receipts.onclick = () => ctx.run(managePurchases);
