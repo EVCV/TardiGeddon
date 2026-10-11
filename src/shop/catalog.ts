@@ -55,12 +55,6 @@ export const COIN_PACKS: CoinPack[] = [
   { id: 'coins:10000', coins: 10000, bonus: 3000, price: 9999 },
 ];
 
-/**
- * Packs at or above this price (pence) also need the buyer to confirm they're
- * 18 or over, or that a parent or carer has agreed (Terms 5.1.1).
- */
-export const BIG_PACK_PRICE = 2000;
-
 /** All the coins a pack gives, bonus included. */
 export function packTotal(p: CoinPack): number {
   return p.coins + p.bonus;

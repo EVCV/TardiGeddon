@@ -120,7 +120,9 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await post('/api/shop/checkout', { item: 'weapon:megaspore', consent: true }, cookie)).status).toBe(400);
     // No checkout without consent to immediate supply (losing the 14-day cancellation right).
     expect((await post('/api/shop/checkout', { item: 'coins:500' }, cookie)).status).toBe(400);
-    const r = await post('/api/shop/checkout', { item: 'coins:500', price: 1, consent: true }, cookie);
+    // Every pack needs "18 or over, or a parent or carer agreed" too, small ones included.
+    expect((await post('/api/shop/checkout', { item: 'coins:200', consent: true }, cookie)).status).toBe(400);
+    const r = await post('/api/shop/checkout', { item: 'coins:500', price: 1, consent: true, grownUp: true }, cookie);
     expect(r.status).toBe(200);
     expect(((await r.json()) as { url: string }).url).toContain('checkout.stripe.test');
     const p = checkouts.at(-1)!;
@@ -130,14 +132,13 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(p.managed_payments).toEqual({ enabled: false });
     expect(p.line_items?.[0].price_data?.tax_behavior).toBeUndefined();
     expect((await me(cookie)).receipts).toBe(true);
-    // The biggest packs also need "18 or over, or a parent or carer agreed".
+    expect(p.metadata).toHaveProperty('grownUpConfirmed');
     expect((await post('/api/shop/checkout', { item: 'coins:5000', consent: true }, cookie)).status).toBe(400);
     expect((await post('/api/shop/checkout', { item: 'coins:5000', consent: true, grownUp: true }, cookie)).status).toBe(200);
-    expect(checkouts.at(-1)!.metadata).toHaveProperty('grownUpConfirmed');
     // One Stripe customer per player, reused; an invoice (receipt) per purchase.
     expect(p.customer).toMatch(/^cus_test_/);
     expect(p.invoice_creation).toEqual({ enabled: true });
-    await post('/api/shop/checkout', { item: 'coins:200', consent: true }, cookie);
+    await post('/api/shop/checkout', { item: 'coins:200', consent: true, grownUp: true }, cookie);
     expect(checkouts.at(-1)!.customer).toBe(p.customer);
     // ...and their purchases page opens on that customer.
     const portal = await post('/api/shop/portal', {}, cookie);
@@ -161,7 +162,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
         fetch(url + path, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:5173', cookie }, body: JSON.stringify(body) });
       const su = await send('/api/auth/sign-up/email', { email: 'managed@example.com', password: 'correct horse', name: 'Tester' });
       const cookie = su.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
-      expect((await send('/api/shop/checkout', { item: 'coins:500', consent: true }, cookie)).status).toBe(200);
+      expect((await send('/api/shop/checkout', { item: 'coins:500', consent: true, grownUp: true }, cookie)).status).toBe(200);
       const p = checkouts.at(-1)!;
       expect(p.managed_payments).toEqual({ enabled: true });
       // Without "inclusive", Stripe would add tax on top of the price the shop shows.
@@ -325,7 +326,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     stripe.checkout.sessions.create = (async () => {
       throw new Error('In order to use Checkout, you must set an account or business name.');
     }) as unknown as typeof real;
-    const r = await post('/api/shop/checkout', { item: 'coins:200', consent: true }, cookie);
+    const r = await post('/api/shop/checkout', { item: 'coins:200', consent: true, grownUp: true }, cookie);
     stripe.checkout.sessions.create = real;
     expect(r.status).toBe(502);
     expect(((await r.json()) as { error: string }).error).toContain('business name');

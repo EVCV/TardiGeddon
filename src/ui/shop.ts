@@ -9,7 +9,7 @@ import { coinIcon, packArt } from './coinArt';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
-import { BIG_PACK_PRICE, COIN_PACKS, SHOP_ITEMS, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type CoinPack, type ShopItem } from '../shop/catalog';
+import { COIN_PACKS, SHOP_ITEMS, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type CoinPack, type ShopItem } from '../shop/catalog';
 import { buyCoins, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { HubContext } from './hub';
 
@@ -364,8 +364,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
       ' §5).',
     );
     consent.append(tick, text);
-    // The biggest packs also need a grown-up's say-so (Terms 5.1.1).
-    const big = pack.price >= BIG_PACK_PRICE;
+    // Every pack also needs a grown-up's say-so (Terms 5.1.1).
     const adult = el('label', 'account-check');
     const adultTick = el('input');
     adultTick.type = 'checkbox';
@@ -373,10 +372,10 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     const pay = el('button', 'big-btn coin-dialog-pay', `Pay ${formatPrice(pack.price)}`);
     const error = el('p', 'coin-dialog-error');
     error.setAttribute('role', 'alert');
-    const hint = el('p', 'coin-dialog-hint', big ? 'Tick both boxes to continue' : 'Tick the box to continue');
+    const hint = el('p', 'coin-dialog-hint', 'Tick both boxes to continue');
     let busy = false;
     const update = () => {
-      const ready = tick.checked && (!big || adultTick.checked);
+      const ready = tick.checked && adultTick.checked;
       pay.disabled = !ready || busy;
       hint.hidden = ready;
     };
@@ -388,7 +387,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
       update();
       error.textContent = '';
       try {
-        await buyCoins(pack.id, tick.checked, big && adultTick.checked);
+        await buyCoins(pack.id, tick.checked, adultTick.checked);
       } catch (e) {
         error.textContent = e instanceof Error ? e.message : String(e);
         busy = false;
@@ -396,8 +395,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
         update();
       }
     };
-    body.append(consent);
-    if (big) body.append(adult);
+    body.append(consent, adult);
     body.append(pay, hint, error, el('p', 'coin-dialog-small', '🔒 You pay on Stripe\'s secure page. Prices include VAT.'));
     update();
   }
