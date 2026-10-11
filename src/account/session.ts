@@ -22,8 +22,23 @@ export interface MeResponse {
   providers: string[];
   /** Whether the server can send email (password reset, confirming your email). */
   mail?: boolean;
+  /** Only for the owner (ADMIN_EMAILS on the server): show the Sales page. */
+  admin?: boolean;
   /** Set only on Cloudflare preview builds that can't reach the server (see refreshAccount). */
   preview?: boolean;
+}
+
+/** The owner's sales page: totals only, never who bought what. */
+export interface SalesReport {
+  /** Days covered (0 = all time). */
+  days: number;
+  players: { total: number; joined: number; buyers: number };
+  /** Coin packs paid for with money, per pack and currency (amounts in minor units, VAT included). */
+  packs: { item: string; currency: string; sold: number; amount: number; refunded: number; refundedAmount: number }[];
+  /** Coins and Slime spent in the shop, per item or bundle. */
+  spends: { item: string; currency: string; buys: number; amount: number }[];
+  /** How many players own each shop item (all time, whatever the period). */
+  owners: { item: string; owners: number }[];
 }
 
 export interface PlayerStats {
@@ -223,6 +238,11 @@ export async function deleteAccount(password: string): Promise<void> {
 export async function unlock(item: string): Promise<void> {
   await call('/api/shop/unlock', { item });
   await refreshAccount();
+}
+
+/** The owner's sales figures for the last `days` days (0 = all time). */
+export function salesReport(days: number): Promise<SalesReport> {
+  return call<SalesReport>(`/api/admin/sales?days=${days}`);
 }
 
 /** Off to Stripe's page with the player's purchases and receipts. */

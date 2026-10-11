@@ -19,7 +19,7 @@ import type { MeResponse } from '../src/account/session';
 import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, type MatchResult } from './store';
 
 export interface AccountsEnv extends MailEnv {
   DATABASE_URL?: string;
@@ -48,6 +48,8 @@ export interface AccountsEnv extends MailEnv {
   APPLE_CLIENT_ID?: string;
   APPLE_CLIENT_SECRET?: string;
   APPLE_APP_BUNDLE_IDENTIFIER?: string;
+  /** Comma-separated emails that may see the sales page (confirmed email only). */
+  ADMIN_EMAILS?: string;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -185,6 +187,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const s = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
     return s ? { id: s.user.id, name: s.user.name, email: s.user.email, emailVerified: s.user.emailVerified, createdAt: new Date(s.user.createdAt).toISOString() } : null;
   }
+
+  const admins = new Set((env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean));
+  /** The owner: an email listed in ADMIN_EMAILS, and confirmed, so nobody can sign up as it. */
+  const isAdmin = (user: MeResponse['user']): boolean => !!user && user.emailVerified === true && admins.has(user.email.toLowerCase());
 
   /** CORS for the game's own origin(s), with cookies. */
   function cors(req: IncomingMessage, res: ServerResponse): void {
@@ -447,7 +453,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // Whether password reset and email confirmation work (an email service is set up).
             mail: mailer !== null,
           };
+          if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
+        } else if (path === '/api/admin/sales' && req.method === 'GET') {
+          // Anyone else gets "not found", so the page isn't even known to exist.
+          const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
+          if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: 'Not found.' });
+          else json(res, 200, await salesReport(db, [1, 7, 30, 365].includes(days) ? days : 0));
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
         } else if (path === '/api/shop/unlock' && req.method === 'POST') {
