@@ -271,6 +271,29 @@ the background (so the timing doesn't tell either), allows 3 such requests a
 minute per IP address, and never logs addresses. Email confirmation is
 encouraged on the Account page but not required to play or buy.
 
+### 8. Your Sales page
+
+A **📈 Sales** tab in the game's menu, for the owner only. It shows the
+following for today, 7 days, 30 days, a year or all time:
+
+- coin packs sold and refunded, and the money taken (VAT included)
+- new and paying players
+- what players spend coins and Slime on, bundles included
+- the most-owned items
+
+It shows totals only, never who bought what. The spend log behind it isn't
+linked to players.
+
+```
+fly secrets set ADMIN_EMAILS=you@example.com
+```
+
+Use the email of your game account; separate several with commas. It only
+counts once that account's **email is confirmed**, so nobody can claim it by
+signing up with your address. Anyone else asking for the figures gets "not
+found". Stripe's dashboard remains the record of what reaches your bank after
+VAT and fees.
+
 ### Optional: Google and Apple sign-in
 
 - **Google:** console.cloud.google.com → APIs & Services → Credentials →

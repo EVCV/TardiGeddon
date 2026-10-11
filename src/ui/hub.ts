@@ -8,11 +8,12 @@ import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
+import { newSalesState, renderSalesPage } from './sales';
 import { compact } from './dashboard';
 import { LEGAL } from './account';
 import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
 
-export type HubTab = 'lobby' | 'stats' | 'shop' | 'account';
+export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'sales';
 
 /** What the pages get from the hub. */
 export interface HubContext {
@@ -37,6 +38,8 @@ const TABS: [HubTab, string, string][] = [
   ['stats', '📊', 'Stats'],
   ['shop', '🛍️', 'Shop'],
   ['account', '👤', 'Account'],
+  // Only for the owner (me.admin).
+  ['sales', '📈', 'Sales'],
 ];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -68,6 +71,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   let previewDismissed = false;
   const shopState = newShopState();
   const signInState = newSignInState();
+  const salesState = newSalesState();
   let lobby: Lobby | null = null;
 
   const ctx: HubContext = {
@@ -116,7 +120,8 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
     // Without accounts there's only the lobby, so no tabs at all.
     tabs.classList.toggle('hidden', !me);
     for (const [t, icon, label] of TABS) {
-      const b = el('button', 'seg-btn' + (tab === t ? ' on' : ''));
+      if (t === 'sales' && !me?.admin) continue;
+      const b = el('button', 'seg-btn' + (tab === t ? ' on' : '') + (t === 'sales' ? ' tab-owner' : ''));
       b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', label));
       b.setAttribute('aria-label', label);
       if (tab === t) b.setAttribute('aria-current', 'page');
@@ -156,6 +161,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
     const { me, loaded } = account();
     // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
     if (loaded && !me && tab !== 'lobby') tab = 'lobby';
+    if (loaded && tab === 'sales' && !me?.admin) tab = 'lobby';
     shell.dataset.tab = tab;
     renderBar();
 
@@ -185,7 +191,15 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
       page.replaceChildren(el('p', 'page-loading', 'Loading…'));
       return;
     }
-    page.replaceChildren(tab === 'stats' ? renderStatsPage(me, ctx) : tab === 'shop' ? renderShop(me, ctx, shopState) : renderAccountPage(me, ctx, signInState));
+    page.replaceChildren(
+      tab === 'stats'
+        ? renderStatsPage(me, ctx)
+        : tab === 'shop'
+          ? renderShop(me, ctx, shopState)
+          : tab === 'sales'
+            ? renderSalesPage(me, ctx, salesState)
+            : renderAccountPage(me, ctx, signInState),
+    );
   };
 
   const off = onAccountChange(render);

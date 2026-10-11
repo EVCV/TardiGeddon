@@ -6,9 +6,10 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
+import type { SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
-import { migrate } from '../server/store';
+import { migrate, revokePurchase } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 
@@ -59,10 +60,10 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
       { stripe, mailer },
     );
-    await accounts.db.query('DELETE FROM purchase; DELETE FROM "user";');
+    await accounts.db.query('DELETE FROM purchase; DELETE FROM spend; DELETE FROM "user";');
     server = createServer((req, res) => void accounts.handle(req, res));
     await new Promise<void>((r) => server.listen(0, r));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -221,6 +222,54 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect([...m.owned].sort()).toEqual([...sweet.items].sort());
     expect((await post('/api/shop/unlock', { item: 'bundle:sweet' }, cookie)).status).toBe(409);
     expect((await post('/api/shop/unlock', { item: 'bundle:nope' }, cookie)).status).toBe(400);
+  });
+
+  it('shows the sales page to the owner only, once their email is confirmed', async () => {
+    const sales = (cookie: string, days = 30) => fetch(`${base}/api/admin/sales?days=${days}`, { headers: { cookie } });
+    const { cookie: someone } = await signUp('someone@example.com');
+    expect((await sales(someone)).status).toBe(404);
+    expect((await me(someone)).admin).toBeUndefined();
+    // Anyone could sign up with the owner's address, so it only counts once confirmed.
+    const boss = await signUp('boss@example.com');
+    expect((await sales(boss.cookie)).status).toBe(404);
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [boss.id]);
+    expect((await me(boss.cookie)).admin).toBe(true);
+    const r = await sales(boss.cookie);
+    expect(r.status).toBe(200);
+    const report = (await r.json()) as SalesReport;
+    expect(report.days).toBe(30);
+    // The bundle test above: one 2,000-coin pack, the party hat, then the rest of the Sweet bundle.
+    const pack = report.packs.find((p) => p.item === 'coins:2000');
+    expect(pack?.sold).toBeGreaterThanOrEqual(1);
+    expect(report.spends.find((x) => x.item === 'bundle:sweet')?.buys).toBe(1);
+    expect(report.spends.find((x) => x.item === 'hat:party')?.amount).toBeGreaterThanOrEqual(100);
+    expect(report.owners.find((o) => o.item === 'hat:party')?.owners).toBeGreaterThanOrEqual(1);
+    expect(report.players.total).toBeGreaterThanOrEqual(2);
+    // Totals only: nothing about who bought what.
+    expect(JSON.stringify(report)).not.toMatch(/@|user_?id/i);
+    expect((await (await sales(boss.cookie, 0)).json()).days).toBe(0);
+
+    // A pack bought 60 days ago and refunded today: a refund this week, not a sale.
+    await accounts.db.query(
+      `INSERT INTO purchase (id, user_id, item, amount, currency, payment_intent, status, created_at)
+       VALUES ('cs_old', NULL, 'coins:10000', 9999, 'gbp', 'pi_old', 'paid', now() - interval '60 days')`,
+    );
+    await revokePurchase(accounts.db, 'pi_old', 'refunded');
+    const week = (await (await sales(boss.cookie, 7)).json()) as SalesReport;
+    expect(week.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 0, refunded: 1, refundedAmount: 9999 });
+    const year = (await (await sales(boss.cookie, 365)).json()) as SalesReport;
+    expect(year.packs.find((p) => p.item === 'coins:10000')).toMatchObject({ sold: 1, amount: 9999, refunded: 1 });
+  });
+
+  it('fills the sales log from unlocks made before it existed, once', async () => {
+    const count = async (sql: string) => Number((await accounts.db.query<{ n: string }>(sql)).rows[0].n);
+    const unlocks = await count(`SELECT count(*) AS n FROM inventory WHERE source IN ('coins', 'slime')`);
+    expect(unlocks).toBeGreaterThan(0);
+    await accounts.db.query('DELETE FROM spend');
+    await migrate(accounts.db);
+    expect(await count('SELECT count(*) AS n FROM spend')).toBe(unlocks);
+    await migrate(accounts.db);
+    expect(await count('SELECT count(*) AS n FROM spend')).toBe(unlocks);
   });
 
   it('only accepts shop and stats requests from the game itself', async () => {

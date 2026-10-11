@@ -6,7 +6,8 @@
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
-import { bundle, bundlePrice, coinPack, packTotal, shopItem } from '../src/shop/catalog';
+import { SHOP_ITEMS, bundle, bundlePrice, coinPack, packTotal, shopItem } from '../src/shop/catalog';
+import type { SalesReport } from '../src/account/session';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -30,6 +31,8 @@ export async function migrate(db: Pool): Promise<void> {
     CREATE INDEX IF NOT EXISTS purchase_payment_intent ON purchase (payment_intent);
     -- Coins a coin-pack payment gave, bonus included (taken back exactly on a refund).
     ALTER TABLE purchase ADD COLUMN IF NOT EXISTS coins integer;
+    -- When a refund or chargeback happened, so the sales page counts it on that day.
+    ALTER TABLE purchase ADD COLUMN IF NOT EXISTS refunded_at timestamptz;
     -- Coin packs bought before bonus coins existed gave exactly their base amount (the number in the id).
     UPDATE purchase SET coins = split_part(item, ':', 2)::int WHERE coins IS NULL AND item ~ '^coins:[0-9]+$';
     CREATE TABLE IF NOT EXISTS player_stats (
@@ -54,11 +57,55 @@ export async function migrate(db: Pool): Promise<void> {
       cpu_slime_day   date,
       cpu_slime_today integer NOT NULL DEFAULT 0
     );
+    -- Every coin or Slime spend, a bundle as one row, for the owner's sales page.
+    -- Deliberately not linked to the player: only totals are ever needed.
+    CREATE TABLE IF NOT EXISTS spend (
+      id       bigserial PRIMARY KEY,
+      item     text NOT NULL,
+      currency text NOT NULL,
+      amount   integer NOT NULL,
+      at       timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS spend_at ON spend (at);
     CREATE TABLE IF NOT EXISTS stripe_customer (
       user_id     text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       customer_id text NOT NULL UNIQUE
     );
   `);
+  await backfillSpends(db);
+}
+
+/**
+ * Unlocks from before the spend log existed: count each one at today's
+ * price (bundles bought then show as their separate items).
+ */
+async function backfillSpends(db: Pool): Promise<void> {
+  const priced = SHOP_ITEMS.flatMap((i) => [
+    ...(i.coins !== undefined ? [{ item: i.id, currency: 'coins', price: i.coins }] : []),
+    ...(i.slime !== undefined ? [{ item: i.id, currency: 'slime', price: i.slime }] : []),
+  ]);
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    // One server at a time, and all of it or none: an empty log means it hasn't run yet.
+    await c.query("SELECT pg_advisory_xact_lock(hashtext('spend_backfill'))");
+    const logged = await c.query('SELECT 1 FROM spend LIMIT 1');
+    if (!logged.rowCount) {
+      await c.query(
+        `INSERT INTO spend (item, currency, amount, at)
+         SELECT i.item, i.source, p.price, i.granted_at
+         FROM inventory i
+         JOIN unnest($1::text[], $2::text[], $3::int[]) AS p(item, currency, price) ON p.item = i.item AND p.currency = i.source`,
+        [priced.map((p) => p.item), priced.map((p) => p.currency), priced.map((p) => p.price)],
+      );
+    }
+    await c.query('COMMIT');
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
 }
 
 export async function stripeCustomerId(db: Pool, userId: string): Promise<string | null> {
@@ -280,6 +327,7 @@ export async function unlockItem(db: Pool, userId: string, itemId: string): Prom
       return 'poor';
     }
     await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, $3)`, [userId, item.id, currency]);
+    await c.query('INSERT INTO spend (item, currency, amount) VALUES ($1, $2, $3)', [item.id, currency, price]);
     await c.query('COMMIT');
     return 'ok';
   } catch (e) {
@@ -317,6 +365,7 @@ export async function unlockBundle(db: Pool, userId: string, bundleId: string): 
     for (const id of b.items) {
       if (!owned.includes(id)) await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, 'coins')`, [userId, id]);
     }
+    await c.query(`INSERT INTO spend (item, currency, amount) VALUES ($1, 'coins', $2)`, [b.id, price]);
     await c.query('COMMIT');
     return 'ok';
   } catch (e) {
@@ -372,7 +421,7 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
  */
 export async function revokePurchase(db: Pool, paymentIntent: string, status: 'refunded' | 'disputed'): Promise<void> {
   const r = await db.query<{ user_id: string | null; item: string; coins: number | null }>(
-    `UPDATE purchase SET status = $2 WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item, coins`,
+    `UPDATE purchase SET status = $2, refunded_at = now() WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item, coins`,
     [paymentIntent, status],
   );
   for (const row of r.rows) {
@@ -382,4 +431,49 @@ export async function revokePurchase(db: Pool, paymentIntent: string, status: 'r
     if (pack) await credit(db, row.user_id, -(row.coins ?? pack.coins), 0);
     else await db.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
   }
+}
+
+export async function salesReport(db: Pool, days: number): Promise<SalesReport> {
+  // $1 = 0 means all time.
+  const since = `($1::int = 0 OR %s >= now() - make_interval(days => $1::int))`;
+  const [players, packs, spends, owners] = await Promise.all([
+    db.query<{ total: string; joined: string; buyers: string }>(
+      `SELECT (SELECT count(*) FROM "user") AS total,
+              (SELECT count(*) FROM "user" WHERE ${since.replace('%s', '"createdAt"')}) AS joined,
+              (SELECT count(DISTINCT user_id) FROM purchase WHERE status = 'paid' AND ${since.replace('%s', 'created_at')}) AS buyers`,
+      [days],
+    ),
+    // Sales count in the period they were made, refunds in the period they happened
+    // (refunds from before refunded_at existed count on the purchase date).
+    db.query<{ item: string; currency: string; sold: string; amount: string; refunded: string; refunded_amount: string }>(
+      `SELECT item, currency,
+              count(*) FILTER (WHERE sale) AS sold,
+              coalesce(sum(amount) FILTER (WHERE sale), 0) AS amount,
+              count(*) FILTER (WHERE NOT sale) AS refunded,
+              coalesce(sum(amount) FILTER (WHERE NOT sale), 0) AS refunded_amount
+       FROM (
+         SELECT item, currency, amount, true AS sale FROM purchase WHERE ${since.replace('%s', 'created_at')}
+         UNION ALL
+         SELECT item, currency, amount, false FROM purchase WHERE status <> 'paid' AND ${since.replace('%s', 'coalesce(refunded_at, created_at)')}
+       ) AS p
+       GROUP BY item, currency ORDER BY amount DESC`,
+      [days],
+    ),
+    db.query<{ item: string; currency: string; buys: string; amount: string }>(
+      `SELECT item, currency, count(*) AS buys, sum(amount) AS amount
+       FROM spend WHERE ${since.replace('%s', 'at')}
+       GROUP BY item, currency ORDER BY amount DESC`,
+      [days],
+    ),
+    db.query<{ item: string; owners: string }>('SELECT item, count(*) AS owners FROM inventory GROUP BY item ORDER BY owners DESC, item'),
+  ]);
+  const n = (v: string) => Number(v);
+  const p = players.rows[0];
+  return {
+    days,
+    players: { total: n(p.total), joined: n(p.joined), buyers: n(p.buyers) },
+    packs: packs.rows.map((r) => ({ item: r.item, currency: r.currency, sold: n(r.sold), amount: n(r.amount), refunded: n(r.refunded), refundedAmount: n(r.refunded_amount) })),
+    spends: spends.rows.map((r) => ({ item: r.item, currency: r.currency, buys: n(r.buys), amount: n(r.amount) })),
+    owners: owners.rows.map((r) => ({ item: r.item, owners: n(r.owners) })),
+  };
 }

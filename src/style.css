@@ -1273,3 +1273,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pack-rate { font-size: 11px; font-weight: 800; opacity: .7; }
 .coin-pack.best { background: radial-gradient(circle at 50% 30%, #fff, #ffd84a 85%); }
 .coin-pack.best .pack-tag { background: var(--moss); font-size: 17px; }
+
+/* ---- Sales page (owner only) ---- */
+.sales-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.sales-big { margin-bottom: 10px; }
+.sales-big .stat-value { font-size: 26px; overflow-wrap: anywhere; }
+.sales-people { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sales-people .stat-value { font-size: 24px; }
+.sales-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sales-row { display: grid; grid-template-columns: minmax(0, 14em) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-weight: 700; }
+.sales-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-track { height: 14px; }
+.sales-bar { display: block; height: 100%; background: var(--sky-deep); border-radius: 0 4px 4px 0; }
+.sales-value { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14px; }
+@media (max-width: 560px) {
+  .sales-people { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sales-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .sales-track { grid-column: 1 / -1; grid-row: 2; height: 10px; }
+  .sales-head .seg { width: 100%; }
+  .sales-head .seg-btn { flex: 1; justify-content: center; padding: 6px 2px; font-size: 14px; }
+}
+/* The owner's extra tab is just its icon on phones, so the others keep their labels. */
+@media (max-width: 720px) {
+  .hub-tabs .seg-btn.tab-owner { flex: none; padding: 6px 8px; }
+  .tab-owner .tab-label { display: none; }
+}
+/* Very narrow phones with that fifth tab: icons only (each keeps its aria-label). */
+@media (max-width: 400px) {
+  .hub-tabs:has(.tab-owner) .tab-label { display: none; }
+}
