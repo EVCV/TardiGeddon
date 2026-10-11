@@ -294,6 +294,19 @@ signing up with your address. Anyone else asking for the figures gets "not
 found". Stripe's dashboard remains the record of what reaches your bank after
 VAT and fees.
 
+**Starting the figures from zero** (e.g. after testing) keeps players'
+accounts, items, coins and Slime. In Neon's **SQL Editor**:
+
+```sql
+DELETE FROM purchase;
+DELETE FROM spend;
+```
+
+Do this only while every purchase is a test. A real purchase's record is
+what lets a later refund take its coins back. The log isn't refilled
+afterwards: the one-time fill from older unlocks is recorded in `done_once`.
+"Most owned" counts the items players own, so it keeps any test unlocks.
+
 ### Optional: Google and Apple sign-in
 
 - **Google:** console.cloud.google.com → APIs & Services → Credentials →
