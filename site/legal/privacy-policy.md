@@ -165,7 +165,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 4.2 International Transfers
 
-4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon and Stripe) are based in the United States or operate worldwide networks, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
+4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon and Stripe) are based in the United States or operate worldwide networks, and 20i may use subcontractors outside the United Kingdom, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
 
 4.2.2 You may request further information about these safeguards by contacting privacy@tardigeddon.com.
 
