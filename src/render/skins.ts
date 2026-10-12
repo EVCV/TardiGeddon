@@ -42,6 +42,14 @@ export const SKINS: SkinDef[] = [
   { id: 'toxic', name: 'Toxic', body: 0xb6f23a, shade: 0x86c41e, mouth: 0x4a7a1a, pattern: 'spots', mark: 0x7a3ad0 },
   { id: 'frost', name: 'Frostbite', body: 0xd8f2ff, shade: 0xa6d4ef, mouth: 0x6aa6d0, pattern: 'seeds', mark: 0x5a9bd0 },
   { id: 'galaxy', name: 'Galaxy', body: 0x3a2a6a, shade: 0x271c4c, mouth: 0xa86af0, pattern: 'seeds', mark: 0xfff6c2 },
+  { id: 'peach', name: 'Peachy', body: 0xffc9a8, shade: 0xf2a580, mouth: 0xe07a6a, pattern: 'none', mark: 0 },
+  { id: 'lavender', name: 'Lavender', body: 0xd8c4f2, shade: 0xb4a0dc, mouth: 0x8f6ac8, pattern: 'none', mark: 0 },
+  { id: 'cookie', name: 'Cookie', body: 0xd9a86a, shade: 0xb8864a, mouth: 0x7a4a26, pattern: 'spots', mark: 0x5a3216 },
+  { id: 'ladybug', name: 'Ladybird', body: 0xe8383a, shade: 0xbf2228, mouth: 0x2b1b24, pattern: 'spots', mark: 0x2b1b24 },
+  { id: 'bee', name: 'Busy bee', body: 0xffd23a, shade: 0xe0aa1a, mouth: 0x2b1b24, pattern: 'stripes', mark: 0x2b1b24 },
+  { id: 'mermaid', name: 'Mermaid', body: 0x5fd6c8, shade: 0x36a8a0, mouth: 0x2a7a8a, pattern: 'seeds', mark: 0xc8fff4 },
+  { id: 'shadow', name: 'Shadow', body: 0x4a3a62, shade: 0x302446, mouth: 0x1a1226, pattern: 'spots', mark: 0x8a6ad0 },
+  { id: 'ruby', name: 'Ruby', body: 0xe0204a, shade: 0xa81232, mouth: 0x700a20, pattern: 'shine', mark: 0xffc8d6 },
   { id: 'diamond', name: 'Diamond', body: 0xbff3ff, shade: 0x8fd6ef, mouth: 0x6ab0d8, pattern: 'shine', mark: 0xffffff },
 ];
 

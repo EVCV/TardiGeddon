@@ -10,6 +10,7 @@ import { TardiView, type Mood } from './tardiView';
 import { ObjectView } from './objectView';
 import { PALETTE, hex } from './palette';
 import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
+import { arenaTheme, type ArenaTheme } from './arenas';
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
@@ -48,6 +49,9 @@ export class GameRenderer {
   readonly camera = new Camera();
   private world = new Container();
   private sky: Sprite;
+  /** Stars, snow or embers over the sky (arena themes), in screen space. */
+  private ambient = new Graphics();
+  private ambientBits: { x: number; y: number; r: number; v: number; p: number }[] = [];
   private hills = new Graphics();
   private hillsNear = new Graphics();
   private terrainView: TerrainView;
@@ -82,10 +86,18 @@ export class GameRenderer {
   constructor(
     private app: Application,
     private state: WorldState,
+    /** This player's own arena theme: only they see it. */
+    private theme: ArenaTheme = arenaTheme('classic'),
   ) {
-    this.sky = new Sprite(makeSkyTexture());
-    app.stage.addChild(this.sky);
-    this.terrainView = new TerrainView(state.terrain);
+    this.sky = new Sprite(makeSkyTexture(theme));
+    app.stage.addChild(this.sky, this.ambient);
+    if (theme.stars || theme.drift) {
+      // Positions are fractions of the screen, so they fit any size.
+      for (let i = 0; i < (theme.stars ? 70 : 0) + (theme.drift ? 60 : 0); i++) {
+        this.ambientBits.push({ x: Math.random(), y: Math.random(), r: 0.8 + Math.random() * 1.8, v: 0.02 + Math.random() * 0.05, p: Math.random() * 6.28 });
+      }
+    }
+    this.terrainView = new TerrainView(state.terrain, theme);
     this.world.addChild(
       this.hills,
       this.hillsNear,
@@ -164,7 +176,7 @@ export class GameRenderer {
           for (let i = 0; i < 14; i++) {
             this.particles.push({
               x: e.x, y: this.state.waterY, vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
-              life: 0.8, max: 0.8, r: 2 + Math.random() * 2, color: PALETTE.waterLight, kind: 'debris',
+              life: 0.8, max: 0.8, r: 2 + Math.random() * 2, color: this.theme.waterLight, kind: 'debris',
             });
           }
           break;
@@ -177,6 +189,11 @@ export class GameRenderer {
           const t = this.state.tardis.find((x) => x.id === e.tardi);
           const label = e.contents === 'health' ? `+${e.amount}` : (WEAPONS[e.contents]?.name ?? e.contents);
           if (t) this.floatText(label, t.x, t.y - 40, e.contents === 'health' ? 0x5cff7a : 0xffd84a);
+          break;
+        }
+        case 'heal': {
+          const t = this.state.tardis.find((x) => x.id === e.id);
+          if (t) this.floatText(`+${e.amount}`, t.x, t.y - 46, 0x5cff7a);
           break;
         }
         case 'damage': {
@@ -384,7 +401,7 @@ export class GameRenderer {
       const sp = 2 + Math.random() * 4;
       this.particles.push({
         x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 1.2, max: 1.2, r: 1.5 + Math.random() * 1.5, color: st.debris ? st.debris[i % st.debris.length] : PALETTE.soil[2], kind: 'debris',
+        life: 1.2, max: 1.2, r: 1.5 + Math.random() * 1.5, color: st.debris ? st.debris[i % st.debris.length] : this.theme.soil[2], kind: 'debris',
       });
     }
     if (st.extra) {
@@ -411,6 +428,7 @@ export class GameRenderer {
     const { width, height } = this.app.screen;
     this.sky.width = width;
     this.sky.height = height;
+    this.drawAmbient(width, height, dt);
 
     // Tardis
     const active = activeTardi(s);
@@ -706,8 +724,8 @@ export class GameRenderer {
     const right = w + 2000;
     const wy = s.waterY;
     for (const [g, offset, color, alpha] of [
-      [this.waterBack, 0, PALETTE.waterLight, 0.7],
-      [this.waterFront, 1.7, PALETTE.water, 0.88],
+      [this.waterBack, 0, this.theme.waterLight, 0.7],
+      [this.waterFront, 1.7, this.theme.water, 0.88],
     ] as const) {
       g.clear();
       g.moveTo(left, wy + 8000);
@@ -719,12 +737,34 @@ export class GameRenderer {
     }
   }
 
+  /** Twinkling stars, falling snow or rising embers (arena themes). */
+  private drawAmbient(width: number, height: number, dt: number): void {
+    const g = this.ambient;
+    g.clear();
+    const th = this.theme;
+    const stars = th.stars ? 70 : 0;
+    this.ambientBits.forEach((b, i) => {
+      if (i < stars) {
+        // Stars sit in the top two thirds and twinkle.
+        const a = 0.45 + 0.55 * Math.abs(Math.sin(this.time * 1.3 + b.p));
+        g.circle(b.x * width, b.y * height * 0.66, b.r).fill({ color: 0xffffff, alpha: a });
+        return;
+      }
+      const d = th.drift!;
+      b.y += (d.up ? -b.v : b.v) * dt * 4;
+      if (b.y > 1.05) b.y -= 1.1;
+      if (b.y < -0.05) b.y += 1.1;
+      const x = b.x * width + Math.sin(this.time * 0.8 + b.p) * 12;
+      g.circle(x, b.y * height, b.r + 0.6).fill({ color: d.color, alpha: d.up ? 0.75 : 0.9 });
+    });
+  }
+
   private drawHills(): void {
     const w = this.state.terrain.w;
     const h = this.state.waterY;
     for (const [g, color, amp, base, freq] of [
-      [this.hills, PALETTE.hillFar, 90, h - 260, 0.004],
-      [this.hillsNear, PALETTE.hillNear, 70, h - 170, 0.007],
+      [this.hills, this.theme.hillFar, 90, h - 260, 0.004],
+      [this.hillsNear, this.theme.hillNear, 70, h - 170, 0.007],
     ] as const) {
       g.moveTo(-3000, h + 3000);
       for (let x = -3000; x <= w + 3000; x += 25) {
@@ -778,6 +818,7 @@ export class GameRenderer {
     this.app.stage.removeChildren();
     this.world.destroy({ children: true });
     this.sky.destroy();
+    this.ambient.destroy();
   }
 }
 
@@ -944,6 +985,55 @@ function drawProjectile(g: Graphics, weapon: string, x: number, y: number, vx: n
       g.moveTo(x - c * 0.5, y - sn * 0.5).lineTo(x + c * 0.3, y + sn * 0.3).stroke({ width: 1, color: 0xffffff });
       break;
     }
+    case 'gloop': {
+      // A wobbly purple blob of goo
+      const wob = Math.sin((x + y) * 0.3) * 0.8;
+      g.ellipse(x, y, 6 + wob, 5.5 - wob).fill(0xa86af0).stroke({ width: 1.5, color: O });
+      g.circle(x - 2, y - 2, 1.5).fill(0xe8d4ff);
+      g.circle(x + 3, y + 3.5, 1.4).fill(0xa86af0).stroke({ width: 1, color: O });
+      break;
+    }
+    case 'drill': {
+      // Earthworm with a spinning drill-bit nose
+      const len = Math.hypot(vx, vy) || 1;
+      const dx = vx / len;
+      const dy = vy / len;
+      for (let i = 3; i >= 1; i--) g.circle(x - dx * i * 4, y - dy * i * 4, 3.4).fill(0xf29a9a).stroke({ width: 1.2, color: O });
+      g.poly([x + dx * 9, y + dy * 9, x - dy * 4, y + dx * 4, x + dy * 4, y - dx * 4]).fill(0xc3cad6).stroke({ width: 1.3, color: O });
+      break;
+    }
+    case 'gale': {
+      // A round gourd with swirly wind marks
+      g.circle(x, y + 1, 5.5).fill(0xf0c060).stroke({ width: 1.5, color: O });
+      g.circle(x, y - 5, 2.6).fill(0xf0c060).stroke({ width: 1.2, color: O });
+      g.moveTo(x - 3, y).quadraticCurveTo(x, y - 3, x + 3, y).stroke({ width: 1.1, color: 0xffffff });
+      break;
+    }
+    case 'leech': {
+      // A green leech, curled round
+      g.ellipse(x, y, 7, 4.5).fill(0x3cb34a).stroke({ width: 1.5, color: O });
+      g.circle(x + 5, y - 1, 2.4).fill(0x2a8a38).stroke({ width: 1.1, color: O });
+      g.moveTo(x - 4, y - 1.5).lineTo(x + 1, y - 1.5).stroke({ width: 1, color: 0xa8f08a });
+      break;
+    }
+    case 'pinball':
+      g.circle(x, y, 4.5).fill(0xffd84a).stroke({ width: 1.5, color: O });
+      g.circle(x - 1.4, y - 1.4, 1.4).fill(0xffffff);
+      break;
+    case 'megaspore':
+      g.circle(x, y, 7).fill(0xe04848).stroke({ width: 1.6, color: O });
+      g.circle(x - 2.5, y - 2, 1.6).fill(0xffffff);
+      g.circle(x + 2.5, y + 1.5, 1.3).fill(0xffffff);
+      break;
+    case 'swarm':
+      g.circle(x, y, 5).fill(0x7fd3f7).stroke({ width: 1.5, color: O });
+      g.circle(x - 1.5, y - 1.5, 1.4).fill(0xffffff);
+      break;
+    case 'balloon':
+      g.circle(x, y, 7).fill({ color: 0x63b7ff, alpha: 0.9 }).stroke({ width: 1.6, color: O });
+      g.circle(x - 2.5, y - 2.5, 1.8).fill(0xffffff);
+      g.poly([x - 1.5, y + 7, x + 1.5, y + 7, x, y + 9]).fill(0x63b7ff).stroke({ width: 1, color: O });
+      break;
     default:
       g.circle(x, y, 3).fill(0xffffff).stroke({ width: 1, color: O });
   }
@@ -962,14 +1052,14 @@ function makeHusk(x: number, y: number, color: number): Graphics {
   return g;
 }
 
-function makeSkyTexture(): Texture {
+function makeSkyTexture(theme: ArenaTheme): Texture {
   const c = document.createElement('canvas');
   c.width = 4;
   c.height = 256;
   const ctx = c.getContext('2d')!;
   const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, PALETTE.skyTop);
-  grad.addColorStop(1, PALETTE.skyBottom);
+  grad.addColorStop(0, theme.skyTop);
+  grad.addColorStop(1, theme.skyBottom);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 4, 256);
   return Texture.from(c);

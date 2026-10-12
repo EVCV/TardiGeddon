@@ -884,6 +884,14 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
   p.age++;
   if (p.fuse > 0 && --p.fuse === 0) return { k: 'explode', x: p.x, y: p.y };
   if (spec.walker) return stepWalker(s, p, spec.walker.speed, events);
+  // Gloop Bomb: once stuck it stays put, even if the ground is blown away.
+  if (spec.sticky && p.hits > 0) return { k: 'alive' };
+  if (spec.drill && p.hits > 0) {
+    // Earthworm Drill: slows as it burrows, then goes off.
+    if (++p.hits > spec.drill) return { k: 'explode', x: p.x, y: p.y };
+    p.vx *= 0.92;
+    p.vy *= 0.92;
+  }
   if (spec.homing && p.age > HOMING_START && p.age < HOMING_START + HOMING_TICKS) {
     // Steer towards the target instead of falling.
     const dx = p.tx - p.x;
@@ -926,6 +934,23 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
       }
     }
     if (circleCollides(s.terrain, nx, ny, size)) {
+      if (spec.drill) {
+        // Into the ground it goes.
+        if (p.hits === 0) {
+          p.hits = 1;
+          events?.push({ t: 'bounce', x: nx, y: ny });
+        }
+        p.x = nx;
+        p.y = ny;
+        continue;
+      }
+      if (spec.sticky) {
+        p.vx = 0;
+        p.vy = 0;
+        p.hits = 1;
+        events?.push({ t: 'bounce', x: p.x, y: p.y });
+        return { k: 'alive' };
+      }
       if (spec.bounce === null) return { k: 'explode', x: nx, y: ny };
       const n = normalAt(s.terrain, nx, ny, 4);
       const dot = p.vx * n.nx + p.vy * n.ny;
@@ -965,7 +990,16 @@ function updateProjectiles(s: WorldState, events: SimEvent[]): void {
     }
     if (r.k === 'explode') {
       const spec = WEAPONS[p.weapon].projectile!;
-      explode(s, r.x, r.y, spec.radius, spec.damage, events);
+      const dealt = explode(s, r.x, r.y, spec.radius, spec.damage, events, spec.knock ?? 1);
+      if (spec.drain) {
+        // Leech Lobber: the shooter gets some of it back.
+        const me = getTardi(s, p.owner);
+        const amount = Math.round(dealt * spec.drain);
+        if (me?.alive && amount > 0) {
+          me.hp += amount;
+          events.push({ t: 'heal', id: me.id, amount });
+        }
+      }
       if (spec.poison) poisonCloud(s, r.x, r.y, spec.poison, events);
       if (spec.fire) spillFlames(s, r.x, r.y, spec.fire.count, spec.fire.acid === true);
       if (spec.cluster) {
@@ -988,8 +1022,12 @@ export function explode(
   radius: number,
   damage: number,
   events: SimEvent[],
-): void {
+  /** Knock-back multiplier (Gale Gourd). */
+  knock = 1,
+): number {
   const rect = carveCircle(s.terrain, x, y, radius);
+  /** Damage done to other teams' tardis (Leech Lobber heals from it). */
+  let dealt = 0;
   events.push({ t: 'explosion', x, y, r: radius, rect, team: s.turn.teamIdx });
   const reach = radius + TARDI_R;
   for (const t of s.tardis) {
@@ -1000,7 +1038,8 @@ export function explode(
     if (d >= reach) continue;
     const f = 1 - d / reach;
     const dmg = Math.round(damage * (0.25 + 0.75 * f));
-    const imp = f * damage * 0.11;
+    if (t.team !== s.turn.teamIdx) dealt += dmg;
+    const imp = f * damage * 0.11 * knock;
     const nx = d < 1 ? 0 : dx / d;
     const ny = d < 1 ? -1 : dy / d;
     t.vx += nx * imp;
@@ -1037,7 +1076,7 @@ export function explode(
     if (o.kind === 'mine' && o.fuse === -1 && !o.dud) {
       o.fuse = 1; // chain reaction: blast sets mines off at once
     }
-    const imp = f * damage * 0.1;
+    const imp = f * damage * 0.1 * knock;
     o.vx += (d < 1 ? 0 : dx / d) * imp;
     o.vy += (d < 1 ? -1 : dy / d) * imp - imp * 0.35;
     o.airborne = true;
@@ -1051,6 +1090,7 @@ export function explode(
     p.vx += (dx / d) * imp;
     p.vy += (dy / d) * imp;
   }
+  return dealt;
 }
 
 // ---------------------------------------------------------------- tardi physics

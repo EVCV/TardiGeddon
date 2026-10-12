@@ -12,8 +12,11 @@
 // Anything not listed here is free for everyone. Never rename an item id
 // once it has been sold or unlocked: inventories store it.
 
-/** aim: how your aim marker and power bar look; fx: how your explosions look. */
-export type ItemKind = 'hat' | 'skin' | 'aim' | 'fx' | 'weapon';
+/**
+ * aim: how your aim marker and power bar look; fx: how your explosions look;
+ * arena: the sky, hills, water and ground you see (only you see it).
+ */
+export type ItemKind = 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'weapon';
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface ShopItem {
@@ -86,6 +89,9 @@ const aim = (ref: string, name: string, blurb: string, rarity: Rarity, coins: nu
 const fx = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
   id: `fx:${ref}`, kind: 'fx', ref, name, blurb, rarity, coins,
 });
+const arena = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
+  id: `arena:${ref}`, kind: 'arena', ref, name, blurb, rarity, coins,
+});
 const weapon = (ref: string, name: string, blurb: string, rarity: Rarity, slime: number): ShopItem => ({
   id: `weapon:${ref}`, kind: 'weapon', ref, name, blurb, rarity, slime,
 });
@@ -148,10 +154,26 @@ export const SHOP_ITEMS: ShopItem[] = [
   skin('frost', 'Frostbite', 'Cool under pressure.', 'epic', { coins: 1000 }),
   skin('galaxy', 'Galaxy', 'A universe of stars in one tiny body.', 'legendary', { coins: 2000 }),
   skin('diamond', 'Diamond', 'Sparkles. Absolutely no extra armour.', 'legendary', { coins: 2500 }),
+  skin('peach', 'Peachy', 'Soft, fuzzy and ready to rumble.', 'common', { coins: 300 }),
+  skin('lavender', 'Lavender', 'Calm, relaxing, explosive.', 'common', { coins: 300 }),
+  skin('cookie', 'Cookie', 'Chocolate chips included.', 'rare', { coins: 400 }),
+  skin('ladybug', 'Ladybird', 'Lucky spots. Unlucky enemies.', 'rare', { coins: 500 }),
+  skin('bee', 'Busy bee', 'Buzzing with bad intentions.', 'rare', { coins: 500 }),
+  skin('mermaid', 'Mermaid', 'Shimmering scales from the deep.', 'epic', { coins: 900 }),
+  skin('shadow', 'Shadow', 'Blends into the dark. Mostly.', 'epic', { coins: 1200 }),
+  skin('ruby', 'Ruby', 'A precious, polished red gem.', 'legendary', { coins: 1500 }),
   // Skins for Slime
   skin('moss', 'Mossy', 'Earned the hard way, in the moss.', 'rare', { slime: 500 }),
   skin('ocean', 'Deep Sea', 'Cool blue for cool heads.', 'rare', { slime: 500 }),
   skin('zombie', 'Zombie', 'Popped once too often.', 'epic', { slime: 800 }),
+  hat('sailor', 'Sailor hat', 'Ahoy! All hands on deck.', 'common', { coins: 300 }),
+  hat('ninja', 'Ninja headband', 'Silent. Deadly. Slightly wobbly.', 'rare', { coins: 400 }),
+  hat('chick', 'Baby chick', 'Cheep cheep, kaboom.', 'rare', { coins: 400 }),
+  hat('pumpkin', 'Pumpkin', 'Spooky season, every season.', 'rare', { coins: 500 }),
+  hat('frog', 'Froggy', 'Ribbit. Then run.', 'rare', { coins: 600 }),
+  hat('mohawk', 'Mohawk', 'Punk rock tardi.', 'epic', { coins: 700 }),
+  hat('knight', 'Knight helmet', 'For honour, and for the pond.', 'epic', { coins: 900 }),
+  hat('crystal', 'Crystal crown', 'Carved from a single glittering gem.', 'legendary', { coins: 2400 }),
   // Aim styles: how your aim marker and power bar look. Coins.
   aim('candy', 'Candy cane', 'A striped power bar. Sweet shots only.', 'common', 400),
   aim('laser', 'Laser sight', 'A red beam from barrel to target.', 'rare', 500),
@@ -170,11 +192,25 @@ export const SHOP_ITEMS: ShopItem[] = [
   fx('fireworks', 'Fireworks', 'Stars in every colour.', 'epic', 1800),
   fx('rainbow', 'Rainbow blast', 'Smoke in all the colours of the rainbow.', 'legendary', 2000),
   fx('gold', 'Golden blast', 'Showers of gold. Fancy.', 'legendary', 3000),
+  // Arena themes: the world you play in. Only you see your arena. Coins.
+  arena('sunset', 'Sunset Shore', 'Battle under a warm orange sky.', 'rare', 800),
+  arena('autumn', 'Autumn Woods', 'Crunchy orange leaves on every hill.', 'rare', 800),
+  arena('snow', 'Snowy Peaks', 'Snow-capped ground and falling flakes.', 'epic', 1200),
+  arena('desert', 'Desert Dunes', 'Golden sand and a turquoise oasis.', 'epic', 1200),
+  arena('candy', 'Candy Land', 'Pink skies and a strawberry sea.', 'epic', 1500),
+  arena('night', 'Starry Night', 'Twinkling stars over moonlit hills.', 'legendary', 2000),
+  arena('volcano', 'Volcano', 'A lava sea and glowing embers. Toasty.', 'legendary', 2500),
+  arena('alien', 'Alien Planet', 'Purple skies, green moss, far from home.', 'legendary', 3000),
   // Season 1 weapons: Slime only
   weapon('pinball', 'Pollen Pinball', 'A super-bouncy grenade. Watch it ricochet!', 'rare', 600),
   weapon('megaspore', 'Mega Spore', 'A slow, heavy bazooka shell with a huge blast.', 'epic', 900),
   weapon('swarm', 'Spore Swarm', 'Splits into a swarm of eight little bomblets.', 'epic', 1200),
   weapon('balloon', 'Water Balloon', 'An enormous splash that soaks everyone nearby.', 'legendary', 1500),
+  // Season 2 weapons: Slime only
+  weapon('gloop', 'Gloop Bomb', 'Sticks wherever it lands, then goes off. Plant it and run!', 'rare', 700),
+  weapon('drill', 'Earthworm Drill', 'Burrows into the ground before it blows. Great for hiding enemies.', 'epic', 1000),
+  weapon('gale', 'Gale Gourd', 'A tiny bang with an enormous gust. Blow them into the pond!', 'epic', 1100),
+  weapon('leech', 'Leech Lobber', 'Heals you by half the damage it does.', 'legendary', 1600),
 ];
 
 /**
@@ -198,6 +234,9 @@ export const BUNDLES: Bundle[] = [
   { id: 'bundle:inferno', name: 'Inferno', blurb: 'Red hot from head to blast.', items: ['hat:flame', 'skin:lava', 'aim:laser', 'fx:shadow'], coins: 3400 },
   { id: 'bundle:rainbow', name: 'Over the Rainbow', blurb: 'Every colour, all at once.', items: ['hat:unicorn', 'skin:neon', 'aim:rainbow', 'fx:rainbow'], coins: 4700 },
   { id: 'bundle:space', name: 'Space Explorer', blurb: 'Blast off with stars and comets.', items: ['hat:astronaut', 'skin:galaxy', 'aim:comet', 'fx:fireworks'], coins: 6600 },
+  { id: 'bundle:winter', name: 'Winter Wonderland', blurb: 'Snowy hills, frosty blasts and a festive hat.', items: ['hat:santa', 'skin:frost', 'fx:frost', 'arena:snow'], coins: 2800 },
+  { id: 'bundle:night', name: 'Night Ninja', blurb: 'Strike from the shadows under the stars.', items: ['hat:ninja', 'skin:shadow', 'fx:shadow', 'arena:night'], coins: 3850 },
+  { id: 'bundle:volcano', name: 'Volcano Lair', blurb: 'Live dangerously beside the lava sea.', items: ['hat:knight', 'skin:ruby', 'aim:laser', 'arena:volcano'], coins: 4300 },
   { id: 'bundle:royal', name: 'Royal Treasury', blurb: 'The finest things in the shop.', items: ['hat:imperial', 'skin:diamond', 'aim:gold', 'fx:gold'], coins: 8800 },
 ];
 
@@ -255,4 +294,42 @@ export function formatPrice(pence: number): string {
 
 export function formatNumber(n: number): string {
   return n.toLocaleString('en-GB');
+}
+
+/**
+ * Gifts: a player spends their own coins on a look or bundle for someone
+ * else and gets a one-use code to pass on. Only these preset messages can go
+ * with a gift (no free text between players).
+ */
+export const GIFT_MESSAGES: Record<string, string> = {
+  none: '',
+  birthday: 'Happy birthday! 🎂',
+  gg: 'Good game! 🏆',
+  thanks: 'Thank you! 💛',
+  just: 'Just because 😊',
+  luck: 'Good luck! 🍀',
+  xmas: 'Merry Christmas! 🎄',
+};
+Object.setPrototypeOf(GIFT_MESSAGES, null);
+
+/** Gifts a player may buy in any 24 hours. */
+export const GIFTS_PER_DAY = 5;
+/** An account must be this old (hours) and have a confirmed email to send gifts. */
+export const GIFT_MIN_ACCOUNT_HOURS = 24;
+
+/** What can be given: a coin look, or a bundle. Never weapons (Slime) or coins. */
+export function giftable(id: string): { coins: number; items: string[]; name: string } | undefined {
+  const set = bundle(id);
+  if (set) return { coins: set.coins, items: set.items, name: `${set.name} bundle` };
+  const item = shopItem(id);
+  if (item && item.coins !== undefined) return { coins: item.coins, items: [item.id], name: item.name };
+  return undefined;
+}
+
+/** Gift code letters: no I, L, O, 0 or 1, so codes can't be misread. */
+export const GIFT_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+/** A gift code as typed: dashes, spaces and case don't matter. */
+export function normaliseGiftCode(code: string): string {
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, '');
 }

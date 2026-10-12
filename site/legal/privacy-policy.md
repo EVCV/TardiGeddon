@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 11 October 2026
-**Document Version:** v2.1
+**Document Version:** v2.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -49,7 +49,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.0 Information Stored Only on Your Device
 
-2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
+2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
 
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. This is deleted when you close the tab.
 
@@ -75,13 +75,14 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
 - if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
 - when your account was created and last updated, and whether you have confirmed your email address;
-- the items your account has unlocked, and how (with coins, Slime, or an earlier direct purchase);
+- the items your account has unlocked, and how (with coins, Slime, a gift, or an earlier direct purchase);
+- if you send or claim gifts: for each gift, the item, its price in coins, the preset message chosen, when it was bought, claimed or taken back, the account that bought it and the account that claimed it, and the last four characters of its code. We keep the full code only in scrambled ("hashed") form, so it cannot be read back from our records;
 - your coin and Slime balances, and how much Slime you have earned from games against the computer today (for the daily limit);
 - your game stats while signed in: online games and one-player games against the computer played and won, win streaks, how many tardigrades you have popped, the damage you have dealt, and your own goals (damage to, and pops of, your own team). They are shown to you, not to other players.
 
 2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
 
-2.2.3 Your account name and email address are not shown to other players.
+2.2.3 Your account name and email address are not shown to other players, with one exception: when someone claims a gift you sent, they see your player name and the message you chose (see our Terms of Service, Section 5.8). Your email address is never shown.
 
 2.2.4 When you create an account, we ask you to confirm that you are 13 or older and that you agree to our Terms of Service. We do not ask for or store your date of birth.
 
@@ -183,7 +184,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
-5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, and your game stats: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle.
+5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, and your game stats: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle. Records of gifts you sent or claimed stay while the other account exists, so it can still claim or see them, but the link to your deleted account is removed.
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 

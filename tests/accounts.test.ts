@@ -6,7 +6,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
-import type { SalesReport } from '../src/account/session';
+import type { GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
 import { migrate, revokePurchase } from '../server/store';
@@ -63,7 +63,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
       { stripe, mailer },
     );
-    await accounts.db.query('DELETE FROM purchase; DELETE FROM spend; DELETE FROM "user";');
+    await accounts.db.query('DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user";');
     server = createServer((req, res) => void accounts.handle(req, res));
     await new Promise<void>((r) => server.listen(0, r));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -464,6 +464,78 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const mail = await mailTo('html@example.com', /confirm/i);
     expect(mail.html).not.toContain('<img');
     expect(mail.html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+
+  it('gives looks as gifts with one-use codes, with limits and take-backs', async () => {
+    const get = (path: string, cookie: string) => fetch(base + path, { headers: { cookie } });
+    const giver = await signUp('giver@example.com');
+    const friend = await signUp('friend@example.com');
+    const other = await signUp('other@example.com');
+    expect(await sendWebhook('checkout.session.completed', paid('cs_gift1', giver.id, 'coins:5000'))).toBe(200);
+    const buy = (item: string, message = 'none') => post('/api/gift/buy', { item, message }, giver.cookie);
+    const redeem = (code: string, cookie: string) => post('/api/gift/redeem', { code }, cookie);
+
+    // Only from a confirmed email on an account at least a day old.
+    expect((await buy('hat:wizard')).status).toBe(403);
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [giver.id]);
+    expect((await buy('hat:wizard')).status).toBe(403);
+    await accounts.db.query(`UPDATE "user" SET "createdAt" = now() - interval '2 days' WHERE id = $1`, [giver.id]);
+
+    // Looks and bundles only: never weapons (Slime) or coins.
+    expect((await buy('weapon:pinball')).status).toBe(400);
+    expect((await buy('coins:200')).status).toBe(400);
+    const coins0 = (await me(giver.cookie)).wallet.coins;
+    const r = await buy('hat:wizard', 'gg');
+    expect(r.status).toBe(200);
+    const { code } = (await r.json()) as { code: string };
+    expect(code).toMatch(/^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+    expect((await me(giver.cookie)).wallet.coins).toBe(coins0 - 200);
+    // Only a hash of the code is stored.
+    const stored = await accounts.db.query<{ code_hash: string; hint: string }>('SELECT code_hash, hint FROM gift');
+    expect(JSON.stringify(stored.rows)).not.toContain(code.replace(/-/g, ''));
+    expect(stored.rows[0].hint).toBe(code.slice(-4));
+
+    // Not for yourself; case and dashes don't matter; once only.
+    expect((await redeem(code, giver.cookie)).status).toBe(409);
+    expect((await redeem('ZZZZ-ZZZZ-ZZZZ', friend.cookie)).status).toBe(404);
+    const got = await redeem(code.toLowerCase().replace(/-/g, ' '), friend.cookie);
+    expect(got.status).toBe(200);
+    expect(await got.json()).toMatchObject({ item: 'hat:wizard', items: ['hat:wizard'], from: 'Tester', message: 'Good game! 🏆' });
+    expect((await me(friend.cookie)).owned).toContain('hat:wizard');
+    expect((await redeem(code, other.cookie)).status).toBe(409);
+
+    // Already owned: the code stays good for someone else.
+    const again = (await (await buy('hat:wizard')).json()) as { code: string };
+    expect((await redeem(again.code, friend.cookie)).status).toBe(409);
+    expect((await redeem(again.code, other.cookie)).status).toBe(200);
+
+    // A bundle gives what's missing.
+    const set = (await (await buy('bundle:sweet')).json()) as { code: string };
+    await accounts.db.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, 'hat:party', 'coins')`, [friend.id]);
+    expect(((await (await redeem(set.code, friend.cookie)).json()) as { items: string[] }).items.sort()).toEqual(['aim:candy', 'fx:confetti', 'skin:candy']);
+
+    // Take back an unclaimed gift: coins back, code dead, and not counted as a sale.
+    const coins1 = (await me(giver.cookie)).wallet.coins;
+    const back = (await (await buy('hat:pirate')).json()) as { code: string };
+    const list = (await (await get('/api/gift/sent', giver.cookie)).json()) as { gifts: GiftSent[] };
+    expect(list.gifts.map((g) => g.status)).toEqual(['waiting', 'claimed', 'claimed', 'claimed']);
+    expect(JSON.stringify(list)).not.toMatch(/friend|other@/);
+    const waiting = list.gifts[0];
+    expect((await post('/api/gift/cancel', { id: waiting.id }, friend.cookie)).status).toBe(409);
+    expect((await post('/api/gift/cancel', { id: waiting.id }, giver.cookie)).status).toBe(200);
+    expect((await post('/api/gift/cancel', { id: waiting.id }, giver.cookie)).status).toBe(409);
+    expect((await me(giver.cookie)).wallet.coins).toBe(coins1);
+    expect((await redeem(back.code, other.cookie)).status).toBe(404);
+    const piratesSold = await accounts.db.query(`SELECT 1 FROM spend WHERE item = 'hat:pirate'`);
+    expect(piratesSold.rowCount).toBe(0);
+
+    // At most 5 a day (the one taken back counts too).
+    expect((await buy('hat:chef')).status).toBe(200);
+    expect((await buy('hat:fez')).status).toBe(429);
+    // Code guessing is rate limited.
+    accounts.resetLimits();
+    for (let i = 0; i < 10; i++) expect((await redeem(`AAAA-AAAA-AAA${'ABCDEFGHJK'[i]}`, other.cookie)).status).toBe(404);
+    expect((await redeem('AAAA-AAAA-AAAA', other.cookie)).status).toBe(429);
   });
 
   it('deleting an account removes what it owned', async () => {

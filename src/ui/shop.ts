@@ -5,17 +5,18 @@
 // stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
-import { aimSvg, fxSvg } from './cosmeticArt';
+import { aimSvg, arenaSvg, fxSvg } from './cosmeticArt';
 import { coinIcon, packArt } from './coinArt';
+import { giftsTab, newGiftsState, openGiftDialog, type GiftsState } from './gifts';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
-import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
-import { buyCoins, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
+import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
+import { buyCoins, chooseArena, chosenArena, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
 
-type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'bundle' | 'weapon' | 'coins';
+type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'bundle' | 'weapon' | 'gift' | 'coins';
 
 export interface ShopState {
   category: Category;
@@ -25,9 +26,10 @@ export interface ShopState {
   bundle: Bundle | null;
   /** Where the catalogue was scrolled to, on which tab. */
   scroll: { key: Category; top: number };
+  gifts: GiftsState;
 }
 
-export const newShopState = (): ShopState => ({ category: 'all', preview: null, bundle: null, scroll: { key: 'all', top: 0 } });
+export const newShopState = (): ShopState => ({ category: 'all', preview: null, bundle: null, scroll: { key: 'all', top: 0 }, gifts: newGiftsState() });
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -49,6 +51,7 @@ export function itemArt(item: ShopItem | null): string {
   if (item.kind === 'skin') return mascotSvg(team.color, wearHat(team.hat), item.ref);
   if (item.kind === 'aim') return aimSvg(item.ref, team.color);
   if (item.kind === 'fx') return fxSvg(item.ref);
+  if (item.kind === 'arena') return arenaSvg(item.ref);
   return `<span class="shop-weapon-icon">${WEAPONS[item.ref]?.icon ?? '💥'}</span>`;
 }
 
@@ -58,8 +61,10 @@ const CATEGORIES: [Category, string][] = [
   ['skin', '🎨 Skins'],
   ['aim', '🎯 Aim'],
   ['fx', '✨ Effects'],
+  ['arena', '🏞️ Arenas'],
   ['bundle', '🎁 Bundles'],
   ['weapon', '💥 Weapons'],
+  ['gift', '🎀 Gifts'],
   ['coins', '🪙 Get coins'],
 ];
 
@@ -115,6 +120,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   const body = el('div', 'shop-body');
   main.append(body);
   if (state.category === 'coins') body.append(coinPacks(me, ctx, state));
+  else if (state.category === 'gift') body.append(giftsTab(me, ctx, state.gifts, (id) => giftable(id)?.name ?? id));
   else if (state.category === 'bundle') {
     body.append(bundleGrid(me, ctx, state), el('p', 'account-note', 'A bundle costs less than its looks one by one. Already own some of it? You only pay for the rest, at the same discount.'));
   } else {
@@ -155,10 +161,30 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
 
   const action = el('div', 'shop-stage-action');
   info.append(action);
+  if (me.user && giftable(item.id)) info.append(giftButton(me, ctx, state, item.id, itemArt(item)));
   const owned = me.owned.includes(item.id);
   if (owned) {
     action.append(el('span', 'shop-owned', 'Owned ✓'));
-    if (item.kind !== 'weapon') {
+    if (item.kind === 'arena') {
+      // Not part of a team: it's the world this player sees, in every match.
+      const using = chosenArena() === item.ref;
+      const use = el('button', 'hud-btn', using ? 'Using ✓' : 'Use in my games');
+      use.disabled = using;
+      use.onclick = () => {
+        chooseArena(item.ref);
+        ctx.rerender();
+      };
+      action.append(use);
+      if (using) {
+        const back = el('button', 'hud-btn', 'Back to the Meadow');
+        back.onclick = () => {
+          chooseArena('classic');
+          ctx.rerender();
+        };
+        action.append(back);
+      }
+      action.append(el('span', 'shop-note', 'Only you see your arena.'));
+    } else if (item.kind !== 'weapon') {
       const team = loadProfiles()[0];
       const wearing = team[item.kind] === item.ref;
       const verb = item.kind === 'hat' || item.kind === 'skin' ? 'Wear' : 'Use';
@@ -225,12 +251,23 @@ function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState)
 }
 
 /** A bundle's picture: your tardi in its hat and skin, with its aim style and effect beside. */
+function giftButton(me: MeResponse, ctx: HubContext, state: ShopState, id: string, art: string): HTMLElement {
+  const b = el('button', 'hud-btn gift-btn', '🎀 Give as a gift');
+  b.onclick = () =>
+    openGiftDialog(me, id, art, b, () => {
+      state.gifts.sent = null;
+      ctx.rerender();
+    });
+  return b;
+}
+
 function bundleArt(b: Bundle): string {
   const team = loadProfiles()[0];
   const ref = (kind: string, fallback: string) => b.items.map(shopItem).find((i) => i?.kind === kind)?.ref ?? fallback;
   const aim = b.items.map(shopItem).find((i) => i?.kind === 'aim');
   const fx = b.items.map(shopItem).find((i) => i?.kind === 'fx');
-  return `<span class="bundle-art"><span class="bundle-main">${mascotSvg(team.color, ref('hat', wearHat(team.hat)), ref('skin', wearSkin(team.skin)))}</span>${
+  const arena = b.items.map(shopItem).find((i) => i?.kind === 'arena');
+  return `<span class="bundle-art">${arena ? `<span class="bundle-arena">${arenaSvg(arena.ref)}</span>` : ''}<span class="bundle-main">${mascotSvg(team.color, ref('hat', wearHat(team.hat)), ref('skin', wearSkin(team.skin)))}</span>${
     aim ? `<span class="bundle-chip">${aimSvg(aim.ref, team.color)}</span>` : ''
   }${fx ? `<span class="bundle-chip">${fxSvg(fx.ref)}</span>` : ''}</span>`;
 }
@@ -282,20 +319,22 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
   info.append(list);
   const action = el('div', 'shop-stage-action');
   info.append(action);
+  if (me.user) info.append(giftButton(me, ctx, state, b.id, bundleArt(b)));
   const price = bundlePrice(b, me.owned);
   const worth = bundleValue(b, me.owned);
   if (price === 0) {
     action.append(el('span', 'shop-owned', 'Owned ✓'));
     const team = loadProfiles()[0];
     const looks = b.items.map(shopItem).filter((i): i is ShopItem => !!i && i.kind !== 'weapon');
-    const wearing = looks.every((i) => team[i.kind as 'hat' | 'skin' | 'aim' | 'fx'] === i.ref);
+    const wearing = looks.every((i) => (i.kind === 'arena' ? chosenArena() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx']) === i.ref);
     const wear = el('button', 'hud-btn', wearing ? 'Wearing the set ✓' : `Wear the set on ${team.name}`);
     wear.disabled = wearing;
     wear.onclick = () => {
       const next: TeamProfile = { ...team };
       for (const id of b.items) {
         const item = shopItem(id);
-        if (item && item.kind !== 'weapon') next[item.kind] = item.ref;
+        if (item?.kind === 'arena') chooseArena(item.ref);
+        else if (item && item.kind !== 'weapon') next[item.kind] = item.ref;
       }
       saveProfiles(updateProfile(loadProfiles(), 0, next));
       ctx.rerender();

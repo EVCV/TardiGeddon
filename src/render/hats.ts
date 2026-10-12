@@ -409,6 +409,87 @@ export const HATS: HatDef[] = [
       { k: 'circle', x: 0, y: -1.95, r: 0.2, fill: 'gold' },
     ],
   },
+  {
+    id: 'pumpkin',
+    name: 'Pumpkin',
+    shapes: [
+      { k: 'dome', x: 0, y: 0.05, r: 1.05, fill: 'orange' },
+      { k: 'poly', pts: [-0.35, 0.05, -0.45, -0.85, -0.2, -1.0, -0.1, 0.05], fill: 'orange' },
+      { k: 'poly', pts: [0.35, 0.05, 0.45, -0.85, 0.2, -1.0, 0.1, 0.05], fill: 'orange' },
+      { k: 'poly', pts: [-0.12, -0.98, -0.08, -1.45, 0.18, -1.5, 0.14, -0.98], fill: 'green' },
+      { k: 'poly', pts: [0.14, -1.2, 0.7, -1.45, 0.45, -1.15], fill: 'green' },
+    ],
+  },
+  {
+    id: 'ninja',
+    name: 'Ninja headband',
+    shapes: [
+      { k: 'poly', pts: [0.95, -0.35, 1.85, -0.05, 1.75, -0.45], fill: 'team' },
+      { k: 'poly', pts: [0.95, -0.3, 1.6, 0.35, 1.8, 0.1], fill: 'team' },
+      { k: 'poly', pts: [-1.05, -0.12, -1.0, -0.6, 1.0, -0.6, 1.05, -0.12], fill: 'team' },
+      { k: 'circle', x: 0, y: -0.36, r: 0.17, fill: 'silver' },
+    ],
+  },
+  {
+    id: 'knight',
+    name: 'Knight helmet',
+    shapes: [
+      { k: 'poly', pts: [0.05, -0.95, -0.25, -1.95, 0.45, -1.75, 0.35, -0.95], fill: 'red' },
+      { k: 'dome', x: 0, y: 0.05, r: 1.05, fill: 'silver' },
+      { k: 'poly', pts: [-1.05, 0.05, -1.05, -0.35, 1.05, -0.35, 1.05, 0.05], fill: 'grey' },
+      { k: 'poly', pts: [-0.7, -0.12, -0.7, -0.22, 0.7, -0.22, 0.7, -0.12], fill: 'ink' },
+    ],
+  },
+  {
+    id: 'frog',
+    name: 'Froggy',
+    shapes: [
+      { k: 'dome', x: 0, y: 0, r: 1, fill: 'green' },
+      { k: 'circle', x: -0.55, y: -0.95, r: 0.38, fill: 'white' },
+      { k: 'circle', x: 0.55, y: -0.95, r: 0.38, fill: 'white' },
+      { k: 'circle', x: -0.5, y: -0.95, r: 0.15, fill: 'black' },
+      { k: 'circle', x: 0.6, y: -0.95, r: 0.15, fill: 'black' },
+    ],
+  },
+  {
+    id: 'mohawk',
+    name: 'Mohawk',
+    shapes: [
+      { k: 'poly', pts: [-0.75, -0.55, -0.65, -1.55, -0.35, -0.85, -0.1, -1.95, 0.15, -0.9, 0.42, -1.75, 0.65, -0.6], fill: 'team' },
+      { k: 'poly', pts: [-0.8, -0.35, -0.75, -0.7, 0.75, -0.7, 0.8, -0.35], fill: 'ink' },
+    ],
+  },
+  {
+    id: 'chick',
+    name: 'Baby chick',
+    shapes: [
+      { k: 'circle', x: 0, y: -0.95, r: 0.72, fill: 'gold' },
+      { k: 'poly', pts: [0.62, -1.02, 1.02, -0.9, 0.62, -0.78], fill: 'orange' },
+      { k: 'circle', x: 0.28, y: -1.12, r: 0.1, fill: 'black' },
+      { k: 'poly', pts: [-0.95, 0.02, -0.95, -0.45, -0.62, -0.22, -0.3, -0.5, 0, -0.22, 0.3, -0.5, 0.62, -0.22, 0.95, -0.45, 0.95, 0.02], fill: 'white' },
+    ],
+  },
+  {
+    id: 'sailor',
+    name: 'Sailor hat',
+    shapes: [
+      { k: 'dome', x: 0, y: -0.28, r: 0.82, fill: 'white' },
+      { k: 'poly', pts: [-0.82, -0.28, -0.82, -0.52, 0.82, -0.52, 0.82, -0.28], fill: 'blue' },
+      { k: 'poly', pts: [-1.15, 0.06, -1.1, -0.3, 1.1, -0.3, 1.15, 0.06], fill: 'white' },
+    ],
+  },
+  {
+    id: 'crystal',
+    name: 'Crystal crown',
+    shapes: [
+      { k: 'poly', pts: [-1.0, 0, -1.15, -1.1, -0.65, -0.65, -0.35, -1.6, 0, -0.75, 0.35, -1.6, 0.65, -0.65, 1.15, -1.1, 1.0, 0], fill: 'glass' },
+      { k: 'poly', pts: [-0.35, -1.6, -0.15, -1.0, 0, -0.75], fill: 'cyan' },
+      { k: 'poly', pts: [0.35, -1.6, 0.55, -0.95, 0.65, -0.65], fill: 'cyan' },
+      { k: 'circle', x: 0, y: -0.35, r: 0.22, fill: 'purple' },
+      { k: 'circle', x: -0.6, y: -0.3, r: 0.14, fill: 'pink' },
+      { k: 'circle', x: 0.6, y: -0.3, r: 0.14, fill: 'pink' },
+    ],
+  },
 ];
 
 export function hatById(id: string): HatDef {

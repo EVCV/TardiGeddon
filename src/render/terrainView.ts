@@ -4,7 +4,7 @@
 
 import { Container, Sprite, Texture } from 'pixi.js';
 import type { Rect, Terrain } from '../sim/terrain/terrain';
-import { PALETTE } from './palette';
+import { arenaTheme, type ArenaTheme } from './arenas';
 
 const GRASS_DEPTH = 10;
 /** Max texture width per tile: big maps exceed phone GPU texture limits. */
@@ -21,13 +21,6 @@ interface Tile {
 function rgb(c: number): [number, number, number] {
   return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
-const OUTLINE = rgb(PALETTE.soil[0]);
-const GRASS_DARK = rgb(PALETTE.grass[0]);
-const GRASS = rgb(PALETTE.grass[1]);
-const GRASS_LIGHT = rgb(PALETTE.grass[2]);
-const SOIL = rgb(PALETTE.soil[1]);
-const PEBBLE = rgb(PALETTE.soil[2]);
-const PEBBLE_LIGHT = rgb(PALETTE.soil[3]);
 const WOOD = rgb(0xc08a4a);
 const WOOD_DARK = rgb(0x8f5f2e);
 const WOOD_LIGHT = rgb(0xdcae6e);
@@ -58,8 +51,21 @@ export class TerrainView {
   readonly root = new Container();
   private tiles: Tile[] = [];
   private scorch: Uint8Array;
+  private c: Record<'outline' | 'grassDark' | 'grass' | 'grassLight' | 'soil' | 'pebble' | 'pebbleLight', [number, number, number]>;
 
-  constructor(private terrain: Terrain) {
+  constructor(
+    private terrain: Terrain,
+    theme: ArenaTheme = arenaTheme('classic'),
+  ) {
+    this.c = {
+      outline: rgb(theme.soil[0]),
+      grassDark: rgb(theme.grass[0]),
+      grass: rgb(theme.grass[1]),
+      grassLight: rgb(theme.grass[2]),
+      soil: rgb(theme.soil[1]),
+      pebble: rgb(theme.soil[2]),
+      pebbleLight: rgb(theme.soil[3]),
+    };
     this.scorch = new Uint8Array(terrain.w * terrain.h);
     for (let x = 0; x < terrain.w; x += TILE_W) {
       const w = Math.min(TILE_W, terrain.w - x);
@@ -134,6 +140,7 @@ export class TerrainView {
     const d = img.data;
     const m = t.mask;
     const w = t.w;
+    const { outline: OUTLINE, grassDark: GRASS_DARK, grass: GRASS, grassLight: GRASS_LIGHT, soil: SOIL, pebble: PEBBLE, pebbleLight: PEBBLE_LIGHT } = this.c;
     const solid = (x: number, y: number) => x >= 0 && x < w && y >= 0 && y < t.h && m[y * w + x] !== 0;
 
     for (let y = y0; y < y1; y++) {

@@ -2,6 +2,7 @@
 // as SVG from the same colours the game uses (render/cosmetics.ts).
 
 import { aimStyle, fxStyle, RAINBOW } from '../render/cosmetics';
+import { arenaTheme } from '../render/arenas';
 import { hex } from '../render/palette';
 
 const INK = '#2b1b24';
@@ -102,4 +103,24 @@ export function fxSvg(id: string): string {
     }
   });
   return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${parts.join('')}</svg>`;
+}
+
+/** An arena theme: a little landscape in its colours. */
+export function arenaSvg(id: string): string {
+  const t = arenaTheme(id);
+  const g = `arena${++uid}`;
+  const parts: string[] = [];
+  parts.push(`<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.skyTop}"/><stop offset="1" stop-color="${t.skyBottom}"/></linearGradient></defs>`);
+  parts.push(`<rect x="-40" y="-30" width="80" height="60" fill="url(#${g})"/>`);
+  if (t.stars) [[-30, -22], [-12, -25], [8, -20], [26, -24], [-22, -12], [18, -10], [34, -16]].forEach(([x, y], i) => parts.push(`<circle cx="${x}" cy="${y}" r="${i % 3 ? 0.9 : 1.4}" fill="#fff"/>`));
+  if (t.drift) [[-28, -18], [-8, -10], [14, -22], [30, -6], [-18, 0], [4, 2]].forEach(([x, y]) => parts.push(`<circle cx="${x}" cy="${y}" r="1.4" fill="${hex(t.drift!.color)}"/>`));
+  parts.push(`<path d="M-40 6 Q-24 -12 -8 2 T26 -4 T40 4 V30 H-40 Z" fill="${hex(t.hillFar)}"/>`);
+  parts.push(`<path d="M-40 12 Q-20 0 0 10 T40 8 V30 H-40 Z" fill="${hex(t.hillNear)}"/>`);
+  // An island of ground with its top band, then the sea.
+  parts.push(`<path d="M-30 30 L-26 14 Q-12 6 4 12 Q18 6 28 16 L32 30 Z" fill="${hex(t.soil[1])}" stroke="${hex(t.soil[0])}" stroke-width="2"/>`);
+  parts.push(`<path d="M-26 14 Q-12 6 4 12 Q18 6 28 16 L27 19 Q18 10 4 15 Q-12 9 -25.5 17 Z" fill="${hex(t.grass[1])}" stroke="${hex(t.grass[0])}" stroke-width="1.2"/>`);
+  [[-14, 22], [6, 24], [18, 21]].forEach(([x, y]) => parts.push(`<circle cx="${x}" cy="${y}" r="2" fill="${hex(t.soil[3])}"/>`));
+  parts.push(`<rect x="-40" y="24" width="80" height="6" fill="${hex(t.water)}" opacity=".9"/>`);
+  parts.push(`<path d="M-40 24 q5 -2 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0" fill="none" stroke="${hex(t.waterLight)}" stroke-width="1.4"/>`);
+  return `<svg viewBox="-40 -30 80 60" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${parts.join('')}</svg>`;
 }
