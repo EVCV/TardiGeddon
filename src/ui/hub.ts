@@ -29,6 +29,8 @@ export interface HubContext {
 
 export interface Hub {
   go: (tab: HubTab, notice?: string) => void;
+  /** The page showing now. */
+  tab: () => HubTab;
   /** Open the Account page at "choose a new password", for the token from a reset email. */
   resetPassword: (token: string) => void;
 }
@@ -206,6 +208,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   render();
   return {
     go,
+    tab: () => tab,
     resetPassword: (token) => {
       signInState.mode = 'reset';
       signInState.token = token;

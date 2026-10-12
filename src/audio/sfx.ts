@@ -14,6 +14,13 @@ export function unlockAudio(): void {
   if (ctx.state === 'suspended') void ctx.resume();
 }
 
+/** Silence everything while the app is in the background (phone apps). */
+export function pauseAudio(paused: boolean): void {
+  if (!ctx) return;
+  if (paused) void ctx.suspend();
+  else void ctx.resume();
+}
+
 export function setMuted(m: boolean): void {
   muted = m;
 }

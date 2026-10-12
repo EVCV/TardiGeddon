@@ -18,7 +18,8 @@ import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard } from './input/input';
 import { Hud } from './ui/hud';
 import { CpuPlayer, type CpuSkill } from './ai/cpu';
-import { sfx, setMuted, unlockAudio } from './audio/sfx';
+import { pauseAudio, sfx, setMuted, unlockAudio } from './audio/sfx';
+import { attachNative } from './native';
 import type { MatchSetup } from './ui/menu';
 import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
@@ -50,14 +51,17 @@ async function boot(): Promise<void> {
   const ui = document.getElementById('ui')!;
   let current: Match | null = null;
   let hub = null as Hub | null; // set by menu()
+  let onlineScreen = null as ReturnType<typeof showOnline> | null; // set by online()
 
   const menu = () => {
     current?.destroy();
     current = null;
+    onlineScreen = null;
     hub = showHub(ui, (setup) => start(setup), () => online());
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
+    hub = onlineScreen = null;
     ui.innerHTML = '';
     unlockAudio();
     current = new Match(app, ui, { kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
@@ -65,10 +69,12 @@ async function boot(): Promise<void> {
   const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
     current?.destroy();
     current = null;
-    showOnline(ui, { onBack: menu, onStart: startOnline }, opts);
+    hub = null;
+    onlineScreen = showOnline(ui, { onBack: menu, onStart: startOnline }, opts);
   };
   const startOnline = (client: NetClient, ls: Lockstep) => {
     current?.destroy();
+    hub = onlineScreen = null;
     ui.innerHTML = '';
     unlockAudio();
     const m: Match = new Match(
@@ -84,6 +90,18 @@ async function boot(): Promise<void> {
     m.onNetStart = (next) => startOnline(client, next);
     current = m;
   };
+  // Phone apps: the back button steps back through the screens; pausing silences the game.
+  attachNative({
+    onBack: () => {
+      if (current) current.back();
+      else if (onlineScreen) onlineScreen.back();
+      else if (hub && hub.tab() !== 'lobby') hub.go('lobby');
+      else return false;
+      return true;
+    },
+    onPause: (paused) => pauseAudio(paused),
+  });
+
   const params = new URLSearchParams(location.search);
   // Debug/test hook: ?autostart=cpu skips the menu.
   const auto = params.get('autostart');
@@ -252,6 +270,12 @@ class Match {
     }
     this.reconnecting = false;
     if (this.net) this.hud.showBanner('Disconnected', 0xe04848, 5);
+  }
+
+  /** The phone's back button: close the weapon panel, else offer to quit. */
+  back(): void {
+    if (this.hud.panelOpen) this.hud.togglePanel(false);
+    else if (this.over || confirm('Quit this match?')) this.onMenu();
   }
 
   private toggleMute(): boolean {

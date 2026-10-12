@@ -5,6 +5,7 @@
 
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
+import { isNativeApp } from '../native';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
@@ -96,6 +97,11 @@ export function onAccountChange(fn: () => void): () => void {
 }
 
 function set(next: MeResponse | null): void {
+  // In the phone apps: Google and Apple only allow their own payment systems,
+  // so no coin packs or Stripe receipts (coins bought on the website still
+  // spend). And Google/Apple sign-in pages refuse to open inside an app, and
+  // would come back to the website: email sign-in only, for now (docs/APPS.md).
+  if (next && isNativeApp()) next = { ...next, shop: false, receipts: false, providers: [] };
   me = next;
   loaded = true;
   if (next) {
