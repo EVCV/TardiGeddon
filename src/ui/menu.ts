@@ -13,6 +13,7 @@ import { openTeamEditor } from './teamEditor';
 import { renderDashboard } from './dashboard';
 import { account, wearHat, wearSkin } from '../account/session';
 import type { HubTab } from './hub';
+import { tutorialSeen } from './tutorial';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -97,7 +98,12 @@ export interface Lobby {
   refresh: () => void;
 }
 
-export function buildLobby(onStart: (s: MatchSetup) => void, onOnline: (() => void) | undefined, go: (tab: HubTab) => void): Lobby {
+export function buildLobby(
+  onStart: (s: MatchSetup) => void,
+  onOnline: (() => void) | undefined,
+  go: (tab: HubTab) => void,
+  onTutorial: () => void,
+): Lobby {
   const root = document.createElement('div');
   const saved = load();
   const styleOptions = SCHEME_PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
@@ -140,12 +146,10 @@ export function buildLobby(onStart: (s: MatchSetup) => void, onOnline: (() => vo
           <button class="big-btn play">Play</button>
           <button class="big-btn secondary online-btn">Play online</button>
         </div>
-        <details class="controls-help">
-          <summary>Controls</summary>
-          <p><b>Keyboard:</b> ←/→ walk · ↑/↓ aim · Enter jump (twice = backflip) · hold Space to charge, release to fire ·
-          1–5 fuse · Tab or right-click for weapons · click map to target · drag to look around · wheel to zoom</p>
-          <p><b>Touch:</b> on-screen pads · tap map to target · drag to look · pinch to zoom</p>
-        </details>
+        <div class="lobby-learn">
+          <button class="hud-btn learn-btn">🎓 How to play</button>
+          <button class="hud-btn controls-btn">⚙️ Controls</button>
+        </div>
       </section>
       <aside class="card dash hidden" aria-label="Your career"></aside>`;
 
@@ -297,6 +301,14 @@ export function buildLobby(onStart: (s: MatchSetup) => void, onOnline: (() => vo
   };
   refreshAccountBits();
 
+  const learnBtn = root.querySelector<HTMLButtonElement>('.learn-btn')!;
+  learnBtn.onclick = onTutorial;
+  // Never tried the tutorial on this device: point it out.
+  if (!tutorialSeen()) {
+    learnBtn.textContent = '🎓 New? Learn to play';
+    learnBtn.classList.add('learn-new');
+  }
+  root.querySelector<HTMLButtonElement>('.controls-btn')!.onclick = () => go('settings');
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;
   else onlineBtn.remove();

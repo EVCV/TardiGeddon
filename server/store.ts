@@ -9,6 +9,7 @@ import type { Pool, PoolClient } from 'pg';
 import { createHash, randomInt } from 'node:crypto';
 import { GIFTS_PER_DAY, GIFT_ALPHABET, GIFT_MESSAGES, SHOP_ITEMS, bundle, bundlePrice, coinPack, giftable, normaliseGiftCode, packTotal, shopItem } from '../src/shop/catalog';
 import type { GiftSent, SalesReport } from '../src/account/session';
+import { sanitiseControls, type Controls } from '../src/input/controls';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -94,6 +95,12 @@ export async function migrate(db: Pool): Promise<void> {
       user_id     text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       customer_id text NOT NULL UNIQUE
     );
+    -- The player's control settings (keys, mouse buttons, touch pads), checked by sanitiseControls.
+    CREATE TABLE IF NOT EXISTS player_settings (
+      user_id    text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      controls   jsonb NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
   `);
   await backfillSpends(db);
 }
@@ -133,6 +140,20 @@ async function backfillSpends(db: Pool): Promise<void> {
   } finally {
     c.release();
   }
+}
+
+/** The player's saved control settings, or null if they've never saved any. */
+export async function controlsOf(db: Pool, userId: string): Promise<Controls | null> {
+  const r = await db.query<{ controls: unknown }>('SELECT controls FROM player_settings WHERE user_id = $1', [userId]);
+  return r.rows.length ? sanitiseControls(r.rows[0].controls) : null;
+}
+
+export async function saveControlsFor(db: Pool, userId: string, controls: Controls): Promise<void> {
+  await db.query(
+    `INSERT INTO player_settings (user_id, controls) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET controls = EXCLUDED.controls, updated_at = now()`,
+    [userId, JSON.stringify(controls)],
+  );
 }
 
 export async function stripeCustomerId(db: Pool, userId: string): Promise<string | null> {

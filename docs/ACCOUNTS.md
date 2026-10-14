@@ -11,7 +11,8 @@ free without an account.
 - **Database:** Postgres on **Neon**. The game server creates its tables on
   start-up: Better Auth's `user`, `session`, `account` and `verification`,
   plus `inventory` (who owns what), `wallet` (coins and Slime),
-  `player_stats`, `stripe_customer`, `purchase` (every payment), `gift`,
+  `player_stats`, `player_settings` (control settings from the Settings page),
+  `stripe_customer`, `purchase` (every payment), `gift`,
   `spend` (the Sales page's log, not linked to players) and `done_once`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password

@@ -5,6 +5,7 @@ import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE,
 import { PANEL_WEAPONS, WEAPONS } from '../sim/weapons';
 import { activeTardi, activeTeam, girderFits } from '../sim/world';
 import type { InputCollector } from '../input/input';
+import { controls } from '../input/controls';
 import { hex } from '../render/palette';
 
 export interface HudHooks {
@@ -123,6 +124,10 @@ export class Hud {
     const aim = el('div', 'touch-aim');
     aim.append(mk('▲', 'aim', BTN_UP, 't-up'), mk('▼', 'aim', BTN_DOWN, 't-down'));
     right.append(aim, mk('JUMP', 'jump', -1, 't-jump'), mk('FIRE', 'fire', BTN_FIRE, 't-fire'));
+    // Settings: button size, and left-handed (sides swapped).
+    const c = controls();
+    this.touch.classList.add(`touch-size-${c.touchSize}`);
+    this.touch.classList.toggle('touch-swap', c.touchSwap);
     this.touch.append(left, right);
     this.root.append(this.touch);
     this.root.classList.add('touch-mode');

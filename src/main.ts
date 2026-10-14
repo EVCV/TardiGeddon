@@ -10,12 +10,15 @@ import { showHub, type Hub } from './ui/hub';
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
-import { EMPTY_INPUT, TICK_RATE, type SimEvent, type WorldState } from './sim/types';
+import { Coach, dummyPlayer, tutorialWorld } from './ui/tutorial';
+import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
 import { arenaTheme } from './render/arenas';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
-import { InputCollector, attachKeyboard } from './input/input';
+import { InputCollector, attachKeyboard, doAction, type KeyboardHooks } from './input/input';
+import { actionFor, controls } from './input/controls';
+import { WEAPONS } from './sim/weapons';
 import { Hud } from './ui/hud';
 import { CpuPlayer, type CpuSkill } from './ai/cpu';
 import { pauseAudio, sfx, setMuted, unlockAudio } from './audio/sfx';
@@ -57,7 +60,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online());
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial());
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
@@ -65,6 +68,13 @@ async function boot(): Promise<void> {
     ui.innerHTML = '';
     unlockAudio();
     current = new Match(app, ui, { kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
+  };
+  const tutorial = () => {
+    current?.destroy();
+    hub = onlineScreen = null;
+    ui.innerHTML = '';
+    unlockAudio();
+    current = new Match(app, ui, { kind: 'tutorial' }, menu, tutorial);
   };
   const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
     current?.destroy();
@@ -106,7 +116,8 @@ async function boot(): Promise<void> {
   // Debug/test hook: ?autostart=cpu skips the menu.
   const auto = params.get('autostart');
   const room = params.get('room');
-  if (auto) {
+  if (auto === 'tutorial') tutorial();
+  else if (auto) {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
     const n = Number(params.get('players')) || 2;
     const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
@@ -149,7 +160,7 @@ async function boot(): Promise<void> {
   }
 }
 
-type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'online'; client: NetClient; ls: Lockstep };
+type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'online'; client: NetClient; ls: Lockstep };
 
 class Match {
   private local: WorldState | null = null;
@@ -158,19 +169,25 @@ class Match {
   private input = new InputCollector();
   private hud: Hud;
   private banter = new Banter();
-  private cpu = new Map<number, CpuPlayer>();
+  private cpu = new Map<number, { next: (s: WorldState) => InputFrame }>();
+  /** The tutorial's coach card (tutorial matches only). */
+  private coach: Coach | null = null;
   private events: SimEvent[] = [];
   /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
   private tally: MatchTally | null = null;
   private acc = 0;
   private last = performance.now();
   private detachKeys: () => void;
-  private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean; aim: boolean }>();
+  private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean; aim: boolean; button: number }>();
   private pinchDist = 0;
   private muted = false;
   private over = false;
   private destroyed = false;
   private tickerFn = () => this.frame();
+  private keyHooks: KeyboardHooks = {
+    onWeaponPanel: () => this.hud.togglePanel(),
+    onEscape: () => this.hud.togglePanel(false),
+  };
   // Online bookkeeping
   private offNet: (() => void) | null = null;
   private sentHeld = 0;
@@ -200,6 +217,12 @@ class Match {
       // Only one human (the player's own team, slot 0) against the CPU counts for their stats.
       if (!setup.players[0] && setup.players.slice(1).every(Boolean) && !this.local.race) this.tally = new MatchTally(teams.length);
       for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
+    } else if (mode.kind === 'tutorial') {
+      const p = loadProfiles()[0];
+      const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
+      this.local = createWorld(tutorialWorld(you));
+      this.cpu.set(1, dummyPlayer);
+      this.coach = new Coach(touchMode, { onMenu, onAgain });
     } else {
       this.net = { client: mode.client, ls: mode.ls };
       this.listenNet();
@@ -209,10 +232,11 @@ class Match {
     this.renderer.onSound = (name) => sfx[name]();
     this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => this.toggleMute() }, touchMode);
     ui.append(this.hud.root);
-    this.detachKeys = attachKeyboard(this.input, {
-      onWeaponPanel: () => this.hud.togglePanel(),
-      onEscape: () => this.hud.togglePanel(false),
-    });
+    if (this.coach) {
+      this.hud.root.classList.add('has-coach');
+      ui.append(this.coach.root);
+    }
+    this.detachKeys = attachKeyboard(this.input, this.keyHooks);
     this.attachPointer();
     this.announceTurn();
     app.ticker.add(this.tickerFn);
@@ -310,6 +334,13 @@ class Match {
         this.tally?.add(s, this.events.slice(from));
       }
     }
+    this.coach?.update({
+      state: this.state,
+      events: this.events,
+      humanTurn: this.isHumanTurn(),
+      panelOpen: this.hud.panelOpen,
+      camera: this.renderer.camera,
+    });
     this.renderer.handleEvents(this.events);
     this.banter.onEvents(this.state, this.events, (id, text) => this.renderer.say(id, text));
     this.playSounds(this.events);
@@ -410,6 +441,7 @@ class Match {
                 if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);
               });
             }
+            if (this.coach) break; // the coach shows how the practice went
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
             setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
           }
@@ -429,17 +461,22 @@ class Match {
   private attachPointer(): void {
     const c = this.app.canvas;
     c.style.touchAction = 'none';
-    c.oncontextmenu = (e) => {
-      e.preventDefault();
-      this.hud.togglePanel();
+    // Mouse buttons bound in Settings (right-click opens the weapons by default).
+    c.oncontextmenu = (e) => e.preventDefault();
+    // No middle-click autoscroll, and the mouse's back/forward buttons don't leave the game.
+    c.onmousedown = (e) => {
+      if (e.button === 1) e.preventDefault();
+    };
+    c.onmouseup = (e) => {
+      if (e.button >= 3) e.preventDefault();
     };
     c.onpointerdown = (e) => {
       unlockAudio();
-      if (e.button === 2) return;
+      if (e.pointerType === 'mouse' && this.mouseAction(e, true)) return;
       c.setPointerCapture(e.pointerId);
       // A drag that starts on your own tardi aims instead of moving the camera.
-      const aim = this.pointers.size === 0 && this.nearActiveTardi(e.clientX, e.clientY);
-      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, aim });
+      const aim = this.pointers.size === 0 && e.button === 0 && this.nearActiveTardi(e.clientX, e.clientY);
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, aim, button: e.button });
       if (this.pointers.size === 2) this.pinchDist = this.pointerSpread();
     };
     c.onpointermove = (e) => {
@@ -472,13 +509,11 @@ class Match {
       }
     };
     const up = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') this.mouseAction(e, false);
       const p = this.pointers.get(e.pointerId);
       this.pointers.delete(e.pointerId);
       if (this.pointers.size < 2) this.pinchDist = 0;
-      if (p && !p.moved && this.isHumanTurn()) {
-        const w = this.renderer.screenToWorld(e.clientX, e.clientY);
-        this.input.command({ t: 'target', x: Math.round(w.x), y: Math.round(w.y) });
-      }
+      if (p && !p.moved && p.button === 0 && this.isHumanTurn()) this.pickTarget(e.clientX, e.clientY);
     };
     c.onpointerup = up;
     c.onpointercancel = up;
@@ -487,6 +522,46 @@ class Match {
       const cam = this.renderer.camera;
       cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
     };
+  }
+
+  private pickTarget(sx: number, sy: number): void {
+    const w = this.renderer.screenToWorld(sx, sy);
+    this.input.command({ t: 'target', x: Math.round(w.x), y: Math.round(w.y) });
+  }
+
+  /** Mouse buttons held for an action, so letting go ends it. */
+  private mouseHeld = new Set<number>();
+
+  /**
+   * A mouse button bound to an action in Settings. Returns true when it did
+   * that action (so it doesn't also scroll the map or pick a target).
+   */
+  private mouseAction(e: PointerEvent, down: boolean): boolean {
+    const code = `Mouse${e.button}`;
+    if (!down) {
+      if (!this.mouseHeld.delete(e.button)) return false;
+      this.input.hold(code, 0, false);
+      return true;
+    }
+    const action = actionFor(controls(), code);
+    if (!action) return false;
+    // Fire on a click, with a weapon that needs a target: the first click picks
+    // the spot; clicking that spot again fires.
+    const s = this.state;
+    const def = WEAPONS[s.turn.weapon];
+    if (action === 'fire' && this.isHumanTurn() && s.turn.phase === 'aim' && def && (def.kind === 'target' || def.projectile?.homing)) {
+      const tg = s.turn.target;
+      const cam = this.renderer.camera;
+      const w = this.renderer.screenToWorld(e.clientX, e.clientY);
+      if (!tg || Math.hypot(w.x - tg.x, w.y - tg.y) * cam.zoom > 40) {
+        this.pickTarget(e.clientX, e.clientY);
+        return true;
+      }
+    }
+    this.mouseHeld.add(e.button);
+    this.app.canvas.setPointerCapture(e.pointerId);
+    doAction(this.input, this.keyHooks, action, code, true);
+    return true;
   }
 
   /** Is this screen point on (or close to) the tardi whose turn it is? */
@@ -528,6 +603,7 @@ class Match {
     c.onpointerdown = c.onpointermove = c.onpointerup = c.onpointercancel = null;
     c.onwheel = null;
     c.oncontextmenu = null;
+    c.onmousedown = c.onmouseup = null;
     this.renderer.destroy();
     this.ui.innerHTML = '';
   }
