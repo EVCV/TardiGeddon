@@ -265,9 +265,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 /* ---------- Touch controls ---------- */
-.touch { position: absolute; inset: 0; pointer-events: none; }
-.touch.disabled { opacity: .35; }
-.touch.disabled .touch-btn { pointer-events: none; }
+.touch-pad { position: absolute; inset: 0; pointer-events: none; }
+.touch-pad.disabled { opacity: .35; }
+.touch-pad.disabled .touch-btn { pointer-events: none; }
 .touch-left, .touch-right {
   position: absolute;
   bottom: calc(76px + var(--safe-b));

@@ -32,7 +32,7 @@ export class Hud {
   private fuseBtn = el('button', 'hud-btn hud-fuse');
   private panel = el('div', 'weapon-panel hidden');
   private gameOver = el('div', 'overlay hidden');
-  private touch = el('div', 'touch');
+  private touch = el('div', 'touch-pad');
   private bannerUntil = 0;
   private lastKey = '';
   private humanTurn = false;
