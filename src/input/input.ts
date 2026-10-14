@@ -1,6 +1,7 @@
 // Collects keyboard, mouse and touch input into one InputFrame per sim tick.
 
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, type Command, type InputFrame } from '../sim/types';
+import { actionFor, controls, type Action } from './controls';
 
 export class InputCollector {
   // Each source (key code or touch button id) holds a bit while down.
@@ -48,16 +49,13 @@ export class InputCollector {
   }
 }
 
-const KEY_BITS: Record<string, number> = {
-  ArrowLeft: BTN_LEFT,
-  ArrowRight: BTN_RIGHT,
-  ArrowUp: BTN_UP,
-  ArrowDown: BTN_DOWN,
-  KeyA: BTN_LEFT,
-  KeyD: BTN_RIGHT,
-  KeyW: BTN_UP,
-  KeyS: BTN_DOWN,
-  Space: BTN_FIRE,
+/** Actions held down like buttons (the rest happen once per press). */
+const HOLD_BITS: Partial<Record<Action, number>> = {
+  left: BTN_LEFT,
+  right: BTN_RIGHT,
+  up: BTN_UP,
+  down: BTN_DOWN,
+  fire: BTN_FIRE,
 };
 
 export interface KeyboardHooks {
@@ -65,30 +63,37 @@ export interface KeyboardHooks {
   onEscape: () => void;
 }
 
+/**
+ * A key or mouse button bound to `action` went down or up. `source` names
+ * it (its code), so holding two keys for one action works.
+ */
+export function doAction(input: InputCollector, hooks: KeyboardHooks, action: Action, source: string, down: boolean, repeat = false): void {
+  const bit = HOLD_BITS[action];
+  if (bit !== undefined) {
+    input.hold(source, bit, down);
+    return;
+  }
+  if (!down || repeat) return;
+  if (action === 'jump') input.press(PRESS_JUMP);
+  else if (action === 'weapons') hooks.onWeaponPanel();
+  else input.command({ t: 'fuse', s: Number(action.slice(4)) });
+}
+
 export function attachKeyboard(input: InputCollector, hooks: KeyboardHooks): () => void {
   const down = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement) return;
-    const bit = KEY_BITS[e.code];
-    if (bit) {
-      input.hold(e.code, bit, true);
-      e.preventDefault();
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+    if (e.code === 'Escape') {
+      if (!e.repeat) hooks.onEscape();
       return;
     }
-    if (e.repeat) return;
-    if (e.code === 'Enter' || e.code === 'NumpadEnter') {
-      input.press(PRESS_JUMP);
-      e.preventDefault();
-    } else if (/^Digit[1-5]$/.test(e.code)) {
-      input.command({ t: 'fuse', s: Number(e.code.slice(5)) });
-    } else if (e.code === 'Tab' || e.code === 'KeyQ') {
-      hooks.onWeaponPanel();
-      e.preventDefault();
-    } else if (e.code === 'Escape') {
-      hooks.onEscape();
-    }
+    const action = actionFor(controls(), e.code);
+    if (!action) return;
+    e.preventDefault();
+    doAction(input, hooks, action, e.code, true, e.repeat);
   };
   const up = (e: KeyboardEvent) => {
-    if (KEY_BITS[e.code]) input.hold(e.code, KEY_BITS[e.code], false);
+    // Released whatever it does now (the settings may have changed while it was held).
+    input.hold(e.code, 0, false);
   };
   const blur = () => input.releaseAll();
   window.addEventListener('keydown', down);

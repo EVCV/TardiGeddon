@@ -19,7 +19,8 @@ import type { MeResponse } from '../src/account/session';
 import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, buyGift, redeemGift, cancelGift, giftsSent, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
+import { sanitiseControls } from '../src/input/controls';
 
 export interface AccountsEnv extends MailEnv {
   DATABASE_URL?: string;
@@ -371,6 +372,17 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { ok: true });
   }
 
+  /** Save the player's control settings (Settings page). */
+  async function saveSettings(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    const body = await readJson(req);
+    const controls = sanitiseControls(body?.controls);
+    if (!controls) return json(res, 400, { error: 'Bad request.' });
+    await saveControlsFor(db, user.id, controls);
+    json(res, 200, { ok: true });
+  }
+
   /** Gift-code tries per player per minute: codes can't be guessed by brute force. */
   const redeemTries = new Map<string, { at: number; n: number }>();
 
@@ -520,6 +532,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // Whether password reset and email confirmation work (an email service is set up).
             mail: mailer !== null,
           };
+          if (user) me.controls = await controlsOf(db, user.id);
           if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
         } else if (path === '/api/gift/buy' && req.method === 'POST') {
@@ -537,6 +550,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
           if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: 'Not found.' });
           else json(res, 200, await salesReport(db, [1, 7, 30, 365].includes(days) ? days : 0));
+        } else if (path === '/api/settings' && req.method === 'POST') {
+          await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
         } else if (path === '/api/shop/unlock' && req.method === 'POST') {

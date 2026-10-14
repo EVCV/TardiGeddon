@@ -5,6 +5,8 @@
 
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
+import { isNativeApp } from '../native';
+import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
@@ -26,6 +28,8 @@ export interface MeResponse {
   admin?: boolean;
   /** Set only on Cloudflare preview builds that can't reach the server (see refreshAccount). */
   preview?: boolean;
+  /** The player's control settings, if they've saved any (input/controls.ts). */
+  controls?: unknown;
 }
 
 /** The owner's sales page: totals only, never who bought what. */
@@ -96,6 +100,14 @@ export function onAccountChange(fn: () => void): () => void {
 }
 
 function set(next: MeResponse | null): void {
+  // In the phone apps: Google and Apple only allow their own payment systems,
+  // so no coin packs or Stripe receipts (coins bought on the website still
+  // spend). And Google/Apple sign-in pages refuse to open inside an app, and
+  // would come back to the website: email sign-in only, for now (docs/APPS.md).
+  if (next && isNativeApp()) next = { ...next, shop: false, receipts: false, providers: [] };
+  // Signed in with saved controls: use them (signed out, this visit's settings stay).
+  const saved = next?.user ? sanitiseControls(next.controls) : null;
+  if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
   me = next;
   loaded = true;
   if (next) {
@@ -347,4 +359,36 @@ export async function signInWith(provider: string): Promise<void> {
 export async function buyCoins(pack: string, consent: boolean, grownUp = false): Promise<void> {
   const r = await call<{ url?: string }>('/api/shop/checkout', { item: pack, consent, grownUp });
   if (r.url) location.href = r.url;
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let waiting: { resolve: (w: 'account') => void; reject: (e: unknown) => void }[] = [];
+
+/**
+ * Change the control settings: for this visit at once, and on the account
+ * (a moment later, so a burst of changes is one save) when signed in.
+ * Resolves to where they were kept.
+ */
+export function saveControls(c: Controls): Promise<'account' | 'visit'> {
+  setControls(c);
+  if (!me?.user) return Promise.resolve('visit');
+  if (saveTimer) clearTimeout(saveTimer);
+  return new Promise((resolve, reject) => {
+    waiting.push({ resolve, reject });
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      const these = waiting;
+      waiting = [];
+      const latest = controls();
+      call('/api/settings', { controls: latest }).then(
+        () => {
+          if (me) me = { ...me, controls: latest };
+          for (const w of these) w.resolve('account');
+        },
+        (e: unknown) => {
+          for (const w of these) w.reject(e);
+        },
+      );
+    }, 500);
+  });
 }

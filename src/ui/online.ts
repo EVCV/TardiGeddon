@@ -11,6 +11,7 @@ import { NetClient, serverUrl } from '../net/client';
 import { wearAim, wearFx, wearHat, wearSkin } from '../account/session';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
+import { webGameUrl } from '../native';
 
 const REJOIN_KEY = 'tardigeddon.rejoin';
 
@@ -58,7 +59,7 @@ export function showOnline(
   root: HTMLElement,
   hooks: OnlineHooks,
   opts: { client?: NetClient; code?: string; room?: Extract<ServerMsg, { t: 'room' }> } = {},
-): void {
+): { back: () => void } {
   root.innerHTML = '';
   const menu = el('div', 'menu');
   const card = el('div', 'menu-card online');
@@ -81,6 +82,8 @@ export function showOnline(
     }
     hooks.onBack();
   };
+  /** What the phone's back button does on the current screen. */
+  let backAction = leave;
 
   const listen = (c: NetClient) => {
     off?.();
@@ -124,6 +127,7 @@ export function showOnline(
   };
 
   const renderEntry = () => {
+    backAction = leave;
     card.innerHTML = '';
     card.append(el('h1', 'title-small', 'Play online'));
     if (!url) {
@@ -209,17 +213,19 @@ export function showOnline(
       stopQueueClock();
       renderEntry();
     };
+    backAction = () => cancel.click();
     card.append(cpu, status, cancel);
   };
 
   const renderLobby = (room: Extract<ServerMsg, { t: 'room' }>) => {
+    backAction = leave;
     card.innerHTML = '';
     const isHost = room.slots[room.you]?.host === true;
     card.append(el('h1', 'title-small', 'Room'));
     const codeBox = el('div', 'room-code', room.code);
     const share = el('button', 'hud-btn', '🔗 Copy invite link');
     share.onclick = async () => {
-      const link = `${location.origin}${location.pathname}?room=${room.code}`;
+      const link = `${webGameUrl()}?room=${room.code}`;
       try {
         await navigator.clipboard.writeText(link);
         share.textContent = '✓ Link copied';
@@ -284,4 +290,5 @@ export function showOnline(
   } else {
     renderEntry();
   }
+  return { back: () => backAction() };
 }

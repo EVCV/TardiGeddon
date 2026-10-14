@@ -12,6 +12,7 @@
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
 }
 
 * { box-sizing: border-box; }
@@ -92,8 +93,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .title span { color: var(--accent); }
 .tagline { margin: 6px 0 16px; font-weight: 800; }
 .menu-buttons { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
-.controls-help { margin-top: 14px; font-size: 13px; text-align: left; }
-.controls-help summary { cursor: pointer; font-weight: 800; text-align: center; }
 
 /* ---------- HUD ---------- */
 .hud { position: fixed; inset: 0; pointer-events: none; }
@@ -265,12 +264,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 /* ---------- Touch controls ---------- */
-.touch { position: absolute; inset: 0; pointer-events: none; }
-.touch.disabled { opacity: .35; }
-.touch.disabled .touch-btn { pointer-events: none; }
+.touch-pad { position: absolute; inset: 0; pointer-events: none; }
+.touch-pad.disabled { opacity: .35; }
+.touch-pad.disabled .touch-btn { pointer-events: none; }
 .touch-left, .touch-right {
   position: absolute;
-  bottom: calc(76px + var(--safe-b));
+  bottom: calc(90px + var(--safe-b));
   display: flex;
   gap: 10px;
   align-items: flex-end;
@@ -295,13 +294,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .touch-btn.fire { width: 84px; height: 84px; border-radius: 50%; background: rgba(224, 72, 72, .92); color: #fff; -webkit-text-stroke: 1px var(--ink); }
 .touch-btn.down { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); filter: brightness(.9); }
 .touch-mode .hud-tools { position: absolute; right: 0; bottom: 0; }
+/* Settings: left-handed swaps the two sides; three button sizes. */
+.touch-swap .touch-left { left: auto; right: calc(12px + var(--safe-r)); }
+.touch-swap .touch-right { right: auto; left: calc(12px + var(--safe-l)); flex-direction: row-reverse; }
+.touch-left { transform-origin: bottom left; }
+.touch-right { transform-origin: bottom right; }
+.touch-swap .touch-left { transform-origin: bottom right; }
+.touch-swap .touch-right { transform-origin: bottom left; }
+.touch-size-s .touch-left, .touch-size-s .touch-right { transform: scale(.8); }
+.touch-size-l .touch-left, .touch-size-l .touch-right { transform: scale(1.2); }
 .touch-mode .hud-teams { margin: 0 auto; max-width: 40vw; }
 
 .weapon-panel { z-index: 5; }
 .overlay { z-index: 6; }
 /* Short (landscape phone) screens: smaller pads */
 @media (max-height: 450px) {
-  .touch-left, .touch-right { bottom: calc(64px + var(--safe-b)); }
+  .touch-left, .touch-right { bottom: calc(80px + var(--safe-b)); }
   .touch-btn { width: 54px; height: 54px; font-size: 18px; }
   .touch-btn.aim { width: 48px; height: 40px; }
   .touch-btn.fire { width: 70px; height: 70px; }
@@ -734,7 +742,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lobby-play .big-btn { font-size: 30px; padding: 16px 22px; }
 .lobby-play .play { background: var(--accent); }
 .lobby-play .online-btn { background: var(--sky-deep); color: #fff; -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill; font-size: 24px; padding: 12px 22px; }
-.lobby-play .controls-help { margin-top: 14px; }
+.lobby-learn { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+.learn-new { background: var(--accent); animation: nudge .9s infinite alternate; }
+@keyframes nudge { to { transform: scale(1.05); } }
 
 /* Career panel (ui/dashboard.ts) */
 .dash { display: flex; flex-direction: column; gap: 12px; }
@@ -963,7 +973,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .lobby-play .big-btn { font-size: 22px; padding: 8px 14px; }
   .lobby-play .online-btn { font-size: 18px; padding: 8px 14px; }
   .lobby-play .menu-buttons { gap: 10px; }
-  .lobby-play .controls-help { margin-top: 8px; }
+  .lobby-learn { margin-top: 8px; }
   .dash-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .dash-pic svg { width: 44px; }
   .stat-value { font-size: 19px; }
@@ -1332,3 +1342,70 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gift-code { font: 800 26px/1.2 ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: 2px; padding: 10px 14px; border: 3px dashed var(--ink); border-radius: 12px; background: #fff; user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; text-align: center; }
 .gift-dialog-art svg { width: 110px; height: auto; }
 .gift-dialog-art .bundle-art { width: 160px; height: 100px; }
+
+/* ---------- Settings page ---------- */
+.page-settings { display: grid; gap: 20px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; max-width: 1080px; margin: 0 auto; }
+.settings-status { grid-column: 1 / -1; margin: 0; text-align: center; font-weight: 800; }
+.settings-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.bind-table { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.bind-row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 128px; gap: 8px; align-items: center; }
+.bind-name { font-weight: 800; }
+.bind-key {
+  min-height: 38px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 6px;
+}
+.bind-key.empty { background: transparent; border-style: dashed; box-shadow: none; opacity: .6; }
+.bind-key.listening { background: var(--accent); animation: pulse .5s infinite alternate; }
+.bind-key:disabled { opacity: .25; }
+.settings-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.settings-label { margin: 0 0 6px; font-weight: 800; }
+.settings-touch .seg { width: max-content; }
+.settings-swap { margin-top: 12px; }
+.settings-learn .big-btn { margin-top: 10px; }
+@media (max-width: 760px) {
+  .page-settings { grid-template-columns: minmax(0, 1fr); }
+  .bind-row { grid-template-columns: minmax(0, 1fr) 100px 100px; }
+}
+
+/* ---------- Tutorial coach ---------- */
+/* Takes the place of the HUD's hint line while the tutorial runs. */
+.has-coach .hud-hint { display: none; }
+.coach {
+  position: absolute;
+  top: calc(56px + var(--safe-t));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 160px));
+  padding: 8px 14px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 4px 0 var(--ink);
+  pointer-events: none;
+  text-align: center;
+  z-index: 4;
+}
+.coach-step { font-size: 12px; font-weight: 800; opacity: .7; }
+.coach-text { margin: 2px 0 0; font-weight: 800; font-size: 15px; line-height: 1.3; }
+.coach-end {
+  pointer-events: auto;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 32px));
+  z-index: 6;
+}
+.coach-title { font-family: var(--title); font-weight: normal; font-size: 28px; margin: 0; }
+.coach-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+@media (max-height: 450px) {
+  .coach { padding: 5px 10px; }
+  .coach-text { font-size: 13px; }
+}

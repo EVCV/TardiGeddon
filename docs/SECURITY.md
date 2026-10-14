@@ -94,9 +94,10 @@ game's code. Please:
 - **Stripe customer records** stay at Stripe when an account is deleted.
   Decide (with your accountant) whether to delete or redact them; Stripe
   keeps payment records for its own legal reasons either way.
-- **Phone apps:** their origins (e.g. `capacitor://localhost`) will need
-  adding to `TRUSTED_ORIGINS`, and they'll sign in with a token kept in the
-  phone's secure storage instead of a cookie.
+- **Phone apps:** the Android app runs at `https://app.tardigeddon.com` (inside the
+  phone), which must be in `TRUSTED_ORIGINS`; it signs in with the same
+  same-site cookie as the website. The iOS app (`capacitor://` scheme) will need to sign in with a
+  token kept in the phone's secure storage instead (docs/APPS.md).
 
 ## Testing the security headers
 

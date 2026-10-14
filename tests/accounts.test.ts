@@ -12,6 +12,7 @@ import { canWearHat } from '../src/shop/catalog';
 import { migrate, revokePurchase } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
+import { defaultControls, type Controls } from '../src/input/controls';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -387,6 +388,21 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await sendWebhook('checkout.session.completed', { ...paid('cs_2', id, 'hat:viking'), payment_status: 'unpaid' });
     await sendWebhook('checkout.session.completed', paid('cs_3', id, 'hat:golden'));
     expect((await me(cookie)).owned).toEqual([]);
+  });
+
+  it('keeps control settings on the account, cleaned, for signed-in players only', async () => {
+    expect((await post('/api/settings', { controls: defaultControls() })).status).toBe(401);
+    const { cookie } = await signUp('settings@example.com');
+    expect((await me(cookie)).controls).toBeNull();
+    expect((await post('/api/settings', { controls: 'nope' }, cookie)).status).toBe(400);
+    const mine = { ...defaultControls(), touchSwap: true, keys: { ...defaultControls().keys, fire: ['Mouse0', 'Mouse0', 'Escape'] } };
+    expect((await post('/api/settings', { controls: mine }, cookie)).status).toBe(200);
+    const saved = (await me(cookie)).controls as Controls;
+    expect(saved.keys.fire).toEqual(['Mouse0']);
+    expect(saved.touchSwap).toBe(true);
+    // Saving again replaces them.
+    expect((await post('/api/settings', { controls: defaultControls() }, cookie)).status).toBe(200);
+    expect(((await me(cookie)).controls as Controls).keys.fire).toEqual(['Space']);
   });
 
   it('keeps lifetime stats: online and CPU games, streaks, pops, damage and own goals', async () => {

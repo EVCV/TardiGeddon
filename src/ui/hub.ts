@@ -9,11 +9,12 @@ import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
 import { newSalesState, renderSalesPage } from './sales';
+import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
 import { LEGAL } from './account';
 import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
 
-export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'sales';
+export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'settings' | 'sales';
 
 /** What the pages get from the hub. */
 export interface HubContext {
@@ -29,6 +30,8 @@ export interface HubContext {
 
 export interface Hub {
   go: (tab: HubTab, notice?: string) => void;
+  /** The page showing now. */
+  tab: () => HubTab;
   /** Open the Account page at "choose a new password", for the token from a reset email. */
   resetPassword: (token: string) => void;
 }
@@ -38,6 +41,7 @@ const TABS: [HubTab, string, string][] = [
   ['stats', '📊', 'Stats'],
   ['shop', '🛍️', 'Shop'],
   ['account', '👤', 'Account'],
+  ['settings', '⚙️', 'Settings'],
   // Only for the owner (me.admin).
   ['sales', '📈', 'Sales'],
 ];
@@ -49,7 +53,13 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 }
 
-export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onOnline?: () => void, tab: HubTab = 'lobby'): Hub {
+export function showHub(
+  root: HTMLElement,
+  onStart: (s: MatchSetup) => void,
+  onOnline?: () => void,
+  onTutorial: () => void = () => {},
+  tab: HubTab = 'lobby',
+): Hub {
   root.innerHTML = '';
   const shell = el('div', 'menu hub');
   const bar = el('header', 'hub-bar');
@@ -72,6 +82,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   const shopState = newShopState();
   const signInState = newSignInState();
   const salesState = newSalesState();
+  const settingsState = newSettingsState();
   let lobby: Lobby | null = null;
 
   const ctx: HubContext = {
@@ -117,10 +128,10 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
     logo.onclick = () => go('lobby');
 
     tabs.innerHTML = '';
-    // Without accounts there's only the lobby, so no tabs at all.
-    tabs.classList.toggle('hidden', !me);
+    // Without accounts there's only the lobby and Settings.
     for (const [t, icon, label] of TABS) {
       if (t === 'sales' && !me?.admin) continue;
+      if (!me && t !== 'lobby' && t !== 'settings') continue;
       const b = el('button', 'seg-btn' + (tab === t ? ' on' : '') + (t === 'sales' ? ' tab-owner' : ''));
       b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', label));
       b.setAttribute('aria-label', label);
@@ -160,7 +171,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
     if (!shell.isConnected) return off();
     const { me, loaded } = account();
     // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
-    if (loaded && !me && tab !== 'lobby') tab = 'lobby';
+    if (loaded && !me && tab !== 'lobby' && tab !== 'settings') tab = 'lobby';
     if (loaded && tab === 'sales' && !me?.admin) tab = 'lobby';
     shell.dataset.tab = tab;
     renderBar();
@@ -181,12 +192,16 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial);
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;
     }
     lobby = null;
+    if (tab === 'settings') {
+      page.replaceChildren(renderSettingsPage(ctx, settingsState, onTutorial));
+      return;
+    }
     if (!loaded || !me) {
       page.replaceChildren(el('p', 'page-loading', 'Loading…'));
       return;
@@ -206,6 +221,7 @@ export function showHub(root: HTMLElement, onStart: (s: MatchSetup) => void, onO
   render();
   return {
     go,
+    tab: () => tab,
     resetPassword: (token) => {
       signInState.mode = 'reset';
       signInState.token = token;
