@@ -96,6 +96,8 @@ export interface Lobby {
   el: HTMLElement;
   /** Redraw what depends on the account (hats owned, stats). */
   refresh: () => void;
+  /** Phones: back from a sub-screen (match setup) to the lobby's home screen; false if already there. */
+  back: () => boolean;
 }
 
 export function buildLobby(
@@ -121,7 +123,12 @@ export function buildLobby(
         </div>
       </section>
       <section class="card lobby-setup">
-        <h2 class="card-title">Match setup</h2>
+        <div class="setup-head phone-only">
+          <button class="hud-btn setup-back">← Back</button>
+          <h2 class="card-title">Match setup</h2>
+          <button class="big-btn play setup-play">Play ▶</button>
+        </div>
+        <h2 class="card-title setup-title">Match setup</h2>
         <div class="players-row">
           <label>Players
             <select name="players">${PLAYER_COUNTS.map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
@@ -143,15 +150,25 @@ export function buildLobby(
       </section>
       <section class="card lobby-play">
         <div class="menu-buttons">
-          <button class="big-btn play">Play</button>
-          <button class="big-btn secondary online-btn">Play online</button>
+          <button class="big-btn play">Play<span class="play-sum phone-only" aria-hidden="true"></span></button>
+          <div class="menu-row">
+            <button class="big-btn secondary online-btn">Play online</button>
+            <button class="big-btn secondary setup-btn phone-only">Match setup</button>
+          </div>
         </div>
         <div class="lobby-learn">
           <button class="hud-btn learn-btn">🎓 How to play</button>
           <button class="hud-btn controls-btn">⚙️ Controls</button>
         </div>
       </section>
-      <aside class="card dash hidden" aria-label="Your career"></aside>`;
+      <aside class="card dash hidden" aria-label="Your career"></aside>
+      <nav class="lobby-nav phone-only" aria-label="Menu"></nav>`;
+  // Phones: the lobby is screens you tap through (home, match setup) instead of one long page.
+  root.dataset.view = 'home';
+  const show = (view: 'home' | 'setup') => {
+    root.dataset.view = view;
+    root.scrollTop = 0;
+  };
 
   const styleSel = root.querySelector<HTMLSelectElement>('select[name=style]')!;
   const blurb = root.querySelector<HTMLParagraphElement>('.style-blurb')!;
@@ -207,7 +224,14 @@ export function buildLobby(
   const skillSel = root.querySelector<HTMLSelectElement>('select[name=cpuSkill]')!;
   skillSel.value = saved.cpuSkill;
   skillSel.onchange = () => persist();
-  const persist = () => save({ style: styleSel.value, custom, players, cpuSkill: skillSel.value as CpuSkill });
+  const playSum = root.querySelector<HTMLElement>('.play-sum')!;
+  const persist = () => {
+    save({ style: styleSel.value, custom, players, cpuSkill: skillSel.value as CpuSkill });
+    // Phones: what PLAY will start, under the button.
+    const humans = players.filter((cpu) => !cpu).length;
+    const style = styleSel.value === 'custom' ? 'Custom rules' : (SCHEME_PRESETS.find((p) => p.id === styleSel.value)?.name ?? '');
+    playSum.textContent = `${humans === players.length ? `${humans} players` : humans === 1 ? `vs ${players.length - 1} CPU` : `${players.length} teams`} · ${style}`;
+  };
   countSel.value = String(PLAYER_COUNTS.includes(players.length) ? players.length : 2);
   if (players.length !== Number(countSel.value)) players = players.slice(0, Number(countSel.value));
   countSel.onchange = () => {
@@ -271,6 +295,7 @@ export function buildLobby(
   styleSel.onchange = () => refresh();
   customiseBtn.onclick = () => {
     panel.classList.toggle('hidden');
+    root.classList.toggle('rules-open', !panel.classList.contains('hidden'));
     customiseBtn.textContent = panel.classList.contains('hidden') ? 'Customise' : 'Done';
   };
   refresh();
@@ -290,6 +315,37 @@ export function buildLobby(
       renderSlots();
       renderHero();
     });
+  const nav = root.querySelector<HTMLElement>('.lobby-nav')!;
+  const renderNav = () => {
+    const { me } = account();
+    nav.innerHTML = '';
+    const tile = (tab: HubTab, icon: string, label: string, extra = '') => {
+      const b = document.createElement('button');
+      b.className = 'nav-tile';
+      b.dataset.go = tab;
+      const i = document.createElement('span');
+      i.className = 'nav-icon';
+      i.textContent = icon;
+      const l = document.createElement('span');
+      l.className = 'nav-label';
+      l.textContent = label; // may be the player's name: never innerHTML
+      b.append(i, l);
+      if (extra) {
+        const x = document.createElement('span');
+        x.className = 'nav-extra';
+        x.textContent = extra;
+        b.append(x);
+      }
+      b.onclick = () => go(tab);
+      nav.append(b);
+    };
+    if (me) {
+      tile('stats', '📊', 'Stats');
+      tile('shop', '🛍️', 'Shop', me.user ? `🪙 ${me.wallet.coins} · 🟢 ${me.wallet.slime}` : '');
+      tile('account', '👤', me.user ? me.user.name : 'Sign in');
+    }
+    tile('settings', '⚙️', 'Settings');
+  };
   const dash = root.querySelector<HTMLElement>('.dash')!;
   const refreshAccountBits = () => {
     // Hats may have been bought or lost (signed out), or changed in the shop: redraw the team pictures.
@@ -298,6 +354,7 @@ export function buildLobby(
     renderHero();
     renderDashboard(dash, go);
     root.classList.toggle('solo', !account().me);
+    renderNav();
   };
   refreshAccountBits();
 
@@ -313,7 +370,9 @@ export function buildLobby(
   if (onOnline) onlineBtn.onclick = onOnline;
   else onlineBtn.remove();
 
-  root.querySelector<HTMLButtonElement>('.play')!.onclick = () => {
+  root.querySelector<HTMLButtonElement>('.setup-btn')!.onclick = () => show('setup');
+  root.querySelector<HTMLButtonElement>('.setup-back')!.onclick = () => show('home');
+  const play = () =>
     onStart({
       players: [...players],
       teams: profiles.slice(0, players.length),
@@ -321,6 +380,14 @@ export function buildLobby(
       seed: (Math.random() * 1e9) | 0,
       cpuSkill: skillSel.value as CpuSkill,
     });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.play')) b.onclick = play;
+  return {
+    el: root,
+    refresh: refreshAccountBits,
+    back: () => {
+      if (root.dataset.view === 'home') return false;
+      show('home');
+      return true;
+    },
   };
-  return { el: root, refresh: refreshAccountBits };
 }

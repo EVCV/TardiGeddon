@@ -126,9 +126,21 @@ export function showOnline(
     return c;
   };
 
+  /**
+   * Two columns for phones, side by side in landscape (CSS: .online-col). On
+   * bigger screens they don't exist as boxes (display: contents): one column.
+   */
+  const columns = (): [HTMLElement, HTMLElement] => {
+    const a = el('div', 'online-col');
+    const b = el('div', 'online-col');
+    card.append(a, b);
+    return [a, b];
+  };
+
   const renderEntry = () => {
     backAction = leave;
     card.innerHTML = '';
+    card.dataset.screen = 'entry';
     card.append(el('h1', 'title-small', 'Play online'));
     if (!url) {
       card.append(el('p', 'online-note', 'Online play isn’t switched on for this version of the game yet.'));
@@ -143,7 +155,9 @@ export function showOnline(
     const name = el('span', 'online-me-name', team.name);
     name.style.color = hex(team.color);
     who.append(name);
-    card.append(who, el('p', 'online-note', 'You play as your first team. Edit it from the main menu.'));
+    const heading = card.firstElementChild!;
+    const [colA, colB] = columns();
+    colA.append(heading, who, el('p', 'online-note', 'You play as your first team. Edit it from the main menu.'));
 
     const quick = el('button', 'big-btn', '⚡ Quick play');
     quick.onclick = async () => {
@@ -177,9 +191,10 @@ export function showOnline(
       if (e.key === 'Enter') join.click();
     };
     joinRow.append(code, join);
-    const back = el('button', 'hud-btn', '← Back');
+    const back = el('button', 'hud-btn online-back', '← Back');
     back.onclick = leave;
-    card.append(quick, or, create, joinRow, status, back);
+    colA.append(back);
+    colB.append(quick, or, create, joinRow, status);
     if (opts.code) join.click();
   };
 
@@ -201,6 +216,7 @@ export function showOnline(
       }, 500);
     }
     card.innerHTML = '';
+    card.dataset.screen = 'queue';
     card.append(el('h1', 'title-small', 'Quick play'));
     const spin = el('div', 'queue-spin');
     spin.innerHTML = mascotSvg(myTeam().color, myTeam().hat, myTeam().skin);
@@ -220,8 +236,10 @@ export function showOnline(
   const renderLobby = (room: Extract<ServerMsg, { t: 'room' }>) => {
     backAction = leave;
     card.innerHTML = '';
+    card.dataset.screen = 'room';
     const isHost = room.slots[room.you]?.host === true;
-    card.append(el('h1', 'title-small', 'Room'));
+    const [colA, colB] = columns();
+    colA.append(el('h1', 'title-small', 'Room'));
     const codeBox = el('div', 'room-code', room.code);
     const share = el('button', 'hud-btn', '🔗 Copy invite link');
     share.onclick = async () => {
@@ -233,7 +251,7 @@ export function showOnline(
         share.textContent = link;
       }
     };
-    card.append(codeBox, share);
+    colA.append(codeBox, share);
 
     const list = el('div', 'lobby-slots');
     room.slots.forEach((s, i) => {
@@ -253,7 +271,7 @@ export function showOnline(
       }
       list.append(row);
     });
-    card.append(list);
+    colB.append(list);
 
     if (isHost) {
       const add = el('button', 'hud-btn', '+ Add CPU');
@@ -272,14 +290,14 @@ export function showOnline(
         const scheme = sel.value === 'custom' ? saved.custom : SCHEME_PRESETS.find((p) => p.id === sel.value)!.scheme;
         client?.send({ t: 'start', scheme });
       };
-      card.append(add, styleRow, start);
-      if (room.slots.length < 2) card.append(el('p', 'online-note', 'Share the code, or add a CPU, to start.'));
+      colB.append(add, styleRow, start);
+      if (room.slots.length < 2) colB.append(el('p', 'online-note', 'Share the code, or add a CPU, to start.'));
     } else {
-      card.append(el('p', 'online-note', 'Waiting for the host to start the match…'));
+      colB.append(el('p', 'online-note', 'Waiting for the host to start the match…'));
     }
-    const back = el('button', 'hud-btn', 'Leave room');
+    const back = el('button', 'hud-btn online-back', 'Leave room');
     back.onclick = leave;
-    card.append(status, back);
+    colA.append(status, back);
   };
 
   if (client) {

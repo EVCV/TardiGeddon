@@ -105,8 +105,7 @@ async function boot(): Promise<void> {
     onBack: () => {
       if (current) current.back();
       else if (onlineScreen) onlineScreen.back();
-      else if (hub && hub.tab() !== 'lobby') hub.go('lobby');
-      else return false;
+      else if (!hub?.back()) return false;
       return true;
     },
     onPause: (paused) => pauseAudio(paused),
