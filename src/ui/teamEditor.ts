@@ -147,10 +147,12 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     if (e.target === overlay) close();
   };
 
-  box.append(
-    preview,
-    title,
-    nameInput,
+  // Phones (landscape): your tardi, name and buttons on the left, the options
+  // scrolling on the right. Elsewhere these boxes don't exist (display: contents).
+  const side = el('div', 'editor-side');
+  side.append(preview, title, nameInput);
+  const options = el('div', 'editor-options');
+  options.append(
     el('h3', '', 'Colour'),
     colours,
     el('h3', '', 'Hat'),
@@ -164,10 +166,11 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     hatHint,
     el('h3', '', 'Tardi names'),
     names,
-    actions,
   );
+  box.append(side, options, actions);
   overlay.append(box);
   host.append(overlay);
   refresh();
-  nameInput.focus();
+  // Not on touch screens: the on-screen keyboard would cover the editor straight away.
+  if (!matchMedia('(pointer: coarse)').matches) nameInput.focus();
 }

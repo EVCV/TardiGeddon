@@ -5,6 +5,9 @@
 import { ACTIONS, MAX_BINDINGS, bind, bindable, controls, defaultControls, keyLabel, unbind, type Action, type Controls, type TouchSize } from '../input/controls';
 import { account, saveControls } from '../account/session';
 import type { HubContext } from './hub';
+import { LEGAL } from './account';
+
+declare const __APP_VERSION__: string;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -21,10 +24,20 @@ export interface SettingsState {
   note: string;
   /** Where the last save went. */
   saved: 'account' | 'visit' | 'error' | '';
+  /** Phones: the section showing (they show one at a time). */
+  section: Section | null;
 }
 
+type Section = 'touch' | 'keys' | 'learn' | 'about';
+const SECTIONS: [Section, string][] = [
+  ['touch', '👆 Touch controls'],
+  ['keys', '⌨️ Keyboard & mouse'],
+  ['learn', '🎓 How to play'],
+  ['about', 'ℹ️ About & legal'],
+];
+
 export function newSettingsState(): SettingsState {
-  return { listening: null, note: '', saved: '' };
+  return { listening: null, note: '', saved: '', section: null };
 }
 
 /** Stops listening for a key (the page is being redrawn or left). */
@@ -54,6 +67,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
 
   // ---- Keyboard and mouse ----
   const keysCard = el('section', 'card settings-keys');
+  keysCard.dataset.section = 'keys';
   keysCard.append(el('h2', 'card-title', '⌨️ Keyboard & mouse'));
   keysCard.append(
     el('p', 'account-note', 'Click a box, then press a key or click a mouse button (left, right, middle or the side buttons). Backspace clears it, Esc cancels. Mouse buttons you leave free drag the map.'),
@@ -96,6 +110,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
 
   // ---- Touch screen ----
   const touchCard = el('section', 'card settings-touch');
+  touchCard.dataset.section = 'touch';
   touchCard.append(el('h2', 'card-title', '👆 Touch screen'));
   const sizeLabel = el('p', 'settings-label', 'Button size');
   const sizes = el('div', 'seg');
@@ -120,6 +135,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
 
   // ---- Tutorial ----
   const learnCard = el('section', 'card settings-learn');
+  learnCard.dataset.section = 'learn';
   learnCard.append(el('h2', 'card-title', '🎓 Learn to play'));
   learnCard.append(el('p', 'account-note', 'A short practice match against a target dummy that walks you through moving, aiming, firing and targeting.'));
   const tut = el('button', 'big-btn', 'Start the tutorial');
@@ -148,6 +164,43 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   // On a touch screen the touch settings come first.
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   root.append(status, ...(touchFirst ? [side, keysCard] : [keysCard, side]));
+
+  // Phones: a list of sections beside the one showing, instead of one long page.
+  state.section ??= touchFirst ? 'touch' : 'keys';
+  root.dataset.section = state.section;
+  const menu = el('nav', 'settings-menu phone-only');
+  menu.setAttribute('aria-label', 'Settings sections');
+  for (const [id, label] of SECTIONS) {
+    const b = el('button', 'settings-menu-btn' + (state.section === id ? ' on' : ''), label);
+    if (state.section === id) b.setAttribute('aria-current', 'true');
+    b.onclick = () => {
+      state.section = id;
+      ctx.rerender();
+    };
+    menu.append(b);
+  }
+  const about = el('section', 'card settings-about phone-only');
+  about.dataset.section = 'about';
+  about.append(el('h2', 'card-title', 'ℹ️ About & legal'));
+  const links = el('div', 'settings-links');
+  for (const [href, text] of [
+    ['https://tardigeddon.com/', 'tardigeddon.com'],
+    [LEGAL + 'terms-of-service', 'Terms'],
+    [LEGAL + 'privacy-policy', 'Privacy'],
+    [LEGAL + 'cookie-policy', 'Cookies'],
+    [LEGAL + 'childrens-privacy', "Children's privacy"],
+    [LEGAL + 'community-guidelines', 'Community'],
+    ['mailto:support@tardigeddon.com', 'Support'],
+  ]) {
+    const a = el('a', 'hud-btn', text);
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    links.append(a);
+  }
+  about.append(links, el('p', 'account-note', `Version ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'}`));
+  root.prepend(menu);
+  root.append(about);
   return root;
 }
 

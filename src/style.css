@@ -93,6 +93,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .title span { color: var(--accent); }
 .tagline { margin: 6px 0 16px; font-weight: 800; }
 .menu-buttons { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.menu-row { display: flex; flex-direction: column; gap: inherit; }
 
 /* ---------- HUD ---------- */
 .hud { position: fixed; inset: 0; pointer-events: none; }
@@ -407,7 +408,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   min-width: 0;
 }
 .slot-pic svg { width: 38px; height: auto; display: block; }
-.slot-name { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.15; }
+.slot-name { flex: 1; min-width: 0; overflow-wrap: break-word; line-height: 1.15; }
 .slot-kind {
   flex: none;
   font-size: 13px;
@@ -449,6 +450,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   text-align: center;
 }
 .editor h3 { margin: 12px 0 6px; font-size: 13px; text-align: left; }
+.editor-side, .editor-options { display: contents; }
 .editor-preview svg { width: 120px; height: auto; }
 .editor-title { font-family: var(--title); font-weight: normal; margin: 0 0 6px; -webkit-text-stroke: 1px var(--ink); }
 .editor input {
@@ -489,7 +491,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .online-me svg { width: 72px; height: auto; }
 .online-me-name { font-family: var(--title); font-size: 26px; -webkit-text-stroke: 1px var(--ink); }
 .online-note { margin: 0; font-size: 14px; }
-.online-status { margin: 0; min-height: 1.2em; font-weight: 800; color: var(--red); }
+.online-status { margin: 0; min-height: 1.2em; font-weight: 800; color: var(--red); order: 1; }
+.online-back { order: 2; }
+/* Phones lay these side by side; elsewhere they aren't boxes at all. */
+.online-col { display: contents; }
 .join-row { display: flex; gap: 10px; }
 .code-input {
   flex: 1;
@@ -733,7 +738,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 999px;
   background: #fff;
   font-weight: 800;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .lobby-setup .players-row { justify-content: flex-start; }
 .lobby-setup .style-row { justify-content: flex-start; margin-top: 4px; }
@@ -752,7 +757,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dash-head { display: flex; align-items: center; gap: 12px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; padding: 6px 12px 6px 6px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
 .dash-pic svg { width: 64px; height: auto; display: block; }
 .dash-who { display: flex; flex-direction: column; min-width: 0; }
-.dash-name { font-family: var(--title); font-size: 22px; line-height: 1.1; color: var(--accent); -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; overflow-wrap: anywhere; }
+.dash-name { font-family: var(--title); font-size: 22px; line-height: 1.1; color: var(--accent); -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; overflow-wrap: break-word; }
 .dash-streak { font-size: 13px; font-weight: 800; color: var(--red); }
 .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .dash-collection { display: flex; flex-direction: column; gap: 5px; border: 0; background: none; padding: 0; text-align: left; font-weight: 800; font-size: 14px; }
@@ -787,7 +792,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .profile-card { display: flex; align-items: center; gap: 14px; text-align: left; align-self: stretch; }
 .profile-pic svg { width: 96px; height: auto; display: block; }
 .profile-who { min-width: 0; }
-.profile-name { font-family: var(--title); font-size: 30px; line-height: 1.1; -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill; color: var(--accent); overflow-wrap: anywhere; }
+.profile-name { font-family: var(--title); font-size: 30px; line-height: 1.1; -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill; color: var(--accent); overflow-wrap: break-word; }
 .profile-email { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .profile-since { font-size: 13px; font-weight: 600; opacity: .75; margin-top: 2px; }
 .account-wallet { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-self: stretch; }
@@ -1408,4 +1413,294 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (max-height: 450px) {
   .coach { padding: 5px 10px; }
   .coach-text { font-size: 13px; }
+}
+
+/* ======================================================================
+   Phones (landscape, so short screens): the menu is a game menu you tap
+   through, not a long page. The lobby is a home screen (team, PLAY, the
+   other pages as buttons) and a Match setup screen; every other page
+   opens full screen with a Back button. Pages fit the screen; only long
+   lists (teams, shop items, keys) scroll inside their own box.
+   ====================================================================== */
+.phone-only, .hub-back, .hub-title { display: none; }
+@media (max-height: 500px) {
+  .menu.hub { height: 100vh; height: 100dvh; overflow: hidden; }
+  .menu.hub .hub-footer, .menu.hub .hub-tabs, .menu.hub .hub-logo, .menu.hub .hub-me { display: none; }
+  .menu.hub[data-tab=lobby] .hub-bar { display: none; }
+  .hub-bar { padding: 6px calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
+  .hub-bar-inner { flex-wrap: nowrap; gap: 8px; max-width: none; padding: 0; }
+  .hub-back { display: inline-flex; flex: none; align-items: center; min-height: 36px; padding: 2px 12px; font-size: 15px; }
+  .hub-title {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-family: var(--title);
+    font-weight: normal;
+    font-size: 24px;
+    letter-spacing: .5px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hub-right .chip { min-height: 32px; font-size: 14px; padding: 2px 10px; }
+  .menu.hub .hub-page { flex: 1 1 0; min-height: 0; max-width: none; overflow-y: auto; padding: 8px calc(10px + var(--safe-r)) 10px calc(10px + var(--safe-l)); }
+  .hub-notice { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); margin: 0; z-index: 10; font-size: 14px; }
+  .card { padding: 10px; border-radius: 16px; border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
+  .card-title { font-size: 18px; margin-bottom: 6px; }
+
+  /* ---- Lobby: home screen ---- */
+  .menu.hub .lobby[data-view] {
+    height: 100%;
+    display: grid;
+    gap: 8px 10px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: 'hero play' 'nav nav';
+    align-items: stretch;
+  }
+  .lobby[data-view] .dash { display: none; }
+  .lobby[data-view=home] .lobby-setup { display: none; }
+  .lobby[data-view] .lobby-hero { grid-area: hero; flex-direction: column; justify-content: center; align-items: center; gap: 6px; padding: 8px; text-align: center; min-height: 0; overflow: hidden; }
+  .lobby[data-view] .hero-art { padding: 4px 10px 8px; gap: 4px; border-radius: 14px; }
+  .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(54px, 22vh, 100px); display: block; }
+  .lobby[data-view] .hero-text { text-align: center; max-width: 100%; }
+  .lobby[data-view] .title { font-size: clamp(22px, 4vw, 34px); white-space: nowrap; }
+  .lobby[data-view] .tagline { display: none; }
+  .lobby[data-view] .hero-team { font-size: 13px; margin-top: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+  .lobby[data-view] .hero-edit { font-size: 12px; min-height: 28px; }
+  .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; padding: 10px; min-height: 0; align-self: stretch; }
+  .lobby[data-view] .lobby-hero { align-self: stretch; }
+  .lobby[data-view] .lobby-play .menu-buttons { gap: 8px; margin: 0; }
+  .lobby[data-view] .lobby-play .play { display: flex; flex-direction: column; align-items: center; font-size: clamp(26px, 9vh, 36px); line-height: 1.05; padding: 6px 14px 8px; }
+  .play-sum.phone-only { display: block; font-family: var(--body); font-size: 12px; font-weight: 800; letter-spacing: 0; -webkit-text-stroke: 0; }
+  .lobby[data-view] .menu-row { flex-direction: row; gap: 8px; }
+  .lobby[data-view] .menu-row .big-btn { flex: 1 1 0; min-width: 0; font-size: 16px; padding: 8px 6px; white-space: nowrap; }
+  .setup-btn.phone-only { display: block; }
+  .lobby[data-view] .lobby-learn { margin-top: 8px; }
+  .lobby[data-view] .lobby-learn .hud-btn { flex: 1; }
+  .lobby[data-view] .controls-btn { display: none; }
+  .lobby-nav.phone-only { grid-area: nav; display: flex; gap: 8px; }
+  .nav-tile {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0 6px;
+    min-height: 44px;
+    padding: 4px 6px;
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    background: var(--paper);
+    box-shadow: 0 3px 0 var(--ink);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.15;
+  }
+  .nav-tile:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+  .nav-icon { font-size: 17px; }
+  .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-extra { flex-basis: 100%; text-align: center; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---- Lobby: match setup screen ---- */
+  .menu.hub .lobby[data-view=setup] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: 'setup'; }
+  .lobby[data-view=setup] > :not(.lobby-setup) { display: none; }
+  .lobby[data-view=setup] .lobby-setup {
+    grid-area: setup;
+    display: grid;
+    min-height: 0;
+    gap: 6px 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    grid-template-areas: 'head head' 'players slots' 'style slots' 'blurb slots' 'hint slots';
+    align-content: start;
+  }
+  .setup-head.phone-only { grid-area: head; display: flex; align-items: center; gap: 8px; }
+  .setup-head .card-title { flex: 1; margin: 0; text-align: center; font-size: 22px; }
+  .setup-head .setup-play { font-size: 18px; padding: 4px 14px; box-shadow: 0 3px 0 var(--ink); }
+  .lobby[data-view] .setup-title { display: none; }
+  .lobby[data-view] .lobby-setup .players-row { grid-area: players; margin: 0; justify-content: flex-start; gap: 10px; }
+  .lobby[data-view] .lobby-setup .slots { grid-area: slots; margin: 0; overflow-y: auto; min-height: 0; align-self: stretch; align-content: start; padding: 2px 4px 4px 0; }
+  .lobby[data-view] .lobby-setup .players-hint { grid-area: hint; margin: 0; font-size: 11px; }
+  .lobby[data-view] .lobby-setup .style-row { grid-area: style; margin: 0; flex-wrap: wrap; gap: 6px; }
+  .lobby[data-view] .lobby-setup .style-blurb { grid-area: blurb; margin: 0; font-size: 12px; }
+  .lobby[data-view] .lobby-setup .custom-panel { grid-area: slots; overflow-y: auto; min-height: 0; margin: 0; align-content: start; }
+  .lobby.rules-open .lobby-setup .slots { display: none; }
+  .lobby[data-view] .slot { font-size: 14px; }
+  .lobby[data-view] .slot-main { padding-top: 2px; padding-bottom: 2px; }
+  .lobby[data-view] .slot-pic svg { width: 32px; }
+  .lobby[data-view] .slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-height: 340px) {
+  .lobby[data-view] .lobby-setup .players-hint { display: none; }
+}
+
+@media (max-height: 500px) {
+  /* ---- Play online: two columns ---- */
+  .menu { padding: 8px calc(10px + var(--safe-r)) 8px calc(10px + var(--safe-l)); }
+  .menu-card.online[data-screen=entry], .menu-card.online[data-screen=room] {
+    width: min(820px, 100%);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 14px;
+    align-items: start;
+    padding: 12px 14px;
+    border-width: 3px;
+    border-radius: 18px;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .menu-card.online .online-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .menu-card.online .title-small { font-size: 28px; }
+  .menu-card.online .online-me svg { width: 56px; }
+  .menu-card.online .online-me-name { font-size: 20px; }
+  .menu-card.online .online-note { font-size: 12px; }
+  .menu-card.online .big-btn { font-size: 18px; padding: 7px 12px; }
+  .menu-card.online .code-input { font-size: 20px; letter-spacing: 4px; padding: 4px 6px; }
+  .menu-card.online .room-code { font-size: 34px; letter-spacing: 8px; }
+  .menu-card.online .lobby-slots { max-height: 46vh; overflow-y: auto; }
+  .menu-card.online .lobby-pic svg { width: 32px; }
+
+  /* ---- Stats: one screen, the collection scrolls in its box ---- */
+  .menu.hub .page-stats {
+    height: 100%;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .page-stats .stats-head { grid-column: 1 / -1; padding: 6px 10px; gap: 10px; flex-wrap: nowrap; }
+  .page-stats .profile-pic svg { width: 48px; }
+  .page-stats .profile-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .page-stats .stats-big { flex: 1; min-width: 0; gap: 6px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .page-stats .profile-who { flex: 0 1 auto; max-width: 32%; }
+  .page-stats .stats-big .stat-value, .page-stats .stats-grid .stat-value { font-size: 18px; }
+  .page-stats .stat-tile { padding: 3px 4px; border-width: 2px; border-radius: 10px; }
+  .page-stats .stat-label { font-size: 10px; }
+  .page-stats .stats-grid { gap: 5px; }
+  .page-stats > .card { min-height: 0; overflow-y: auto; }
+  .page-stats .stats-collection { grid-column: auto; }
+  .page-stats .collection-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 5px; }
+  .page-stats .account-note { font-size: 11px; }
+  .page-stats.locked, .page-stats:has(.stats-teaser) { display: flex; flex-direction: column; justify-content: center; }
+
+  /* ---- Shop: stage on the left, the catalogue scrolls on the right ---- */
+  .menu.hub .page-shop { height: 100%; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 10px; align-items: stretch; }
+  .page-shop .shop-side { position: static; max-height: none; min-height: 0; overflow-y: auto; }
+  .page-shop .shop-main { min-height: 0; overflow: hidden; gap: 8px; padding: 8px; }
+  .page-shop .shop-pills { flex: none; max-width: 100%; }
+  .page-shop .shop-body { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .page-shop .shop-fair { display: none; }
+  .page-shop .shop-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+  .page-shop .bundle-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  /* Stage: picture above its name, whatever the width (also on the narrowest phones). */
+  .page-shop .shop-side { gap: 8px; padding: 8px; }
+  .page-shop .shop-side .shop-wallet { display: none; } /* already in the top bar */
+  .page-shop .shop-stage { flex-direction: column; text-align: center; padding: 8px; }
+  .page-shop .shop-stage-info, .page-shop .shop-stage-action { align-items: center; }
+  .page-shop .shop-stage-art { min-height: 0; }
+  .page-shop .shop-stage-art svg { width: 84px; }
+  .page-shop .shop-stage-info > b { font-size: 18px; }
+  .page-shop .shop-stage-action .big-btn { font-size: 16px; padding: 6px 12px; }
+  /* Featured banner: one compact row. */
+  .page-shop .shop-banner { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; gap: 10px; padding: 8px 12px; border-width: 3px; border-radius: 16px; }
+  .page-shop .banner-text { align-items: flex-start; }
+  .page-shop .banner-hero svg { width: 76px; }
+  .page-shop .banner-title { font-size: 22px; }
+  .page-shop .banner-minis { display: none; }
+  .page-shop .banner-go { font-size: 15px; padding: 4px 12px; }
+
+  /* ---- Account ---- */
+  .menu.hub .page-account { gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-account .profile-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .page-account .profile-email { overflow-wrap: anywhere; font-size: 12px; }
+  .page-account .profile-pic svg { width: 64px; }
+  .page-account .account-wallet .stat-value { font-size: 18px; }
+
+  /* ---- Settings: sections beside the one showing ---- */
+  .menu.hub .page-settings {
+    height: 100%;
+    max-width: none;
+    display: grid;
+    gap: 6px 10px;
+    grid-template-columns: minmax(0, 190px) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: 'menu status' 'menu content';
+  }
+  .page-settings .settings-side { display: contents; }
+  .settings-menu.phone-only { grid-area: menu; display: flex; flex-direction: column; gap: 6px; }
+  .settings-menu-btn {
+    text-align: left;
+    padding: 8px 10px;
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    background: var(--paper);
+    box-shadow: 0 3px 0 var(--ink);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 800;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .settings-menu-btn.on { background: var(--accent); }
+  .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
+  .page-settings > .card, .page-settings .settings-side > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
+  .page-settings[data-section=touch] [data-section=touch],
+  .page-settings[data-section=keys] [data-section=keys],
+  .page-settings[data-section=learn] [data-section=learn],
+  .page-settings[data-section=about] [data-section=about] { display: block; }
+  .page-settings .bind-row { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 6px; }
+  .page-settings .bind-key { min-height: 32px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
+  .page-settings .bind-name { font-size: 13px; }
+  .page-settings .bind-table { gap: 4px; margin-top: 6px; }
+  .settings-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .settings-links a { text-decoration: none; color: var(--ink); font-weight: 800; }
+  .menu.hub .page-settings { align-items: stretch; }
+  .page-settings .settings-menu { align-self: start; }
+
+  /* ---- Match setup: the rules in two columns ---- */
+  .lobby[data-view] .lobby-setup .custom-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; padding-top: 6px; }
+  .lobby[data-view] .custom-panel label { font-size: 12px; }
+  .lobby[data-view] .custom-panel select { padding: 3px 6px; }
+
+  /* ---- Sign in: why, beside the form ---- */
+  .menu.hub .account-split { height: 100%; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); gap: 12px; padding: 10px; align-items: stretch; }
+  .account-split .account-pitch { padding: 8px; gap: 6px; justify-content: center; overflow-y: auto; }
+  .account-split .account-pitch .account-art svg { width: 70px; }
+  .account-split .account-pitch .dash-perks { font-size: 12px; gap: 4px; padding: 6px 10px; }
+  .account-split .account-form-box { min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .account-split .account-form { gap: 6px; }
+  .account-split .field { padding: 6px 10px; }
+  .menu.hub .page-account:has(.account-split) { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .menu.hub .account-split { min-height: 0; }
+
+  /* ---- Team editor: your tardi on the left, options scroll on the right ---- */
+  .editor-overlay { padding: 6px calc(8px + var(--safe-r)) 6px calc(8px + var(--safe-l)); }
+  .editor {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    gap: 8px 14px;
+    grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: 'side options' 'actions options';
+    padding: 10px 12px;
+    border-width: 3px;
+    border-radius: 16px;
+  }
+  .editor-side { grid-area: side; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 0; }
+  .editor-side .editor-preview svg { width: 96px; }
+  .editor-side .editor-title { font-size: 20px; margin: 0; }
+  .editor-options { grid-area: options; display: block; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .editor-options h3:first-child { margin-top: 0; }
+  .editor .editor-actions { grid-area: actions; margin: 0; flex-wrap: wrap; justify-content: center; }
+  .editor .editor-actions .big-btn { padding: 6px 18px; font-size: 16px; }
 }

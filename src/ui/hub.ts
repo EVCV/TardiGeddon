@@ -32,6 +32,8 @@ export interface Hub {
   go: (tab: HubTab, notice?: string) => void;
   /** The page showing now. */
   tab: () => HubTab;
+  /** Step back one screen (a page to the lobby, match setup to the lobby's home). False if there's nowhere to go. */
+  back: () => boolean;
   /** Open the Account page at "choose a new password", for the token from a reset email. */
   resetPassword: (token: string) => void;
 }
@@ -69,7 +71,11 @@ export function showHub(
   const tabs = el('nav', 'seg hub-tabs');
   tabs.setAttribute('aria-label', 'Menu');
   const right = el('div', 'hub-right');
-  barInner.append(logo, tabs, right);
+  // Phones: instead of the tabs, a Back button and the page's name.
+  const backBtn = el('button', 'hud-btn hub-back', '← Back');
+  backBtn.onclick = () => go('lobby');
+  const title = el('h1', 'hub-title');
+  barInner.append(backBtn, logo, title, tabs, right);
   bar.append(barInner);
   const notice = el('div', 'hub-notice hidden');
   notice.setAttribute('role', 'status');
@@ -140,6 +146,7 @@ export function showHub(
       tabs.append(b);
     }
 
+    title.textContent = TABS.find(([t]) => t === tab)?.[2] ?? '';
     right.innerHTML = '';
     if (!me) return;
     if (me.user) {
@@ -222,6 +229,13 @@ export function showHub(
   return {
     go,
     tab: () => tab,
+    back: () => {
+      if (tab !== 'lobby') {
+        go('lobby');
+        return true;
+      }
+      return lobby?.back() ?? false;
+    },
     resetPassword: (token) => {
       signInState.mode = 'reset';
       signInState.token = token;
