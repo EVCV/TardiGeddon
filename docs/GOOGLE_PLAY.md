@@ -247,10 +247,11 @@ shop simply doesn't offer coin packs.
 **1. Upload a build first.** Google only lets you create products once a build
 that includes Play Billing has been uploaded (any track, e.g. internal testing).
 
-**2. Create the products:** **Monetise with Play → Products → In-app products →
-Create product**, one per pack. The product id must be exactly as below (it
-can never be reused or changed). Set the price in GBP; Google works out the
-other countries' prices. Then **Activate** each one.
+**2. Create the products:** **Monetise with Play → Products → One-time products →
+Create one-time product**, one per pack. The product id must be exactly as below (it
+can never be reused or changed). Add one purchase option (id `buy`, type Buy)
+with the price in GBP; Google works out the other countries' prices. Then
+**Activate** the purchase option and the product.
 
 | Product ID | Name | Description | Price |
 |---|---|---|---|
@@ -262,6 +263,9 @@ other countries' prices. Then **Activate** each one.
 | `coins_10000` | Dragon's hoard | 10,000 coins + 3,000 bonus | £99.99 |
 
 (The same names as in the game's shop; Google's payment sheet shows them.)
+Each product's icon is `store/google-play/products/<product id>.png` (512×512,
+the shop's own pack pictures; redraw with
+`PW_CHROMIUM_PATH=… npx tsx scripts/product-icons.ts`).
 
 **3. Let the server check purchases: a Google Cloud service account.**
 
