@@ -11,34 +11,57 @@ The developer account is an **Organisation** account for EVCV Limited
 ## 1. The upload key (once, on your computer)
 
 Google signs the app that players download (**Play App Signing**). We sign
-what we upload with an *upload key*. Make it once, with Java's `keytool`
-(it comes with Android Studio, or any Java install):
+what we upload with an *upload key*. Make it once, on your own computer, with
+Java's `keytool`.
+
+**On Windows (PowerShell):**
+
+1. Install Java, then **close and reopen PowerShell**:
+   `winget install --id EclipseAdoptium.Temurin.21.JDK -e`
+2. Make the key (one line; PowerShell doesn't use `\` to continue lines):
+
+   ```powershell
+   keytool -genkeypair -v -keystore tardigeddon-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+   If `keytool` still isn't found:
+   `& (Get-ChildItem "C:\Program Files\Eclipse Adoptium\*\bin\keytool.exe" | Select-Object -First 1).FullName -genkeypair -v -keystore tardigeddon-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`
+3. Copy it as text to the clipboard, for the GitHub secret:
+
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\tardigeddon-upload.jks")) | Set-Clipboard
+   ```
+
+**On a Mac or Linux:**
 
 ```sh
 keytool -genkeypair -v -keystore tardigeddon-upload.jks -alias upload \
   -keyalg RSA -keysize 2048 -validity 10000
+base64 -i tardigeddon-upload.jks -o key.txt    # Linux: base64 -w0 tardigeddon-upload.jks > key.txt
 ```
 
-It asks for a password and some names (put EVCV Limited). Then:
+`keytool` asks for a password (one password covers the file and the key: save
+it in a password manager), your name, organisation (`EVCV Limited`), city,
+county and country code (`GB`). Then:
 
-1. **Back the file and password up somewhere safe** (a password manager).
-   If the upload key is lost, Google can reset it, but it takes days.
-2. Turn the file into text: `base64 -w0 tardigeddon-upload.jks > key.txt`
-   (on a Mac: `base64 -i tardigeddon-upload.jks -o key.txt`).
-3. In GitHub: **Settings → Secrets and variables → Actions → New repository
+1. **Back the `.jks` file and password up somewhere safe.** If the upload key
+   is lost, Google can reset it, but it takes days.
+2. In GitHub: **Settings → Secrets and variables → Actions → New repository
    secret**, and add four:
 
    | Name | Value |
    |---|---|
-   | `ANDROID_KEYSTORE_BASE64` | the contents of `key.txt` |
+   | `ANDROID_KEYSTORE_BASE64` | the key as text (clipboard, or the contents of `key.txt`) |
    | `ANDROID_KEYSTORE_PASSWORD` | the password you chose |
    | `ANDROID_KEY_ALIAS` | `upload` |
-   | `ANDROID_KEY_PASSWORD` | the same password (keytool uses one for both unless you chose two) |
+   | `ANDROID_KEY_PASSWORD` | the same password |
 
-4. Delete `key.txt`. Never commit the `.jks` file.
+3. Delete `key.txt` if you made one. Never commit or email the `.jks` file.
 
 From then on, every merge to `main` builds **`tardigeddon-release-N`** in
-GitHub Actions (**Actions → Android app → the run → Artifacts**). It contains:
+GitHub Actions (**Actions → Android app → the run → Artifacts**). To build one
+straight away, without waiting for a merge: **Actions → Android app → Run
+workflow** (branch `main`). It contains:
 
 - `app-release.aab`: what you upload to Google Play;
 - `app-release.apk`: the same app, signed, to install on a phone directly.
