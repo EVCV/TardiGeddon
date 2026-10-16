@@ -264,11 +264,17 @@ export function shopItem(id: string): ShopItem | undefined {
 }
 
 /**
- * The pack's product id in Google Play (Play Console → Monetise → In-app
- * products): coins:500 → coins_500. Play ids can't contain ":".
+ * Google Play product ids that differ from the usual pattern. A deleted Play
+ * product's id can never be used again, so coins_200 became coins_200_1.
+ */
+const PLAY_PRODUCT_IDS: Record<string, string> = { 'coins:200': 'coins_200_1' };
+
+/**
+ * The pack's product id in Google Play (Play Console → Monetise with Play →
+ * Products → One-time products): coins:500 → coins_500. Play ids can't contain ":".
  */
 export function playProductId(pack: CoinPack): string {
-  return pack.id.replace(':', '_');
+  return PLAY_PRODUCT_IDS[pack.id] ?? pack.id.replace(':', '_');
 }
 
 /** The coin pack a Google Play product id sells, if any. */
