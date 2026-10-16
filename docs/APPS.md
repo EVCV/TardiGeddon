@@ -66,20 +66,12 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
 
 ## Still to do
 
-Android, before Google Play:
-
-1. Check on a real phone: sign-in, online play, back button, the links in
-   the footer opening in the browser.
-2. A Google Play developer account (one-off $25), an upload key, and a
-   signed release build (`./gradlew bundleRelease` → `.aab`).
-3. Store listing: screenshots, the 512×512 icon (`docs/brand/`), a feature
-   graphic, the content rating questionnaire, the data safety form, and the
-   privacy policy link.
-4. Buying coins in the app with Google Play Billing (RevenueCat, per
-   `GAME_PLAN.md`), with the server granting the coins.
-5. Google sign-in with the native Google account picker.
-6. App links, so `https://tardigeddon.com/play/?room=…` opens the app
-   (`assetlinks.json` on the website with the signing key's fingerprint).
+Android, before Google Play: **see `docs/GOOGLE_PLAY.md`**: the upload key
+and GitHub secrets (signed `.aab` builds on every merge), the store listing
+text and images (`store/google-play/`, `scripts/store-images.mjs`), and the
+answers for Google's content rating, target audience and Data safety forms.
+Still to build: buying coins with Google Play Billing (RevenueCat), Google
+sign-in with the native account picker, and app links for invites.
 
 iOS, after Android:
 

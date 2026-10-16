@@ -207,9 +207,10 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
 /** Wait for the next key or mouse button and bind it to the listening slot. */
 function listen(state: SettingsState, save: (c: Controls, note?: string) => void, redraw: () => void): void {
   const target = state.listening!;
-  let armed = false;
-  // Ignore the click that started listening.
-  const t = setTimeout(() => (armed = true), 0);
+  // Only buttons pressed from now on: not the click that opened this box.
+  // (Event times and performance.now() share a clock; a timer wouldn't do,
+  // as the browser can handle a quick second click before any timer runs.)
+  const since = performance.now();
   const done = (code: string | null, clear = false) => {
     stop();
     state.listening = null;
@@ -233,7 +234,7 @@ function listen(state: SettingsState, save: (c: Controls, note?: string) => void
     else if (e.code) done(e.code);
   };
   const onPointer = (e: PointerEvent) => {
-    if (!armed) return;
+    if (e.timeStamp < since) return;
     // A tap (touch or pen) just cancels: there's no key to take.
     if (e.pointerType !== 'mouse') return done(null);
     e.preventDefault();
@@ -246,7 +247,6 @@ function listen(state: SettingsState, save: (c: Controls, note?: string) => void
     e.stopPropagation();
   };
   const stop = () => {
-    clearTimeout(t);
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('pointerdown', onPointer, true);
     setTimeout(() => {

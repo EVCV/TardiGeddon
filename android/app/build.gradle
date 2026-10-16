@@ -1,5 +1,17 @@
 apply plugin: 'com.android.application'
 
+import groovy.json.JsonSlurper
+
+// Release signing (docs/GOOGLE_PLAY.md): the upload key comes from the
+// environment (GitHub secrets in CI), never from the repository. Without it,
+// release builds are left unsigned and debug builds work as usual.
+def keystoreFile = System.getenv('ANDROID_KEYSTORE_FILE')
+def canSign = keystoreFile && file(keystoreFile).exists()
+// Google Play needs a bigger versionCode for every upload: CI passes its build number.
+def versionCodeFromEnv = (System.getenv('ANDROID_VERSION_CODE') ?: '1') as int
+// The game's version (package.json), shown in the store and the menu footer.
+def gameVersion = new JsonSlurper().parse(file('../../package.json')).version
+
 android {
     namespace = "com.tardigeddon.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +19,8 @@ android {
         applicationId "com.tardigeddon.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCodeFromEnv
+        versionName gameVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +28,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (canSign) {
+            release {
+                storeFile file(keystoreFile)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (canSign) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

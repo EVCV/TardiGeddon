@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 11 October 2026
-**Document Version:** v1.3
+**Last Modified:** 16 October 2026
+**Document Version:** v1.4
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -58,6 +58,8 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.teams` | Local storage | TardiGeddon (first party) | Your team names, colours, hats and tardigrade names | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.arena` | Local storage | TardiGeddon (first party) | The arena theme you chose to play in | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.menu` | Local storage | TardiGeddon (first party) | Your game style, custom rules, players and CPU skill | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.tutorial` | Local storage | TardiGeddon (first party) | That you have started the tutorial, so the menu stops suggesting it | Strictly necessary | Until you clear site data |
+| `tardigeddon.controls` | Session storage | TardiGeddon (first party) | Your control settings (keys, mouse buttons and touch buttons) for this visit. If you are signed in, they are also kept on your account | Strictly necessary | Until you close the tab |
 | `tardigeddon.rejoin` | Session storage | TardiGeddon (first party) | Room code and rejoin token, so you can get back into an online match | Strictly necessary | Until you close the tab |
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
 | `__Secure-better-auth.session_token` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Keeps you signed in to your account. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
@@ -81,7 +83,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 5.1 Browser and Device Controls
 
-5.1.1 You can delete the information the game stores by clearing your browser's site data for tardigeddon.com (and, to remove sign-in cookies, for server.tardigeddon.com). Signing out also removes the sign-in cookie. Instructions can be found in your browser's settings or "Help" menu.
+5.1.1 You can delete the information the game stores by clearing your browser's site data for tardigeddon.com (and, to remove sign-in cookies, for server.tardigeddon.com). In our Android app, the same information is kept in the app's own storage on your device: clear the app's storage in your phone's settings, or uninstall the app, to delete it. Signing out also removes the sign-in cookie. Instructions can be found in your browser's settings or "Help" menu.
 
 5.1.2 If you block or clear this storage, the game will still work, but it will forget your teams and settings, and you will need to sign in again. If you block cookies from server.tardigeddon.com, you will not be able to sign in.
 
