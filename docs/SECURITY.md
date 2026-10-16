@@ -30,6 +30,11 @@ the owner needs to keep doing. Last full review: 10 October 2026.
 - Prices come from `src/shop/catalog.ts` on the server, never from the
   browser. Coins are only credited after Stripe's signed webhook; refunds and
   disputes take back exactly what the payment gave.
+- Android app purchases: the app only passes on Google's purchase token. The
+  server asks Google itself (`server/googlePlay.ts`) and grants only completed
+  purchases of a coin pack, tagged with a hash of *this* account, once per
+  token; then consumes it. Google refunds are checked hourly and take the coins
+  back. The endpoint is rate-limited per player (each check calls Google).
 - Unlocks are all-or-nothing database transactions (no double spending).
 - Slime: online-rate Slime only when two or more different accounts played
   each other; anything else pays the CPU rate under its 200-a-day cap; one
@@ -78,7 +83,8 @@ game's code. Please:
    restore after a disaster: Neon → Branches → create a branch from a point in
    time, then point `DATABASE_URL` at it.
 3. **Secrets** live only in `fly secrets` and your password manager. If one
-   ever leaks: Stripe → roll the key; Neon → reset the database password;
+   ever leaks: Stripe → roll the key; Google Play service account → delete its
+   key in Google Cloud and make a new one; Neon → reset the database password;
    `BETTER_AUTH_SECRET` → set a new one (signs everyone out).
 4. **Stripe:** keep **Radar** on (fraud screening, on by default), and keep
    the webhook's signing secret only in `fly secrets`.

@@ -58,9 +58,10 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   background.
 - **Pausing:** sound stops when the app goes to the background.
 - **Invite links** point at the web game (`VITE_WEB_URL`), which anyone can open.
-- **No coin packs or receipts:** Google Play and the App Store require their
-  own payment systems for digital goods, so Stripe is hidden in the app.
-  Coins bought on the website still spend in the app.
+- **Coins through Google Play:** Google requires its own billing for digital
+  items, so the Android app sells coin packs with Google Play Billing instead of
+  Stripe (`docs/GOOGLE_PLAY.md` §7). Coins bought on the website still spend
+  in the app.
 - **Email sign-in only:** Google and Apple refuse to show their sign-in pages
   inside an app.
 
@@ -70,7 +71,7 @@ Android, before Google Play: **see `docs/GOOGLE_PLAY.md`**: the upload key
 and GitHub secrets (signed `.aab` builds on every merge), the store listing
 text and images (`store/google-play/`, `scripts/store-images.mjs`), and the
 answers for Google's content rating, target audience and Data safety forms.
-Still to build: buying coins with Google Play Billing (RevenueCat), Google
+Still to build: Google
 sign-in with the native account picker, and app links for invites.
 
 iOS, after Android:

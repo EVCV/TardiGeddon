@@ -425,7 +425,8 @@ export async function unlockBundle(db: Pool, userId: string, bundleId: string): 
 }
 
 /** Record a completed payment and grant what was bought. Safe to call twice for the same session. */
-export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
+/** Returns whether this call granted it (false: already recorded, e.g. a retry). */
+export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<boolean> {
   const c = await db.connect();
   try {
     await c.query('BEGIN');
@@ -454,6 +455,7 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<void> {
       }
     }
     await c.query('COMMIT');
+    return ins.rowCount === 1;
   } catch (e) {
     await c.query('ROLLBACK');
     throw e;

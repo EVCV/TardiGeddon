@@ -11,6 +11,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Our own plugin (Capacitor finds the npm ones by itself).
+        registerPlugin(PlayBillingPlugin.class);
         super.onCreate(savedInstanceState);
         // The screen stays on while the game is open (turns can be slow to think about).
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

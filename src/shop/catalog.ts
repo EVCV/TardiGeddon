@@ -263,6 +263,19 @@ export function shopItem(id: string): ShopItem | undefined {
   return SHOP_ITEMS.find((i) => i.id === id);
 }
 
+/**
+ * The pack's product id in Google Play (Play Console → Monetise → In-app
+ * products): coins:500 → coins_500. Play ids can't contain ":".
+ */
+export function playProductId(pack: CoinPack): string {
+  return pack.id.replace(':', '_');
+}
+
+/** The coin pack a Google Play product id sells, if any. */
+export function packForPlayProduct(productId: string): CoinPack | undefined {
+  return COIN_PACKS.find((p) => playProductId(p) === productId);
+}
+
 export function coinPack(id: string): CoinPack | undefined {
   return COIN_PACKS.find((p) => p.id === id);
 }

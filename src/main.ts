@@ -3,7 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { confirmEmail, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearSkin } from './account/session';
+import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearSkin } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
@@ -23,6 +23,7 @@ import { Hud } from './ui/hud';
 import { CpuPlayer, type CpuSkill } from './ai/cpu';
 import { pauseAudio, sfx, setMuted, unlockAudio } from './audio/sfx';
 import { attachNative } from './native';
+import { onPlayPurchasesUpdated } from './shop/playBilling';
 import type { MatchSetup } from './ui/menu';
 import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
@@ -108,7 +109,11 @@ async function boot(): Promise<void> {
       else if (!hub?.back()) return false;
       return true;
     },
-    onPause: (paused) => pauseAudio(paused),
+    onPause: (paused) => {
+      pauseAudio(paused);
+      // Back in the app: a coin purchase may have finished meanwhile (e.g. a slow payment).
+      if (!paused) void finishPlayPurchases();
+    },
   });
 
   const params = new URLSearchParams(location.search);
@@ -136,6 +141,9 @@ async function boot(): Promise<void> {
 
   // Who's signed in (and what they own); the menu updates when this lands.
   const before = (await refreshAccount())?.wallet.coins ?? 0;
+  // Android app: any coin purchase that never reached the server (app closed, no signal).
+  void finishPlayPurchases();
+  onPlayPurchasesUpdated(() => void finishPlayPurchases());
   if (verify) {
     try {
       await confirmEmail(verify);

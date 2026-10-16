@@ -11,34 +11,57 @@ The developer account is an **Organisation** account for EVCV Limited
 ## 1. The upload key (once, on your computer)
 
 Google signs the app that players download (**Play App Signing**). We sign
-what we upload with an *upload key*. Make it once, with Java's `keytool`
-(it comes with Android Studio, or any Java install):
+what we upload with an *upload key*. Make it once, on your own computer, with
+Java's `keytool`.
+
+**On Windows (PowerShell):**
+
+1. Install Java, then **close and reopen PowerShell**:
+   `winget install --id EclipseAdoptium.Temurin.21.JDK -e`
+2. Make the key (one line; PowerShell doesn't use `\` to continue lines):
+
+   ```powershell
+   keytool -genkeypair -v -keystore tardigeddon-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+   If `keytool` still isn't found:
+   `& (Get-ChildItem "C:\Program Files\Eclipse Adoptium\*\bin\keytool.exe" | Select-Object -First 1).FullName -genkeypair -v -keystore tardigeddon-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`
+3. Copy it as text to the clipboard, for the GitHub secret:
+
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\tardigeddon-upload.jks")) | Set-Clipboard
+   ```
+
+**On a Mac or Linux:**
 
 ```sh
 keytool -genkeypair -v -keystore tardigeddon-upload.jks -alias upload \
   -keyalg RSA -keysize 2048 -validity 10000
+base64 -i tardigeddon-upload.jks -o key.txt    # Linux: base64 -w0 tardigeddon-upload.jks > key.txt
 ```
 
-It asks for a password and some names (put EVCV Limited). Then:
+`keytool` asks for a password (one password covers the file and the key: save
+it in a password manager), your name, organisation (`EVCV Limited`), city,
+county and country code (`GB`). Then:
 
-1. **Back the file and password up somewhere safe** (a password manager).
-   If the upload key is lost, Google can reset it, but it takes days.
-2. Turn the file into text: `base64 -w0 tardigeddon-upload.jks > key.txt`
-   (on a Mac: `base64 -i tardigeddon-upload.jks -o key.txt`).
-3. In GitHub: **Settings → Secrets and variables → Actions → New repository
+1. **Back the `.jks` file and password up somewhere safe.** If the upload key
+   is lost, Google can reset it, but it takes days.
+2. In GitHub: **Settings → Secrets and variables → Actions → New repository
    secret**, and add four:
 
    | Name | Value |
    |---|---|
-   | `ANDROID_KEYSTORE_BASE64` | the contents of `key.txt` |
+   | `ANDROID_KEYSTORE_BASE64` | the key as text (clipboard, or the contents of `key.txt`) |
    | `ANDROID_KEYSTORE_PASSWORD` | the password you chose |
    | `ANDROID_KEY_ALIAS` | `upload` |
-   | `ANDROID_KEY_PASSWORD` | the same password (keytool uses one for both unless you chose two) |
+   | `ANDROID_KEY_PASSWORD` | the same password |
 
-4. Delete `key.txt`. Never commit the `.jks` file.
+3. Delete `key.txt` if you made one. Never commit or email the `.jks` file.
 
 From then on, every merge to `main` builds **`tardigeddon-release-N`** in
-GitHub Actions (**Actions → Android app → the run → Artifacts**). It contains:
+GitHub Actions (**Actions → Android app → the run → Artifacts**). To build one
+straight away, without waiting for a merge: **Actions → Android app → Run
+workflow** (branch `main`). It contains:
 
 - `app-release.aab`: what you upload to Google Play;
 - `app-release.apk`: the same app, signed, to install on a phone directly.
@@ -143,7 +166,7 @@ Answer each section:
 | Gambling, simulated gambling | No |
 | Users can interact or exchange information | Yes: online multiplayer, where other players see your team and tardigrade names. There is no chat |
 | Shares the user's location | No |
-| Digital purchases | No, for now: coins can't be bought in the app yet (see §7). Change this when Google Play Billing is added |
+| Digital purchases | **Yes**: coin packs (Google Play Billing, §7). Cosmetic only; no random or loot-box items |
 | Unrestricted internet access (a browser) | No |
 
 Expect a low rating such as PEGI 7 / Everyone 10+; IARC decides.
@@ -179,6 +202,7 @@ account), purpose **App functionality** and **Account management**:
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
 | App activity → In-app actions | game stats (wins, pops, damage), items owned, coin and Slime balances, control settings |
+| Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick, as **collected, processed ephemerally** (kept in memory only, for the
 match), purpose **App functionality**: **App activity → Other user-generated
@@ -186,8 +210,8 @@ content** (team and tardigrade names shown to other players in online play;
 showing them to the other players is something the player chooses, so it
 isn't "sharing" in Google's sense).
 
-Not collected: location, contacts, photos, files, audio, health, financial
-or payment info (no purchases in the app yet), device IDs, crash logs,
+Not collected: location, contacts, photos, files, audio, health, payment
+info (cards etc.: Google keeps those), device IDs, crash logs,
 diagnostics, browsing history. Sign-in providers (Google, Apple) are off in
 the app.
 
@@ -211,12 +235,88 @@ the same `.aab` (or a newer one), choose **countries** (the game plan
 suggests a few countries first, e.g. the UK and Ireland, then the rest), and
 **Send for review**. The first review usually takes a few days.
 
-## 7. Later
+## 7. Coins in the app (Google Play Billing)
 
-- **Buying coins in the app:** Google requires Google Play Billing for digital
-  items, so the app hides coin packs for now. Next step: RevenueCat (planned in
-  `GAME_PLAN.md`) with the server granting the coins, then update the content
-  rating ("digital purchases: yes") and the Data safety form (purchase history).
+The app sells the same coin packs as the website, through Google's own
+payment sheet. The game server checks every purchase with Google, adds the
+coins once, and marks the purchase as delivered (`server/googlePlay.ts`). The
+app half is `android/app/src/main/java/com/tardigeddon/app/PlayBillingPlugin.java`
+and `src/shop/playBilling.ts`. Without the server setting in step 3 the app's
+shop simply doesn't offer coin packs.
+
+**1. Upload a build first.** Google only lets you create products once a build
+that includes Play Billing has been uploaded (any track, e.g. internal testing).
+
+**2. Create the products:** **Monetise with Play → Products → In-app products →
+Create product**, one per pack. The product id must be exactly as below (it
+can never be reused or changed). Set the price in GBP; Google works out the
+other countries' prices. Then **Activate** each one.
+
+| Product ID | Name | Description | Price |
+|---|---|---|---|
+| `coins_200` | Pocket pouch | 200 coins | £1.99 |
+| `coins_500` | Coin stack | 500 coins + 50 bonus | £4.99 |
+| `coins_1000` | Treasure chest | 1,000 coins + 150 bonus | £9.99 |
+| `coins_2000` | Royal hoard | 2,000 coins + 400 bonus | £19.99 |
+| `coins_5000` | Mountain of coins | 5,000 coins + 1,250 bonus | £49.99 |
+| `coins_10000` | Dragon's hoard | 10,000 coins + 3,000 bonus | £99.99 |
+
+(The same names as in the game's shop; Google's payment sheet shows them.)
+
+**3. Let the server check purchases: a Google Cloud service account.**
+
+1. At **console.cloud.google.com**: create a project (e.g. "TardiGeddon Play").
+2. **APIs & Services → Library**: enable **Google Play Android Developer API**.
+3. **IAM & Admin → Service accounts → Create service account**, e.g.
+   `play-billing`. It needs no roles here; skip those steps.
+4. Open it → **Keys → Add key → Create new key → JSON**. A `.json` file downloads.
+   Keep it safe (it's a password).
+5. In the **Play Console → Users and permissions → Invite new users**: the
+   service account's email (…`@….iam.gserviceaccount.com`). Under **App
+   permissions** add TardiGeddon with **View financial data** and **Manage orders
+   and subscriptions**. Invite.
+6. Give it to the game server. PowerShell, in the folder with the file:
+
+   ```powershell
+   fly secrets set GOOGLE_PLAY_SERVICE_ACCOUNT=$([Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\key.json")))
+   ```
+
+   Mac/Linux: `fly secrets set GOOGLE_PLAY_SERVICE_ACCOUNT="$(base64 -i key.json)"`.
+   Then delete the downloaded file (or keep it in the password manager only).
+
+Google can take **up to a day** before a new service account's permissions work;
+until then purchases fail to verify (the coins arrive on the next app start once
+they do: nothing is lost, the app keeps unfinished purchases until the server
+confirms them).
+
+**4. Test without real money: licence testers.** **Play Console → Settings
+(the account, not the app) → License testing**: add the Google accounts of
+anyone testing purchases, with **License response: RESPOND_NORMALLY**. They see
+"Test card, always approves" (and "…declines", "…slow") in the payment sheet and
+are never charged. Test purchases grant coins, but count as £0 on the Sales
+page.
+
+**What happens when:**
+
+- **Paid:** coins appear straight away; the shop says thanks.
+- **Slow payments** (e.g. cash at a shop in some countries): the shop says the
+  payment is going through; coins arrive when it does, next time the app opens.
+- **App closed or no signal mid-purchase:** the app sends the purchase again on
+  its next start; the server grants it once whatever happens.
+- **Bought while signed in to another account:** refused for this account; it
+  stays for the account that bought it.
+- **Refunds and chargebacks** through Google: checked hourly; the coins are
+  taken back, as with Stripe.
+
+**Fees:** Google takes 15% of the first $1M of earnings each year (20%/30%
+rules apply above that). Check the Play Console's **Service fee** settings that
+the 15% tier is on for your account.
+
+**After switching it on:** content rating "digital purchases: yes", and the
+Data safety form "Purchase history", are already in the answers above (§4).
+
+## 8. Later
+
 - **Google sign-in** with the phone's account picker.
 - **App links:** `https://tardigeddon.com/play/?room=…` opening the app. Needs
   `/.well-known/assetlinks.json` on the website with the **app signing**

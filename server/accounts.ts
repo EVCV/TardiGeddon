@@ -8,21 +8,23 @@
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
 // See docs/ACCOUNTS.md for setup.
 
+import { createHash } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
 import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packTotal, shopItem } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 
 export type { MeResponse };
 import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
+import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
-export interface AccountsEnv extends MailEnv {
+export interface AccountsEnv extends MailEnv, PlayEnv {
   DATABASE_URL?: string;
   BETTER_AUTH_SECRET?: string;
   /** This server's public URL, e.g. https://server.tardigeddon.com */
@@ -57,7 +59,7 @@ const MAX_BODY = 64 * 1024;
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
 
-export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null } = {}) {
+export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null } = {}) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
   const db = opts.db ?? new Pool({ connectionString: env.DATABASE_URL, max: 5 });
   const baseURL = env.BETTER_AUTH_URL ?? 'http://localhost:8787';
@@ -183,6 +185,17 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const testMode = !(env.STRIPE_SECRET_KEY ?? '').includes('_live_');
   const stripe = opts.stripe ?? (env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null);
   const authHandler = toNodeHandler(auth);
+  // Google Play Billing (coins bought in the Android app): off without a service account.
+  const play = opts.play !== undefined ? opts.play : googlePlayApi(env);
+  // Refunds and chargebacks made through Google Play take the coins back (as Stripe's do).
+  const checkVoided = async () => {
+    if (!play) return;
+    for (const v of await play.voided(Date.now() - 7 * 24 * 3600_000)) {
+      await revokePurchase(db, `gplay:${v.purchaseToken}`, v.voidedReason === 7 ? 'disputed' : 'refunded');
+    }
+  };
+  const voidedTimer = setInterval(() => void checkVoided().catch((e) => console.error('google play refunds check failed', e)), 60 * 60_000);
+  voidedTimer.unref();
 
   async function userFrom(headers: IncomingHttpHeaders): Promise<MeResponse['user']> {
     const s = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
@@ -441,6 +454,56 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { item: r.item, items: r.items, from: r.from, message: r.message });
   }
 
+  /**
+   * A coin pack bought in the Android app: check the purchase with Google,
+   * grant its coins once, then consume it (so it can be bought again). The
+   * app sends any purchase it hasn't heard back about again later, so this
+   * must be safe to call more than once for the same purchase.
+   */
+  const playChecks = new Map<string, number[]>();
+  async function googlePlayPurchase(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    // Each check is a call to Google: a few a minute is plenty for any player.
+    const now = Date.now();
+    const recent = (playChecks.get(user.id) ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= 20) return json(res, 429, { error: 'Too many tries. Please wait a minute.' });
+    playChecks.set(user.id, [...recent, now]);
+    const body = await readJson(req);
+    const productId = typeof body?.productId === 'string' ? body.productId : '';
+    const token = typeof body?.token === 'string' && body.token.length <= 4000 ? body.token : '';
+    // Only coin packs, priced in the Play Console; never trust the app's word for what was bought.
+    const pack = packForPlayProduct(productId);
+    if (!pack || !token) return json(res, 400, { error: 'No such coin pack.' });
+    const p = await play.getProduct(productId, token);
+    if (!p) return json(res, 400, { error: "Google Play doesn't know that purchase." });
+    if (p.purchaseState === 2) return json(res, 202, { pending: true });
+    if (p.purchaseState !== 0) return json(res, 400, { error: 'That purchase was cancelled.' });
+    // Bought while signed in to a different account (or not in our app at all): not this player's.
+    if (p.obfuscatedExternalAccountId !== playAccountTag(user.id)) {
+      return json(res, 403, { error: 'That purchase was made on a different TardiGeddon account. Sign in to that account to get the coins.' });
+    }
+    const id = `gplay:${createHash('sha256').update(token).digest('hex')}`;
+    if (p.consumptionState === 1) {
+      // Already delivered (consumed after we granted it): nothing more to do, if it was ours.
+      const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
+      return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: 'That purchase has already been used.' });
+    }
+    // Licence testers' purchases (purchaseType 0) cost nothing: count them as £0, so the sales page stays true.
+    const granted = await recordPurchase(db, {
+      sessionId: id,
+      userId: user.id,
+      item: pack.id,
+      amount: p.purchaseType === 0 ? 0 : pack.price,
+      currency: CURRENCY,
+      paymentIntent: `gplay:${token}`,
+    });
+    // Not consumed (Google down): the app sends it again next time, which grants nothing twice.
+    await play.consume(productId, token).catch((e) => console.error('google play consume failed', e));
+    json(res, 200, { ok: true, coins: granted ? packTotal(pack) : 0 });
+  }
+
   async function giftCancel(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
@@ -533,6 +596,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             mail: mailer !== null,
           };
           if (user) me.controls = await controlsOf(db, user.id);
+          // Coin packs can be bought in the Android app (Google Play Billing).
+          if (play) me.playBilling = true;
           if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
         } else if (path === '/api/gift/buy' && req.method === 'POST') {
@@ -558,6 +623,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
           await purchasesPortal(req, res);
+        } else if (path === '/api/shop/google' && req.method === 'POST') {
+          await googlePlayPurchase(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {
           await checkout(req, res);
         } else {
@@ -569,6 +636,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       }
       return true;
     },
+    /** Take back coins for Google Play refunds and chargebacks now (also runs hourly). */
+    checkVoided,
     /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
     async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[] }> {
       const user = await userFrom(headers);
@@ -586,6 +655,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     },
     async close(): Promise<void> {
       clearInterval(purge);
+      clearInterval(voidedTimer);
       await db.end();
     },
   };

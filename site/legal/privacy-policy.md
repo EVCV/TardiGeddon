@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 16 October 2026
-**Document Version:** v2.3
+**Document Version:** v2.4
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -97,6 +97,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
 
+2.3.4 In our Android app, coin packs are bought through Google Play's billing system instead, and Google takes the payment as the seller, under its own terms and privacy policy (https://policies.google.com/privacy). We never see your payment details. When you start a purchase, the app gives Google a code made from your account identifier by a one-way calculation (a "hash"), so that we can check the purchase belongs to your account without Google learning which account it is. Google gives the app a purchase reference, which the app sends to our server; our server then asks Google whether the purchase is complete and genuine, and later whether it has been refunded. We keep a purchase record as in Section 2.3.2: the coin pack, how many coins it gave, its list price in pounds (or nothing, for Google's test purchases), the date, Google's purchase reference, whether it has been refunded or disputed, and the account it was for.
+
 ### 2.4 Visit Statistics
 
 2.4.1 We use Cloudflare Web Analytics to count how many people visit the Website and the game, which pages they open, roughly which country they are in, what kind of device and browser they use, which website (if any) sent them to us, and how quickly pages load. When a page loads, a small script from Cloudflare sends these details, together with your device's IP address as part of the connection, to Cloudflare.
@@ -129,7 +131,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 3.0.6 If you create an account: to sign you in, keep your account secure, keep track of the shop items you own on every device, and let you delete your account.
 
-3.0.7 If you buy something: to take payment through Stripe, deliver the item, handle refunds and disputes, and prevent fraud.
+3.0.7 If you buy something: to take payment through Stripe (or, in the Android app, Google Play), deliver the item, handle refunds and disputes, and prevent fraud.
 
 3.0.8 To comply with legal obligations, such as keeping accounting and tax records, and to respond to lawful requests from public authorities.
 
@@ -154,6 +156,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 4.0.3 20i Limited, a UK company, acting as our processor, which sends the account emails described in Section 2.2.5 on our behalf from its mail servers in the United Kingdom. It receives your email address, your player name and the content of the email, and keeps delivery logs for a limited time under its own policies.
 
 4.0.4 Stripe, which takes payments for us as the merchant of record. For the payment, and the tax and accounting records that go with it, Stripe is an independent controller of your data under its own privacy policy at https://stripe.com/privacy; it also uses payment information for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
+
+4.0.4A Google, for coin packs bought in our Android app: Google takes the payment as the seller and is an independent controller of the payment data under its own privacy policy at https://policies.google.com/privacy (see Section 2.3.4).
 
 4.0.5 Google or Apple, only if you choose to sign in with them. They will know that you used your Google or Apple account to sign in to TardiGeddon, under their own privacy policies.
 
@@ -189,7 +193,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 
-5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe keeps its own records under its privacy policy.
+5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, and Google for purchases in the Android app, keep their own records under their privacy policies.
 
 5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies.
 
@@ -225,7 +229,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 7.0 Safeguards
 
-7.0.1 We use appropriate technical and organisational measures to protect personal data, including encrypted connections (HTTPS and secure WebSockets) between the game and our servers, an encrypted connection to our account database, passwords stored only in hashed form, sign-in cookies that the game's code cannot read, limits on repeated sign-in attempts, checks that payment notifications really come from Stripe, checks that reject malformed data, limits on how quickly a connection can send messages or create rooms, and keeping as little data as possible for as short a time as possible.
+7.0.1 We use appropriate technical and organisational measures to protect personal data, including encrypted connections (HTTPS and secure WebSockets) between the game and our servers, an encrypted connection to our account database, passwords stored only in hashed form, sign-in cookies that the game's code cannot read, limits on repeated sign-in attempts, checks that payment notifications really come from Stripe and that purchases made in the Android app are confirmed with Google, checks that reject malformed data, limits on how quickly a connection can send messages or create rooms, and keeping as little data as possible for as short a time as possible.
 
 7.0.2 No method of transmission over the internet or method of electronic storage is completely secure. While we strive to protect your personal data, we cannot guarantee its absolute security.
 
