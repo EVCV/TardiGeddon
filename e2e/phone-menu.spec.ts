@@ -27,6 +27,9 @@ test('on a phone the menu is screens you tap through, each fitting the screen', 
   await fits(page);
   await page.locator('.settings-menu-btn', { hasText: 'Keyboard' }).click();
   await fits(page);
+  await page.locator('.settings-menu-btn', { hasText: 'Sound' }).click();
+  await expect(page.locator('.settings-sound .sound-slider').first()).toBeVisible();
+  await fits(page);
   await page.locator('.hub-back').click();
   await expect(page.locator('.lobby-nav')).toBeVisible();
 

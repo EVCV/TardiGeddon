@@ -1,9 +1,12 @@
-// Shop and team-editor pictures for aim styles and explosion effects, drawn
-// as SVG from the same colours the game uses (render/cosmetics.ts).
+// Shop and team-editor pictures for aim styles, explosion effects, arenas,
+// music and sound packs, drawn as SVG from the same colours the game uses
+// (render/cosmetics.ts, render/arenas.ts, audio/).
 
 import { aimStyle, fxStyle, RAINBOW } from '../render/cosmetics';
 import { arenaTheme } from '../render/arenas';
 import { hex } from '../render/palette';
+import { musicTrack } from '../audio/music';
+import { soundPack } from '../audio/sfx';
 
 const INK = '#2b1b24';
 let uid = 0;
@@ -123,4 +126,25 @@ export function arenaSvg(id: string): string {
   parts.push(`<rect x="-40" y="24" width="80" height="6" fill="${hex(t.water)}" opacity=".9"/>`);
   parts.push(`<path d="M-40 24 q5 -2 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0" fill="none" stroke="${hex(t.waterLight)}" stroke-width="1.4"/>`);
   return `<svg viewBox="-40 -30 80 60" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${parts.join('')}</svg>`;
+}
+
+/** A match music track: a record in its colours, with notes floating off it. */
+export function musicSvg(id: string): string {
+  const [a, b] = musicTrack(id).colors;
+  const g = `music${++uid}`;
+  return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><radialGradient id="${g}"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient></defs>`
+    + `<circle cx="-6" cy="2" r="24" fill="#22252b" stroke="${INK}" stroke-width="2"/>`
+    + `<circle cx="-6" cy="2" r="18" fill="none" stroke="#3a3f48" stroke-width="1"/><circle cx="-6" cy="2" r="13" fill="none" stroke="#3a3f48" stroke-width="1"/>`
+    + `<circle cx="-6" cy="2" r="9" fill="url(#${g})" stroke="${INK}" stroke-width="1.2"/><circle cx="-6" cy="2" r="1.6" fill="${INK}"/>`
+    + `<g fill="${a}" stroke="${INK}" stroke-width="1.2"><ellipse cx="22" cy="-6" rx="4" ry="3"/><path d="M25.5 -6 V-22 l7 3" fill="none" stroke="${INK}" stroke-width="2"/>`
+    + `<ellipse cx="30" cy="12" rx="3.4" ry="2.6"/><path d="M33 12 V0" fill="none" stroke="${INK}" stroke-width="1.8"/></g></svg>`;
+}
+
+/** A sound pack: a speaker in its colours, with sound waves. */
+export function soundSvg(id: string): string {
+  const [a, b] = soundPack(id).colors;
+  return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+    + `<path d="M-26 -8 H-14 L0 -20 V20 L-14 8 H-26 Z" fill="${a}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`
+    + `<rect x="-26" y="-8" width="12" height="16" fill="${b}" stroke="${INK}" stroke-width="2"/>`
+    + `<g fill="none" stroke="${b}" stroke-width="3.5" stroke-linecap="round"><path d="M8 -9 Q13 0 8 9"/><path d="M15 -16 Q24 0 15 16"/><path d="M22 -23 Q35 0 22 23"/></g></svg>`;
 }

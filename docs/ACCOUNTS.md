@@ -50,6 +50,13 @@ free without an account.
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.
+- **Match music and sound packs** (`src/audio/music.ts`, `SOUND_PACKS` in
+  `src/audio/sfx.ts`) work the same way: coin items chosen per device
+  (`tardigeddon.music`, `tardigeddon.sounds`), heard only by that player.
+  Everything is synthesised with WebAudio, so there are no audio files. The
+  menu theme and the standard track and sounds are free. Music and effects
+  each have an on/off switch and a volume in Settings → Sound
+  (`tardigeddon.audio`, `src/audio/mixer.ts`).
 - **Season weapons** (`locked: true` in `src/sim/weapons.ts`) are off unless
   the match rules list them in `Scheme.unlocked`. The game sets that from
   the player's unlocks for local matches; online, the server sets it from

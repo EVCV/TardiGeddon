@@ -5,7 +5,10 @@
 // stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
-import { aimSvg, arenaSvg, fxSvg } from './cosmeticArt';
+import { aimSvg, arenaSvg, fxSvg, musicSvg, soundSvg } from './cosmeticArt';
+import { previewMusic, previewingMusic } from '../audio/music';
+import { demoSoundPack } from '../audio/sfx';
+import { unlockAudio } from '../audio/mixer';
 import { coinIcon, packArt } from './coinArt';
 import { giftsTab, newGiftsState, openGiftDialog, type GiftsState } from './gifts';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
@@ -14,11 +17,11 @@ import { WEAPONS } from '../sim/weapons';
 import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { playPrices } from '../shop/playBilling';
-import { buyCoins, buyCoinsInApp, chooseArena, chosenArena, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
+import { buyCoins, buyCoinsInApp, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
 
-type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'bundle' | 'weapon' | 'gift' | 'coins';
+type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
 
 export interface ShopState {
   category: Category;
@@ -54,6 +57,8 @@ export function itemArt(item: ShopItem | null): string {
   if (item.kind === 'aim') return aimSvg(item.ref, team.color);
   if (item.kind === 'fx') return fxSvg(item.ref);
   if (item.kind === 'arena') return arenaSvg(item.ref);
+  if (item.kind === 'music') return musicSvg(item.ref);
+  if (item.kind === 'sound') return soundSvg(item.ref);
   return `<span class="shop-weapon-icon">${WEAPONS[item.ref]?.icon ?? '💥'}</span>`;
 }
 
@@ -64,6 +69,8 @@ const CATEGORIES: [Category, string][] = [
   ['aim', '🎯 Aim'],
   ['fx', '✨ Effects'],
   ['arena', '🏞️ Arenas'],
+  ['music', '🎵 Music'],
+  ['sound', '🔊 Sounds'],
   ['bundle', '🎁 Bundles'],
   ['weapon', '💥 Weapons'],
   ['gift', '🎀 Gifts'],
@@ -163,6 +170,7 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
 
   const action = el('div', 'shop-stage-action');
   info.append(action);
+  if (item.kind === 'music' || item.kind === 'sound') info.append(listenButton(item, ctx));
   if (me.user && giftable(item.id)) info.append(giftButton(me, ctx, state, item.id, itemArt(item)));
   const owned = me.owned.includes(item.id);
   if (owned) {
@@ -186,6 +194,29 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
         action.append(back);
       }
       action.append(el('span', 'shop-note', 'Only you see your arena.'));
+    } else if (item.kind === 'music' || item.kind === 'sound') {
+      // Like arenas: what this player hears, in every match.
+      const [chosen, choose, back, note] =
+        item.kind === 'music'
+          ? [chosenMusic, chooseMusic, 'Back to the standard music', 'Only you hear your match music.']
+          : [chosenSounds, chooseSounds, 'Back to the standard sounds', 'Only you hear your sound pack.'];
+      const using = chosen() === item.ref;
+      const use = el('button', 'hud-btn', using ? 'Using ✓' : 'Use in my games');
+      use.disabled = using;
+      use.onclick = () => {
+        choose(item.ref);
+        ctx.rerender();
+      };
+      action.append(use);
+      if (using) {
+        const b = el('button', 'hud-btn', back);
+        b.onclick = () => {
+          choose('classic');
+          ctx.rerender();
+        };
+        action.append(b);
+      }
+      action.append(el('span', 'shop-note', note));
     } else if (item.kind !== 'weapon') {
       const team = loadProfiles()[0];
       const wearing = team[item.kind] === item.ref;
@@ -228,6 +259,27 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   b.onclick = () => ctx.run(() => unlock(item.id));
   action.append(b);
   return box;
+}
+
+/** Try a track or a sound pack before buying it. */
+function listenButton(item: ShopItem, ctx: HubContext): HTMLElement {
+  if (item.kind === 'sound') {
+    const b = el('button', 'hud-btn shop-listen', '▶ Hear it');
+    b.onclick = () => {
+      unlockAudio();
+      demoSoundPack(item.ref);
+    };
+    return b;
+  }
+  const playing = previewingMusic() === item.ref;
+  const b = el('button', 'hud-btn shop-listen', playing ? '■ Stop' : '▶ Listen');
+  b.setAttribute('aria-pressed', String(playing));
+  b.onclick = () => {
+    unlockAudio();
+    previewMusic(playing ? null : item.ref);
+    ctx.rerender();
+  };
+  return b;
 }
 
 function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
@@ -328,7 +380,9 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
     action.append(el('span', 'shop-owned', 'Owned ✓'));
     const team = loadProfiles()[0];
     const looks = b.items.map(shopItem).filter((i): i is ShopItem => !!i && i.kind !== 'weapon');
-    const wearing = looks.every((i) => (i.kind === 'arena' ? chosenArena() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx']) === i.ref);
+    const using = (i: ShopItem) =>
+      i.kind === 'arena' ? chosenArena() : i.kind === 'music' ? chosenMusic() : i.kind === 'sound' ? chosenSounds() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx'];
+    const wearing = looks.every((i) => using(i) === i.ref);
     const wear = el('button', 'hud-btn', wearing ? 'Wearing the set ✓' : `Wear the set on ${team.name}`);
     wear.disabled = wearing;
     wear.onclick = () => {
@@ -336,6 +390,8 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
       for (const id of b.items) {
         const item = shopItem(id);
         if (item?.kind === 'arena') chooseArena(item.ref);
+        else if (item?.kind === 'music') chooseMusic(item.ref);
+        else if (item?.kind === 'sound') chooseSounds(item.ref);
         else if (item && item.kind !== 'weapon') next[item.kind] = item.ref;
       }
       saveProfiles(updateProfile(loadProfiles(), 0, next));

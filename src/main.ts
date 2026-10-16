@@ -3,7 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
-import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearSkin } from './account/session';
+import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearMusic, wearSkin, wearSounds } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
@@ -21,7 +21,9 @@ import { actionFor, controls } from './input/controls';
 import { WEAPONS } from './sim/weapons';
 import { Hud } from './ui/hud';
 import { CpuPlayer, type CpuSkill } from './ai/cpu';
-import { pauseAudio, sfx, setMuted, unlockAudio } from './audio/sfx';
+import { sfx, useSoundPack } from './audio/sfx';
+import { anySound, pauseAudio, toggleAllSound, unlockAudio } from './audio/mixer';
+import { playMusic, previewMusic, refreshMusic } from './audio/music';
 import { attachNative } from './native';
 import { onPlayPurchasesUpdated } from './shop/playBilling';
 import type { MatchSetup } from './ui/menu';
@@ -51,6 +53,18 @@ async function boot(): Promise<void> {
   } catch {
     /* fall back to system font */
   }
+
+  // Browsers only allow sound after a tap or key press: start the menu music on the first one.
+  const firstTouch = () => {
+    unlockAudio();
+    refreshMusic();
+    window.removeEventListener('pointerdown', firstTouch, true);
+    window.removeEventListener('keydown', firstTouch, true);
+  };
+  window.addEventListener('pointerdown', firstTouch, true);
+  window.addEventListener('keydown', firstTouch, true);
+  // No music from a tab in the background.
+  document.addEventListener('visibilitychange', () => pauseAudio(document.hidden));
 
   const ui = document.getElementById('ui')!;
   let current: Match | null = null;
@@ -187,7 +201,6 @@ class Match {
   private detachKeys: () => void;
   private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean; aim: boolean; button: number }>();
   private pinchDist = 0;
-  private muted = false;
   private over = false;
   private destroyed = false;
   private tickerFn = () => this.frame();
@@ -237,7 +250,11 @@ class Match {
 
     this.renderer = new GameRenderer(app, this.state, arenaTheme(wearArena()));
     this.renderer.onSound = (name) => sfx[name]();
-    this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => this.toggleMute() }, touchMode);
+    this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => toggleAllSound(), muted: !anySound() }, touchMode);
+    // This player's own match music and sound pack (only they hear them).
+    useSoundPack(wearSounds());
+    previewMusic(null);
+    playMusic(wearMusic());
     ui.append(this.hud.root);
     if (this.coach) {
       this.hud.root.classList.add('has-coach');
@@ -307,12 +324,6 @@ class Match {
   back(): void {
     if (this.hud.panelOpen) this.hud.togglePanel(false);
     else if (this.over || confirm('Quit this match?')) this.onMenu();
-  }
-
-  private toggleMute(): boolean {
-    this.muted = !this.muted;
-    setMuted(this.muted);
-    return this.muted;
   }
 
   private isHumanTurn(): boolean {
@@ -439,6 +450,7 @@ class Match {
         case 'gameover':
           if (!this.over) {
             this.over = true;
+            playMusic(null);
             sfx.fanfare();
             // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
             const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);

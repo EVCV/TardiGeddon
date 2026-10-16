@@ -1653,6 +1653,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .settings-menu-btn.on { background: var(--accent); }
   .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
   .page-settings > .card, .page-settings .settings-side > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
+  .page-settings[data-section=sound] [data-section=sound],
   .page-settings[data-section=touch] [data-section=touch],
   .page-settings[data-section=keys] [data-section=keys],
   .page-settings[data-section=learn] [data-section=learn],
@@ -1723,3 +1724,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
     height: calc(100dvh / var(--ui-zoom));
   }
 }
+
+/* Settings: sound */
+.sound-row { display: grid; grid-template-columns: 9.5em 1fr 3em; align-items: center; gap: 10px; margin: 6px 0; }
+.sound-slider { width: 100%; accent-color: var(--moss); }
+.sound-slider:disabled { opacity: 0.4; }
+.sound-pct { text-align: right; font-variant-numeric: tabular-nums; }
+.sound-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; }
+.sound-pick .settings-label { margin: 0; }
+.sound-select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 2px solid var(--ink); background: #fff; color: var(--ink); max-width: 60%; }
+.shop-listen { align-self: flex-start; }
