@@ -6,7 +6,11 @@ import groovy.json.JsonSlurper
 // environment (GitHub secrets in CI), never from the repository. Without it,
 // release builds are left unsigned and debug builds work as usual.
 def keystoreFile = System.getenv('ANDROID_KEYSTORE_FILE')
-def canSign = keystoreFile && file(keystoreFile).exists()
+// Asked to sign but there's no key: stop, rather than quietly build an unsigned app.
+if (keystoreFile && !file(keystoreFile).exists()) {
+    throw new GradleException("ANDROID_KEYSTORE_FILE is set but ${keystoreFile} doesn't exist")
+}
+def canSign = keystoreFile != null
 // Google Play needs a bigger versionCode for every upload: CI passes its build number.
 def versionCodeFromEnv = (System.getenv('ANDROID_VERSION_CODE') ?: '1') as int
 // The game's version (package.json), shown in the store and the menu footer.
