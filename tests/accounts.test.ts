@@ -431,17 +431,17 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(cookie)).wallet.coins).toBe(550);
 
     // A purchase still being paid for: nothing yet.
-    playPurchases.set('t2', { productId: 'coins_200', purchaseState: 2, consumptionState: 0, obfuscatedExternalAccountId: tag });
-    expect((await buy('t2', 'coins_200')).status).toBe(202);
+    playPurchases.set('t2', { productId: 'coins_200_1', purchaseState: 2, consumptionState: 0, obfuscatedExternalAccountId: tag });
+    expect((await buy('t2', 'coins_200_1')).status).toBe(202);
     // Made on another account: refused (it stays for that account).
-    playPurchases.set('t3', { productId: 'coins_200', purchaseState: 0, consumptionState: 0, obfuscatedExternalAccountId: playAccountTag('someone-else') });
-    expect((await buy('t3', 'coins_200')).status).toBe(403);
+    playPurchases.set('t3', { productId: 'coins_200_1', purchaseState: 0, consumptionState: 0, obfuscatedExternalAccountId: playAccountTag('someone-else') });
+    expect((await buy('t3', 'coins_200_1')).status).toBe(403);
     // No account tag at all (not started by our app): refused too.
-    playPurchases.set('t5', { productId: 'coins_200', purchaseState: 0, consumptionState: 0 });
-    expect((await buy('t5', 'coins_200')).status).toBe(403);
+    playPurchases.set('t5', { productId: 'coins_200_1', purchaseState: 0, consumptionState: 0 });
+    expect((await buy('t5', 'coins_200_1')).status).toBe(403);
     // A licence tester's purchase grants coins but counts as £0 on the sales page.
-    playPurchases.set('t4', { productId: 'coins_200', purchaseState: 0, consumptionState: 0, purchaseType: 0, obfuscatedExternalAccountId: tag });
-    expect((await buy('t4', 'coins_200')).status).toBe(200);
+    playPurchases.set('t4', { productId: 'coins_200_1', purchaseState: 0, consumptionState: 0, purchaseType: 0, obfuscatedExternalAccountId: tag });
+    expect((await buy('t4', 'coins_200_1')).status).toBe(200);
     const rows = await accounts.db.query<{ amount: number; item: string }>(`SELECT amount, item FROM purchase WHERE user_id = $1 ORDER BY item`, [id]);
     expect(rows.rows).toEqual([{ amount: 0, item: 'coins:200' }, { amount: 499, item: 'coins:500' }]);
     expect((await me(cookie)).wallet.coins).toBe(750);

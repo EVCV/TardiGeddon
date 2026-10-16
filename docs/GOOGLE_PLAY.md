@@ -249,13 +249,13 @@ that includes Play Billing has been uploaded (any track, e.g. internal testing).
 
 **2. Create the products:** **Monetise with Play → Products → One-time products →
 Create one-time product**, one per pack. The product id must be exactly as below (it
-can never be reused or changed). Add one purchase option (id `buy`, type Buy)
-with the price in GBP; Google works out the other countries' prices. Then
+can never be reused or changed). Add one purchase option (see below the table)
+with the price in GBP (**Set prices → all countries/regions**); Google works out the other countries' prices. Then
 **Activate** the purchase option and the product.
 
 | Product ID | Name | Description | Price |
 |---|---|---|---|
-| `coins_200` | Pocket pouch | 200 coins | £1.99 |
+| `coins_200_1` | Pocket pouch | 200 coins | £1.99 |
 | `coins_500` | Coin stack | 500 coins + 50 bonus | £4.99 |
 | `coins_1000` | Treasure chest | 1,000 coins + 150 bonus | £9.99 |
 | `coins_2000` | Royal hoard | 2,000 coins + 400 bonus | £19.99 |
@@ -263,6 +263,10 @@ with the price in GBP; Google works out the other countries' prices. Then
 | `coins_10000` | Dragon's hoard | 10,000 coins + 3,000 bonus | £99.99 |
 
 (The same names as in the game's shop; Google's payment sheet shows them.)
+`coins_200` was deleted, and Google never lets a deleted id be used again, so
+the Pocket pouch is `coins_200_1` (`PLAY_PRODUCT_IDS` in `src/shop/catalog.ts`).
+Each product also needs its own purchase option id (type Buy, backwards
+compatible on, multi-quantity off): e.g. `coins-500-buy`.
 Each product's icon is `store/google-play/products/<product id>.png` (512×512,
 the shop's own pack pictures; redraw with
 `PW_CHROMIUM_PATH=… npx tsx scripts/product-icons.ts`).

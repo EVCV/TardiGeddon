@@ -80,5 +80,8 @@ describe('Google Play billing (server)', () => {
       expect(packForPlayProduct(playProductId(p))).toBe(p);
     }
     expect(packForPlayProduct('hat_crown')).toBeUndefined();
+    // coins_200 was deleted in the Play Console; deleted ids can't be reused.
+    expect(playProductId(COIN_PACKS[0])).toBe('coins_200_1');
+    expect(packForPlayProduct('coins_200')).toBeUndefined();
   });
 });
