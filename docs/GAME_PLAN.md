@@ -331,7 +331,7 @@ Whatever is chosen, keep the licence/terms copy in `assets/audio/LICENSES.md`.
 | Web install    | **PWA** (manifest + service worker)             | Installable from browser, offline vs-AI play     |
 | Backend        | **Neon** Postgres + **Better Auth** in the game server | Accounts, profiles, inventory, purchases, stats (docs/ACCOUNTS.md) |
 | Realtime       | **Node + WebSocket game server** (e.g. on Fly.io) | Room/match relay, matchmaking, turn validation |
-| Purchases      | **RevenueCat** (wraps Apple/Google IAP) + **Stripe** on web | One entitlement system across all stores |
+| Purchases      | **Google Play Billing** direct (server verifies; decided Oct 2026, no RevenueCat) + **Stripe** on web; Apple IAP the same way later | The server grants coins for every store |
 | Analytics/crash| PostHog (or similar) + Sentry                   | Funnel, retention, crash reports                 |
 | Testing        | Vitest + Playwright                             | Unit-test sim; smoke-test the browser build      |
 | Desktop (later)| Tauri wrap                                      | Steam / itch                                     |
@@ -455,7 +455,7 @@ Haptics on explosions/hits via Capacitor. Gamepad support in Phase 3.
   during matches.
 - Store compliance: full game (not a thin web wrapper) satisfies Apple
   guideline 4.2; **all digital purchases on iOS/Android must go through
-  Apple/Google IAP** (handled by RevenueCat); web uses Stripe.
+  Apple/Google IAP** (checked by our server directly); web uses Stripe.
 
 ### 7.9 Online multiplayer architecture (v1)
 
@@ -537,7 +537,7 @@ are avoiding. All gameplay content (weapons, modes, missions) is free.
 
 ### 8.3 Implementation
 
-- **RevenueCat** handles Apple/Google receipts; **Stripe Checkout** on web.
+- **Our server** checks Google Play (and later Apple) receipts directly; **Stripe Checkout** on web.
   Both fire **webhooks → the game server** (`server/accounts.ts`), which grants items to
   the player's inventory. **Server is the source of truth** — the client
   never grants itself items.
@@ -593,7 +593,7 @@ sim from the start, so it's a layer on top, not a rewrite.
 
 ### Phase 4 — Monetisation & mobile apps (≈4–6 weeks)
 - Inventory, shop UI, Moss/Crystals, daily shop, season pass framework.
-- RevenueCat + Stripe + webhook entitlement granting.
+- Google Play Billing (server-verified) + Stripe + webhook entitlement granting.
 - Capacitor iOS/Android builds, push notifications (your turn / friend
   invites), haptics, store listings, privacy/age compliance.
 - Analytics, crash reporting.
@@ -635,7 +635,7 @@ sim from the start, so it's a layer on top, not a rewrite.
 | "Feel" doesn't match WA (rope especially)     | Dedicated tuning milestone; constants in schemes; veteran playtests |
 | Float non-determinism → online desyncs        | Deterministic float subset enforced by tests, CI determinism tests, server snapshot resync |
 | Mobile performance                            | Perf budget, chunked terrain, pooled particles, test on low-end Android early |
-| App Store rejection (IAP / wrapper rules)     | Native IAP via RevenueCat, full offline-capable game, account deletion |
+| App Store rejection (IAP / wrapper rules)     | Native IAP (Google Play Billing, server-verified), full offline-capable game, account deletion |
 | Cheating online                               | Server runs authoritative sim, validates inputs & ammo |
 | Server costs                                  | Turn-based relay is light; scale rooms horizontally; costs covered by IAP |
 | Pay-to-win backlash                           | Cosmetics only, everywhere; all gameplay free (§8)     |

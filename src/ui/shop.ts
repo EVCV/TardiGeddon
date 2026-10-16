@@ -12,7 +12,9 @@ import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink } from './account';
 import { WEAPONS } from '../sim/weapons';
 import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
-import { buyCoins, chooseArena, chosenArena, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
+import { isNativeApp } from '../native';
+import { playPrices } from '../shop/playBilling';
+import { buyCoins, buyCoinsInApp, chooseArena, chosenArena, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
 
@@ -390,6 +392,32 @@ const bestValue = (): string => COIN_PACKS.reduce((a, b) => (pencePerCoin(b) < p
 /** "0.83p a coin". */
 const perCoin = (pence: number): string => `${pence.toFixed(2)}p a coin`;
 
+// In the Android app coin packs are bought with Google Play Billing, at the
+// price Google shows the player (their currency): fetched once, then cached.
+const inApp = (): boolean => isNativeApp();
+let inAppPrices: Record<string, string> | null = null;
+let inAppPricesFailed = false;
+let loadingPrices = false;
+function loadInAppPrices(ctx: HubContext): void {
+  if (inAppPrices || loadingPrices) return;
+  loadingPrices = true;
+  playPrices().then(
+    (p) => {
+      inAppPrices = p;
+      inAppPricesFailed = false;
+      loadingPrices = false;
+      ctx.rerender();
+    },
+    () => {
+      inAppPricesFailed = true;
+      loadingPrices = false;
+      ctx.rerender();
+    },
+  );
+}
+/** The pack's price as the player will pay it. */
+const packPrice = (p: CoinPack): string => (inApp() ? (inAppPrices?.[p.id] ?? '…') : formatPrice(p.price));
+
 /** How many looks (you don't own) these coins could unlock, cheapest first; and whether that's all of them. */
 function lookCount(coins: number, owned: string[]): { n: number; all: boolean } {
   const prices = SHOP_ITEMS.filter((i) => i.coins !== undefined && !owned.includes(i.id)).map((i) => i.coins!).sort((a, b) => a - b);
@@ -499,7 +527,8 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
   const title = el('h2', 'coin-dialog-title', look.name);
   title.id = 'coin-dialog-title';
   const coins = el('div', 'coin-dialog-coins', `🪙 ${formatNumber(total)} coins`);
-  const sub = el('div', 'coin-dialog-sub', pack.bonus ? `${formatNumber(pack.coins)} + ${formatNumber(pack.bonus)} bonus · ${perCoin(pencePerCoin(pack))}` : perCoin(pencePerCoin(pack)));
+  const rate = inApp() ? '' : perCoin(pencePerCoin(pack));
+  const sub = el('div', 'coin-dialog-sub', pack.bonus ? `${formatNumber(pack.coins)} + ${formatNumber(pack.bonus)} bonus${rate ? ` · ${rate}` : ''}` : rate);
   // The pack on top (on the left on short landscape screens), what to do below (or beside).
   const head = el('div', 'coin-dialog-head');
   head.append(art, title, coins, sub);
@@ -529,7 +558,8 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     const adultTick = el('input');
     adultTick.type = 'checkbox';
     adult.append(adultTick, el('span', '', "I'm 18 or over, or a parent or carer has said yes to this purchase."));
-    const pay = el('button', 'big-btn coin-dialog-pay', `Pay ${formatPrice(pack.price)}`);
+    const payLabel = `Pay ${packPrice(pack)}`;
+    const pay = el('button', 'big-btn coin-dialog-pay', payLabel);
     const error = el('p', 'coin-dialog-error');
     error.setAttribute('role', 'alert');
     const hint = el('p', 'coin-dialog-hint', 'Tick both boxes to continue');
@@ -543,20 +573,34 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     adultTick.onchange = update;
     pay.onclick = async () => {
       busy = true;
-      pay.textContent = 'Opening secure checkout…';
+      pay.textContent = inApp() ? 'Opening Google Play…' : 'Opening secure checkout…';
       update();
       error.textContent = '';
+      const again = () => {
+        busy = false;
+        pay.textContent = payLabel;
+        update();
+      };
       try {
-        await buyCoins(pack.id, tick.checked, adultTick.checked);
+        if (!inApp()) {
+          await buyCoins(pack.id, tick.checked, adultTick.checked);
+          return;
+        }
+        const r = await buyCoinsInApp(pack.id);
+        if (r.result === 'cancelled') return again();
+        close();
+        ctx.notify(
+          r.result === 'done'
+            ? `Thanks! ${formatNumber(r.coins || total)} coins are in your wallet.`
+            : "Thanks! Your payment is still going through: the coins will appear as soon as Google Play confirms it.",
+        );
       } catch (e) {
         error.textContent = e instanceof Error ? e.message : String(e);
-        busy = false;
-        pay.textContent = `Pay ${formatPrice(pack.price)}`;
-        update();
+        again();
       }
     };
     body.append(consent, adult);
-    body.append(pay, hint, error, el('p', 'coin-dialog-small', '🔒 You pay on Stripe\'s secure page. Prices include VAT.'));
+    body.append(pay, hint, error, el('p', 'coin-dialog-small', inApp() ? '🔒 You pay with Google Play. Prices include tax.' : '🔒 You pay on Stripe\'s secure page. Prices include VAT.'));
     update();
   }
   overlay.append(box);
@@ -571,8 +615,12 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   const head = el('div', 'coins-head');
   const icon = el('span', 'coins-head-icon');
   icon.innerHTML = coinIcon();
-  head.append(icon, el('h3', '', 'Get coins'), el('span', '', 'Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include VAT.'));
+  head.append(icon, el('h3', '', 'Get coins'), el('span', '', `Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include ${inApp() ? 'tax' : 'VAT'}.`));
   box.append(head);
+  if (inApp()) {
+    loadInAppPrices(ctx);
+    if (inAppPricesFailed) box.append(el('p', 'account-note', "Couldn't get prices from Google Play. Check your connection, then open the shop again."));
+  }
 
   const grid = el('div', 'coin-grid');
   const best = bestValue();
@@ -581,7 +629,7 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
     const total = packTotal(p);
     const tag = p.id === best ? 'Best value' : p.bonus ? `+${Math.round((p.bonus / p.coins) * 100)}% bonus` : '';
     const b = el('button', 'coin-pack' + (tag ? ' tagged' : '') + (p.id === best ? ' best' : ''));
-    b.setAttribute('aria-label', `${formatNumber(total)} coins for ${formatPrice(p.price)}`);
+    b.setAttribute('aria-label', `${formatNumber(total)} coins for ${packPrice(p)}`);
     if (tag) b.append(el('span', 'pack-tag', tag));
     const art = el('span', 'pack-art');
     art.innerHTML = packArt(look.art);
@@ -606,16 +654,21 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
       el('b', 'pack-coins', `🪙 ${formatNumber(total)}`),
       bonus,
       exBox,
-      el('span', 'pack-rate', perCoin(pencePerCoin(p))),
-      el('span', 'pack-price', formatPrice(p.price)),
+      el('span', 'pack-rate', inApp() ? '' : perCoin(pencePerCoin(p))),
+      el('span', 'pack-price', packPrice(p)),
     );
+    // In the app, not until Google's price is known (it must be the price shown).
+    b.disabled = inApp() && !inAppPrices?.[p.id];
     b.onclick = () => openCheckout(me, ctx, p, b);
     grid.append(b);
   }
   box.append(grid, el('p', 'coins-pick', '👆 Tap a pack to buy it'));
 
   const trust = el('ul', 'coin-trust');
-  for (const t of ['🔒 Secure checkout by Stripe', '🧾 Receipt by email', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win']) trust.append(el('li', '', t));
+  const trustLines = inApp()
+    ? ['🔒 Secure checkout by Google Play', '🧾 Receipt from Google', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win']
+    : ['🔒 Secure checkout by Stripe', '🧾 Receipt by email', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win'];
+  for (const t of trustLines) trust.append(el('li', '', t));
   box.append(trust, el('p', 'account-note', 'Coins have no cash value. Under 18? Please ask a parent or carer before buying.'));
   return box;
 }

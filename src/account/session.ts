@@ -6,6 +6,7 @@
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
+import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
 
 /** What GET /api/me returns. */
@@ -28,6 +29,8 @@ export interface MeResponse {
   admin?: boolean;
   /** Set only on Cloudflare preview builds that can't reach the server (see refreshAccount). */
   preview?: boolean;
+  /** Coin packs can be bought in the Android app, with Google Play Billing. */
+  playBilling?: boolean;
   /** The player's control settings, if they've saved any (input/controls.ts). */
   controls?: unknown;
 }
@@ -104,7 +107,8 @@ function set(next: MeResponse | null): void {
   // so no coin packs or Stripe receipts (coins bought on the website still
   // spend). And Google/Apple sign-in pages refuse to open inside an app, and
   // would come back to the website: email sign-in only, for now (docs/APPS.md).
-  if (next && isNativeApp()) next = { ...next, shop: false, receipts: false, providers: [] };
+  // In the Android app, coin packs are sold with Google Play Billing instead.
+  if (next && isNativeApp()) next = { ...next, shop: next.playBilling === true && playBillingAvailable(), receipts: false, providers: [] };
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
@@ -356,6 +360,55 @@ export async function signInWith(provider: string): Promise<void> {
  * for the coins straight away and accepted losing the 14-day cancellation right.
  */
 /** `grownUp`: the buyer is 18+ or a parent or carer has agreed (needed for every pack). */
+/**
+ * Buy a coin pack in the Android app: Google's payment sheet, then the server
+ * checks the purchase with Google and adds the coins.
+ */
+export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; coins: number } | { result: 'pending' | 'cancelled' }> {
+  if (!me?.user) throw new Error('Please sign in first.');
+  const r = await playBuy(packId, me.user.id);
+  if (r.status === 'cancelled') return { result: 'cancelled' };
+  if (r.status === 'pending') return { result: 'pending' };
+  if (r.status === 'owned') {
+    // An earlier purchase of this pack that never reached the server: finish that one now.
+    const coins = await finishPlayPurchases();
+    return coins > 0 ? { result: 'done', coins } : { result: 'pending' };
+  }
+  if (r.status !== 'purchased') return { result: 'pending' };
+  const done = await call<{ coins?: number }>('/api/shop/google', { productId: r.productId, token: r.token });
+  await refreshAccount();
+  return { result: 'done', coins: done.coins ?? 0 };
+}
+
+let finishing: Promise<number> | null = null;
+
+/**
+ * Send the server any completed Google Play purchase it hasn't granted yet
+ * (the app closed mid-purchase, no signal, or a slow payment went through).
+ * Resolves to the coins added. Safe to call any time: the server grants each
+ * purchase once.
+ */
+export function finishPlayPurchases(): Promise<number> {
+  if (!me?.user || !me.playBilling || !playBillingAvailable()) return Promise.resolve(0);
+  finishing ??= (async () => {
+    let added = 0;
+    try {
+      for (const p of await playUnfinished()) {
+        try {
+          added += (await call<{ coins?: number }>('/api/shop/google', p)).coins ?? 0;
+        } catch {
+          // e.g. bought on another account: leave it for that account.
+        }
+      }
+    } finally {
+      finishing = null;
+    }
+    if (added > 0) await refreshAccount();
+    return added;
+  })();
+  return finishing;
+}
+
 export async function buyCoins(pack: string, consent: boolean, grownUp = false): Promise<void> {
   const r = await call<{ url?: string }>('/api/shop/checkout', { item: pack, consent, grownUp });
   if (r.url) location.href = r.url;

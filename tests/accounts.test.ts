@@ -13,6 +13,7 @@ import { migrate, revokePurchase } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
+import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -45,6 +46,23 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   stripe.customers.create = (async () => ({ id: `cus_test_${++customers}` })) as unknown as typeof stripe.customers.create;
   stripe.billingPortal.sessions.create = (async (p: { customer: string }) => ({ url: `https://billing.stripe.test/${p.customer}` })) as unknown as typeof stripe.billingPortal.sessions.create;
 
+  // No Google in tests: purchases the fake knows about, by token.
+  const playPurchases = new Map<string, ProductPurchase & { productId: string }>();
+  const consumed: string[] = [];
+  let voided: VoidedPurchase[] = [];
+  const play: PlayApi = {
+    getProduct: async (productId, token) => {
+      const p = playPurchases.get(token);
+      return p && p.productId === productId ? p : null;
+    },
+    consume: async (_productId, token) => {
+      consumed.push(token);
+      const p = playPurchases.get(token);
+      if (p) p.consumptionState = 1;
+    },
+    voided: async () => voided,
+  };
+
   // No email service in tests: keep what would have been sent.
   const sent: Mail[] = [];
   const mailer = async (m: Mail) => void sent.push(m);
@@ -62,7 +80,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
-      { stripe, mailer },
+      { stripe, mailer, play },
     );
     await accounts.db.query('DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user";');
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -388,6 +406,52 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await sendWebhook('checkout.session.completed', { ...paid('cs_2', id, 'hat:viking'), payment_status: 'unpaid' });
     await sendWebhook('checkout.session.completed', paid('cs_3', id, 'hat:golden'));
     expect((await me(cookie)).owned).toEqual([]);
+  });
+
+  it('sells coin packs in the Android app through Google Play: checked with Google, granted once, consumed, refundable', async () => {
+    const { cookie, id } = await signUp('play@example.com');
+    expect((await me(cookie)).playBilling).toBe(true);
+    const buy = (token: string, productId = 'coins_500') => post('/api/shop/google', { productId, token }, cookie);
+    const tag = playAccountTag(id);
+    // Signed out, made-up and non-pack purchases get nothing.
+    expect((await post('/api/shop/google', { productId: 'coins_500', token: 't1' })).status).toBe(401);
+    expect((await buy('made-up')).status).toBe(400);
+    expect((await buy('t1', 'hat_wizard')).status).toBe(400);
+
+    playPurchases.set('t1', { productId: 'coins_500', purchaseState: 0, consumptionState: 0, obfuscatedExternalAccountId: tag });
+    const r = await buy('t1');
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ coins: 550 });
+    expect((await me(cookie)).wallet.coins).toBe(550);
+    expect(consumed).toContain('t1');
+    // Sent again (the app retries anything it didn't hear back about): no second grant.
+    expect(await (await buy('t1')).json()).toMatchObject({ coins: 0 });
+    playPurchases.get('t1')!.consumptionState = 0; // as if the consume had failed
+    expect(await (await buy('t1')).json()).toMatchObject({ coins: 0 });
+    expect((await me(cookie)).wallet.coins).toBe(550);
+
+    // A purchase still being paid for: nothing yet.
+    playPurchases.set('t2', { productId: 'coins_200', purchaseState: 2, consumptionState: 0, obfuscatedExternalAccountId: tag });
+    expect((await buy('t2', 'coins_200')).status).toBe(202);
+    // Made on another account: refused (it stays for that account).
+    playPurchases.set('t3', { productId: 'coins_200', purchaseState: 0, consumptionState: 0, obfuscatedExternalAccountId: playAccountTag('someone-else') });
+    expect((await buy('t3', 'coins_200')).status).toBe(403);
+    // No account tag at all (not started by our app): refused too.
+    playPurchases.set('t5', { productId: 'coins_200', purchaseState: 0, consumptionState: 0 });
+    expect((await buy('t5', 'coins_200')).status).toBe(403);
+    // A licence tester's purchase grants coins but counts as £0 on the sales page.
+    playPurchases.set('t4', { productId: 'coins_200', purchaseState: 0, consumptionState: 0, purchaseType: 0, obfuscatedExternalAccountId: tag });
+    expect((await buy('t4', 'coins_200')).status).toBe(200);
+    const rows = await accounts.db.query<{ amount: number; item: string }>(`SELECT amount, item FROM purchase WHERE user_id = $1 ORDER BY item`, [id]);
+    expect(rows.rows).toEqual([{ amount: 0, item: 'coins:200' }, { amount: 499, item: 'coins:500' }]);
+    expect((await me(cookie)).wallet.coins).toBe(750);
+
+    // Refunded through Google: the coins go back.
+    voided = [{ purchaseToken: 't1' }];
+    await accounts.checkVoided();
+    await accounts.checkVoided(); // the hourly check sees it again: still only once
+    expect((await me(cookie)).wallet.coins).toBe(200);
+    voided = [];
   });
 
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {

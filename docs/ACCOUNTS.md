@@ -356,11 +356,15 @@ For payments, install the Stripe CLI and run
 `stripe listen --forward-to localhost:8787/api/stripe/webhook`; export the
 `whsec_…` it prints as `STRIPE_WEBHOOK_SECRET` and restart the server.
 
-## Phone apps (later)
+## Phone apps
 
 Apple and Google require their own in-app purchases for digital items in
-store apps; the plan is RevenueCat (GAME_PLAN §8.3). Its webhook will grant
-into the same `inventory` table, so items bought anywhere work everywhere.
+store apps. The Android app uses **Google Play Billing**, checked by this
+server directly (`server/googlePlay.ts`, `POST /api/shop/google`, secret
+`GOOGLE_PLAY_SERVICE_ACCOUNT`; set-up in `docs/GOOGLE_PLAY.md` §7). Purchases
+go in the same `purchase` table and wallet as Stripe's (id `gplay:…`), so
+coins bought anywhere work everywhere, and Google refunds take them back like
+Stripe's. Apple's will work the same way when the iOS app comes.
 
 ## Tests
 

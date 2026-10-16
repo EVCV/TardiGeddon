@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 11 October 2026
-**Document Version:** v1.8
+**Last Modified:** 16 October 2026
+**Document Version:** v1.9
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -146,6 +146,8 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 5.1.4 Your coins are added to your account straight away, normally within a few seconds of payment. If they have not appeared within an hour, please contact support@tardigeddon.com.
 
+5.1.5 **In our Android app**, coin packs are sold through Google Play's billing system instead of Stripe. The packs and the coins they give are the same, but the price is the one Google Play shows you, in your currency and including the tax for your country, and the per-coin price is not shown. Google Play takes the payment, as the seller of the purchase, under its own terms (Google Play Terms of Service and its refund policies), and sends you the receipt; refunds of Google Play purchases are asked for from Google Play. Before Google Play's payment sheet opens, the app asks for the same confirmations as on the website (that you want the coins straight away, and that you are 18 or over or a parent or carer has agreed). If Google Play refunds a purchase or the payment is reversed, the coins it gave are taken back, as in Section 5.3.2. Coins are kept on your account whether you bought them on the website or in the app.
+
 ### 5.2 Your Right to Cancel
 
 5.2.1 Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you normally have 14 days to cancel a contract made online. For digital content like coins, that right ends once supply begins, if you have asked for it to start straight away and acknowledged that you will lose the right to cancel.
@@ -190,7 +192,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.7 App Stores
 
-5.7.1 If you buy coins in a TardiGeddon app from an app store in future, that purchase will be made through the app store's own payment system and will also be subject to that store's terms, including its refund policy.
+5.7.1 If you buy coins in a TardiGeddon app from an app store (Google Play now, and the Apple App Store in future), that purchase is made through the app store's own payment system and is also subject to that store's terms, including its refund policy (see Section 5.1.5 for Google Play).
 
 ### 5.8 Gifts
 
