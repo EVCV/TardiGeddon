@@ -1,8 +1,8 @@
 # Community Guidelines
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
-**Document Version:** v1.1
+**Last Modified:** 17 October 2026
+**Document Version:** v1.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -49,6 +49,12 @@ TardiGeddon is about blowing up cartoon tardigrades, not each other. These Commu
 
 2.1.2 Do not use your real full name, address, school, phone number, social media handle, or any other personal information in your names, and do not use other people's.
 
+2.1.3 The game checks names automatically and will not use names with rude words, numbers that could be a phone number, email or website addresses, social media, or anything pretending to be our staff. These checks are not perfect, so please still follow this section and report names that get through (Section 5).
+
+2.1.4 In quick play, where you are matched with people you don't know, nobody sees the names you typed: every team is given a made-up name. Your own names are shown only in private rooms, to the people you invite.
+
+2.1.5 There is no chat in TardiGeddon. Do not use names to try to send messages to other players.
+
 ### 2.2 Be Honest
 
 2.2.1 Do not impersonate other people, including TardiGeddon staff.
@@ -83,11 +89,17 @@ TardiGeddon is about blowing up cartoon tardigrades, not each other. These Commu
 
 ### 5.0 Reporting a Player
 
-5.0.1 If another player breaks these Guidelines, please email support@tardigeddon.com with the room code, the team name, and what happened. A screenshot helps.
+5.0.1 If another player breaks these Guidelines, use the **⚑ Report** button next to their name in the room, or the **👥** button during a match, and choose what is wrong. Your report goes to our team with the room code and the names the player chose; the other player is not told who reported them. You can also email support@tardigeddon.com with the room code, the team name, and what happened. A screenshot helps.
 
 5.0.2 We review reports according to severity and take action consistent with Section 4. Because we do not keep match records, reports are most useful when sent soon after the match.
 
 5.0.3 If you are worried about your safety or someone else's, please tell a trusted adult and, where appropriate, contact the police.
+
+### 5.1 Blocking a Player
+
+5.1.1 Use the **🚫 Block** button next to a player to block them. You will not be put in quick-play matches with them again, and if you meet them in a private room their names are hidden from you. You can see and undo your blocks in Settings, under Blocked players.
+
+5.1.2 Your list of blocked players is kept on your device. Blocking a signed-in player lasts until you unblock them; blocking a player who is not signed in lasts for their current visit, because we have no way to recognise them later.
 
 ## Section 6 — General Legal Provisions
 

@@ -4,6 +4,12 @@ import { expect, test, type Page } from '@playwright/test';
 // code, and both see the same match once the host starts it.
 
 type Tardi = { world: { tick: number; turn: { teamIdx: number; phase: string; turnNumber: number } } };
+// Each test opens its own browser windows: close them after, or the matches left
+// running in them slow the next test's windows to a crawl.
+test.afterEach(async ({ browser }) => {
+  for (const c of browser.contexts()) await c.close();
+});
+
 const world = (p: Page) => p.evaluate(() => (window as unknown as { __tardi?: Tardi }).__tardi?.world ?? null);
 
 test('two players can play an online match', async ({ browser }, info) => {
@@ -75,5 +81,49 @@ test('quick play matches two strangers, or one player with a CPU', async ({ brow
   await expect(c.locator('.hud-timer')).toBeVisible({ timeout: 10_000 });
   const teams = await c.evaluate(() => (window as unknown as { __tardi: { world: { teams: { cpu: boolean }[] } } }).__tardi.world.teams.map((t) => t.cpu));
   expect(teams).toEqual([false, true]);
+  expect(errors).toEqual([]);
+});
+
+test('players can report and block each other, in the room and in a match', async ({ browser }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one run is enough');
+  const errors: string[] = [];
+  const a = await (await browser.newContext()).newPage();
+  const b = await (await browser.newContext()).newPage();
+  for (const p of [a, b]) {
+    p.on('pageerror', (e) => errors.push(e.message));
+    p.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  }
+  await a.goto('/');
+  await a.getByRole('button', { name: 'Play online' }).click();
+  await a.getByRole('button', { name: 'Create a room' }).click();
+  const code = (await a.locator('.room-code').textContent())!.trim();
+  await b.goto(`/?room=${code}`);
+  await expect(a.locator('.lobby-slot')).toHaveCount(2);
+
+  // Only the other player has the buttons.
+  await expect(a.locator('.lobby-slot').nth(0).locator('.safety-btn')).toHaveCount(0);
+  const other = a.locator('.lobby-slot').nth(1);
+  const theirName = (await other.locator('.lobby-name').textContent())!;
+
+  // Report: pick a reason, then "Done".
+  await other.getByRole('button', { name: `Report ${theirName}` }).click();
+  await a.getByRole('button', { name: 'Rude or unsafe name' }).click();
+  await expect(a.getByText('Your report has gone to our team')).toBeVisible();
+  await a.getByRole('button', { name: 'Done' }).click();
+
+  // Block: their name is hidden from now on.
+  a.once('dialog', (d) => void d.accept());
+  await other.getByRole('button', { name: `Block ${theirName}` }).click();
+  await expect(other.locator('.lobby-name')).toHaveText('Blocked player');
+
+  // In the match: hidden there too, and 👥 lists them to unblock.
+  await a.getByRole('button', { name: 'Start match' }).click();
+  await expect(a.locator('.hud-timer')).toBeVisible();
+  await expect(a.locator('.team-name').nth(1)).toHaveText('Blocked player');
+  await a.getByRole('button', { name: 'Players: report or block' }).click();
+  await a.getByRole('button', { name: 'Unblock Blocked player' }).click();
+  await expect(a.locator('.safety-box .lobby-name')).toHaveText(theirName);
+  await a.getByRole('button', { name: 'Close' }).click();
+  await expect(a.locator('.team-name').nth(1)).toHaveText(theirName);
   expect(errors).toEqual([]);
 });

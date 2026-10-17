@@ -29,6 +29,8 @@ import { onPlayPurchasesUpdated } from './shop/playBilling';
 import type { MatchSetup } from './ui/menu';
 import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
+import { hideTeams, isBlocked, tardiLabel, teamLabel } from './net/blocked';
+import { openPlayers } from './ui/safety';
 import { Lockstep } from './net/lockstep';
 import { toWire, type ServerMsg } from './net/protocol';
 import { presetScheme } from './sim/schemes';
@@ -251,7 +253,10 @@ class Match {
 
     this.renderer = new GameRenderer(app, this.state, arenaTheme(wearArena()));
     this.renderer.onSound = (name) => sfx[name]();
-    this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => toggleAllSound(), muted: !anySound() }, touchMode);
+    // Online: names of players you've blocked are hidden from you.
+    this.hideBlocked();
+    const onPlayers = this.net ? () => this.showPlayers() : undefined;
+    this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => toggleAllSound(), muted: !anySound(), onPlayers }, touchMode);
     // This player's own match music and sound pack (only they hear them).
     useSoundPack(wearSounds());
     previewMusic(null);
@@ -319,6 +324,26 @@ class Match {
     }
     this.reconnecting = false;
     if (this.net) this.hud.showBanner('Disconnected', 0xe04848, 5);
+  }
+
+  /** Hide the names of teams whose players this player has blocked (online only). */
+  private hideBlocked(): void {
+    const room = this.net?.client.room;
+    hideTeams(room ? room.slots.flatMap((sl, i) => (sl.pid && isBlocked(sl.pid) ? [i] : [])) : []);
+  }
+
+  /** 👥: the other players in this match, to report or block. */
+  private showPlayers(): void {
+    const net = this.net;
+    const room = net?.client.room;
+    if (!net || !room) return;
+    openPlayers(this.ui, room.slots, net.ls.you, (idx, reason) => net.client.report(idx, reason), () => {
+      // Blocking changes the names on screen: redraw the world.
+      this.hideBlocked();
+      this.renderer.destroy();
+      this.renderer = new GameRenderer(this.app, this.state, arenaTheme(wearArena()));
+      this.renderer.onSound = (name) => sfx[name]();
+    });
   }
 
   /** The phone's back button: close the weapon panel, else offer to quit. */
@@ -441,7 +466,7 @@ class Match {
         case 'finish': {
           sfx.collect();
           const tm = this.state.teams[e.team];
-          this.hud.showBanner(`${tm.name}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, tm.color, 2.5);
+          this.hud.showBanner(`${teamLabel(tm)}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, tm.color, 2.5);
           break;
         }
         case 'turnStart':
@@ -474,7 +499,7 @@ class Match {
     const s = this.state;
     const team = s.teams[s.turn.teamIdx];
     const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (t) this.hud.showBanner(`${t.name}'s turn!`, team.color);
+    if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, team.color);
     this.renderer.camera.manualUntil = 0;
   }
 

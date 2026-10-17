@@ -1654,6 +1654,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
   .page-settings > .card, .page-settings .settings-side > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
   .page-settings[data-section=sound] [data-section=sound],
+  .page-settings[data-section=blocked] [data-section=blocked],
   .page-settings[data-section=touch] [data-section=touch],
   .page-settings[data-section=keys] [data-section=keys],
   .page-settings[data-section=learn] [data-section=learn],
@@ -1734,3 +1735,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sound-pick .settings-label { margin: 0; }
 .sound-select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 2px solid var(--ink); background: #fff; color: var(--ink); max-width: 60%; }
 .shop-listen { align-self: flex-start; }
+
+/* Team editor: a name that isn't allowed */
+.editor input.bad { border-color: var(--red); background: #ffecec; }
+.editor-name-note { flex-basis: 100%; margin: 0 0 6px; color: var(--red); font-weight: 800; font-size: 13px; text-align: left; }
+.editor-name-note[hidden] { display: none; }
+
+/* Online safety: report and block */
+.safety-actions { display: inline-flex; gap: 4px; margin-left: auto; }
+.safety-btn { min-width: 32px; width: auto; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+.safety-box { max-width: 420px; }
+.safety-reasons { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.blocked-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; margin: 6px 0; }
+.blocked-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.blocked-when { font-size: 12px; opacity: 0.7; }

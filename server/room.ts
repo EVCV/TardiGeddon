@@ -8,6 +8,7 @@ import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEven
 import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
+import { presetTeamName, safeTeamNames } from '../src/names';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
 import { MatchTally } from '../src/stats/tally';
@@ -24,6 +25,11 @@ const QUEUE_MAX = 50;
 
 export interface Member {
   send(msg: ServerMsg): void;
+  /**
+   * A player id others can block and report: from the account when signed in
+   * (stable, but never the account id itself), else made up per connection.
+   */
+  pid?: string;
   /** The player's account, if they're signed in. */
   userId?: string;
   /** Season weapons they've unlocked (switched on in matches they host). */
@@ -32,8 +38,33 @@ export interface Member {
 
 export type { MatchResult };
 
+/** Why a player can be reported (the game offers these; anything else is "other"). */
+export const REPORT_REASONS = ['name', 'contact', 'cheating', 'other'] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export interface ReportedPlayer {
+  pid?: string;
+  userId?: string;
+  /** The names they typed, and (quick play) the made-up ones others saw. */
+  typed: LobbyTeam;
+  shown: LobbyTeam;
+}
+
+export interface PlayerReport {
+  room: string;
+  quick: boolean;
+  reason: ReportReason;
+  reporter: ReportedPlayer;
+  reported: ReportedPlayer;
+}
+
 interface Slot {
   team: LobbyTeam;
+  /** The names the player typed (quick play shows made-up ones instead): for reports. */
+  typed: LobbyTeam;
+  pid?: string;
+  /** Who this player has reported in this room (their slot tokens), so one report each. */
+  reported: Set<string>;
   cpu: boolean;
   member: Member | null;
   /** Account of the player who took this slot (kept if they drop out). */
@@ -51,20 +82,12 @@ const MAX_ABSENT_SHARE = 0.25;
 
 const DEFAULT_TARDI_NAMES = ['Waddles', 'Tun', 'Mossy', 'Pudge'];
 
-export function cleanText(s: unknown, max: number): string {
-  if (typeof s !== 'string') return '';
-  return s
-    .replace(/[\u0000-\u001f\u007f]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, max);
-}
-
+/** A team from untrusted data: known looks only, and names safe to show (src/names.ts). */
 export function cleanTeam(t: unknown, slot: number): LobbyTeam {
   const v = (t && typeof t === 'object' ? t : {}) as Partial<LobbyTeam>;
-  const names = Array.from({ length: 4 }, (_, i) => cleanText(Array.isArray(v.names) ? v.names[i] : '', 14) || DEFAULT_TARDI_NAMES[i]);
+  const { name, names } = safeTeamNames(v.name, Array.isArray(v.names) ? v.names : [], { team: 18, tardi: 14 }, { team: TEAM_NAMES[slot % TEAM_NAMES.length], tardi: DEFAULT_TARDI_NAMES });
   return {
-    name: cleanText(v.name, 18) || TEAM_NAMES[slot % TEAM_NAMES.length],
+    name,
     color: typeof v.color === 'number' && TEAM_COLORS.includes(v.color) ? v.color : TEAM_COLORS[slot % TEAM_COLORS.length],
     hat: typeof v.hat === 'string' && /^[a-z]{1,16}$/.test(v.hat) ? v.hat : 'beanie',
     skin: typeof v.skin === 'string' && /^[a-z]{1,16}$/.test(v.skin) ? v.skin : 'classic',
@@ -162,6 +185,10 @@ export class Room {
   emptySince = 0;
   /** Called when a match finishes, with the signed-in players' results (for account stats). */
   onResult: ((results: MatchResult[]) => void) | null = null;
+  /** Called when a player reports another one. */
+  onReport: ((r: PlayerReport) => void) | null = null;
+  /** Quick play with strangers: every team gets a made-up name instead of what its player typed. */
+  quick = false;
 
   constructor(
     readonly code: string,
@@ -200,6 +227,7 @@ export class Room {
     if (this.state || this.slots.length >= MAX_TEAMS) return false;
     const slot = this.newSlot(cleanTeam(team, this.slots.length), false);
     slot.member = member;
+    slot.pid = member.pid;
     slot.userId = member.userId;
     slot.unlocked = member.unlocked;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
@@ -254,6 +282,15 @@ export class Room {
       case 'leave':
         this.leave(member);
         break;
+      case 'report': {
+        const target = this.slots[msg.idx];
+        if (!target || target === slot || target.cpu || slot.reported.has(target.token)) break;
+        slot.reported.add(target.token);
+        const who = (x: Slot): ReportedPlayer => ({ pid: x.pid, userId: x.userId, typed: x.typed, shown: x.team });
+        const reason = (REPORT_REASONS as readonly string[]).includes(msg.reason) ? (msg.reason as ReportReason) : 'other';
+        this.onReport?.({ room: this.code, quick: this.quick, reason, reporter: who(slot), reported: who(target) });
+        break;
+      }
     }
   }
 
@@ -328,6 +365,14 @@ export class Room {
   }
 
   private newSlot(team: LobbyTeam, cpu: boolean): Slot {
+    const typed: LobbyTeam = { ...team, names: [...team.names] };
+    if (this.quick) {
+      // Strangers never see each other's typed names: made-up ones, kept unique in the room.
+      let name = presetTeamName(this.random);
+      for (let i = 0; i < 20 && this.slots.some((s) => s.team.name === name); i++) name = presetTeamName(this.random);
+      team.name = name;
+      team.names = DEFAULT_NAMES.slice(this.slots.length * 4, this.slots.length * 4 + 4);
+    }
     // Keep colours, team names and tardi names unique within the room.
     if (this.slots.some((s) => s.team.color === team.color)) {
       team.color = TEAM_COLORS.find((c) => !this.slots.some((s) => s.team.color === c)) ?? team.color;
@@ -346,7 +391,7 @@ export class Room {
       used.add(alt);
       return alt;
     });
-    const slot: Slot = { team, cpu, member: null, token: randomToken(), queue: [], held: 0, absent: 0 };
+    const slot: Slot = { team, typed, reported: new Set(), cpu, member: null, token: randomToken(), queue: [], held: 0, absent: 0 };
     this.slots.push(slot);
     return slot;
   }
@@ -386,7 +431,7 @@ export class Room {
   }
 
   private broadcastRoom(): void {
-    const slots: LobbySlot[] = this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null }));
+    const slots: LobbySlot[] = this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}) }));
     this.slots.forEach((s, i) => s.member?.send({ t: 'room', code: this.code, slots, you: i, token: s.token, started: this.started }));
   }
 

@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 16 October 2026
-**Document Version:** v2.4
+**Last Modified:** 17 October 2026
+**Document Version:** v2.5
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -49,7 +49,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.0 Information Stored Only on Your Device
 
-2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; whether you have started the tutorial; and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
+2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; whether you have started the tutorial; your sound settings, match music and sound pack; the players you have blocked in online play (the id our server gave them and the team name you saw); and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
 
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. If you change your controls on the Settings page (which keys, mouse buttons and touch buttons do what), the game keeps them there too. This is deleted when you close the tab.
 
@@ -59,13 +59,15 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.1.1 When you play online, your device connects to our game server and sends: your team name, team colour, hat, and tardigrade names; the room code you create or join; and your game inputs (such as moving, aiming, and firing) during your turns.
 
-2.1.2 Your Team Details are shown to the other players in your match. Please do not use your real name or other personal information in them.
+2.1.2 Your Team Details are shown to the other players in your match. Please do not use your real name or other personal information in them. The game and our server refuse names with rude words, phone numbers, email or website addresses or social media. In quick play, where you are matched with people you don't know, other players see a made-up team name and standard tardigrade names instead of the names you chose.
 
 2.1.3 As with any internet connection, our server and our hosting providers necessarily receive your device's IP address in order to send data back to you. We do not use your IP address to identify you, and we do not store it in our own records.
 
 2.1.4 The server keeps match information in memory only while the match or lobby is in use. It is deleted when the room closes (at the latest about two minutes after the last player leaves) or when the server restarts. We do not keep match histories or chat logs.
 
 2.1.5 If you are signed in when you play online, the server also checks which shop items your account owns, so that only the hats you own are shown to other players, and adds the result of each finished match to your account's stats. When you finish a one-player game against the computer while signed in, the game sends us its result for your stats too. It does not tell other players who you are: they only see your Team Details.
+
+2.1.6 **Reports and blocking.** If another player reports you, or you report another player (Community Guidelines, Section 5), our server emails a report to our support team. It contains the reason chosen, the room code, the time, the team and tardigrade names each of you chose (and, in quick play, the made-up names that were shown), and, for each of you who is signed in, your account id. So that blocking works, the server gives each player an id that other players' devices can store when they block them: for a signed-in player it is worked out from the account (it stays the same, but cannot be used to find out who you are or look up your account); for anyone else it is random and new each visit.
 
 ### 2.2 Your Account (Optional)
 
@@ -196,6 +198,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, and Google for purchases in the Android app, keep their own records under their privacy policies.
 
 5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies.
+
+5.1.8 Player reports (Section 2.1.6): for up to 24 months after we have dealt with them, so we can spot repeated problems, unless the law requires longer.
 
 ## Section 6 — Your Rights
 

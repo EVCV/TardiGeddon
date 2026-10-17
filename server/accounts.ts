@@ -13,6 +13,8 @@ import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:
 import { Pool } from 'pg';
 import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
+import { APIError } from 'better-auth/api';
+import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem } from '../src/shop/catalog';
@@ -105,6 +107,15 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     };
   }
 
+  /** A player name tidied, or a refusal the sign-up form shows. */
+  const checkedName = (raw: unknown): string => {
+    const name = tidyName(raw, 32);
+    const problem = name ? nameProblem(name) : null;
+    if (!name) throw new APIError('BAD_REQUEST', { message: 'Please choose a player name.' });
+    if (problem) throw new APIError('BAD_REQUEST', { message: NAME_PROBLEM_TEXT[problem] });
+    return name;
+  };
+
   const options = {
     database: db,
     baseURL,
@@ -147,6 +158,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     advanced: { ipAddress: { ipAddressHeaders: ['fly-client-ip', 'x-forwarded-for'] } },
     // Keep sessions minimal (the Privacy Policy says we don't store IP addresses).
     databaseHooks: {
+      // The player name is shown to other players (on gifts): safe for children, no contact details.
+      user: {
+        create: { before: async (user) => ({ data: { ...user, name: checkedName(user.name) } }) },
+        update: { before: async (user) => (typeof user.name === 'string' ? { data: { ...user, name: checkedName(user.name) } } : { data: user }) },
+      },
       session: {
         create: { before: async (session) => ({ data: { ...session, ipAddress: null, userAgent: null } }) },
       },
@@ -451,7 +467,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       }[r.why];
       return json(res, r.why === 'unknown' ? 404 : 409, { error: why });
     }
-    json(res, 200, { item: r.item, items: r.items, from: r.from, message: r.message });
+    // Names from before the name rules came in are only shown if they pass them.
+    json(res, 200, { item: r.item, items: r.items, from: r.from ? safeName(r.from, 32, '') || null : null, message: r.message });
   }
 
   /**

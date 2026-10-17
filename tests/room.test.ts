@@ -10,6 +10,7 @@ import { makeWorld, run } from './helpers';
 /** A fake connection that records what the server sends and keeps a lockstep copy. */
 class Client implements Member {
   userId?: string;
+  pid?: string;
   unlocked?: string[];
   msgs: ServerMsg[] = [];
   ls: Lockstep | null = null;
@@ -314,6 +315,43 @@ describe('snapshots', () => {
     }
     expect(syncHash(c)).toBe(syncHash(s));
     expect(encodeWorld(s).length).toBeLessThan(400_000);
+  });
+});
+
+describe('names, reports and blocking', () => {
+  it('gives quick-play teams made-up names, and keeps the typed ones only for reports', () => {
+    const r = new Room('QUICK', () => 0, () => 0.42);
+    r.quick = true;
+    const reports: unknown[] = [];
+    r.onReport = (x) => reports.push(x);
+    const a = new Client();
+    const b = new Client();
+    a.pid = 'aAAA';
+    b.pid = 'aBBB';
+    r.join(a, { name: 'Zoes Team', color: 0xe04848, hat: 'beanie', names: ['Zoe', 'Max', '', ''] });
+    r.join(b, { name: 'Bens Team', color: 0x3a7be0, hat: 'beanie', names: ['Ben', '', '', ''] });
+    const room = b.last('room')!;
+    const shown = room.slots.flatMap((s) => [s.team.name, ...s.team.names]);
+    for (const typed of ['Zoes Team', 'Zoe', 'Max', 'Bens Team', 'Ben']) expect(shown).not.toContain(typed);
+    expect(room.slots[0].team.name).not.toBe(room.slots[1].team.name);
+    expect(room.slots.map((s) => s.pid)).toEqual(['aAAA', 'aBBB']);
+    // b reports a: the report carries a's typed names; reporting twice, yourself or a CPU does nothing.
+    r.handle(b, { t: 'report', idx: 0, reason: 'name' });
+    r.handle(b, { t: 'report', idx: 0, reason: 'name' });
+    r.handle(b, { t: 'report', idx: 1, reason: 'name' });
+    r.handle(b, { t: 'report', idx: 9, reason: 'name' });
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ room: 'QUICK', quick: true, reason: 'name', reported: { pid: 'aAAA', typed: { name: 'Zoes Team' } }, reporter: { pid: 'aBBB' } });
+    // Unknown reasons count as "other".
+    r.handle(a, { t: 'report', idx: 1, reason: '<script>' });
+    expect(reports[1]).toMatchObject({ reason: 'other' });
+  });
+
+  it('keeps typed names in private rooms, but never unsafe ones', () => {
+    const r = new Room('PRIV', () => 0, () => 0.42);
+    const a = new Client();
+    r.join(a, { name: 'Zoes Team', color: 0xe04848, hat: 'beanie', names: ['Zoe', 'call me', 'sh1t', 'bob@x.com'] });
+    expect(a.last('room')!.slots[0].team).toMatchObject({ name: 'Zoes Team', names: ['Zoe', 'Tun', 'Mossy', 'Pudge'] });
   });
 });
 

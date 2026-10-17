@@ -1,5 +1,6 @@
 // Team editor: team name, colour, hat and tardi names, with a live preview.
 
+import { MAX_NUMBERS, NAME_PROBLEM_TEXT, nameProblem, numbersIn } from '../names';
 import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
 import { canUse, itemFor } from '../shop/catalog';
@@ -131,6 +132,27 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   cancel.onclick = close;
   const save = el('button', 'big-btn', 'Save');
   save.onclick = () => {
+    // Names other players may see: safe for children, and no way to get in touch.
+    const inputs = [nameInput, ...names.querySelectorAll('input')];
+    const values = [draft.name, ...draft.names];
+    inputs.forEach((i) => i.classList.remove('bad'));
+    let budget = MAX_NUMBERS;
+    for (let i = 0; i < values.length; i++) {
+      const v = cleanName(values[i] ?? '', i === 0 ? TEAM_NAME_MAX : TARDI_NAME_MAX);
+      let problem = nameProblem(v);
+      if (!problem) {
+        budget -= numbersIn(v);
+        if (budget < 0) problem = 'numbers';
+      }
+      if (problem) {
+        inputs[i].classList.add('bad');
+        inputs[i].setAttribute('aria-invalid', 'true');
+        nameNote.textContent = `“${v}”: ${NAME_PROBLEM_TEXT[problem]}`;
+        nameNote.hidden = false;
+        inputs[i].focus();
+        return;
+      }
+    }
     onSave({
       name: cleanName(draft.name, TEAM_NAME_MAX) || defaultProfile(slot).name,
       color: draft.color,
@@ -142,7 +164,10 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     });
     close();
   };
-  actions.append(reset, cancel, save);
+  const nameNote = el('p', 'editor-name-note');
+  nameNote.setAttribute('role', 'alert');
+  nameNote.hidden = true;
+  actions.append(nameNote, reset, cancel, save);
   overlay.onclick = (e) => {
     if (e.target === overlay) close();
   };

@@ -23,6 +23,35 @@ Accounts and the shop are served by the same server when it has a database
 (docs/ACCOUNTS.md). Not yet: running more than
 one server machine (rooms live in memory, so keep a single instance).
 
+## Names, reports and blocking
+
+Names other players see are checked by `src/names.ts` (the game, to tell the
+player at once, and the server in `cleanTeam` and on the account's player
+name, which has the final say): letters, spaces, `-` and `'` only, no rude
+words (also spaced out or with digits for letters), no contact details,
+websites or social media, nothing pretending to be staff, and at most two
+digits or number words across a whole team, so a phone number can't be
+spread over its names. **Quick play** rooms (`Room.quick`) never show what
+anyone typed: every team gets a made-up name (`presetTeamName`) and the
+standard tardi names. There is no chat.
+
+**Report** (`{ t: 'report' }`, once per player per room, 5 per 10 minutes per
+connection) emails `REPORT_EMAIL` (default support@tardigeddon.com) over the
+same SMTP settings as password emails, with the room, the reason, the names
+each player typed (and in quick play the made-up ones shown) and their
+account ids. Without SMTP it is only logged (`fly logs`, `report: ...`).
+Look accounts up by id in the Neon SQL editor: `SELECT name, email FROM
+"user" WHERE id = '...'`. To act, rename or delete the account there, or
+ban it in Better Auth.
+
+**Block** is kept on the player's device (`src/net/blocked.ts`). Each player
+in a room has a `pid`: for accounts an HMAC of the account id (with
+`BETTER_AUTH_SECRET`), stable but not reversible; for guests random per
+connection. Quick play never matches players where either blocked the other
+(`Matchmaker`), and in private rooms blocked players' names are hidden on the
+blocker's screen only (`teamLabel`, `tardiLabel`; the shared world state is
+unchanged, so lockstep is unaffected).
+
 ## Putting it online
 
 The game server runs on **Fly.io** at `server.tardigeddon.com`; the web game

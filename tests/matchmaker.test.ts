@@ -70,4 +70,22 @@ describe('quick play matchmaker', () => {
     mm.tick();
     expect(matches).toHaveLength(0);
   });
+
+  it('never puts players who blocked each other in the same match', () => {
+    const { mm, matches, advance } = setup();
+    const a = { ...member(), pid: 'aA' };
+    const b = { ...member(), pid: 'aB' };
+    const c = { ...member(), pid: 'aC' };
+    mm.add(a, {}, new Set(['aB']));
+    mm.add(b, {});
+    advance(QUICK_FILL_MS);
+    mm.tick();
+    expect(matches).toHaveLength(0); // a blocked b: they wait
+    mm.add(c, {});
+    advance(QUICK_FILL_MS);
+    mm.tick();
+    expect(matches).toHaveLength(1);
+    expect(matches[0].players.map((w) => w.member)).toEqual([a, c]);
+    expect(mm.waiting).toBe(1); // b still waits for someone else
+  });
 });

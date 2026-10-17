@@ -165,6 +165,10 @@ Answer each section:
 | Controlled substances (drugs, alcohol, tobacco) | No |
 | Gambling, simulated gambling | No |
 | Users can interact or exchange information | Yes: online multiplayer, where other players see your team and tardigrade names. There is no chat |
+| → Block users? | Yes (🚫 Block, next to each player in the room and from 👥 in a match) |
+| → Report users? | Yes (⚑ Report: emailed to support with the names the player typed) |
+| → Chat moderation? | No (there is no chat) |
+| → Limited to invited friends? | Yes (private rooms join by code; quick play shows strangers only made-up names) |
 | Shares the user's location | No |
 | Digital purchases | **Yes**: coin packs (Google Play Billing, §7). Cosmetic only; no random or loot-box items |
 | Unrestricted internet access (a browser) | No |

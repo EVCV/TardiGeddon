@@ -8,7 +8,7 @@
 import type { Command, InputFrame, Scheme } from '../sim/types';
 import type { TeamConfig } from '../sim/world';
 
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 /** A player's team as shown in the lobby. */
 export interface LobbyTeam {
@@ -28,6 +28,8 @@ export interface LobbySlot {
   cpu: boolean;
   host: boolean;
   connected: boolean;
+  /** The player's id for blocking and reporting (humans only). */
+  pid?: string;
 }
 
 /** A frame on the wire: 0 for "nothing pressed", else [held, pressed, cmd?]. */
@@ -36,8 +38,8 @@ export type WireFrame = 0 | [number, number] | [number, number, Command];
 export type ClientMsg =
   | { t: 'create'; v: number; team: LobbyTeam }
   | { t: 'join'; v: number; code: string; team: LobbyTeam; token?: string }
-  /** Quick play: wait in the queue to be matched with other players. */
-  | { t: 'quick'; v: number; team: LobbyTeam }
+  /** Quick play: wait in the queue to be matched with other players (never with anyone in `blocks`, player ids). */
+  | { t: 'quick'; v: number; team: LobbyTeam; blocks?: string[] }
   | { t: 'quickCancel' }
   /** Tired of waiting: play a CPU straight away. */
   | { t: 'quickCpu' }
@@ -48,7 +50,9 @@ export type ClientMsg =
   | { t: 'input'; f: WireFrame }
   /** Our sim's hash disagreed with the server's: please send a snapshot. */
   | { t: 'resync' }
-  | { t: 'leave' };
+  | { t: 'leave' }
+  /** Report the player in slot `idx` (reason: 'name' | 'contact' | 'cheating' | 'other'). */
+  | { t: 'report'; idx: number; reason: string };
 
 export type ServerMsg =
   | { t: 'room'; code: string; slots: LobbySlot[]; you: number; token: string; started: boolean }
