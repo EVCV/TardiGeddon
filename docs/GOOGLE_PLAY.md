@@ -207,7 +207,7 @@ account), purpose **App functionality** and **Account management**:
 | Personal info → Email address | the account's email |
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
-| App activity → In-app actions | game stats (wins, pops, damage), items owned, coin and Slime balances, control settings |
+| App activity → Other actions | gameplay data: game stats (wins, pops, damage), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → Other user-generated content** (team and
