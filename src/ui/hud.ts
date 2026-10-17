@@ -10,7 +10,10 @@ import { hex } from '../render/palette';
 
 export interface HudHooks {
   onQuit: () => void;
+  /** Turns all sound off (or back on); true when now silent. */
   onToggleMute: () => boolean;
+  /** Is all sound off as the match starts? */
+  muted: boolean;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -50,7 +53,8 @@ export class Hud {
     menuBtn.onclick = () => {
       if (confirm('Quit this match?')) hooks.onQuit();
     };
-    const muteBtn = el('button', 'hud-btn', '🔊');
+    const muteBtn = el('button', 'hud-btn', hooks.muted ? '🔇' : '🔊');
+    muteBtn.title = 'Sound on/off (music and volume: Settings)';
     muteBtn.onclick = () => (muteBtn.textContent = hooks.onToggleMute() ? '🔇' : '🔊');
     top.append(menuBtn, this.wind, muteBtn);
 

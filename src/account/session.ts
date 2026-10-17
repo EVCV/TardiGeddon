@@ -135,33 +135,66 @@ export function ownedItems(): string[] {
   }
 }
 
-const ARENA_KEY = 'tardigeddon.arena';
-/** The choice made on this page, for when the browser won't let us store it. */
-let arenaThisPage: string | null = null;
+/**
+ * Choices kept on this device rather than on a team: the arena you see, the
+ * music you hear in matches and the sound pack your effects use. Only you
+ * see or hear them, so nothing changes for anyone else online.
+ */
+function deviceChoice(key: string, fallback: string) {
+  /** The choice made on this page, for when the browser won't let us store it. */
+  let thisPage: string | null = null;
+  return {
+    get(): string {
+      if (thisPage) return thisPage;
+      try {
+        return localStorage.getItem(key) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    },
+    set(id: string): void {
+      thisPage = id;
+      try {
+        localStorage.setItem(key, id);
+      } catch {
+        // Storage blocked: the choice lasts until the page closes.
+      }
+    },
+  };
+}
+
+const arenaChoice = deviceChoice('tardigeddon.arena', 'classic');
+const musicChoice = deviceChoice('tardigeddon.music', 'classic');
+const soundsChoice = deviceChoice('tardigeddon.sounds', 'classic');
 
 /** The arena theme this player picked (only they see it), whether or not they own it. */
-export function chosenArena(): string {
-  if (arenaThisPage) return arenaThisPage;
-  try {
-    return localStorage.getItem(ARENA_KEY) ?? 'classic';
-  } catch {
-    return 'classic';
-  }
-}
-
-export function chooseArena(id: string): void {
-  arenaThisPage = id;
-  try {
-    localStorage.setItem(ARENA_KEY, id);
-  } catch {
-    // Storage blocked: the choice lasts until the page closes.
-  }
-}
+export const chosenArena = (): string => arenaChoice.get();
+export const chooseArena = (id: string): void => arenaChoice.set(id);
 
 /** The arena to actually show: one this device hasn't unlocked falls back to the meadow. */
 export function wearArena(): string {
   const id = chosenArena();
   return canUse('arena', id, ownedItems()) ? id : 'classic';
+}
+
+/** The match music this player picked (only they hear it). */
+export const chosenMusic = (): string => musicChoice.get();
+export const chooseMusic = (id: string): void => musicChoice.set(id);
+
+/** The match music to actually play: a track this device hasn't unlocked falls back to the standard one. */
+export function wearMusic(): string {
+  const id = chosenMusic();
+  return canUse('music', id, ownedItems()) ? id : 'classic';
+}
+
+/** The sound pack this player picked for their effects (only they hear it). */
+export const chosenSounds = (): string => soundsChoice.get();
+export const chooseSounds = (id: string): void => soundsChoice.set(id);
+
+/** The sound pack to actually use. */
+export function wearSounds(): string {
+  const id = chosenSounds();
+  return canUse('sound', id, ownedItems()) ? id : 'classic';
 }
 
 /** The hat to actually wear: a shop hat this device hasn't unlocked falls back to the beanie. */

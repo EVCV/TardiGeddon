@@ -1,9 +1,15 @@
-// The Settings page of the menu hub: controls (keys and mouse buttons for
+// The Settings page of the menu hub: sound (music and effects, on/off and
+// volume, which track and sound pack), controls (keys and mouse buttons for
 // every action, the touch pads) and the tutorial. Signed in, the controls
-// are saved to the account; signed out, they last for this visit.
+// are saved to the account; signed out, they last for this visit. Sound
+// settings are kept on this device.
 
 import { ACTIONS, MAX_BINDINGS, bind, bindable, controls, defaultControls, keyLabel, unbind, type Action, type Controls, type TouchSize } from '../input/controls';
-import { account, saveControls } from '../account/session';
+import { account, chooseMusic, chooseSounds, ownedItems, saveControls, wearMusic, wearSounds } from '../account/session';
+import { audioSettings, saveAudioSettings, unlockAudio, type AudioSettings } from '../audio/mixer';
+import { TRACKS } from '../audio/music';
+import { SOUND_PACKS, sfx, useSoundPack } from '../audio/sfx';
+import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
 
@@ -28,8 +34,9 @@ export interface SettingsState {
   section: Section | null;
 }
 
-type Section = 'touch' | 'keys' | 'learn' | 'about';
+type Section = 'sound' | 'touch' | 'keys' | 'learn' | 'about';
 const SECTIONS: [Section, string][] = [
+  ['sound', '🔊 Sound'],
   ['touch', '👆 Touch controls'],
   ['keys', '⌨️ Keyboard & mouse'],
   ['learn', '🎓 How to play'],
@@ -133,6 +140,9 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
     el('p', 'account-note', 'In a match: drag the map to look around, pinch to zoom, tap the map to pick a target, and drag from your tardigrade to aim.'),
   );
 
+  // ---- Sound ----
+  const soundCard = soundSettings(ctx);
+
   // ---- Tutorial ----
   const learnCard = el('section', 'card settings-learn');
   learnCard.dataset.section = 'learn';
@@ -152,7 +162,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
       ? "Couldn't save to your account just now: these settings last for this visit."
       : signedIn
         ? 'Your controls are saved to your account, on every device.'
-        : 'These settings last until you close the game.');
+        : 'Your controls last until you close the game.');
   if (!signedIn && me) {
     const link = el('button', 'link-btn', 'Sign in to keep them.');
     link.onclick = () => ctx.go('account');
@@ -160,7 +170,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   }
 
   const side = el('div', 'settings-side');
-  side.append(touchCard, learnCard);
+  side.append(soundCard, touchCard, learnCard);
   // On a touch screen the touch settings come first.
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   root.append(status, ...(touchFirst ? [side, keysCard] : [keysCard, side]));
@@ -202,6 +212,86 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   root.prepend(menu);
   root.append(about);
   return root;
+}
+
+/** Music and sound effects: on/off, volume, and which track and sound pack (from those owned). */
+function soundSettings(ctx: HubContext): HTMLElement {
+  const card = el('section', 'card settings-sound');
+  card.dataset.section = 'sound';
+  card.append(el('h2', 'card-title', '🔊 Sound'));
+  const a = audioSettings();
+  const row = (label: string, on: keyof AudioSettings, vol: keyof AudioSettings, test?: () => void) => {
+    const box = el('div', 'sound-row');
+    const check = el('label', 'account-check');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = a[on] as boolean;
+    input.onchange = () => {
+      unlockAudio();
+      saveAudioSettings({ ...audioSettings(), [on]: input.checked });
+      slider.disabled = !input.checked;
+      if (input.checked) test?.();
+    };
+    check.append(input, el('span', '', label));
+    const slider = el('input', 'sound-slider');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '100';
+    slider.step = '5';
+    slider.value = String(a[vol]);
+    slider.disabled = !a[on];
+    slider.setAttribute('aria-label', `${label} volume`);
+    const pct = el('span', 'sound-pct', `${a[vol]}%`);
+    slider.oninput = () => {
+      unlockAudio();
+      saveAudioSettings({ ...audioSettings(), [vol]: Number(slider.value) });
+      pct.textContent = `${slider.value}%`;
+    };
+    if (test) slider.onchange = test;
+    box.append(check, slider, pct);
+    return box;
+  };
+  card.append(row('Music', 'music', 'musicVol'), row('Sound effects', 'effects', 'effectsVol', () => sfx.jump()));
+
+  // Which track plays in matches, and which sound pack: the free ones and those owned.
+  const owned = ownedItems();
+  const picker = (label: string, options: { id: string; name: string }[], current: string, pick: (id: string) => void) => {
+    const box = el('label', 'sound-pick');
+    box.append(el('span', 'settings-label', label));
+    const select = el('select', 'sound-select');
+    for (const o of options) {
+      const opt = el('option', '', o.name);
+      opt.value = o.id;
+      opt.selected = o.id === current;
+      select.append(opt);
+    }
+    select.onchange = () => {
+      unlockAudio();
+      pick(select.value);
+    };
+    box.append(select);
+    return box;
+  };
+  const tracks = TRACKS.filter((t) => t.id !== 'menu' && canUse('music', t.id, owned));
+  const packs = SOUND_PACKS.filter((p) => canUse('sound', p.id, owned)).map((p) => ({ id: p.id, name: shopItem(`sound:${p.id}`)?.name ?? 'Standard' }));
+  card.append(
+    picker('Match music', tracks, wearMusic(), chooseMusic),
+    picker('Sound pack', packs, wearSounds(), (id) => {
+      chooseSounds(id);
+      useSoundPack(id);
+      sfx.explosion(30);
+    }),
+  );
+  const more = el('p', 'account-note');
+  // The shop is only there when the server has accounts.
+  if (account().me) {
+    const shop = el('button', 'link-btn', 'Shop');
+    shop.onclick = () => ctx.go('shop');
+    more.append('More tracks and sound packs in the ', shop, '. Only you hear them. ');
+  }
+  more.append('Sound settings are kept on this device.');
+  card.append(more);
+  return card;
 }
 
 /** Wait for the next key or mouse button and bind it to the listening slot. */

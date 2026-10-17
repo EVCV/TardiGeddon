@@ -14,9 +14,11 @@
 
 /**
  * aim: how your aim marker and power bar look; fx: how your explosions look;
- * arena: the sky, hills, water and ground you see (only you see it).
+ * arena: the sky, hills, water and ground you see (only you see it);
+ * music: the soundtrack you hear in matches; sound: how your sound effects
+ * sound (only you hear them).
  */
-export type ItemKind = 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'weapon';
+export type ItemKind = 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'music' | 'sound' | 'weapon';
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface ShopItem {
@@ -91,6 +93,12 @@ const fx = (ref: string, name: string, blurb: string, rarity: Rarity, coins: num
 });
 const arena = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
   id: `arena:${ref}`, kind: 'arena', ref, name, blurb, rarity, coins,
+});
+const music = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
+  id: `music:${ref}`, kind: 'music', ref, name, blurb, rarity, coins,
+});
+const sound = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
+  id: `sound:${ref}`, kind: 'sound', ref, name, blurb, rarity, coins,
 });
 const weapon = (ref: string, name: string, blurb: string, rarity: Rarity, slime: number): ShopItem => ({
   id: `weapon:${ref}`, kind: 'weapon', ref, name, blurb, rarity, slime,
@@ -201,6 +209,20 @@ export const SHOP_ITEMS: ShopItem[] = [
   arena('night', 'Starry Night', 'Twinkling stars over moonlit hills.', 'legendary', 2000),
   arena('volcano', 'Volcano', 'A lava sea and glowing embers. Toasty.', 'legendary', 2500),
   arena('alien', 'Alien Planet', 'Purple skies, green moss, far from home.', 'legendary', 3000),
+  // Match music: the soundtrack you hear in your matches. Only you hear it. Coins.
+  music('chiptune', '8-Bit Puddle', 'Bleepy, boppy, straight out of an old console.', 'rare', 600),
+  music('lofi', 'Lo-fi Lichen', 'Chill beats to pop tardigrades to.', 'rare', 600),
+  music('shanty', 'Sea Shanty Slam', 'Heave ho, blow them all below.', 'rare', 800),
+  music('spooky', 'Spooky Swamp', 'Something is lurking in the moss…', 'epic', 1000),
+  music('disco', 'Disco Droplet', 'Funky bass and a four-on-the-floor kick.', 'epic', 1000),
+  music('space', 'Cosmic Crawl', 'Dreamy echoes from the edge of the galaxy.', 'legendary', 1500),
+  music('boss', 'Boss Battle', 'Fast, furious and very dramatic.', 'legendary', 1800),
+  // Sound packs: your explosions, shots and squeaks, voiced differently. Only you hear them. Coins.
+  sound('retro', 'Retro Bleeps', 'Every blast and squeak in 8-bit.', 'rare', 500),
+  sound('squelch', 'Squishy Squelch', 'Low, wobbly and wonderfully wet.', 'rare', 500),
+  sound('cartoon', 'Cartoon Boings', 'High, bouncy, silly. Very silly.', 'epic', 800),
+  sound('boom', 'Big Booms', 'Deeper, longer, louder explosions.', 'epic', 900),
+  sound('robot', 'Robo Tardi', 'Buzzy, metallic, beep boop.', 'legendary', 1200),
   // Season 1 weapons: Slime only
   weapon('pinball', 'Pollen Pinball', 'A super-bouncy grenade. Watch it ricochet!', 'rare', 600),
   weapon('megaspore', 'Mega Spore', 'A slow, heavy bazooka shell with a huge blast.', 'epic', 900),

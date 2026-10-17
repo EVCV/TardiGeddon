@@ -71,7 +71,7 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
     const done = el('div', 'gift-claimed');
     done.append(el('b', '', `🎉 You got ${state.claimed.name}!`));
     if (state.claimed.from) done.append(el('span', '', `From ${state.claimed.from}${state.claimed.message ? `: “${state.claimed.message}”` : ''}`));
-    done.append(el('span', '', 'Pick it in the ✎ team editor in the lobby (arenas: use it here in the Shop).'));
+    done.append(el('span', '', 'Pick it in the ✎ team editor in the lobby (arenas, music and sound packs: use them here in the Shop).'));
     claim.append(done);
   }
   box.append(claim);

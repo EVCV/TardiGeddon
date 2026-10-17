@@ -1,28 +1,60 @@
 // Tiny synthesised sound effects (WebAudio) until real audio assets exist.
+// They play through the mixer's effects bus (mixer.ts: on/off and volume).
 
-let ctx: AudioContext | null = null;
-let muted = false;
+import { sfxOut } from './mixer';
 
-export function unlockAudio(): void {
-  if (!ctx) {
-    try {
-      ctx = new AudioContext();
-    } catch {
-      return;
-    }
-  }
-  if (ctx.state === 'suspended') void ctx.resume();
+/**
+ * Sound packs (shop items, kind 'sound'): the same effects, voiced
+ * differently. Only the player who picked a pack hears it.
+ */
+export interface SoundPack {
+  id: string;
+  /** Shop art colours. */
+  colors: [string, string];
+  /** Multiplies every tone's pitch. */
+  pitch: number;
+  /** Every tone uses this waveform instead of its own. */
+  wave?: OscillatorType;
+  /** Multiplies the noise filter's cut-off (lower is duller, boomier). */
+  noiseFreq: number;
+  /** Multiplies how long the noises last. */
+  noiseLen: number;
+  /** Multiplies loudness. */
+  gain: number;
 }
 
-/** Silence everything while the app is in the background (phone apps). */
-export function pauseAudio(paused: boolean): void {
-  if (!ctx) return;
-  if (paused) void ctx.suspend();
-  else void ctx.resume();
+export const SOUND_PACKS: SoundPack[] = [
+  { id: 'classic', colors: ['#7fd3f7', '#2a7fb8'], pitch: 1, noiseFreq: 1, noiseLen: 1, gain: 1 },
+  { id: 'retro', colors: ['#5ce08a', '#1f6e3d'], pitch: 1, wave: 'square', noiseFreq: 0.5, noiseLen: 0.8, gain: 0.9 },
+  { id: 'squelch', colors: ['#c9e05c', '#6a7d1c'], pitch: 0.62, wave: 'triangle', noiseFreq: 0.45, noiseLen: 1.15, gain: 1.1 },
+  { id: 'cartoon', colors: ['#ffb3d9', '#c2417f'], pitch: 1.55, wave: 'sine', noiseFreq: 1.3, noiseLen: 0.75, gain: 1 },
+  { id: 'boom', colors: ['#ff9a4d', '#9e3d0b'], pitch: 0.8, noiseFreq: 0.4, noiseLen: 1.6, gain: 1.35 },
+  { id: 'robot', colors: ['#b8c4d6', '#4a5670'], pitch: 1.2, wave: 'sawtooth', noiseFreq: 0.7, noiseLen: 0.9, gain: 0.85 },
+];
+
+export function soundPack(id: string | undefined): SoundPack {
+  return SOUND_PACKS.find((p) => p.id === id) ?? SOUND_PACKS[0];
 }
 
-export function setMuted(m: boolean): void {
-  muted = m;
+let pack = SOUND_PACKS[0];
+let chosen = SOUND_PACKS[0];
+let demoTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** The sound pack to play effects with. */
+export function useSoundPack(id: string): void {
+  chosen = pack = soundPack(id);
+}
+
+/** A few effects in a row, for trying a sound pack in the shop (only heard in the menu). */
+export function demoSoundPack(id: string): void {
+  clearTimeout(demoTimer);
+  pack = soundPack(id);
+  sfx.jump();
+  setTimeout(sfx.fire, 250);
+  setTimeout(() => sfx.explosion(40), 650);
+  setTimeout(sfx.squeak, 1500);
+  setTimeout(sfx.collect, 1800);
+  demoTimer = setTimeout(() => (pack = chosen), 2400);
 }
 
 function noiseBuffer(c: AudioContext, seconds: number): AudioBuffer {
@@ -33,7 +65,12 @@ function noiseBuffer(c: AudioContext, seconds: number): AudioBuffer {
 }
 
 function noise(seconds: number, freq: number, gain: number): void {
-  if (!ctx || muted) return;
+  const o = sfxOut();
+  if (!o) return;
+  const ctx = o.ctx;
+  seconds *= pack.noiseLen;
+  freq = Math.min(18000, freq * pack.noiseFreq);
+  gain *= pack.gain;
   const src = ctx.createBufferSource();
   src.buffer = noiseBuffer(ctx, seconds);
   const filter = ctx.createBiquadFilter();
@@ -43,21 +80,29 @@ function noise(seconds: number, freq: number, gain: number): void {
   const now = ctx.currentTime;
   g.gain.setValueAtTime(gain, now);
   g.gain.exponentialRampToValueAtTime(0.001, now + seconds);
-  src.connect(filter).connect(g).connect(ctx.destination);
+  src.connect(filter).connect(g).connect(o.out);
   src.start();
 }
 
 function tone(from: number, to: number, seconds: number, gain: number, type: OscillatorType = 'square'): void {
-  if (!ctx || muted) return;
+  const out = sfxOut();
+  if (!out) return;
+  const ctx = out.ctx;
+  from *= pack.pitch;
+  to *= pack.pitch;
+  // Square and saw waves sound much louder than sine and triangle at the same gain.
+  const loud = (t: OscillatorType) => (t === 'square' || t === 'sawtooth' ? 1 : 1.6);
+  if (pack.wave) gain *= loud(pack.wave) / loud(type);
+  gain *= pack.gain;
   const o = ctx.createOscillator();
-  o.type = type;
+  o.type = pack.wave ?? type;
   const g = ctx.createGain();
   const now = ctx.currentTime;
   o.frequency.setValueAtTime(from, now);
   o.frequency.exponentialRampToValueAtTime(to, now + seconds);
   g.gain.setValueAtTime(gain, now);
   g.gain.exponentialRampToValueAtTime(0.001, now + seconds);
-  o.connect(g).connect(ctx.destination);
+  o.connect(g).connect(out.out);
   o.start();
   o.stop(now + seconds);
 }

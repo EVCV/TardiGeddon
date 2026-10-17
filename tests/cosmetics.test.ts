@@ -4,6 +4,8 @@ import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
 import { ARENAS, arenaTheme } from '../src/render/arenas';
+import { TRACKS } from '../src/audio/music';
+import { SOUND_PACKS } from '../src/audio/sfx';
 import { cleanTeam, wearableTeam } from '../server/room';
 import { createWorld, explode } from '../src/sim/world';
 import type { SimEvent } from '../src/sim/types';
@@ -17,13 +19,16 @@ describe('shop catalogue', () => {
       aim: AIM_STYLES.map((a) => a.id),
       fx: FX_STYLES.map((f) => f.id),
       arena: ARENAS.map((a) => a.id),
+      // The menu theme and the standard tracks are free.
+      music: TRACKS.map((t) => t.id).filter((id) => id !== 'menu' && id !== 'classic'),
+      sound: SOUND_PACKS.map((p) => p.id).filter((id) => id !== 'classic'),
     };
     for (const item of SHOP_ITEMS) {
       expect(item.id).toBe(`${item.kind}:${item.ref}`);
       if (item.kind !== 'weapon') expect(known[item.kind], item.id).toContain(item.ref);
       // Exactly one price; aim styles and effects are coins only.
       expect((item.coins === undefined) !== (item.slime === undefined), item.id).toBe(true);
-      if (item.kind === 'aim' || item.kind === 'fx' || item.kind === 'arena') expect(item.coins, item.id).toBeGreaterThan(0);
+      if (['aim', 'fx', 'arena', 'music', 'sound'].includes(item.kind)) expect(item.coins, item.id).toBeGreaterThan(0);
       // Money never buys weapons.
       if (item.kind === 'weapon') expect(item.coins, item.id).toBeUndefined();
     }

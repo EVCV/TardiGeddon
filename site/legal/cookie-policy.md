@@ -57,6 +57,9 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 |---|---|---|---|---|---|
 | `tardigeddon.teams` | Local storage | TardiGeddon (first party) | Your team names, colours, hats and tardigrade names | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.arena` | Local storage | TardiGeddon (first party) | The arena theme you chose to play in | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.music` | Local storage | TardiGeddon (first party) | The match music you chose | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.sounds` | Local storage | TardiGeddon (first party) | The sound pack you chose for sound effects | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.audio` | Local storage | TardiGeddon (first party) | Your sound settings: music and sound effects on or off, and their volume | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.menu` | Local storage | TardiGeddon (first party) | Your game style, custom rules, players and CPU skill | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.tutorial` | Local storage | TardiGeddon (first party) | That you have started the tutorial, so the menu stops suggesting it | Strictly necessary | Until you clear site data |
 | `tardigeddon.controls` | Session storage | TardiGeddon (first party) | Your control settings (keys, mouse buttons and touch buttons) for this visit. If you are signed in, they are also kept on your account | Strictly necessary | Until you close the tab |

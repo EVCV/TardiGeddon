@@ -11,6 +11,7 @@ import { newShopState, renderShop } from './shop';
 import { newSalesState, renderSalesPage } from './sales';
 import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
+import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
 import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
 
@@ -82,6 +83,8 @@ export function showHub(
   const page = el('main', 'hub-page');
   shell.append(bar, notice, page, footer());
   root.append(shell);
+  // The menu's own theme (it starts after the first tap or key press: browsers block sound before that).
+  playMusic('menu');
 
   let status = '';
   let previewDismissed = false;
@@ -120,6 +123,8 @@ export function showHub(
     if (!shell.isConnected) return;
     tab = t;
     status = msg;
+    // A track being tried in the shop stops when you leave it.
+    if (t !== 'shop') previewMusic(null);
     if (t === 'lobby') lobby = null; // rebuilt fresh
     render();
     shell.scrollTo({ top: 0 });
