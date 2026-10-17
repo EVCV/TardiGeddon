@@ -195,7 +195,9 @@ account, accounts 13+ self-declared.
 | Does the app collect or share any of the required user data types? | Yes (collect; nothing is shared) |
 | Is all collected data encrypted in transit? | Yes (HTTPS and secure WebSockets) |
 | Can users ask for their data to be deleted? | Yes: in the game (Account → Delete account), or by emailing privacy@tardigeddon.com |
-| Delete-account link (Google asks for a web page) | `https://tardigeddon.com/legal/privacy-policy` (section 5.1.4 explains it) |
+| Delete-account link (Google asks for a web page) | `https://tardigeddon.com/legal/delete-account` (the steps, and what is deleted and kept) |
+| Delete some data without deleting the account? | Yes: `https://tardigeddon.com/legal/delete-account` (Section 3) |
+| Account creation methods | Username and password only (email + password; the confirmation and reset emails aren't sign-in methods) |
 
 Data types to tick, all **collected, not shared, optional** (only with an
 account), purpose **App functionality** and **Account management**:
@@ -208,11 +210,13 @@ account), purpose **App functionality** and **Account management**:
 | App activity → In-app actions | game stats (wins, pops, damage), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
-Also tick, as **collected, processed ephemerally** (kept in memory only, for the
-match), purpose **App functionality**: **App activity → Other user-generated
-content** (team and tardigrade names shown to other players in online play;
-showing them to the other players is something the player chooses, so it
-isn't "sharing" in Google's sense).
+Also tick **App activity → Other user-generated content** (team and
+tardigrade names shown to other players in online play): collected, **not**
+ephemeral (a player report emails the names to support, kept up to 24
+months), not shared (showing them to other players is the player's choice,
+not "sharing" in Google's sense), optional, purposes **App functionality**
+and **Fraud prevention, security and compliance**. Add that purpose to
+**User IDs** too (reports carry account ids; blocking uses player ids).
 
 Not collected: location, contacts, photos, files, audio, health, payment
 info (cards etc.: Google keeps those), device IDs, crash logs,
