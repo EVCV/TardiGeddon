@@ -22,7 +22,7 @@ import { WEAPONS } from './sim/weapons';
 import { Hud } from './ui/hud';
 import { CpuPlayer, type CpuSkill } from './ai/cpu';
 import { sfx, useSoundPack } from './audio/sfx';
-import { anySound, pauseAudio, toggleAllSound, unlockAudio } from './audio/mixer';
+import { anySound, audioRunning, pauseAudio, toggleAllSound, unlockAudio } from './audio/mixer';
 import { playMusic, previewMusic, refreshMusic } from './audio/music';
 import { attachNative } from './native';
 import { onPlayPurchasesUpdated } from './shop/playBilling';
@@ -55,14 +55,15 @@ async function boot(): Promise<void> {
   }
 
   // Browsers only allow sound after a tap or key press: start the menu music on the first one.
+  // A touch only counts once the finger lifts (pointerup / touchend / click), not on pointerdown,
+  // so listen for all of them until the sound has really started.
+  const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
   const firstTouch = () => {
     unlockAudio();
     refreshMusic();
-    window.removeEventListener('pointerdown', firstTouch, true);
-    window.removeEventListener('keydown', firstTouch, true);
+    if (audioRunning()) for (const g of GESTURES) window.removeEventListener(g, firstTouch, true);
   };
-  window.addEventListener('pointerdown', firstTouch, true);
-  window.addEventListener('keydown', firstTouch, true);
+  for (const g of GESTURES) window.addEventListener(g, firstTouch, true);
   // No music from a tab in the background.
   document.addEventListener('visibilitychange', () => pauseAudio(document.hidden));
 

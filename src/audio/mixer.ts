@@ -78,7 +78,8 @@ const gainFor = (on: boolean, vol: number, scale: number) => (on ? (vol / 100) *
 function applyVolumes(): void {
   if (!ctx || !musicBus || !sfxBus) return;
   const now = ctx.currentTime;
-  musicBus.gain.setTargetAtTime(gainFor(current.music, current.musicVol, 1), now, 0.05);
+  // The synth voices are quiet on their own: lift them to sit just under the effects.
+  musicBus.gain.setTargetAtTime(gainFor(current.music, current.musicVol, 2.5), now, 0.05);
   sfxBus.gain.setTargetAtTime(gainFor(current.effects, current.effectsVol, 1.25), now, 0.02);
 }
 
@@ -94,11 +95,23 @@ export function unlockAudio(): void {
     sfxBus = ctx.createGain();
     musicBus.gain.value = 0;
     sfxBus.gain.value = 0;
-    musicBus.connect(ctx.destination);
+    // A limiter, so the busiest tracks at full volume never distort.
+    const limit = ctx.createDynamicsCompressor();
+    limit.threshold.value = -6;
+    limit.knee.value = 6;
+    limit.ratio.value = 12;
+    limit.attack.value = 0.003;
+    limit.release.value = 0.25;
+    musicBus.connect(limit).connect(ctx.destination);
     sfxBus.connect(ctx.destination);
     applyVolumes();
   }
   if (ctx.state === 'suspended') void ctx.resume();
+}
+
+/** Has sound actually started (the browser allowed it)? */
+export function audioRunning(): boolean {
+  return ctx?.state === 'running';
 }
 
 /** Silence everything while the app is in the background (phone apps, hidden tabs). */
