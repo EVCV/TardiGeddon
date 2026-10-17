@@ -1,6 +1,7 @@
 // Online play: create or join a room by code, wait in the lobby, and start
 // a match. The match itself runs in main.ts (Match in online mode).
 
+import { otherPlayer, playerActions, slotName } from './safety';
 import { mascotSvg } from './mascot';
 import { hex } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
@@ -259,10 +260,11 @@ export function showOnline(
       row.style.setProperty('--team', hex(s.team.color));
       const pic = el('span', 'lobby-pic');
       pic.innerHTML = mascotSvg(s.team.color, s.team.hat, s.team.skin);
-      const name = el('span', 'lobby-name', s.team.name); // player text: never innerHTML
+      const name = el('span', 'lobby-name', slotName(s)); // player text: never innerHTML
       const tag = el('span', 'lobby-tag', s.cpu ? '🤖 CPU' : s.host ? '👑 Host' : i === room.you ? 'You' : '👤');
       if (i === room.you && !s.cpu) tag.textContent = s.host ? '👑 You' : 'You';
       row.append(pic, name, tag);
+      if (otherPlayer(s, i, room.you)) row.append(playerActions(root, s, (reason) => client?.report(i, reason), () => renderLobby(client?.room ?? room)));
       if (isHost && s.cpu) {
         const rm = el('button', 'slot-edit', '✕');
         rm.setAttribute('aria-label', 'Remove CPU');

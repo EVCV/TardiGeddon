@@ -3,12 +3,13 @@
 // (PORT defaults to 8787).
 
 import { createServer } from 'node:http';
-import { randomInt } from 'node:crypto';
+import { createHmac, randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { Room, wearableTeam, type Member } from './room';
+import { Room, wearableTeam, type Member, type PlayerReport } from './room';
+import { escapeHtml, smtpMailer } from './mail';
 import { createAccounts, type Accounts } from './accounts';
 import { unlockedWeapons } from '../src/shop/catalog';
-import { Matchmaker } from './matchmaker';
+import { Matchmaker, cleanBlocks } from './matchmaker';
 import { SCHEME_PRESETS } from '../src/sim/schemes';
 import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/protocol';
 import { TICK_RATE } from '../src/sim/types';
@@ -65,6 +66,8 @@ const matchmaker = new Matchmaker((players, cpu) => {
     return;
   }
   const r = newRoom();
+  // Strangers: made-up team names, never what anyone typed.
+  r.quick = true;
   rooms.set(r.code, r);
   for (const p of players) {
     leaveRoom(p.member);
@@ -78,8 +81,63 @@ const matchmaker = new Matchmaker((players, cpu) => {
 function newRoom(): Room {
   const r = new Room(newCode());
   r.onResult = (results) => void accounts?.recordResults(results).catch((e) => console.error('stats failed', e));
+  r.onReport = (report) => void sendReport(report);
   return r;
 }
+
+// Player reports go to the support inbox (and the server log, in case email is down).
+const reportMailer = smtpMailer(process.env);
+const REPORT_TO = process.env.REPORT_EMAIL || 'support@tardigeddon.com';
+const REASONS: Record<PlayerReport['reason'], string> = {
+  name: 'Rude or unsafe name',
+  contact: 'Sharing contact details or personal information',
+  cheating: 'Cheating or spoiling the game',
+  other: 'Something else',
+};
+
+async function sendReport(r: PlayerReport): Promise<void> {
+  const who = (p: PlayerReport['reporter']) =>
+    [
+      `  Team name typed: ${p.typed.name}`,
+      `  Tardi names typed: ${p.typed.names.join(', ')}`,
+      ...(r.quick ? [`  Shown to others as: ${p.shown.name} (quick play)`] : []),
+      `  Account: ${p.userId ?? 'not signed in'}`,
+      `  Player id: ${p.pid ?? '-'}`,
+    ].join('\n');
+  const text = [
+    `Player report: ${REASONS[r.reason]}`,
+    `Room ${r.room} (${r.quick ? 'quick play' : 'private room'}), ${new Date().toISOString()}`,
+    '',
+    'Reported player:',
+    who(r.reported),
+    '',
+    'Reported by:',
+    who(r.reporter),
+    '',
+    'Accounts can be looked up by id in the database ("user" table). See docs/ONLINE.md, "Reports".',
+  ].join('\n');
+  console.log(`report: room ${r.room}, ${r.reason}, reported ${r.reported.userId ?? r.reported.pid}`);
+  if (!reportMailer) return;
+  try {
+    await reportMailer({ to: REPORT_TO, subject: `TardiGeddon report: ${REASONS[r.reason]} (room ${r.room})`, text, html: `<pre>${escapeHtml(text)}</pre>` });
+  } catch (e) {
+    console.error('report email not sent:', e instanceof Error ? e.message : e, '\n' + text);
+  }
+}
+
+/**
+ * The id other players can block: the same for an account on every device and
+ * visit, but not the account id itself (it can't be used to look anyone up).
+ * Players who aren't signed in get a new one per connection.
+ */
+const PID_SECRET = process.env.BETTER_AUTH_SECRET || randomBytes(32).toString('hex');
+function playerId(userId: string | undefined): string {
+  if (!userId) return 'g' + randomBytes(9).toString('base64url');
+  return 'a' + createHmac('sha256', PID_SECRET).update(userId).digest('base64url').slice(0, 16);
+}
+
+/** Reports one connection may send: a few a minute is plenty for real use. */
+const REPORTS_PER_10_MIN = 5;
 
 function newCode(): string {
   for (;;) {
@@ -174,12 +232,14 @@ wss.on('connection', (ws: WebSocket, req) => {
   const player = accounts ? accounts.playerFor(req.headers).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
   const owned = player.then((p) => {
     member.userId = 'userId' in p ? p.userId : undefined;
+    member.pid = playerId(member.userId);
     member.unlocked = unlockedWeapons(p.owned);
     return p.owned;
   });
   // Messages are handled in order, once we know what the player owns.
   let queue: Promise<void> = owned.then(() => undefined);
   let lastCreate = 0;
+  let reports: number[] = [];
   let budget = MSG_PER_SEC;
   const refill = setInterval(() => (budget = MSG_PER_SEC), 1000);
   const member: Member = {
@@ -248,7 +308,7 @@ wss.on('connection', (ws: WebSocket, req) => {
       leaveRoom(member);
       matchmaker.remove(member);
       if (msg.t === 'quick') {
-        matchmaker.add(member, msg.team);
+        matchmaker.add(member, msg.team, cleanBlocks(msg.blocks));
       } else if (msg.t === 'create') {
         const r = newRoom();
         rooms.set(r.code, r);
@@ -269,6 +329,13 @@ wss.on('connection', (ws: WebSocket, req) => {
     if (msg.t === 'leave') {
       matchmaker.remove(member);
       return leaveRoom(member);
+    }
+    if (msg.t === 'report') {
+      const now = Date.now();
+      reports = reports.filter((t) => now - t < 10 * 60_000);
+      if (reports.length >= REPORTS_PER_10_MIN) return fail('You have sent a lot of reports. Please email support@tardigeddon.com instead.');
+      reports.push(now);
+      if (typeof msg.idx !== 'number' || typeof msg.reason !== 'string') return;
     }
     try {
       roomOf.get(member)?.handle(member, msg);

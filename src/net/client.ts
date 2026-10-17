@@ -1,6 +1,7 @@
 // Browser connection to the online game server.
 
 import { PROTOCOL_VERSION, type ClientMsg, type LobbyTeam, type ServerMsg } from './protocol';
+import { blockedPlayers } from './blocked';
 
 /** Where the game server lives, or null if online play isn't set up for this build. */
 export function serverUrl(): string | null {
@@ -20,6 +21,8 @@ export class NetClient {
   /** Called when the connection drops unexpectedly. */
   onDrop: (() => void) | null = null;
   private closing = false;
+  /** The latest room (lobby) state: who is in which slot, with their player ids. */
+  room: Extract<ServerMsg, { t: 'room' }> | null = null;
 
   constructor(private url: string) {}
 
@@ -37,6 +40,7 @@ export class NetClient {
         } catch {
           return;
         }
+        if (msg.t === 'room') this.room = msg;
         for (const h of [...this.handlers]) h(msg);
       };
       ws.onclose = () => {
@@ -64,11 +68,17 @@ export class NetClient {
   }
 
   quick(team: LobbyTeam): void {
-    this.send({ t: 'quick', v: PROTOCOL_VERSION, team });
+    // Never matched with players we've blocked.
+    this.send({ t: 'quick', v: PROTOCOL_VERSION, team, blocks: blockedPlayers().map((b) => b.pid) });
   }
 
   join(code: string, team: LobbyTeam, token?: string): void {
     this.send({ t: 'join', v: PROTOCOL_VERSION, code, team, token });
+  }
+
+  /** Report the player in this slot. */
+  report(idx: number, reason: string): void {
+    this.send({ t: 'report', idx, reason });
   }
 
   close(): void {

@@ -9,6 +9,7 @@ import { account, chooseMusic, chooseSounds, ownedItems, saveControls, wearMusic
 import { audioSettings, saveAudioSettings, unlockAudio, type AudioSettings } from '../audio/mixer';
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS, sfx, useSoundPack } from '../audio/sfx';
+import { blockedPlayers, unblock } from '../net/blocked';
 import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
@@ -34,11 +35,12 @@ export interface SettingsState {
   section: Section | null;
 }
 
-type Section = 'sound' | 'touch' | 'keys' | 'learn' | 'about';
+type Section = 'sound' | 'touch' | 'keys' | 'blocked' | 'learn' | 'about';
 const SECTIONS: [Section, string][] = [
   ['sound', '🔊 Sound'],
   ['touch', '👆 Touch controls'],
   ['keys', '⌨️ Keyboard & mouse'],
+  ['blocked', '🚫 Blocked players'],
   ['learn', '🎓 How to play'],
   ['about', 'ℹ️ About & legal'],
 ];
@@ -170,7 +172,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   }
 
   const side = el('div', 'settings-side');
-  side.append(soundCard, touchCard, learnCard);
+  side.append(soundCard, touchCard, blockedSettings(ctx), learnCard);
   // On a touch screen the touch settings come first.
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   root.append(status, ...(touchFirst ? [side, keysCard] : [keysCard, side]));
@@ -212,6 +214,27 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   root.prepend(menu);
   root.append(about);
   return root;
+}
+
+/** Players you've blocked in online play, to unblock. */
+function blockedSettings(ctx: HubContext): HTMLElement {
+  const card = el('section', 'card settings-blocked');
+  card.dataset.section = 'blocked';
+  card.append(el('h2', 'card-title', '🚫 Blocked players'));
+  const list = blockedPlayers();
+  if (!list.length) card.append(el('p', 'account-note', 'Nobody. In an online game, use 🚫 next to a player (or the 👥 button in a match) to block them.'));
+  for (const b of [...list].reverse()) {
+    const row = el('div', 'blocked-row');
+    const un = el('button', 'hud-btn', 'Unblock');
+    un.onclick = () => {
+      unblock(b.pid);
+      ctx.rerender();
+    };
+    row.append(el('span', 'blocked-name', b.name), el('span', 'blocked-when', new Date(b.at).toLocaleDateString()), un);
+    card.append(row);
+  }
+  card.append(el('p', 'account-note', 'Blocked players never join your quick-play games, and their names are hidden from you. Players who aren\u2019t signed in get a new identity each visit, so blocking them lasts for that visit. Kept on this device.'));
+  return card;
 }
 
 /** Music and sound effects: on/off, volume, and which track and sound pack (from those owned). */

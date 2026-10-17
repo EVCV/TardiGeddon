@@ -2,6 +2,7 @@
 // Stored per device; storage may be missing or blocked, so every access is guarded.
 
 import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/world';
+import { safeName, tidyName } from '../names';
 import { TEAM_COLORS, TEAM_NAMES } from '../render/palette';
 import { HATS } from '../render/hats';
 import { SKINS } from '../render/skins';
@@ -31,13 +32,9 @@ export function defaultProfile(slot: number): TeamProfile {
   return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', skin: 'classic', aim: 'classic', fx: 'classic', names: ['', '', '', ''] };
 }
 
-/** Trim, collapse spaces, drop control characters and cap the length. */
+/** Trim, collapse spaces, drop control and invisible characters and cap the length. */
 export function cleanName(s: string, max: number): string {
-  return s
-    .replace(/[\u0000-\u001f\u007f]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, max);
+  return tidyName(s, max);
 }
 
 function valid(p: unknown, slot: number): TeamProfile {
@@ -45,14 +42,14 @@ function valid(p: unknown, slot: number): TeamProfile {
   if (!p || typeof p !== 'object') return d;
   const v = p as Partial<TeamProfile>;
   return {
-    name: typeof v.name === 'string' && cleanName(v.name, TEAM_NAME_MAX) ? cleanName(v.name, TEAM_NAME_MAX) : d.name,
+    name: safeName(v.name, TEAM_NAME_MAX, d.name),
     color: typeof v.color === 'number' && TEAM_COLORS.includes(v.color) ? v.color : d.color,
     hat: typeof v.hat === 'string' && HATS.some((h) => h.id === v.hat) ? v.hat : d.hat,
     skin: typeof v.skin === 'string' && SKINS.some((k) => k.id === v.skin) ? v.skin : d.skin,
     aim: typeof v.aim === 'string' && AIM_STYLES.some((a) => a.id === v.aim) ? v.aim : d.aim,
     fx: typeof v.fx === 'string' && FX_STYLES.some((f) => f.id === v.fx) ? v.fx : d.fx,
     names: Array.from({ length: 4 }, (_, i) =>
-      Array.isArray(v.names) && typeof v.names[i] === 'string' ? cleanName(v.names[i], TARDI_NAME_MAX) : '',
+      Array.isArray(v.names) ? safeName(v.names[i], TARDI_NAME_MAX, '') : '',
     ),
   };
 }

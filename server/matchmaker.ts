@@ -1,7 +1,8 @@
 // Quick play: players wait in one queue and are put into a match together.
 // A full match (4) starts at once; otherwise, once someone has waited a few
 // seconds, everyone waiting (2+) goes in together. Anyone can choose to play
-// a CPU instead of waiting.
+// a CPU instead of waiting. Players who blocked each other are never put in
+// the same match.
 
 import type { Member } from './room';
 
@@ -9,6 +10,22 @@ export interface Waiting {
   member: Member;
   team: unknown;
   since: number;
+  /** Player ids this player has blocked. */
+  blocks: Set<string>;
+}
+
+/** Most blocked players a client may send (the rest are ignored). */
+export const MAX_BLOCKS = 500;
+
+/** Player ids from untrusted data. */
+export function cleanBlocks(raw: unknown): Set<string> {
+  if (!Array.isArray(raw)) return new Set();
+  return new Set(raw.slice(0, MAX_BLOCKS).filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9_-]{1,32}$/.test(x)));
+}
+
+/** May these two play together? Not if either blocked the other. */
+function friendly(a: Waiting, b: Waiting): boolean {
+  return !(b.member.pid && a.blocks.has(b.member.pid)) && !(a.member.pid && b.blocks.has(a.member.pid));
 }
 
 /** Most players in one quick-play match. */
@@ -30,9 +47,9 @@ export class Matchmaker {
     return this.queue.length;
   }
 
-  add(member: Member, team: unknown): void {
+  add(member: Member, team: unknown, blocks: Set<string> = new Set()): void {
     if (this.queue.some((w) => w.member === member)) return;
-    this.queue.push({ member, team, since: this.now() });
+    this.queue.push({ member, team, since: this.now(), blocks });
     this.announce(true);
   }
 
@@ -52,11 +69,33 @@ export class Matchmaker {
 
   /** Call regularly (a few times a second). */
   tick(): void {
-    while (this.queue.length >= QUICK_MAX) this.makeMatch(this.queue.splice(0, QUICK_MAX), false);
-    if (this.queue.length >= 2 && this.now() - this.queue[0].since >= QUICK_FILL_MS) {
-      this.makeMatch(this.queue.splice(0), false);
+    // Full matches first, oldest players first.
+    for (let i = 0; i < this.queue.length; ) {
+      const g = this.group(i);
+      if (g.length >= QUICK_MAX) this.take(g);
+      else i++;
+    }
+    // Then anyone who has waited long enough goes in with whoever they can play.
+    for (let i = 0; i < this.queue.length; ) {
+      const g = this.queue[i] && this.now() - this.queue[i].since >= QUICK_FILL_MS ? this.group(i) : [];
+      if (g.length >= 2) this.take(g);
+      else i++;
     }
     this.announce();
+  }
+
+  /** The player at `start` and the next players (in queue order) everyone in the group may play with. */
+  private group(start: number): Waiting[] {
+    const g = [this.queue[start]];
+    for (let i = start + 1; i < this.queue.length && g.length < QUICK_MAX; i++) {
+      if (g.every((w) => friendly(w, this.queue[i]))) g.push(this.queue[i]);
+    }
+    return g;
+  }
+
+  private take(g: Waiting[]): void {
+    this.queue = this.queue.filter((w) => !g.includes(w));
+    this.makeMatch(g, false);
   }
 
   /** Tell everyone waiting how many are in the queue (when it changes, or when forced). */

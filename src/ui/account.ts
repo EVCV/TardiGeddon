@@ -2,6 +2,7 @@
 // or create an account; once signed in, your details, sign out and delete.
 // Stats: your lifetime stats and your collection.
 
+import { NAME_PROBLEM_TEXT, nameProblem } from '../names';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
@@ -166,7 +167,10 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
   };
   const signup = state.mode === 'signup';
   const name = signup ? field('name', 'text', 'Player name', 'nickname') : null;
-  if (name) name.maxLength = 30;
+  if (name) {
+    name.maxLength = 30;
+    name.title = 'Letters and spaces. No real full name, contact details or social media.';
+  }
   const email = field('email', 'email', 'Email', 'email');
   const pw = field('password', 'password', signup ? 'Password (8+ characters)' : 'Password', signup ? 'new-password' : 'current-password');
   if (signup) {
@@ -201,6 +205,12 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     e.preventDefault();
     if (signup && draft.agree !== '1') {
       ctx.notify("Please tick the box to confirm you're 13 or older and agree to the Terms.");
+      return;
+    }
+    // Other players may see the player name: the same rules as the server, told straight away.
+    const problem = signup ? nameProblem(name!.value) : null;
+    if (problem) {
+      ctx.notify(`Player name: ${NAME_PROBLEM_TEXT[problem]}`);
       return;
     }
     ctx.run(async () => {

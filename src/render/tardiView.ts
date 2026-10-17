@@ -1,6 +1,7 @@
 // Vector-cartoon tardigrade, drawn from layered shapes so cosmetics
 // (hats, colours) can be swapped as extra layers later.
 
+import { tardiLabel } from '../net/blocked';
 import { Container, Graphics, Text } from 'pixi.js';
 import type { Tardi } from '../sim/types';
 import { PALETTE, hex } from './palette';
@@ -91,7 +92,7 @@ export class TardiView {
       stroke: { color: '#1b1016', width: 3, join: 'round' as const },
       letterSpacing: 0.5,
     };
-    this.label = new Text({ text: t.name, style });
+    this.label = new Text({ text: tardiLabel(t), style });
     this.label.anchor.set(0.5, 1);
     this.label.position.set(0, -30);
     this.label.resolution = 3;

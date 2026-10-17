@@ -1,6 +1,7 @@
 // In-game HUD (DOM overlay): turn timer, wind, team health, weapon panel,
 // banners and touch controls.
 
+import { teamLabel } from '../net/blocked';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE, type WorldState } from '../sim/types';
 import { PANEL_WEAPONS, WEAPONS } from '../sim/weapons';
 import { activeTardi, activeTeam, girderFits } from '../sim/world';
@@ -14,6 +15,8 @@ export interface HudHooks {
   onToggleMute: () => boolean;
   /** Is all sound off as the match starts? */
   muted: boolean;
+  /** Online: show the other players, to report or block them. */
+  onPlayers?: () => void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -57,6 +60,13 @@ export class Hud {
     muteBtn.title = 'Sound on/off (music and volume: Settings)';
     muteBtn.onclick = () => (muteBtn.textContent = hooks.onToggleMute() ? '🔇' : '🔊');
     top.append(menuBtn, this.wind, muteBtn);
+    if (hooks.onPlayers) {
+      const players = el('button', 'hud-btn', '👥');
+      players.title = 'Players: report or block';
+      players.setAttribute('aria-label', 'Players: report or block');
+      players.onclick = hooks.onPlayers;
+      top.append(players);
+    }
 
     this.weaponBtn.onclick = () => this.togglePanel();
     this.fuseBtn.onclick = () => {
@@ -148,7 +158,7 @@ export class Hud {
     const w = s.turn.winner;
     this.gameOver.innerHTML = '';
     const box = el('div', 'overlay-box');
-    const title = el('h1', 'title-small', w >= 0 ? `${s.teams[w].name} wins!` : 'Draw!');
+    const title = el('h1', 'title-small', w >= 0 ? `${teamLabel(s.teams[w])} wins!` : 'Draw!');
     if (w >= 0) title.style.color = hex(s.teams[w].color);
     const again = el('button', 'big-btn', labels[0]);
     again.onclick = onAgain;
@@ -207,7 +217,7 @@ export class Hud {
     for (const tm of s.teams) {
       const hp = s.tardis.filter((x) => x.team === tm.id && x.alive).reduce((a, x) => a + x.hp, 0);
       const row = el('div', 'team-row');
-      const name = el('span', 'team-name', tm.name);
+      const name = el('span', 'team-name', teamLabel(tm));
       const bar = el('div', 'team-bar');
       bar.style.width = `${Math.max(2, (hp / maxHp) * 100)}%`;
       bar.style.background = hex(tm.color);
@@ -253,7 +263,7 @@ export class Hud {
     } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
       hint = 'Press Fire to set it off!';
     } else if (!humanTurn && turn.phase === 'aim') {
-      hint = `${team.name} is thinking…`;
+      hint = `${teamLabel(team)} is thinking…`;
     }
     this.hint.textContent = hint;
     this.hint.classList.toggle('show', hint !== '');
