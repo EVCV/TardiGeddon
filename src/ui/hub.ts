@@ -3,6 +3,7 @@
 // page rather than a pop-up. Stats, Shop and Account only appear when the
 // server has accounts turned on (docs/ACCOUNTS.md).
 
+import { renderGuidePage } from './guide';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
@@ -15,7 +16,7 @@ import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
 import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
 
-export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'settings' | 'sales';
+export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'settings' | 'sales' | 'guide';
 
 /** What the pages get from the hub. */
 export interface HubContext {
@@ -47,6 +48,8 @@ const TABS: [HubTab, string, string][] = [
   ['settings', '⚙️', 'Settings'],
   // Only for the owner (me.admin).
   ['sales', '📈', 'Sales'],
+  // Not in the top bar: opened from the lobby and Settings.
+  ['guide', '📖', 'Guide'],
 ];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -61,6 +64,7 @@ export function showHub(
   onStart: (s: MatchSetup) => void,
   onOnline?: () => void,
   onTutorial: () => void = () => {},
+  onPractice: () => void = () => {},
   tab: HubTab = 'lobby',
 ): Hub {
   root.innerHTML = '';
@@ -142,6 +146,7 @@ export function showHub(
     // Without accounts there's only the lobby and Settings.
     for (const [t, icon, label] of TABS) {
       if (t === 'sales' && !me?.admin) continue;
+      if (t === 'guide') continue;
       if (!me && t !== 'lobby' && t !== 'settings') continue;
       const b = el('button', 'seg-btn' + (tab === t ? ' on' : '') + (t === 'sales' ? ' tab-owner' : ''));
       b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', label));
@@ -183,7 +188,7 @@ export function showHub(
     if (!shell.isConnected) return off();
     const { me, loaded } = account();
     // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
-    if (loaded && !me && tab !== 'lobby' && tab !== 'settings') tab = 'lobby';
+    if (loaded && !me && tab !== 'lobby' && tab !== 'settings' && tab !== 'guide') tab = 'lobby';
     if (loaded && tab === 'sales' && !me?.admin) tab = 'lobby';
     shell.dataset.tab = tab;
     renderBar();
@@ -204,14 +209,18 @@ export function showHub(
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go, onTutorial);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice);
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;
     }
     lobby = null;
     if (tab === 'settings') {
-      page.replaceChildren(renderSettingsPage(ctx, settingsState, onTutorial));
+      page.replaceChildren(renderSettingsPage(ctx, settingsState, onTutorial, onPractice));
+      return;
+    }
+    if (tab === 'guide') {
+      page.replaceChildren(renderGuidePage(ctx, onTutorial, onPractice));
       return;
     }
     if (!loaded || !me) {

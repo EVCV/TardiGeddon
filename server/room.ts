@@ -136,6 +136,7 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
     if (out[k] !== undefined) out[k] = Math.round(out[k]);
   }
   if (typeof v.fallDamage === 'boolean') out.fallDamage = v.fallDamage;
+  if (typeof v.friendlyFire === 'boolean') out.friendlyFire = v.friendlyFire;
   if (typeof v.movement === 'boolean') out.movement = v.movement;
   if (typeof v.race === 'boolean') out.race = v.race;
   num('raceRounds', 1, 10);

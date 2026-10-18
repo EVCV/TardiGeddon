@@ -3,7 +3,7 @@
 
 import { teamLabel } from '../net/blocked';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE, type WorldState } from '../sim/types';
-import { PANEL_WEAPONS, WEAPONS } from '../sim/weapons';
+import { PANEL_WEAPONS, WEAPONS, type WeaponDef } from '../sim/weapons';
 import { activeTardi, activeTeam, girderFits } from '../sim/world';
 import type { InputCollector } from '../input/input';
 import { controls } from '../input/controls';
@@ -19,6 +19,11 @@ export interface HudHooks {
   onPlayers?: () => void;
 }
 
+/** Do the up/down (aim) controls do anything with this weapon? */
+export function usesUpDown(def: WeaponDef, onRope: boolean): boolean {
+  return onRope || def.kind === 'charge' || def.kind === 'hitscan' || def.kind === 'rope' || !!def.girder;
+}
+
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -32,6 +37,8 @@ export class Hud {
   private round = el('div', 'hud-round');
   private wind = el('div', 'hud-wind');
   private windFill = el('div', 'hud-wind-fill');
+  /** "WIND ▶▶": says what the bar is, which way it blows, and how hard. */
+  private windLabel = el('span', 'hud-wind-label');
   private teams = el('div', 'hud-teams');
   private banner = el('div', 'hud-banner');
   private hint = el('div', 'hud-hint');
@@ -40,6 +47,8 @@ export class Hud {
   private panel = el('div', 'weapon-panel hidden');
   private gameOver = el('div', 'overlay hidden');
   private touch = el('div', 'touch-pad');
+  /** The ▲▼ aim buttons: hidden for weapons that don't aim (strikes, drops...). */
+  private aimPad: HTMLElement | null = null;
   private bannerUntil = 0;
   private lastKey = '';
   private humanTurn = false;
@@ -49,7 +58,8 @@ export class Hud {
     hooks: HudHooks,
     private touchMode: boolean,
   ) {
-    this.wind.append(this.windFill);
+    this.wind.append(this.windFill, this.windLabel);
+    this.wind.title = 'Wind: it pushes shots, rain and falling things this way. A longer bar is a stronger wind.';
     const top = el('div', 'hud-top');
     const menuBtn = el('button', 'hud-btn', '☰');
     menuBtn.title = 'Quit to menu';
@@ -137,6 +147,7 @@ export class Hud {
     const right = el('div', 'touch-right');
     const aim = el('div', 'touch-aim');
     aim.append(mk('▲', 'aim', BTN_UP, 't-up'), mk('▼', 'aim', BTN_DOWN, 't-down'));
+    this.aimPad = aim;
     right.append(aim, mk('JUMP', 'jump', -1, 't-jump'), mk('FIRE', 'fire', BTN_FIRE, 't-fire'));
     // Settings: button size, and left-handed (sides swapped).
     const c = controls();
@@ -210,6 +221,9 @@ export class Hud {
     this.windFill.style.left = w < 0 ? `${50 + w * 50}%` : '50%';
     this.windFill.style.width = `${Math.abs(w) * 50}%`;
     this.windFill.className = 'hud-wind-fill ' + (w < 0 ? 'left' : 'right');
+    const arrows = Math.max(1, Math.round(Math.abs(w) * 3));
+    this.windLabel.textContent = w === 0 ? 'NO WIND' : w < 0 ? `${'◀'.repeat(arrows)} WIND` : `WIND ${'▶'.repeat(arrows)}`;
+    this.wind.setAttribute('aria-label', w === 0 ? 'No wind' : `Wind blowing ${w < 0 ? 'left' : 'right'}, ${['light', 'medium', 'strong'][arrows - 1]}`);
 
     this.teams.innerHTML = '';
     this.teams.classList.toggle('many', s.teams.length > 4);
@@ -231,6 +245,8 @@ export class Hud {
       this.teams.append(row);
     }
 
+    // ▲▼ only when they do something: aiming, rotating a girder, or climbing a rope.
+    this.aimPad?.classList.toggle('aim-off', !usesUpDown(def, !!t?.rope));
     this.weaponBtn.innerHTML = `<span class="wi">${def.icon}</span> ${def.name}${ammoLeft > 0 ? ` ×${ammoLeft}` : ''}`;
     this.weaponBtn.disabled = !humanTurn || turn.phase !== 'aim';
     this.fuseBtn.style.display = def.projectile?.playerFuse ? '' : 'none';
@@ -259,7 +275,7 @@ export class Hud {
       else if (def.kind === 'walker') hint = 'Fire to release the Rotifer Roller';
       else if (def.kind === 'drop') hint = 'Fire to drop it, then run!';
       else if (def.shower) hint = 'Fire to bring the slides crashing down!';
-      else if (this.touchMode && (def.kind === 'charge' || def.kind === 'hitscan') && !turn.charging) hint = 'Drag from your tardi to aim';
+      else if (this.touchMode && (def.kind === 'charge' || def.kind === 'hitscan') && !turn.charging) hint = 'Drag from your tardigrade to aim';
     } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
       hint = 'Press Fire to set it off!';
     } else if (!humanTurn && turn.phase === 'aim') {

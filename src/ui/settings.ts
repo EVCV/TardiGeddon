@@ -52,7 +52,7 @@ export function newSettingsState(): SettingsState {
 /** Stops listening for a key (the page is being redrawn or left). */
 let stopListening: (() => void) | null = null;
 
-export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTutorial: () => void): HTMLElement {
+export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTutorial: () => void, onPractice: () => void = () => {}): HTMLElement {
   stopListening?.();
   const root = el('div', 'page page-settings');
   const { me } = account();
@@ -152,7 +152,13 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   learnCard.append(el('p', 'account-note', 'A short practice match against a target dummy that walks you through moving, aiming, firing and targeting.'));
   const tut = el('button', 'big-btn', 'Start the tutorial');
   tut.onclick = onTutorial;
-  learnCard.append(tut);
+  const more = el('div', 'guide-buttons');
+  const prac = el('button', 'hud-btn', '🎯 Practice');
+  prac.onclick = onPractice;
+  const guide = el('button', 'hud-btn', '📖 Guide: wind, weapons, online play');
+  guide.onclick = () => ctx.go('guide');
+  more.append(prac, guide);
+  learnCard.append(tut, more);
 
   // ---- Where it's saved ----
   const status = el('p', 'settings-status');

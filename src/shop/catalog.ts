@@ -123,7 +123,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   hat('tiara', 'Tiara', 'Royalty, but tiny.', 'epic', { coins: 300 }),
   hat('jester', 'Jester hat', 'Jingles when you miss.', 'epic', { coins: 300 }),
   hat('headphones', 'Headphones', 'Blocks out the sad trombone.', 'rare', { coins: 200 }),
-  hat('deerstalker', 'Detective hat', 'Elementary, my dear tardi.', 'rare', { coins: 200 }),
+  hat('deerstalker', 'Detective hat', 'Elementary, my dear tardigrade.', 'rare', { coins: 200 }),
   hat('eggshell', 'Eggshell', 'Freshly hatched and furious.', 'epic', { coins: 300 }),
   hat('catears', 'Cat ears', 'Purrfectly dangerous.', 'rare', { coins: 400 }),
   hat('beret', 'Beret', 'Très chic, très explosive.', 'rare', { coins: 400 }),
@@ -132,7 +132,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   hat('unicorn', 'Unicorn horn', 'Magical. Pointy. Mostly magical.', 'legendary', { coins: 1800 }),
   hat('halo', 'Halo', 'Angelic. Until it is your turn.', 'legendary', { coins: 2000 }),
   hat('flame', 'Flame crown', 'Too hot to handle.', 'legendary', { coins: 2200 }),
-  hat('astronaut', 'Space helmet', 'One small step for a tardi.', 'legendary', { coins: 2500 }),
+  hat('astronaut', 'Space helmet', 'One small step for a tardigrade.', 'legendary', { coins: 2500 }),
   hat('dragon', 'Dragon hood', 'Spikes, scales, the lot.', 'legendary', { coins: 2500 }),
   hat('imperial', 'Imperial crown', 'Jewels on jewels on jewels.', 'legendary', { coins: 3000 }),
   // Hats for Slime
@@ -179,7 +179,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   hat('chick', 'Baby chick', 'Cheep cheep, kaboom.', 'rare', { coins: 400 }),
   hat('pumpkin', 'Pumpkin', 'Spooky season, every season.', 'rare', { coins: 500 }),
   hat('frog', 'Froggy', 'Ribbit. Then run.', 'rare', { coins: 600 }),
-  hat('mohawk', 'Mohawk', 'Punk rock tardi.', 'epic', { coins: 700 }),
+  hat('mohawk', 'Mohawk', 'Punk rock tardigrade.', 'epic', { coins: 700 }),
   hat('knight', 'Knight helmet', 'For honour, and for the pond.', 'epic', { coins: 900 }),
   hat('crystal', 'Crystal crown', 'Carved from a single glittering gem.', 'legendary', { coins: 2400 }),
   // Aim styles: how your aim marker and power bar look. Coins.
@@ -251,7 +251,7 @@ export interface Bundle {
 }
 
 export const BUNDLES: Bundle[] = [
-  { id: 'bundle:sweet', name: 'Sweet Tooth', blurb: 'A candy-coated tardi from hat to blast.', items: ['hat:party', 'skin:candy', 'aim:candy', 'fx:confetti'], coins: 1450 },
+  { id: 'bundle:sweet', name: 'Sweet Tooth', blurb: 'A candy-coated tardigrade from hat to blast.', items: ['hat:party', 'skin:candy', 'aim:candy', 'fx:confetti'], coins: 1450 },
   { id: 'bundle:spooky', name: 'Spooky', blurb: 'Witchy, ghostly and full of shadows.', items: ['hat:witch', 'skin:ghost', 'aim:neon', 'fx:shadow'], coins: 2400 },
   { id: 'bundle:inferno', name: 'Inferno', blurb: 'Red hot from head to blast.', items: ['hat:flame', 'skin:lava', 'aim:laser', 'fx:shadow'], coins: 3400 },
   { id: 'bundle:rainbow', name: 'Over the Rainbow', blurb: 'Every colour, all at once.', items: ['hat:unicorn', 'skin:neon', 'aim:rainbow', 'fx:rainbow'], coins: 4700 },

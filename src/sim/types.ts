@@ -49,6 +49,13 @@ export interface Scheme {
   race: boolean;
   /** Rope Race: how many attempts each team gets. */
   raceRounds: number;
+  /** false = a team's own weapons don't hurt (or push) its own tardigrades. */
+  friendlyFire: boolean;
+  /**
+   * Practice: one human tardigrade that can't be hurt (it climbs back out of
+   * the water), unlimited ammo, against this many target dummies (team 1).
+   */
+  practiceTargets?: number;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
   /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
@@ -72,6 +79,7 @@ export const DEFAULT_SCHEME: Scheme = {
   supers: 0,
   race: false,
   raceRounds: 3,
+  friendlyFire: true,
 };
 
 export interface Tardi {
@@ -234,6 +242,8 @@ export interface WorldState {
   scheme: Scheme;
   /** Set in Rope Race games. */
   race: RaceState | null;
+  /** Practice: where the immortal tardigrade (team 0) climbs back out after a dunking. */
+  practice: { x: number; y: number } | null;
 }
 
 export type SimEvent =

@@ -1,6 +1,7 @@
 // Online play: create or join a room by code, wait in the lobby, and start
 // a match. The match itself runs in main.ts (Match in online mode).
 
+import { onlineGuide } from './guide';
 import { otherPlayer, playerActions, slotName } from './safety';
 import { mascotSvg } from './mascot';
 import { hex } from '../render/palette';
@@ -194,7 +195,24 @@ export function showOnline(
     joinRow.append(code, join);
     const back = el('button', 'hud-btn online-back', '← Back');
     back.onclick = leave;
-    colA.append(back);
+    const help = el('button', 'hud-btn', '❓ How online play works');
+    help.onclick = () => {
+      const overlay = el('div', 'editor-overlay');
+      const box = el('div', 'editor guide-box');
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-label', 'How online play works');
+      const done = el('button', 'big-btn', 'Got it');
+      const close = () => overlay.remove();
+      done.onclick = close;
+      overlay.onclick = (e) => {
+        if (e.target === overlay) close();
+      };
+      box.append(onlineGuide(), done);
+      overlay.append(box);
+      root.append(overlay);
+      done.focus();
+    };
+    colA.append(help, back);
     colB.append(quick, or, create, joinRow, status);
     if (opts.code) join.click();
   };

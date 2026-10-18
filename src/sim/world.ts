@@ -44,6 +44,8 @@ export const AIM_MAX = ANGLE_QUARTER;
 export const POWER_STEP = 20;
 export const POWER_MAX = 1000;
 export const WIND_ACCEL = 0.05;
+/** Sideways speed a strike's drops start with at full wind (they keep drifting as they fall). */
+export const STRIKE_WIND_DRIFT = 2;
 const MAX_STEP_UP = 4;
 const START_TICKS = 60;
 const SETTLE_DELAY = 25;
@@ -122,11 +124,14 @@ export function mapSizeFor(totalTardis: number): { w: number; h: number } {
 export function createWorld(cfg: WorldConfig): WorldState {
   const scheme: Scheme = { ...DEFAULT_SCHEME, ...cfg.scheme };
   if (cfg.teams.length < 2 || cfg.teams.length > MAX_TEAMS) throw new Error(`Need 2-${MAX_TEAMS} teams`);
-  const size = mapSizeFor(cfg.teams.length * scheme.tardisPerTeam);
+  const practice = scheme.practiceTargets && scheme.practiceTargets > 0 ? Math.min(20, Math.round(scheme.practiceTargets)) : 0;
+  if (practice && cfg.teams.length !== 2) throw new Error('Practice needs exactly 2 teams');
+  // Practice: one tardigrade against the targets; otherwise the same number per team.
+  const needed = practice ? 1 + practice : cfg.teams.length * scheme.tardisPerTeam;
+  const size = mapSizeFor(needed);
   const w = cfg.mapW ?? size.w;
   const h = cfg.mapH ?? size.h;
   const waterY = h - 70;
-  const needed = cfg.teams.length * scheme.tardisPerTeam;
 
   // Retry seeds until the map has room for every tardi.
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -172,6 +177,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
       prevHeld: 0,
       scheme,
       race: null,
+      practice: null,
     };
 
     cfg.teams.forEach((tc, ti) => {
@@ -181,15 +187,19 @@ export function createWorld(cfg: WorldConfig): WorldState {
         const listed = scheme.weapons?.[def.id];
         const base = def.super ? scheme.supers : def.ammo;
         ammo[def.id] = !scheme.weapons || def.hidden || def.id === 'skip' ? base : (listed ?? 0);
+        // Practice: everything, as often as you like.
+        if (practice && ti === 0 && !def.hidden) ammo[def.id] = -1;
         if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
       const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', ammo };
       s.teams.push(team);
     });
-    // Interleave spawns so teams are mixed across the map.
+    // Interleave spawns so teams are mixed across the map (practice: you, then the targets).
     let spot = 0;
-    for (let i = 0; i < scheme.tardisPerTeam; i++) {
+    const perTeam = practice ? practice : scheme.tardisPerTeam;
+    for (let i = 0; i < perTeam; i++) {
       for (const team of s.teams) {
+        if (practice && team.id === 0 && i > 0) continue;
         const p = spots[spot++];
         const names = cfg.teams[team.id].names ?? DEFAULT_NAMES.slice(team.id * 4).concat(DEFAULT_NAMES);
         const t: Tardi = {
@@ -214,6 +224,10 @@ export function createWorld(cfg: WorldConfig): WorldState {
         s.tardis.push(t);
         team.tardiIds.push(t.id);
       }
+    }
+    if (practice) {
+      const me = s.tardis.find((t) => t.team === 0)!;
+      s.practice = { x: me.x, y: me.y };
     }
     if (scheme.race) {
       // Start on the left-most land, flag on the right-most.
@@ -585,7 +599,7 @@ function releaseRope(t: Tardi): void {
 function firePunch(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]): void {
   const m = def.melee!;
   for (const o of s.tardis) {
-    if (!o.alive || o.id === t.id) continue;
+    if (!o.alive || o.id === t.id || sparedByTeam(s, o)) continue;
     const ahead = (o.x - t.x) * t.facing;
     if (ahead > -4 && ahead < m.reach && Math.abs(o.y - t.y) < 16) {
       o.pendingDmg += m.damage;
@@ -836,11 +850,11 @@ function fireTargeted(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[
   }
   if (def.strike) {
     const st = def.strike;
-    const dir = target.x < t.x ? -1 : 1;
     for (let i = 0; i < st.count; i++) {
       const ox = (i - (st.count - 1) / 2) * st.spacing;
-      // Drops start offset so they arrive over the target.
-      spawnProjectile(s, st.weapon, target.x + ox - dir * 60, -30 - i * 4, dir * 2, 5, -1, t.id);
+      // Rain falls from straight above the target and drifts with the wind:
+      // with no wind it lands on the target, in a gale it can miss.
+      spawnProjectile(s, st.weapon, target.x + ox, -30 - i * 4, s.wind * STRIKE_WIND_DRIFT, 5, -1, t.id);
     }
     events.push({ t: 'fire', weapon: def.id, x: target.x, y: 0 });
     return true;
@@ -1036,6 +1050,7 @@ export function explode(
     const dy = t.y - y;
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d >= reach) continue;
+    if (sparedByTeam(s, t)) continue;
     const f = 1 - d / reach;
     const dmg = Math.round(damage * (0.25 + 0.75 * f));
     if (t.team !== s.turn.teamIdx) dealt += dmg;
@@ -1174,11 +1189,37 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
   checkOutOfBounds(s, t, events);
 }
 
+/** Practice: the player's tardigrade (team 0) can't be hurt or drowned. */
+function immortal(s: WorldState, t: Tardi): boolean {
+  return s.practice !== null && t.team === 0;
+}
+
+/** Friendly fire off: the team whose turn it is can't hurt (or push) its own tardigrades. */
+function sparedByTeam(s: WorldState, t: Tardi): boolean {
+  return !s.scheme.friendlyFire && t.team === s.turn.teamIdx;
+}
+
 function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
   if (s.race && (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60)) {
     // Rope Race: a dunking just ends the attempt.
     events.push({ t: 'drown', id: t.id });
     placeAtStart(s, t);
+    if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
+    return;
+  }
+  if (immortal(s, t) && (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60)) {
+    // Practice: climbs back out where it started.
+    events.push({ t: 'drown', id: t.id });
+    const home = s.practice!;
+    t.x = home.x;
+    t.y = home.y;
+    t.vx = 0;
+    t.vy = 0;
+    t.rope = null;
+    t.chute = false;
+    t.airborne = true;
+    t.knocked = false;
+    t.fallStartY = home.y;
     if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
     return;
   }
@@ -1282,7 +1323,7 @@ function updateFlames(s: WorldState, events: SimEvent[]): void {
         if (!t.alive) continue;
         const dx = t.x - f.x;
         const dy = t.y - f.y;
-        if (dx * dx + dy * dy < (FLAME_REACH + TARDI_R) * (FLAME_REACH + TARDI_R)) {
+        if (dx * dx + dy * dy < (FLAME_REACH + TARDI_R) * (FLAME_REACH + TARDI_R) && !sparedByTeam(s, t)) {
           t.pendingDmg += FLAME_DMG;
           if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
         }
@@ -1566,6 +1607,8 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   }
   if (++turn.settleTimer < SETTLE_DELAY) return;
 
+  // Practice: the player's tardigrade can't be hurt.
+  for (const t of s.tardis) if (immortal(s, t)) t.pendingDmg = 0;
   const hurt = s.tardis.filter((t) => t.alive && t.pendingDmg > 0);
   if (hurt.length > 0) {
     for (const t of hurt) {
@@ -1646,7 +1689,7 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
 
   // Poison bites at the start of every turn, but never kills on its own.
   for (const t of s.tardis) {
-    if (!t.alive || !t.poison) continue;
+    if (!t.alive || !t.poison || immortal(s, t)) continue;
     const dmg = Math.min(POISON_DMG, t.hp - 1);
     if (dmg > 0) {
       t.hp -= dmg;
@@ -1710,6 +1753,10 @@ export function hashWorld(s: WorldState): number {
   }
   mix(s.waterY); mix(s.roundTicks); mix(s.suddenDeath ? 1 : 0); mix(s.nextId);
   if (s.race) for (const b of s.race.best) mix(b);
+  if (s.practice) {
+    mix(s.practice.x);
+    mix(s.practice.y);
+  }
   const tr = s.turn;
   mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);
   const m = s.terrain.mask;

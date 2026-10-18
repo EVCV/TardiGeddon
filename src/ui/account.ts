@@ -346,7 +346,7 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   fight.append(el('h2', 'card-title', 'Combat'));
   const g1 = el('div', 'stats-grid');
   g1.append(
-    statTile(v((s) => compact(s.popped)), '💥 Tardis popped'),
+    statTile(v((s) => compact(s.popped)), '💥 Tardigrades popped'),
     statTile(v((s) => compact(s.damage)), 'Damage dealt'),
     statTile(v((s) => compact(s.selfPopped)), '🤦 Own goals'),
     statTile(v((s) => compact(s.selfDamage)), 'Hurt yourself'),

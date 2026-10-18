@@ -129,6 +129,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--ink);
 }
 .hud-wind-fill { position: absolute; top: 0; bottom: 0; transition: all .3s; }
+.hud-wind-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--title);
+  font-size: 11px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  pointer-events: none;
+  z-index: 1;
+}
 .hud-wind-fill.left { background: repeating-linear-gradient(90deg, #3a7be0 0 8px, #6ea3ff 8px 12px); }
 .hud-wind-fill.right { background: repeating-linear-gradient(270deg, #e04848 0 8px, #ff8a7a 8px 12px); }
 
@@ -278,6 +294,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .touch-left { left: calc(12px + var(--safe-l)); }
 .touch-right { right: calc(12px + var(--safe-r)); }
 .touch-aim { display: flex; flex-direction: column; gap: 8px; }
+.touch-aim.aim-off { visibility: hidden; } /* weapons that don't aim: the buttons keep their place, so Jump and Fire don't move */
 .touch-btn {
   pointer-events: auto;
   touch-action: none;
@@ -1749,3 +1766,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .blocked-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; margin: 6px 0; }
 .blocked-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .blocked-when { font-size: 12px; opacity: 0.7; }
+
+/* ---- Guide (ui/guide.ts) ---- */
+.page-guide { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; max-width: 1080px; margin: 0 auto; }
+.guide-start { grid-column: 1 / -1; }
+.guide-list { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; text-align: left; font-size: 15px; line-height: 1.45; }
+.guide-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.guide-box { max-width: 560px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.guide-box .card { box-shadow: none; border: 0; padding: 0; background: none; }
+@media (max-width: 760px) {
+  .page-guide { grid-template-columns: minmax(0, 1fr); }
+}
+/* Phones: the guide scrolls inside the page, so the page still fits the screen. */
+@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
+  .menu.hub .page-guide { height: 100%; max-width: none; overflow-y: auto; gap: 10px; align-content: start; }
+  .guide-list { font-size: 13px; gap: 5px; }
+  .guide-box { max-height: 86vh; }
+}

@@ -70,7 +70,7 @@ interface Field {
 }
 
 const FIELDS: Field[] = [
-  { key: 'tardisPerTeam', label: 'Tardis per team', options: [['2', 2], ['3', 3], ['4', 4]] },
+  { key: 'tardisPerTeam', label: 'Tardigrades per team', options: [['2', 2], ['3', 3], ['4', 4]] },
   { key: 'turnTime', label: 'Turn time', options: [['20s', 20], ['30s', 30], ['45s', 45], ['60s', 60], ['90s', 90]] },
   { key: 'roundTime', label: 'Sudden death after', options: [['3 min', 3], ['5 min', 5], ['10 min', 10], ['15 min', 15], ['20 min', 20]] },
   { key: 'startHp', label: 'Starting health', options: [['50', 50], ['60', 60], ['100', 100], ['150', 150], ['200', 200]] },
@@ -80,6 +80,7 @@ const FIELDS: Field[] = [
   { key: 'supers', label: 'Superweapons', options: [['Crates only', 0], ['1 each', 1]] },
   { key: 'windMax', label: 'Wind', options: [['Off', 0], ['Light', 0.5], ['Normal', 1]] },
   { key: 'fallDamage', label: 'Fall damage', options: [['On', true], ['Off', false]] },
+  { key: 'friendlyFire', label: 'Friendly fire', options: [['On', true], ['Off', false]] },
   { key: 'movement', label: 'Walking', options: [['On', true], ['Off (Artillery)', false]] },
 ];
 
@@ -105,6 +106,7 @@ export function buildLobby(
   onOnline: (() => void) | undefined,
   go: (tab: HubTab) => void,
   onTutorial: () => void,
+  onPractice: () => void,
 ): Lobby {
   const root = document.createElement('div');
   const saved = load();
@@ -157,7 +159,9 @@ export function buildLobby(
           </div>
         </div>
         <div class="lobby-learn">
-          <button class="hud-btn learn-btn">🎓 How to play</button>
+          <button class="hud-btn learn-btn">🎓 Tutorial</button>
+          <button class="hud-btn practice-btn">🎯 Practice</button>
+          <button class="hud-btn guide-btn">📖 Guide</button>
           <button class="hud-btn controls-btn">⚙️ Controls</button>
         </div>
       </section>
@@ -366,6 +370,8 @@ export function buildLobby(
     learnBtn.classList.add('learn-new');
   }
   root.querySelector<HTMLButtonElement>('.controls-btn')!.onclick = () => go('settings');
+  root.querySelector<HTMLButtonElement>('.practice-btn')!.onclick = onPractice;
+  root.querySelector<HTMLButtonElement>('.guide-btn')!.onclick = () => go('guide');
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;
   else onlineBtn.remove();
