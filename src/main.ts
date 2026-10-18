@@ -10,7 +10,7 @@ import { showHub, type Hub } from './ui/hub';
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
-import { Coach, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
+import { Coach, choosePractice, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
 import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
 import { arenaTheme } from './render/arenas';
@@ -78,7 +78,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => practice());
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice));
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
@@ -94,12 +94,12 @@ async function boot(): Promise<void> {
     unlockAudio();
     current = new Match(app, ui, { kind: 'tutorial' }, menu, tutorial);
   };
-  const practice = () => {
+  const practice = (endless: boolean) => {
     current?.destroy();
     hub = onlineScreen = null;
     ui.innerHTML = '';
     unlockAudio();
-    current = new Match(app, ui, { kind: 'practice' }, menu, practice);
+    current = new Match(app, ui, { kind: 'practice', endless }, menu, () => practice(endless));
   };
   const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
     current?.destroy();
@@ -145,7 +145,7 @@ async function boot(): Promise<void> {
   const auto = params.get('autostart');
   const room = params.get('room');
   if (auto === 'tutorial') tutorial();
-  else if (auto === 'practice') practice();
+  else if (auto === 'practice') practice(params.get('endless') !== null);
   else if (auto) {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
     const n = Number(params.get('players')) || 2;
@@ -192,7 +192,7 @@ async function boot(): Promise<void> {
   }
 }
 
-type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice' } | { kind: 'online'; client: NetClient; ls: Lockstep };
+type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'online'; client: NetClient; ls: Lockstep };
 
 class Match {
   private local: WorldState | null = null;
@@ -258,7 +258,7 @@ class Match {
       // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
       const p = loadProfiles()[0];
       const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
-      this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0));
+      this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
       this.cpu.set(1, dummyPlayer);
     } else {
       this.net = { client: mode.client, ls: mode.ls };

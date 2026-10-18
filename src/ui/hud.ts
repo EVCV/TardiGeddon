@@ -200,12 +200,18 @@ export class Hud {
       secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, turn.charging ? 1 : 0, def.girder ? turn.aim : 0, t?.rope ? 1 : 0, t?.airborne ? 1 : 0, t?.chute ? 1 : 0, s.projectiles.some((p) => p.dir !== 0) ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
       s.race ? s.race.best.join(',') : '',
+      s.practice ? s.practice.popped : '',
     ].join('|');
     if (key === this.lastKey) return;
     this.lastKey = key;
 
     this.timer.textContent = String(secs);
-    if (s.suddenDeath) {
+    if (s.practice) {
+      // Practice: targets popped instead of the round clock (there's no sudden death).
+      this.round.textContent = `🎯 ${s.practice.popped}`;
+      this.round.title = 'Targets popped';
+      this.round.classList.remove('sd');
+    } else if (s.suddenDeath) {
       this.round.textContent = 'SUDDEN DEATH';
       this.round.classList.add('sd');
     } else {

@@ -59,7 +59,7 @@ export const PRACTICE_TARGETS = 10;
  * weapon and unlimited ammo, against target dummies all over the map. Wind
  * and brine drums are on, to practise with; no mines or crates.
  */
-export function practiceWorld(player: TeamConfig, unlocked: string[], seed: number): WorldConfig {
+export function practiceWorld(player: TeamConfig, unlocked: string[], seed: number, endless = false): WorldConfig {
   const targets: TeamConfig = {
     name: 'Targets',
     color: 0x9aa4ad,
@@ -76,6 +76,7 @@ export function practiceWorld(player: TeamConfig, unlocked: string[], seed: numb
     scheme: {
       ...presetScheme('standard'),
       practiceTargets: PRACTICE_TARGETS,
+      practiceEndless: endless,
       turnTime: 90,
       retreatTime: 3,
       mines: 0,
@@ -88,6 +89,56 @@ export function practiceWorld(player: TeamConfig, unlocked: string[], seed: numb
       unlocked,
     },
   };
+}
+
+/**
+ * Which practice? Pop all the targets (it ends when they're gone), or endless
+ * targets that keep coming back until you quit. Shown over the menu.
+ */
+export function choosePractice(host: HTMLElement, onPick: (endless: boolean) => void): void {
+  const overlay = document.createElement('div');
+  overlay.className = 'editor-overlay';
+  const box = document.createElement('div');
+  box.className = 'editor practice-choice';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-label', 'Practice');
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => {
+    if (e.target === overlay) close();
+  };
+  const h = document.createElement('h2');
+  h.className = 'editor-title';
+  h.textContent = '🎯 Practice';
+  const p = document.createElement('p');
+  p.className = 'account-note';
+  p.textContent = 'Your tardigrade can’t be hurt and every weapon has unlimited ammo. The wind blows, and there are brine drums to try.';
+  const option = (title: string, text: string, endless: boolean) => {
+    const b = document.createElement('button');
+    b.className = 'practice-option';
+    const t = document.createElement('b');
+    t.textContent = title;
+    const d = document.createElement('span');
+    d.textContent = text;
+    b.append(t, d);
+    b.onclick = () => {
+      close();
+      onPick(endless);
+    };
+    return b;
+  };
+  const cancel = document.createElement('button');
+  cancel.className = 'hud-btn';
+  cancel.textContent = 'Cancel';
+  cancel.onclick = close;
+  box.append(
+    h,
+    p,
+    option(`🎯 Pop ${PRACTICE_TARGETS} targets`, `${PRACTICE_TARGETS} targets around the map. Pop them all to finish.`, false),
+    option('♾️ Endless targets', 'Popped targets come back somewhere else. Keep going as long as you like, and quit from the ☰ menu.', true),
+    cancel,
+  );
+  overlay.append(box);
+  host.append(overlay);
 }
 
 /** The dummy's "CPU": ends its turn straight away. */
@@ -264,7 +315,7 @@ export class Coach {
     const p = document.createElement('p');
     p.className = 'coach-text';
     p.textContent = won
-      ? 'That’s the basics. In a real match each team takes turns, the wind changes every turn, and you have 45 seconds a turn. Try 🎯 Practice for unlimited ammo, read the 📖 Guide for online play, and change any control in ⚙️ Settings.'
+      ? 'That’s the basics. In a real match each team takes turns, the wind changes every turn, and you have 45 seconds a turn. Careful: your own blasts can hurt your own team, and you (friendly fire: you can turn it off in Match setup → Customise). Try 🎯 Practice for unlimited ammo, read the 📖 Guide for online play, and change any control in ⚙️ Settings.'
       : 'Have another go: the tutorial starts again from the beginning.';
     const row = document.createElement('div');
     row.className = 'coach-buttons';

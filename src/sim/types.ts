@@ -56,6 +56,8 @@ export interface Scheme {
    * the water), unlimited ammo, against this many target dummies (team 1).
    */
   practiceTargets?: number;
+  /** Practice: popped targets come back somewhere else, and it goes on until you quit. */
+  practiceEndless?: boolean;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
   /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
@@ -243,7 +245,7 @@ export interface WorldState {
   /** Set in Rope Race games. */
   race: RaceState | null;
   /** Practice: where the immortal tardigrade (team 0) climbs back out after a dunking. */
-  practice: { x: number; y: number } | null;
+  practice: { x: number; y: number; /** Targets popped so far. */ popped: number } | null;
 }
 
 export type SimEvent =

@@ -67,6 +67,8 @@ interface Field {
   key: keyof Scheme;
   label: string;
   options: [string, number | boolean][];
+  /** What it means, on hover. */
+  hint?: string;
 }
 
 const FIELDS: Field[] = [
@@ -80,7 +82,12 @@ const FIELDS: Field[] = [
   { key: 'supers', label: 'Superweapons', options: [['Crates only', 0], ['1 each', 1]] },
   { key: 'windMax', label: 'Wind', options: [['Off', 0], ['Light', 0.5], ['Normal', 1]] },
   { key: 'fallDamage', label: 'Fall damage', options: [['On', true], ['Off', false]] },
-  { key: 'friendlyFire', label: 'Friendly fire', options: [['On', true], ['Off', false]] },
+  {
+    key: 'friendlyFire',
+    label: 'Friendly fire',
+    options: [['On', true], ['Off', false]],
+    hint: 'On: your own weapons can hurt your own team, and you. Off: they only hurt the other teams.',
+  },
   { key: 'movement', label: 'Walking', options: [['On', true], ['Off (Artillery)', false]] },
 ];
 
@@ -255,6 +262,7 @@ export function buildLobby(
     for (const f of FIELDS) {
       const label = document.createElement('label');
       label.textContent = f.label;
+      if (f.hint) label.title = f.hint;
       const sel = document.createElement('select');
       const value = sc[f.key];
       // Show the nearest option if a preset uses a value not in the list.
@@ -288,8 +296,12 @@ export function buildLobby(
 
   const refresh = (rebuild = true) => {
     const id = styleSel.value;
+    // Friendly fire surprises new players: always say whether it's on.
+    const ff = current().friendlyFire
+      ? ' Friendly fire on: your own blasts can hurt your team, and you.'
+      : ' Friendly fire off: your blasts only hurt the other teams.';
     blurb.textContent =
-      id === 'custom' ? 'Your own rules: change anything below.' : (SCHEME_PRESETS.find((p) => p.id === id)?.blurb ?? '');
+      (id === 'custom' ? 'Your own rules: change anything below.' : (SCHEME_PRESETS.find((p) => p.id === id)?.blurb ?? '')) + ff;
     if (rebuild || !panel.classList.contains('hidden')) renderPanel();
     persist();
   };

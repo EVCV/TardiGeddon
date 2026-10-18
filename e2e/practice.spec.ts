@@ -7,6 +7,7 @@ test('practice: unlimited ammo against targets, from the lobby', async ({ page }
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.getByRole('button', { name: '🎯 Practice' }).click();
+  await page.getByRole('button', { name: /Pop 10 targets/ }).click();
   await expect(page.locator('.hud-timer')).toBeVisible();
   await page.waitForFunction(() => (window as unknown as { __tardi?: Tardi }).__tardi?.state.turn.phase === 'aim');
   const info = await page.evaluate(() => {
@@ -16,6 +17,13 @@ test('practice: unlimited ammo against targets, from the lobby', async ({ page }
   expect(info).toEqual({ mine: 1, targets: 10, bazooka: -1, strike: -1 });
   await expect(page.locator('.hud-wind-label')).toContainText(/WIND/);
   expect(errors).toEqual([]);
+});
+
+test('endless practice: from the lobby, with a popped-targets counter', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '🎯 Practice' }).click();
+  await page.getByRole('button', { name: /Endless targets/ }).click();
+  await expect(page.locator('.hud-clock')).toContainText('🎯 0');
 });
 
 test('on a phone, ▲▼ hide for weapons that need no aiming', async ({ page }, info) => {

@@ -227,7 +227,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
     }
     if (practice) {
       const me = s.tardis.find((t) => t.team === 0)!;
-      s.practice = { x: me.x, y: me.y };
+      s.practice = { x: me.x, y: me.y, popped: 0 };
     }
     if (scheme.race) {
       // Start on the left-most land, flag on the right-most.
@@ -1194,6 +1194,54 @@ function immortal(s: WorldState, t: Tardi): boolean {
   return s.practice !== null && t.team === 0;
 }
 
+function endlessPractice(s: WorldState): boolean {
+  return s.practice !== null && s.scheme.practiceEndless === true;
+}
+
+/**
+ * Endless practice, at the start of each turn: popped (or drowned) targets
+ * are cleared away and new ones (new ids, so they don't inherit the old
+ * one's pop) appear on free ground away from everyone.
+ */
+function refillTargets(s: WorldState, events: SimEvent[]): void {
+  const team = s.teams[1];
+  for (const old of s.tardis.filter((t) => !t.alive && t.team === team.id)) {
+    s.tardis.splice(s.tardis.indexOf(old), 1);
+    team.tardiIds.splice(team.tardiIds.indexOf(old.id), 1);
+    for (let tries = 0; tries < 300; tries++) {
+      const x = rngInt(s.rng, 40, s.terrain.w - 40);
+      const sy = surfaceBelow(s.terrain, x, 0);
+      if (sy < 0 || sy > s.waterY - 30) continue;
+      const y = sy - TARDI_R - 1;
+      if (circleCollides(s.terrain, x, y, TARDI_R) || !circleCollides(s.terrain, x, y + 2, TARDI_R)) continue;
+      if (s.tardis.some((o) => o.alive && Math.abs(o.x - x) < 60 && Math.abs(o.y - y) < 60)) continue;
+      const t: Tardi = {
+        ...old,
+        id: s.nextId++,
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        hp: s.scheme.startHp,
+        pendingDmg: 0,
+        alive: true,
+        airborne: false,
+        knocked: false,
+        fallStartY: y,
+        rope: null,
+        chute: false,
+        poison: false,
+      };
+      s.tardis.push(t);
+      team.tardiIds.push(t.id);
+      events.push({ t: 'teleport', id: t.id, x, y });
+      break;
+    }
+  }
+  if (team.tardiIds.length) team.nextIdx %= team.tardiIds.length;
+  else team.nextIdx = 0;
+}
+
 /** Friendly fire off: the team whose turn it is can't hurt (or push) its own tardigrades. */
 function sparedByTeam(s: WorldState, t: Tardi): boolean {
   return !s.scheme.friendlyFire && t.team === s.turn.teamIdx;
@@ -1224,6 +1272,7 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
     return;
   }
   if (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60) {
+    if (s.practice && t.team !== 0 && t.alive) s.practice.popped++;
     t.alive = false;
     t.rope = null;
     t.chute = false;
@@ -1619,6 +1668,7 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     for (const t of hurt) {
       if (t.hp <= 0) {
         t.alive = false;
+        if (s.practice && t.team !== 0) s.practice.popped++;
         events.push({ t: 'death', id: t.id });
         explode(s, t.x, t.y, 20, 10, events);
       }
@@ -1639,7 +1689,8 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     return;
   }
   const alive = s.teams.filter((tm) => s.tardis.some((t) => t.alive && t.team === tm.id));
-  if (alive.length <= 1) {
+  // Endless practice never ends: new targets arrive at the start of the next turn.
+  if (alive.length <= 1 && !endlessPractice(s)) {
     turn.phase = 'gameover';
     turn.winner = alive.length === 1 ? alive[0].id : -1;
     events.push({ t: 'gameover', winner: turn.winner });
@@ -1653,6 +1704,7 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
 }
 
 function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
+  if (endlessPractice(s)) refillTargets(s, events);
   const team = s.teams[teamIdx];
   const ids = team.tardiIds;
   let tardiId = -1;
@@ -1697,7 +1749,7 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
     }
   }
 
-  if (!s.suddenDeath && s.roundTicks >= s.scheme.roundTime * 60 * TICK_RATE) {
+  if (!s.suddenDeath && !s.practice && s.roundTicks >= s.scheme.roundTime * 60 * TICK_RATE) {
     s.suddenDeath = true;
     for (const t of s.tardis) if (t.alive) t.hp = 1;
     events.push({ t: 'suddenDeath' });
@@ -1756,6 +1808,7 @@ export function hashWorld(s: WorldState): number {
   if (s.practice) {
     mix(s.practice.x);
     mix(s.practice.y);
+    mix(s.practice.popped);
   }
   const tr = s.turn;
   mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);

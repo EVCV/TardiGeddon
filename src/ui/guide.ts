@@ -70,7 +70,7 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
   const root = el('div', 'page page-guide');
 
   const start = el('section', 'card guide-card guide-start');
-  start.append(el('h2', 'card-title', '📖 Guide'), el('p', 'account-note', 'New here? The tutorial walks you through the controls, and Practice gives you unlimited ammo and targets to hit.'));
+  start.append(el('h2', 'card-title', '📖 Guide'), el('p', 'account-note', 'New here? The tutorial walks you through the controls. Practice gives you unlimited ammo and targets to hit: pop 10 of them, or keep going with endless targets.'));
   const row = el('div', 'guide-buttons');
   const tut = el('button', 'big-btn', '🎓 Tutorial');
   tut.onclick = onTutorial;
@@ -87,6 +87,7 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       '**Take turns:** each team plays one tardigrade per turn. Walk, jump, aim and fire before the timer runs out.',
       '**Last team standing wins.** A tardigrade pops when its health reaches 0, or if it falls in the water or off the map.',
       '**After you fire** you get a few seconds to run for cover.',
+      '**Friendly fire:** watch out, your own weapons can hurt your own team, and you too! Don’t stand next to your target, and keep your team out of your blasts. You can turn it off in Match setup → Customise → Friendly fire, and then your weapons only hurt the other teams.',
       '**Sudden death:** when the round clock runs out, every tardigrade drops to 1 health and the water starts to rise.',
     ]),
     card(
@@ -107,7 +108,6 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       '**Pick a spot:** strikes, Teleport and the Twig Girder. Tap or click the map to choose where, then press Fire. There’s no aiming, so ▲▼ disappear.',
       '**Twig Girder:** tap where to build, turn it with ▲▼, then Fire. It can rest on the ground or bridge a gap, but not be buried in it, or go through a tardigrade.',
       '**Silk Rope:** aim and Fire to swing; ▲▼ climb, Jump lets go. **Leaf Parachute:** jump off something, then Fire.',
-      '**Friendly fire** is on in most game styles: your own weapons can hurt your team. You can turn it off under Match setup → Customise.',
     ]),
     card('map', '🛢️ Things on the map', [
       `**Mines:** they arm when a tardigrade comes close and go off ${DEFAULT_SCHEME.mineFuse} seconds later. Some are duds. A blast nearby sets them off at once.`,

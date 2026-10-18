@@ -73,6 +73,33 @@ describe('Practice', () => {
   });
 });
 
+describe('Endless practice', () => {
+  it('brings popped targets back somewhere else, counts them, and never ends', () => {
+    const s = createWorld(practiceWorld(you, [], 4242, true));
+    for (let round = 0; round < 3; round++) {
+      for (const t of s.tardis) if (t.team === 1 && t.alive) t.pendingDmg = 500;
+      runUntilPhase(s, 'settle', 20000);
+      runUntilPhase(s, 'aim', 20000);
+      expect(s.turn.phase).not.toBe('gameover');
+    }
+    expect(s.practice!.popped).toBe(PRACTICE_TARGETS * 3);
+    const targets = s.tardis.filter((t) => t.team === 1);
+    expect(targets).toHaveLength(PRACTICE_TARGETS);
+    expect(targets.every((t) => t.alive && t.hp === 100)).toBe(true);
+    // New targets are new tardigrades (new ids), not the popped ones brought back.
+    expect(new Set(s.tardis.map((t) => t.id)).size).toBe(s.tardis.length);
+    expect(Math.min(...targets.map((t) => t.id))).toBeGreaterThan(PRACTICE_TARGETS + 1);
+  });
+
+  it('has no sudden death', () => {
+    const s = createWorld(practiceWorld(you, [], 4242, true));
+    s.roundTicks = 1e9;
+    runUntilPhase(s, 'settle', 20000);
+    runUntilPhase(s, 'aim', 20000);
+    expect(s.suddenDeath).toBe(false);
+  });
+});
+
 describe('Friendly fire', () => {
   function pair(friendlyFire: boolean) {
     const s = flat(
