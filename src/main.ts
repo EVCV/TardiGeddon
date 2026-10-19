@@ -32,7 +32,7 @@ import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
 import { hideTeams, isBlocked, tardiLabel, teamLabel } from './net/blocked';
 import { openPlayers } from './ui/safety';
-import { Lockstep } from './net/lockstep';
+import { Lockstep, SeenInput, connectionState } from './net/lockstep';
 import { toWire, type ServerMsg } from './net/protocol';
 import { presetScheme } from './sim/schemes';
 import { ANGLE_FULL } from './sim/math/trig';
@@ -227,6 +227,11 @@ class Match {
   private sentTurn = -1;
   private resyncAsked = false;
   private reconnecting = false;
+  private seen = new SeenInput();
+  /** When the server last sent frames (ms), to notice a struggling connection. */
+  private heardAt = performance.now();
+  /** Connections dropped for going quiet since frames last came (stops trying after a few). */
+  private quietDrops = 0;
   /** Called when the server starts a new match on this connection (a rematch). */
   onNetStart: ((ls: Lockstep) => void) | null = null;
   /** Latest lobby state from the server (for "Back to room" after the match). */
@@ -301,10 +306,15 @@ class Match {
     const net = this.net!;
     this.offNet = net.client.on((msg) => {
       switch (msg.t) {
-        case 'frames': net.ls.onFrames(msg.from, msg.f); break;
+        case 'frames':
+          this.heardAt = performance.now();
+          this.quietDrops = 0;
+          net.ls.onFrames(msg.from, msg.f);
+          break;
         case 'hash': net.ls.onHash(msg.tick, msg.h); break;
         case 'snapshot':
           net.ls.onSnapshot(msg.state, msg.you);
+          this.heardAt = performance.now();
           this.resyncAsked = false;
           // The world was replaced wholesale: redraw it from scratch.
           this.renderer.destroy();
@@ -332,6 +342,7 @@ class Match {
       try {
         await this.net.client.connect();
         this.net.client.join(re.code, { name: '', color: 0, hat: '', names: [] }, re.token);
+        this.heardAt = performance.now();
         this.reconnecting = false;
         return;
       } catch {
@@ -422,7 +433,7 @@ class Match {
           this.sentHeld = 0;
         }
         if (f.held !== this.sentHeld || f.pressed !== 0 || f.cmd) {
-          client.send({ t: 'input', f: toWire(f) });
+          for (const g of this.seen.frames(f, this.sentHeld, ls.state)) client.send({ t: 'input', f: toWire(g) });
           this.sentHeld = f.held;
         }
       }
@@ -442,6 +453,16 @@ class Match {
     if (ls.desynced && !this.resyncAsked) {
       this.resyncAsked = true;
       client.send({ t: 'resync' });
+    }
+    // The server sends frames all match long, so a gap means trouble: say so,
+    // and if it goes on, stop waiting on this connection and make a new one.
+    if (!this.reconnecting && ls.state.turn.phase !== 'gameover') {
+      const health = connectionState(performance.now() - this.heardAt);
+      if (health === 'lost' && this.quietDrops < 3) {
+        this.quietDrops++;
+        client.drop();
+      } else if (health === 'lost') this.hud.showBanner('Disconnected', 0xe04848, 1);
+      else if (health === 'slow') this.hud.showBanner('⚠️ Slow connection…', 0xe0a030, 1);
     }
   }
 

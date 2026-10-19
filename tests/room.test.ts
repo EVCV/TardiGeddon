@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanFrame, cleanScheme, cleanTeam, Room, type Member } from '../server/room';
+import { cleanFrame, cleanScheme, cleanTeam, Room, TOO_LATE, type Member } from '../server/room';
 import { Lockstep } from '../src/net/lockstep';
 import { decodeWorld, encodeWorld, syncHash } from '../src/net/snapshot';
 import { hashWorld, tick } from '../src/sim/world';
@@ -375,5 +375,71 @@ describe('input sanitising', () => {
     }
     expect(cleanFrame([0x1ff, 1, { t: 'target', x: 10.6, y: 3, evil: 1 }])).toEqual({ held: 0xff, pressed: 1, cmd: { t: 'target', x: 11, y: 3 } });
     expect(cleanFrame([0, 0, { t: 'aim', facing: -1, aim: 300 }]).cmd).toEqual({ t: 'aim', facing: -1, aim: 300 });
+  });
+});
+
+describe('online room: lag', () => {
+  /** Step until it's the given phase (or a limit). */
+  const stepUntil = (room: Room, done: () => boolean, limit = 50 * 120) => {
+    for (let i = 0; i < limit && !done(); i++) room.step();
+  };
+
+  it('tells a player their Fire came after their turn ran out, once', () => {
+    const { room, a, b } = lobby();
+    room.handle(a, { t: 'start', scheme: { turnTime: 5 } });
+    const w = () => room.world!;
+    stepUntil(room, () => w().turn.phase === 'aim');
+    const me = w().turn.teamIdx === 0 ? a : b;
+    const myTeam = w().turn.teamIdx;
+    // The clock runs out without a shot...
+    stepUntil(room, () => w().turn.phase !== 'aim');
+    // ...then their Fire arrives.
+    room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });
+    expect(me.msgs.filter((m) => m.t === 'error' && m.msg === TOO_LATE)).toHaveLength(1);
+    room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });
+    expect(me.msgs.filter((m) => m.t === 'error' && m.msg === TOO_LATE)).toHaveLength(1);
+    // Their next turn is theirs as usual: Fire then is not "too late".
+    stepUntil(room, () => w().turn.teamIdx === myTeam && w().turn.phase === 'aim');
+    room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });
+    room.step();
+    expect(me.msgs.filter((m) => m.t === 'error')).toHaveLength(1);
+    expect(w().turn.charging).toBe(true);
+  });
+
+  it('says nothing when the turn ended by firing', () => {
+    const { room, a, b } = lobby();
+    room.handle(a, { t: 'start', scheme: { turnTime: 5 } });
+    const w = () => room.world!;
+    stepUntil(room, () => w().turn.phase === 'aim');
+    const me = w().turn.teamIdx === 0 ? a : b;
+    room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });
+    room.step();
+    room.step();
+    room.handle(me, { t: 'input', f: toWire({ held: 0, pressed: 0 }) });
+    stepUntil(room, () => w().turn.phase !== 'aim' && w().turn.phase !== 'retreat');
+    room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });
+    expect(me.msgs.filter((m) => m.t === 'error')).toHaveLength(0);
+  });
+
+  it('lets a player whose connection went quiet take their slot back at once', () => {
+    const { room, a, b } = lobby();
+    room.handle(a, { t: 'start', scheme: {} });
+    const token = b.last('room')!.token;
+    // b's game gave up on its old connection, which the server still thinks is open.
+    const b2 = new Client();
+    expect(room.join(b2, team('Bravo'), token)).toBe(true);
+    expect(b2.last('snapshot')!.you).toBe(1);
+    // The old connection gets nothing more, and closing it later changes nothing.
+    const before = b.msgs.length;
+    room.step();
+    room.step();
+    expect(b.msgs.length).toBe(before);
+    room.leave(b);
+    expect(a.last('room')!.slots[1].connected).toBe(true);
+  });
+
+  it('accepts the power the player saw', () => {
+    expect(cleanFrame([0, 0, { t: 'power', p: 420 }]).cmd).toEqual({ t: 'power', p: 420 });
+    expect(cleanFrame([0, 0, { t: 'power', p: 'lots' }]).cmd).toBeUndefined();
   });
 });

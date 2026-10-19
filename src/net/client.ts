@@ -81,6 +81,20 @@ export class NetClient {
     this.send({ t: 'report', idx, reason });
   }
 
+  /**
+   * The connection has gone quiet (it can look open for a minute after the
+   * signal goes): drop it now and let onDrop reconnect.
+   */
+  drop(): void {
+    const ws = this.ws;
+    if (!ws) return;
+    this.ws = null;
+    ws.onclose = null;
+    ws.onmessage = null;
+    ws.close();
+    if (!this.closing) this.onDrop?.();
+  }
+
   close(): void {
     this.closing = true;
     this.send({ t: 'leave' });

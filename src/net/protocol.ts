@@ -8,7 +8,7 @@
 import type { Command, InputFrame, Scheme } from '../sim/types';
 import type { TeamConfig } from '../sim/world';
 
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 
 /** A player's team as shown in the lobby. */
 export interface LobbyTeam {

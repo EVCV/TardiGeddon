@@ -16,8 +16,14 @@ export type Command =
   | { t: 'weapon'; id: string }
   | { t: 'fuse'; s: number }
   | { t: 'target'; x: number; y: number }
-  /** Set the aim directly (drag-to-aim on touch screens). */
+  /** Set the aim directly (drag-to-aim on touch screens, and online when ▲▼ are let go). */
   | { t: 'aim'; facing: number; aim: number }
+  /**
+   * Sent with letting go of Fire online: the power the player saw. The
+   * server's charge runs ahead of the player's screen by the connection's
+   * delay, so the shot uses this instead (never more than was charged).
+   */
+  | { t: 'power'; p: number }
   | { t: 'skip' };
 
 export interface InputFrame {
@@ -194,6 +200,8 @@ export interface TurnState {
   winner: number; // team id, -1 = none/draw
   /** Ticks Up (+) or Down (-) has been held, so aiming starts fine and speeds up. */
   aimHeld: number;
+  /** Ticks Fire has been held at full power (the shot goes off by itself after FULL_HOLD_TICKS). */
+  fullHold: number;
 }
 
 /** Rope Race course and results. */

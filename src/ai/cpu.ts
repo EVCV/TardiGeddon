@@ -1,6 +1,10 @@
 // CPU opponent. Picks a shot by simulating candidate throws against the
 // current state, then "presses buttons" through the normal input path.
 // Runs only on one machine (host) — its inputs are what get replayed.
+//
+// Working out a shot takes a few hundred milliseconds, so it's done in
+// slices of a few milliseconds per tick while the CPU "thinks", never all at
+// once: on the game server one CPU turn must not stall every other match.
 
 import { cloneWorld, launchVelocity, stepProjectile, activeTardi, traceHitscan, TARDI_R, AIM_STEP, POWER_STEP } from '../sim/world';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type Projectile, type Tardi, type WorldState } from '../sim/types';
@@ -46,6 +50,9 @@ function gauss(): number {
   return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
 }
 
+/** Most time (ms) the CPU spends working out its shot in one tick. */
+export const SLICE_MS = 4;
+
 interface Plan {
   weapon: string;
   facing: 1 | -1;
@@ -58,6 +65,8 @@ interface Plan {
 
 export class CpuPlayer {
   private plan: Plan | null = null;
+  /** The shot being worked out, a slice at a time. */
+  private planning: Generator<void, Plan | null> | null = null;
   private planTurn = -1;
   private think = 0;
   private step: 'face' | 'weapon' | 'aim' | 'fuse' | 'charge' | 'done' = 'face';
@@ -65,7 +74,11 @@ export class CpuPlayer {
 
   private readonly skill: SkillDef;
 
-  constructor(skill: CpuSkill = 'normal') {
+  constructor(
+    skill: CpuSkill = 'normal',
+    /** Time per tick for working out the shot (Infinity: all at once). */
+    private sliceMs = SLICE_MS,
+  ) {
     this.skill = SKILL_DEFS[skill] ?? SKILL_DEFS.normal;
   }
 
@@ -77,14 +90,28 @@ export class CpuPlayer {
 
     if (this.planTurn !== turn.turnNumber) {
       this.planTurn = turn.turnNumber;
-      this.plan = choosePlan(s, this.skill);
+      this.plan = null;
+      this.planning = choosePlan(s, this.skill);
       this.think = 40;
       this.step = 'face';
+    }
+    if (this.planning) {
+      const end = performance.now() + this.sliceMs;
+      for (;;) {
+        const r = this.planning.next();
+        if (r.done) {
+          this.plan = r.value;
+          this.planning = null;
+          break;
+        }
+        if (performance.now() >= end) break;
+      }
     }
     if (this.think > 0) {
       this.think--;
       return EMPTY_INPUT;
     }
+    if (this.planning) return EMPTY_INPUT; // still working it out
     const p = this.plan;
     if (!p) return { held: 0, pressed: 0, cmd: { t: 'skip' } };
 
@@ -143,9 +170,13 @@ interface Candidate {
   ownGoal: boolean;
 }
 
-function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
+/** Work out a shot, yielding between candidate throws so it can be spread over ticks. */
+function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | null> {
+  // The world as it was when the turn began: the live one moves on while we think.
+  const s = cloneWorld(live);
   const me = activeTardi(s);
   if (!me) return null;
+  yield;
   const sim = cloneWorld(s);
   // It plans for the wind it thinks there is.
   sim.wind = s.wind * skill.windSense;
@@ -156,16 +187,26 @@ function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
 
   const ammo = s.teams[me.team].ammo;
   const usable = (w: string) => ammo[w] !== 0;
-  // Thrown weapons the CPU can plan: simulate each candidate throw.
+  // Thrown weapons the CPU can plan: simulate each candidate throw. Weapons
+  // that fly alike (bazooka and mortar, grenade and cluster) land in the same
+  // place, so each throw is worked out once for both.
+  const landed = new Map<string, { x: number; y: number } | null>();
   for (const weapon of ['bazooka', 'grenade', 'cluster', 'mortar', 'holywater'].filter(usable)) {
     const spec = WEAPONS[weapon].projectile!;
+    const flight = flightKey(weapon);
     for (const facing of [1, -1] as const) {
       // Aim is reached in AIM_STEP increments from the turn's start aim.
       for (let aim = s.turn.aim - AIM_STEP * 80; aim <= s.turn.aim + AIM_STEP * 50; aim += AIM_STEP * 6) {
         if (aim < -1024 || aim > 1024) continue;
         for (let power = 300; power <= 1000; power += 100) {
           const fuse = 3;
-          const hit = predict(sim, weapon, me.x, me.y, facing, aim, power, fuse * TICK_RATE, me.id);
+          const key = `${flight}|${facing}|${aim}|${power}`;
+          let hit = landed.get(key);
+          if (hit === undefined) {
+            hit = predict(sim, weapon, me.x, me.y, facing, aim, power, fuse * TICK_RATE, me.id);
+            landed.set(key, hit);
+            yield;
+          }
           if (hit) add({ weapon, facing, aim, power, fuse }, hit.x, hit.y, spec.radius, spec.damage);
         }
       }
@@ -179,6 +220,7 @@ function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
         if (aim < -1024 || aim > 1024) continue;
         const shot = traceHitscan(sim, me, facing, aim, hs.range);
         if (shot.hit) add({ weapon, facing, aim, power: 0, fuse: 3 }, shot.x, shot.y, hs.radius, hs.damage * WEAPONS[weapon].shots);
+        yield;
       }
     }
   }
@@ -241,7 +283,7 @@ function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
         }
       }
       // The search grid is coarse; fine-tune that shot onto the chosen spot.
-      if (pick) pick = refine(sim, s, me, pick, tx, ty) ?? pick;
+      if (pick) pick = (yield* refine(sim, s, me, pick, tx, ty)) ?? pick;
     }
   }
   const plan: Plan = { ...(pick?.plan ?? best) };
@@ -257,7 +299,7 @@ function choosePlan(s: WorldState, skill: SkillDef): Plan | null {
  * Nudge a thrown shot's aim and power around the grid point it came from, to
  * land as close as possible to (tx, ty) without hurting our own side.
  */
-function refine(sim: WorldState, s: WorldState, me: Tardi, c: Candidate, tx: number, ty: number): Candidate | null {
+function* refine(sim: WorldState, s: WorldState, me: Tardi, c: Candidate, tx: number, ty: number): Generator<void, Candidate | null> {
   const { weapon, facing, aim, power, fuse } = c.plan;
   if (WEAPONS[weapon].kind !== 'charge') return null;
   const radius = WEAPONS[weapon].projectile!.radius;
@@ -269,6 +311,7 @@ function refine(sim: WorldState, s: WorldState, me: Tardi, c: Candidate, tx: num
     for (let pw = power - POWER_STEP * 5; pw <= power + POWER_STEP * 5; pw += POWER_STEP) {
       if (pw < 100 || pw > 1000) continue;
       const hit = predict(sim, weapon, me.x, me.y, facing, a, pw, fuse * TICK_RATE, me.id);
+      yield;
       if (!hit || hurtsTeam(s, hit.x, hit.y, radius, me.team)) continue;
       const d = (hit.x - tx) * (hit.x - tx) + (hit.y - ty) * (hit.y - ty);
       if (d < bestD) {
@@ -278,6 +321,12 @@ function refine(sim: WorldState, s: WorldState, me: Tardi, c: Candidate, tx: num
     }
   }
   return best;
+}
+
+/** Everything about a weapon that decides where its shot flies (not what it does when it lands). */
+export function flightKey(weapon: string): string {
+  const p = WEAPONS[weapon].projectile!;
+  return JSON.stringify([p.windFactor, p.bounce, p.speed, p.playerFuse, p.fuseTicks, p.sticky, p.drill, p.homing, p.crusher, p.walker]);
 }
 
 /** Would a blast here hurt any of our own living tardis? */

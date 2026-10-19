@@ -4,7 +4,7 @@
 // unit-tested without sockets.
 
 import { createWorld, DEFAULT_NAMES, MAX_TEAMS, tick, type TeamConfig } from '../src/sim/world';
-import { DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../src/sim/types';
+import { BTN_FIRE, DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../src/sim/types';
 import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
@@ -22,6 +22,9 @@ const FLUSH_EVERY = 2;
 const HASH_EVERY = 100;
 /** Most queued input frames kept for the active player. */
 const QUEUE_MAX = 50;
+/** Fire pressed this long (ticks) after a player's turn ran out gets a "too late" message. */
+const LATE_TICKS = 150;
+export const TOO_LATE = 'Too late: your turn had run out before your shot reached the game.';
 
 export interface Member {
   send(msg: ServerMsg): void;
@@ -75,6 +78,8 @@ interface Slot {
   held: number;
   /** Ticks of the current match this human spent disconnected (the CPU played for them). */
   absent: number;
+  /** Tick their last turn ran out with no shot, or -1: a late Fire then gets told why nothing happened. */
+  timedOutAt: number;
 }
 
 /** Players away for more than this share of a match earn nothing from it, even if they rejoin. */
@@ -162,6 +167,7 @@ export function cleanFrame(raw: unknown): InputFrame {
   else if (c.t === 'fuse' && finite(c.s)) f.cmd = { t: 'fuse', s: c.s as number };
   else if (c.t === 'target' && finite(c.x) && finite(c.y)) f.cmd = { t: 'target', x: Math.round(c.x as number), y: Math.round(c.y as number) };
   else if (c.t === 'aim' && finite(c.aim) && (c.facing === 1 || c.facing === -1)) f.cmd = { t: 'aim', facing: c.facing, aim: c.aim as number };
+  else if (c.t === 'power' && finite(c.p)) f.cmd = { t: 'power', p: c.p as number };
   else if (c.t === 'skip') f.cmd = { t: 'skip' };
   return f;
 }
@@ -216,7 +222,10 @@ export class Room {
 
   /** Add a new human (or reclaim a slot with its token). Returns false if the room is full. */
   join(member: Member, team: unknown, token?: string): boolean {
-    const back = token ? this.slots.find((s) => s.token === token && !s.member && !s.cpu) : undefined;
+    // The token is secret, so it's the same player: they may take the slot back
+    // even while their old connection still looks open (it went quiet, and
+    // their game gave up on it before our heartbeat did).
+    const back = token ? this.slots.find((s) => s.token === token && !s.cpu) : undefined;
     if (back) {
       back.member = member;
       this.emptySince = 0;
@@ -272,11 +281,13 @@ export class Room {
         // The host's unlocked season weapons are switched on for everyone in the room.
         if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme, slot.unlocked ?? []);
         break;
-      case 'input':
-        if (this.state && this.state.turn.teamIdx === idx && slot.queue.length < QUEUE_MAX) {
-          slot.queue.push(cleanFrame(msg.f));
-        }
+      case 'input': {
+        if (!this.state) break;
+        const f = cleanFrame(msg.f);
+        if (slot.timedOutAt >= 0 && (f.held & BTN_FIRE) !== 0) this.tooLate(slot);
+        else if (this.state.turn.teamIdx === idx && slot.queue.length < QUEUE_MAX) slot.queue.push(f);
         break;
+      }
       case 'resync':
         if (this.state) this.sendSnapshot(slot);
         break;
@@ -319,6 +330,7 @@ export class Room {
         sl.queue = [];
         sl.held = 0;
       }
+      if (this.slots[ti]) this.slots[ti].timedOutAt = -1;
       this.lastTeam = ti;
     }
     const slot = this.slots[ti];
@@ -333,8 +345,18 @@ export class Room {
       if (q) slot.held = q.held;
       frame = q ?? { held: slot.held, pressed: 0 };
     }
+    const was = { phase: s.turn.phase, timer: s.turn.timer };
     const events: SimEvent[] = [];
     tick(s, frame, events);
+    if (slot && !slot.cpu) {
+      if (was.phase === 'aim' && was.timer <= 1 && s.turn.phase !== 'aim' && s.turn.phase !== 'retreat') {
+        // The clock ran out before they fired. A Fire still on its way (or
+        // waiting in the queue) will do nothing, so they get told why.
+        slot.timedOutAt = s.tick;
+        if (slot.queue.some((q) => (q.held & BTN_FIRE) !== 0)) this.tooLate(slot);
+      }
+    }
+    for (const sl of this.slots) if (sl.timedOutAt >= 0 && s.tick - sl.timedOutAt > LATE_TICKS) sl.timedOutAt = -1;
     this.tally?.add(s, events);
     this.outbox.push(toWire(frame));
     if (this.outbox.length >= FLUSH_EVERY) this.flush();
@@ -392,7 +414,7 @@ export class Room {
       used.add(alt);
       return alt;
     });
-    const slot: Slot = { team, typed, reported: new Set(), cpu, member: null, token: randomToken(), queue: [], held: 0, absent: 0 };
+    const slot: Slot = { team, typed, reported: new Set(), cpu, member: null, token: randomToken(), queue: [], held: 0, absent: 0, timedOutAt: -1 };
     this.slots.push(slot);
     return slot;
   }
@@ -410,12 +432,21 @@ export class Room {
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();
     this.tally = new MatchTally(this.teams.length);
-    for (const sl of this.slots) sl.absent = 0;
+    for (const sl of this.slots) {
+      sl.absent = 0;
+      sl.timedOutAt = -1;
+    }
     this.outbox = [];
     this.outFrom = 0;
     this.lastTeam = -1;
     this.broadcastRoom();
     this.slots.forEach((s, i) => s.member?.send({ t: 'start', seed, scheme: this.scheme, teams: this.teams, you: i }));
+  }
+
+  /** Tell a player their Fire came after their turn had run out (once per turn). */
+  private tooLate(slot: Slot): void {
+    slot.timedOutAt = -1;
+    slot.member?.send({ t: 'error', msg: TOO_LATE });
   }
 
   private flush(): void {

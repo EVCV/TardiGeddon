@@ -42,6 +42,12 @@ const AIM_STEP_MAX = 16;
 const RACE_GOAL_R = 22;
 export const AIM_MAX = ANGLE_QUARTER;
 export const POWER_STEP = 20;
+/**
+ * Held at full power, the shot goes off by itself after this many ticks. The
+ * pause gives an online player's "let go" time to reach the server, whose
+ * charge is ahead of their screen.
+ */
+export const FULL_HOLD_TICKS = 20;
 export const POWER_MAX = 1000;
 export const WIND_ACCEL = 0.05;
 /** Sideways speed a strike's drops start with at full wind (they keep drifting as they fall). */
@@ -172,6 +178,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         settleTotal: 0,
         winner: -1,
         aimHeld: 0,
+        fullHold: 0,
       },
       nextId: 1,
       prevHeld: 0,
@@ -426,6 +433,8 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
         turn.aim = Math.max(-AIM_MAX, Math.min(AIM_MAX, Math.round(cmd.aim)));
         if (!turn.charging && (cmd.facing === 1 || cmd.facing === -1)) t.facing = cmd.facing;
       }
+    } else if (cmd.t === 'power') {
+      if (turn.charging) turn.power = Math.max(0, Math.min(turn.power, Math.round(cmd.p)));
     } else if (cmd.t === 'skip') {
       endTurnNow(s);
       return;
@@ -520,10 +529,14 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
       if (fireEdge && !turn.charging) {
         turn.charging = true;
         turn.power = 0;
+        turn.fullHold = 0;
       }
       if (turn.charging) {
-        if ((held & BTN_FIRE) !== 0) turn.power = Math.min(POWER_MAX, turn.power + POWER_STEP);
-        if (fireReleased || turn.power >= POWER_MAX) {
+        if ((held & BTN_FIRE) !== 0) {
+          if (turn.power >= POWER_MAX) turn.fullHold++;
+          turn.power = Math.min(POWER_MAX, turn.power + POWER_STEP);
+        }
+        if (fireReleased || turn.fullHold >= FULL_HOLD_TICKS) {
           fireProjectile(s, t, def, events);
           afterShot(s, def);
         }

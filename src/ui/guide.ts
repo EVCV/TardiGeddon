@@ -57,7 +57,7 @@ export function onlineGuide(): HTMLElement {
     [
       '**Quick play:** play people you don’t know. Tap Quick play and you’re matched with up to 3 other players. Everyone gets a made-up team name, so nobody sees the names you typed. Tired of waiting? Tap “Play a CPU instead”.',
       '**With friends:** tap “Create a room”, then share the 5-letter room code or the invite link. Your friends type the code in the Room code box and tap Join (or just open the link). The host can add CPU teams, picks the game style and starts the match.',
-      '**Dropped connection?** The game reconnects by itself and puts you back in your place. While you’re away, the computer plays your turns.',
+      '**Slow or dropped connection?** You’ll see ⚠️ Slow connection, and if it stops for a few seconds the game reconnects by itself and puts you back in your place. While you’re away, the computer plays your turns.',
       '**Rematch:** after a match everyone goes back to the room, so you can play again straight away.',
       '**Stats and Slime:** sign in to earn Slime and keep your stats from online games.',
       '**Staying safe:** there is no chat. Names are checked for anything rude or personal. Use ⚑ Report or 🚫 Block next to a player in the room, or the 👥 button in a match. Blocked players never join your quick-play games.',
