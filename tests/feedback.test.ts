@@ -64,6 +64,20 @@ describe('Practice', () => {
     expect(me.y).toBeLessThan(s.waterY);
   });
 
+  it('climbs back out on ground that is still there if the start was blown away', () => {
+    const s = world();
+    const me = s.tardis.find((t) => t.team === 0)!;
+    const home = { ...s.practice! };
+    // Blow a big hole where it started.
+    for (let y = 0; y < s.terrain.h; y++) for (let x = home.x - 60; x <= home.x + 60; x++) if (x >= 0 && x < s.terrain.w) s.terrain.mask[y * s.terrain.w + x] = 0;
+    me.y = s.waterY + 50;
+    run(s, 2);
+    expect(me.alive).toBe(true);
+    expect(Math.abs(me.x - home.x)).toBeGreaterThan(60);
+    run(s, 200);
+    expect(me.y).toBeLessThan(s.waterY); // landed, not back in the water
+  });
+
   it('ends when every target is popped, and you win', () => {
     const s = world();
     for (const t of s.tardis) if (t.team === 1) t.pendingDmg = 500;
@@ -125,6 +139,34 @@ describe('Friendly fire', () => {
     const { mate, foe } = pair(true);
     expect(mate.pendingDmg).toBeGreaterThan(0);
     expect(foe.pendingDmg).toBeGreaterThan(0);
+  });
+
+  it("off: your poison clouds don't poison your own team", () => {
+    const s = flat(
+      createWorld({
+        seed: 77,
+        teams: [
+          { name: 'Red', color: 0xe04848, cpu: false },
+          { name: 'Blue', color: 0x3a7be0, cpu: false },
+        ],
+        scheme: { friendlyFire: false, tardisPerTeam: 2, mines: 0, drums: 0 },
+      }),
+    );
+    const me = activeTardi(s)!;
+    const mate = s.tardis.find((t) => t.team === me.team && t !== me)!;
+    const foe = s.tardis.find((t) => t.team !== me.team)!;
+    mate.x = 1100;
+    foe.x = 1130;
+    select(s, 'cyanobloom');
+    s.tardis.forEach((t) => (t.poison = false));
+    // Fire it at the floor between them and let it go off.
+    me.x = 1115;
+    s.turn.aim = 512; // straight down
+    run(s, 1, { held: BTN_FIRE, pressed: 0 });
+    run(s, 1, EMPTY_INPUT);
+    runUntilPhase(s, 'aim', 5000);
+    expect(foe.poison || !foe.alive).toBe(true);
+    expect(mate.poison).toBe(false);
   });
 
   it("off: your blasts don't hurt or push your own team, only the others", () => {

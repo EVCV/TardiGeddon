@@ -1194,6 +1194,21 @@ function immortal(s: WorldState, t: Tardi): boolean {
   return s.practice !== null && t.team === 0;
 }
 
+/** Free standing room on solid ground above the water, as near x as possible (searching outwards). */
+function safeGroundNear(s: WorldState, x0: number): { x: number; y: number } | null {
+  for (let d = 0; d < s.terrain.w; d += 8) {
+    for (const x of d === 0 ? [x0] : [x0 - d, x0 + d]) {
+      if (x < 40 || x > s.terrain.w - 40) continue;
+      const sy = surfaceBelow(s.terrain, x, 0);
+      if (sy < 0 || sy > s.waterY - 30) continue;
+      const y = sy - TARDI_R - 1;
+      if (circleCollides(s.terrain, x, y, TARDI_R) || !circleCollides(s.terrain, x, y + 2, TARDI_R)) continue;
+      return { x, y };
+    }
+  }
+  return null;
+}
+
 function endlessPractice(s: WorldState): boolean {
   return s.practice !== null && s.scheme.practiceEndless === true;
 }
@@ -1256,9 +1271,10 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
     return;
   }
   if (immortal(s, t) && (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60)) {
-    // Practice: climbs back out where it started.
+    // Practice: climbs back out where it started, or on the nearest ground still
+    // there (the start may have been blown away).
     events.push({ t: 'drown', id: t.id });
-    const home = s.practice!;
+    const home = safeGroundNear(s, s.practice!.x) ?? s.practice!;
     t.x = home.x;
     t.y = home.y;
     t.vx = 0;
@@ -1385,7 +1401,7 @@ function updateFlames(s: WorldState, events: SimEvent[]): void {
 /** Poison gas: every tardi within the radius (with no wall check) gets poisoned. */
 function poisonCloud(s: WorldState, x: number, y: number, r: number, events: SimEvent[]): void {
   for (const t of s.tardis) {
-    if (!t.alive) continue;
+    if (!t.alive || sparedByTeam(s, t)) continue;
     const dx = t.x - x;
     const dy = t.y - y;
     if (dx * dx + dy * dy < r * r) t.poison = true;

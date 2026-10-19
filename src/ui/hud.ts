@@ -233,13 +233,14 @@ export class Hud {
 
     this.teams.innerHTML = '';
     this.teams.classList.toggle('many', s.teams.length > 4);
-    const maxHp = s.scheme.startHp * s.scheme.tardisPerTeam;
+    // Each team's own roster (practice is one tardigrade against ten targets).
+    const maxHpOf = (id: number) => s.scheme.startHp * Math.max(1, s.teams[id].tardiIds.length);
     for (const tm of s.teams) {
       const hp = s.tardis.filter((x) => x.team === tm.id && x.alive).reduce((a, x) => a + x.hp, 0);
       const row = el('div', 'team-row');
       const name = el('span', 'team-name', teamLabel(tm));
       const bar = el('div', 'team-bar');
-      bar.style.width = `${Math.max(2, (hp / maxHp) * 100)}%`;
+      bar.style.width = `${Math.max(2, Math.min(100, (hp / maxHpOf(tm.id)) * 100))}%`;
       bar.style.background = hex(tm.color);
       row.append(name, bar);
       if (s.race) {
