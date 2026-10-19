@@ -51,3 +51,28 @@ test('the guide explains wind, brine drums and online play, and fits a phone', a
   });
   if (test.info().project.name === 'phone') expect(over).toBeLessThanOrEqual(1);
 });
+
+test('bigger text: everything scales together, text stays inside buttons, menus still fit', async ({ browser }, info) => {
+  const ctx = await browser.newContext({ ...info.project.use });
+  await ctx.addInitScript(() => localStorage.setItem('tardigeddon.textsize', '1.5'));
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await expect(page.locator('.lobby')).toBeVisible();
+  const scale = Number(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')));
+  expect(scale).toBeGreaterThan(1);
+  const over = await page.evaluate(() => {
+    const pg = document.querySelector('.hub-page')!;
+    return pg.scrollHeight - pg.clientHeight;
+  });
+  if (info.project.name === 'phone') expect(over).toBeLessThanOrEqual(1);
+  await page.goto('/?autostart=practice');
+  await page.waitForFunction(() => (window as unknown as { __tardi?: Tardi }).__tardi?.state.turn.phase === 'aim');
+  // No button's words spill out of it.
+  const spill = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('.touch-btn, .hud-btn, .hud-weapon')]
+      .filter((b) => b.offsetParent && (b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1))
+      .map((b) => b.textContent),
+  );
+  expect(spill).toEqual([]);
+  await ctx.close();
+});

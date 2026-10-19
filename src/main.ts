@@ -3,6 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
+import { initTextSize } from './ui/textSize';
 import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearMusic, wearSkin, wearSounds } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
@@ -40,6 +41,7 @@ const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 
 async function boot(): Promise<void> {
+  void initTextSize();
   if (touchMode) enforceLandscape();
   const app = new Application();
   await app.init({

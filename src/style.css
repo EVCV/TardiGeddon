@@ -30,6 +30,8 @@ html, body {
 }
 #game, #game canvas { position: fixed; inset: 0; display: block; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
+/* Text size (Settings, ui/textSize.ts): menus and the match HUD scale as a whole, text and buttons together. */
+#ui { zoom: var(--ui-scale, 1); }
 .hidden { display: none !important; }
 
 /* ---------- Buttons ---------- */
@@ -1443,6 +1445,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .phone-only, .hub-back, .hub-title { display: none; }
 @media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
   .menu.hub { height: 100vh; height: 100dvh; overflow: hidden; }
+  /* Bigger text: the phone screens lay out on the screen as it is after scaling. */
+  .menu.hub { height: calc(100dvh / var(--ui-scale, 1)); }
   .menu.hub .hub-footer, .menu.hub .hub-tabs, .menu.hub .hub-logo, .menu.hub .hub-me { display: none; }
   .menu.hub[data-tab=lobby] .hub-bar { display: none; }
   .hub-bar { padding: 6px calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
@@ -1651,8 +1655,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
     grid-template-areas: 'menu status' 'menu content';
   }
   .page-settings .settings-side { display: contents; }
-  .settings-menu.phone-only { grid-area: menu; display: flex; flex-direction: column; gap: 6px; }
+  /* The section list scrolls inside its column if it's longer than the screen (bigger text, small phones). */
+  .settings-menu.phone-only { grid-area: menu; align-self: stretch; contain: size; height: 100%; display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
   .settings-menu-btn {
+    flex-shrink: 0; /* never squashed: the list scrolls instead */
     text-align: left;
     padding: 8px 10px;
     border: 3px solid var(--ink);
@@ -1670,6 +1676,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .settings-menu-btn.on { background: var(--accent); }
   .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
   .page-settings > .card, .page-settings .settings-side > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
+  .page-settings[data-section=text] [data-section=text],
   .page-settings[data-section=sound] [data-section=sound],
   .page-settings[data-section=blocked] [data-section=blocked],
   .page-settings[data-section=touch] [data-section=touch],
@@ -1790,3 +1797,5 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .practice-option:hover, .practice-option:focus-visible { background: var(--accent); }
 .practice-option b { font-family: var(--title); font-size: 20px; font-weight: 400; }
 .practice-option span { font-size: 14px; }
+
+.text-size-seg { flex-wrap: wrap; }

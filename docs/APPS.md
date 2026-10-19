@@ -64,6 +64,11 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   in the app.
 - **Email sign-in only:** Google and Apple refuse to show their sign-in pages
   inside an app.
+- **The phone's font size:** a WebView would enlarge only the text (it spilled
+  out of FIRE and other buttons), so `MainActivity` turns that off
+  (`setTextZoom(100)`) and `DisplayPlugin` tells the game the phone's font
+  scale; Settings → Text size "Auto" then scales the whole interface, text and
+  buttons together (`src/ui/textSize.ts`, up to what the screen has room for).
 
 ## Still to do
 

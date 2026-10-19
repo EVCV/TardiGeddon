@@ -59,6 +59,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.arena` | Local storage | TardiGeddon (first party) | The arena theme you chose to play in | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.music` | Local storage | TardiGeddon (first party) | The match music you chose | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.sounds` | Local storage | TardiGeddon (first party) | The sound pack you chose for sound effects | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.textsize` | Local storage | TardiGeddon (first party) | The text size you chose in Settings | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.blocked` | Local storage | TardiGeddon (first party) | The players you have blocked in online play (the id our server gave them, the team name you saw and when), so you aren't matched with them again | Strictly necessary | Until you unblock them or clear site data |
 | `tardigeddon.audio` | Local storage | TardiGeddon (first party) | Your sound settings: music and sound effects on or off, and their volume | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.menu` | Local storage | TardiGeddon (first party) | Your game style, custom rules, players and CPU skill | Strictly necessary | Until you change it or clear site data |
