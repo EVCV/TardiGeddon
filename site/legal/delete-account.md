@@ -1,8 +1,8 @@
 # Delete Your TardiGeddon Account
 
 **Effective Date:** 17 October 2026
-**Last Modified:** 17 October 2026
-**Document Version:** v1.0
+**Last Modified:** 20 October 2026
+**Document Version:** v1.1
 **Applies To:** TardiGeddon by EVCV Limited: the game at https://tardigeddon.com/play, the TardiGeddon Android app on Google Play, and its online game server
 
 ---
@@ -33,7 +33,7 @@ This page explains how to delete your TardiGeddon account, or just some of your 
 
 2.0.1 Your account: email address, player name and password.
 
-2.0.2 Everything the account owns and has earned: shop items, coins and Slime (coins can't be refunded once the account is gone), and your game stats.
+2.0.2 Everything the account owns and has earned: shop items, coins and Slime (coins can't be refunded once the account is gone), the record of where your coins came from, and your game stats.
 
 2.0.3 Your control settings saved to the account, and every sign-in session.
 
@@ -41,7 +41,7 @@ This page explains how to delete your TardiGeddon account, or just some of your 
 
 ### 2.1 Kept
 
-2.1.1 **Purchase records** (what was bought, when, for how much, and the payment references): kept for six years after the end of the financial year of the purchase, because UK tax law requires it. They are no longer linked to you once your account is deleted. Google and Stripe keep their own records of payments made through them.
+2.1.1 **Purchase records** (what was bought, when, for how much, the country of the payment if known, and the payment references): kept for six years after the end of the financial year of the purchase, because UK tax law requires it. They are no longer linked to you once your account is deleted. Google and Stripe keep their own records of payments made through them.
 
 2.1.2 **Gifts** you sent or claimed: the record stays while the other player's account exists, so they keep what they were given, but it no longer points to your account.
 

@@ -327,9 +327,8 @@ hand, coins from before lots). Spending takes free coins first, then the
 oldest paid ones. Japan's Payment Services Act counts the unspent paid coins
 of players in Japan. Once these are worth more than ¥10 million on 31 March
 or 30 September, EVCV must notify the Local Finance Bureau. Every hour the
-server checks this figure and emails the `ADMIN_EMAILS` (or
-support@tardigeddon.com if none are set) the first time it reaches 50%, 75%
-and 90%. Pounds are converted at `JPY_PER_GBP` (default 220, set high on
+server checks this figure and emails support@tardigeddon.com (or
+`JAPAN_ALERT_EMAIL`, if set) the first time it reaches 50%, 75% and 90%. Pounds are converted at `JPY_PER_GBP` (default 220, set high on
 purpose so it warns early); change it with
 `fly secrets set JPY_PER_GBP=200`. Refunds take a purchase's coins out of
 the figure. Starting the sales figures from zero doesn't change it.
