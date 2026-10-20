@@ -15,7 +15,8 @@ test('settings bind left-click to Fire, and the tutorial walks through the basic
   await page.mouse.click(30, 300);
   await expect(page.getByRole('button', { name: /^Fire \(hold to charge\), second key: Left click/ })).toBeVisible();
 
-  // The tutorial starts from the lobby.
+  // The tutorial starts from the lobby. Its button pulses for a new player (still with reduced motion).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.locator('.hub-tabs').getByRole('button', { name: /Lobby/ }).click();
   await page.locator('.learn-btn').click();
   const coach = page.locator('.coach');

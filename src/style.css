@@ -769,6 +769,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lobby-learn { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .learn-new { background: var(--accent); animation: nudge .9s infinite alternate; }
 @keyframes nudge { to { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .learn-new { animation: none; } }
 
 /* Career panel (ui/dashboard.ts) */
 .dash { display: flex; flex-direction: column; gap: 12px; }
