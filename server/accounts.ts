@@ -518,11 +518,14 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     // and Google refuses the second; so the second waits, then finds it done.
     const before = playInFlight.get(token) ?? Promise.resolve();
     const mine = before.then(() => settlePlayPurchase(res, user, pack, productId, token));
-    playInFlight.set(token, mine.catch(() => {}));
+    // What the next report waits on: never fails, and is what gets removed once done.
+    const tracked = mine.catch(() => {});
+    playInFlight.set(token, tracked);
     try {
       await mine;
     } finally {
-      if (playInFlight.get(token) === mine) playInFlight.delete(token);
+      // Forget it, unless another report of the same purchase has queued behind it.
+      if (playInFlight.get(token) === tracked) playInFlight.delete(token);
     }
   }
 
