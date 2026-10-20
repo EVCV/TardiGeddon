@@ -179,11 +179,15 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
     status.append(' ', link);
   }
 
+  // Two columns of about the same height: the long controls list with Learn to
+  // play under it, and the shorter settings stacked beside them.
+  const main = el('div', 'settings-main');
+  main.append(keysCard, learnCard);
   const side = el('div', 'settings-side');
-  side.append(textSettings(ctx), soundCard, touchCard, blockedSettings(ctx), learnCard);
+  side.append(textSettings(ctx), soundCard, touchCard, blockedSettings(ctx));
   // On a touch screen the touch settings come first.
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  root.append(status, ...(touchFirst ? [side, keysCard] : [keysCard, side]));
+  root.append(status, ...(touchFirst ? [side, main] : [main, side]));
 
   // Phones: a list of sections beside the one showing, instead of one long page.
   state.section ??= touchFirst ? 'touch' : 'keys';
