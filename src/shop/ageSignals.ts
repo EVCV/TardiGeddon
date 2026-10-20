@@ -1,7 +1,9 @@
 // The player's age band from Google Play, in the Android app: the JavaScript
 // half of android/app/src/main/java/com/tardigeddon/app/AgeSignalsPlugin.java.
 // Brazil's Digital ECA asks apps that children and teenagers are likely to
-// use to read it. The only thing it changes is buying coins: everything else
+// use to read it, and US state app-store laws (Texas SB 2420 now; Utah and
+// Louisiana in 2027) ask apps to respect the parent's consent Google Play
+// records (docs/GOOGLE_PLAY.md §6). The only thing it changes is buying coins: everything else
 // in the game is already the same for everyone (no chat, no ads, no loot
 // boxes, preset names with strangers).
 //

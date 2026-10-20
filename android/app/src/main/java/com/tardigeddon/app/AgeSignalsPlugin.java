@@ -11,9 +11,10 @@ import com.google.android.play.agesignals.model.*;
 
 /**
  * The player's age band from Google Play (the Play Age Signals API), for
- * Brazil's Digital ECA: apps that children and teenagers are likely to use
- * must read it. The game only uses it to adjust the coin shop
- * (src/ageSignals.ts). Nothing is sent to our server, and the game never asks
+ * Brazil's Digital ECA and US state app-store laws (Texas SB 2420): apps
+ * that children and teenagers are likely to use must read it. The game only
+ * uses it to adjust the coin shop (src/shop/ageSignals.ts). It never reads
+ * installId: Family Link stops the app itself when a parent revokes approval. Nothing is sent to our server, and the game never asks
  * anyone their age itself.
  *
  * Asking may show Google's own "share your age range?" prompt, so the game

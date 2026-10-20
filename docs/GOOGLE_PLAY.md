@@ -267,9 +267,25 @@ personal accounts) doesn't apply.
   no location, have no money games, and aren't based there.
 - **Vietnam:** leave out. Online games there need a government licence.
 
-**Age signals (Brazil's Digital ECA).** Apps children and teenagers are
-likely to use must read the age band Google Play provides, and games for
-them must have no loot boxes (we have none). The app asks Google when the
+**Age signals (Brazil's Digital ECA, US state app-store laws).** Apps
+children and teenagers are likely to use must read the age band Google Play
+provides, and games for them must have no loot boxes (we have none). Where
+Google returns it (as of October 2026):
+
+- **Brazil:** since 17 March 2026. The player, or a parent in Family Link,
+  chooses whether to share it.
+- **Texas (SB 2420):** in force (the injunction was stayed on appeal and the
+  Supreme Court declined to lift the stay), for Texas accounts created after
+  28 May 2026. No prompt: a verified or supervised account always shares,
+  any other account gets "verification required". Google asks parents to
+  consent to downloads, purchases and significant changes.
+- **Utah** (now 6 May 2027) and **Louisiana** (now 1 July 2027) were
+  delayed by their legislatures; **California** AB 1043 starts 1 January
+  2027. Google says it will update the API before each one. Check
+  [Google's page on these laws](https://support.google.com/googleplay/android-developer/answer/16569691)
+  and the [API overview](https://developer.android.com/google/play/age-signals/overview)
+  a month before each date.
+ The app asks Google when the
 player opens the coin packs (`AgeSignalsPlugin.java`, `src/shop/ageSignals.ts`).
 Google may show its own "share your age range?" prompt then. The answer
 only changes buying coins:
@@ -279,7 +295,32 @@ only changes buying coins:
 - **Google needs to confirm the age:** buying coins is off until the player does so in the Play Store.
 
 It stays in memory for the visit and is never sent to the server, so Data
-safety doesn't change. Test it with a licence-tester account on a phone
+safety doesn't change (Google: the library itself collects nothing).
+
+The **Age signals** page in Play Console has three parts:
+
+- **Custom age ranges:** leave them off. `coinRules` reads "no upper
+  bound" as 18 and over, which is only true with Google's default bands
+  (0–12, 13–15, 16–17, 18+).
+- **Significant changes:** after launch, when an update changes what data
+  the app collects or how it's used (a Privacy Policy change of that kind),
+  the content rating, how it makes money (e.g. ads, subscriptions), or
+  materially changes how the game works (e.g. chat), file it here *before*
+  it ships: an "effective from" date (00:00 UTC, up to 90 days ahead, at
+  most 3 queued, more than 2 days apart) and a short description in en-US,
+  which parents see word for word. Google then asks the parents of
+  supervised players in Texas (and later the other states) to approve it.
+  Until they do, the API says `pending` or `declined`, and the app must
+  keep the new thing off for that player. Today the app reacts by switching
+  coin buying off; a change to something else needs its own check of the
+  answer (and of `significantChangeApprovalDate`) in that feature, with a
+  test. Cosmetic items, maps and fixes aren't significant changes.
+- **Revoked app approvals:** when a parent withdraws approval in Family
+  Link, Google stops the player opening the app and lists the install's
+  `installId` here. The app doesn't keep `installId`s (nothing is sent to
+  the server), so there's nothing to match and nothing to do. Storing them
+  would need a server change, a Data safety answer and a Privacy Policy
+  change: don't, unless a law starts requiring us to act on revocations. Test it with a licence-tester account on a phone
 that installed the app from Play. Apps installed any other way get
 `APP_NOT_OWNED`, and the shop then works as usual.
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { coinRules, mayChange, withTimeout } from '../src/shop/ageSignals';
 
-// Brazil's Digital ECA: Google Play's age band only changes buying coins.
+// Brazil's Digital ECA and US state app-store laws: Google Play's age band only changes buying coins.
 describe('age signals and the coin shop', () => {
   it('changes nothing for adults, players who share nothing, or when Play is unavailable', () => {
     expect(coinRules(null)).toEqual({});
