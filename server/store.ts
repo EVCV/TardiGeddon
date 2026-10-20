@@ -3,6 +3,12 @@
 // record of every purchase. Better Auth keeps its own tables (user,
 // session, account, verification) in the same database.
 //
+// A wallet's coins are also kept as "lots": where each batch came from (a
+// payment, its bonus, or from before lots existed), the buyer's country and
+// what it cost. Spending takes free coins first, then the oldest paid ones.
+// That's for Japan's Payment Services Act, which counts the unspent paid
+// coins held by players there (coinLiability; docs/GOOGLE_PLAY.md).
+//
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
@@ -10,6 +16,7 @@ import { createHash, randomInt } from 'node:crypto';
 import { GIFTS_PER_DAY, GIFT_ALPHABET, GIFT_MESSAGES, SHOP_ITEMS, bundle, bundlePrice, coinPack, giftable, normaliseGiftCode, packTotal, shopItem } from '../src/shop/catalog';
 import type { GiftSent, SalesReport } from '../src/account/session';
 import { sanitiseControls, type Controls } from '../src/input/controls';
+import { DEFAULT_JPY_PER_GBP, JAPAN_ALERTS, JAPAN_LIMIT_YEN, japanLevelsReached, japanYen, type UnspentRow } from '../src/shop/japan';
 
 export async function migrate(db: Pool): Promise<void> {
   await db.query(`
@@ -37,6 +44,8 @@ export async function migrate(db: Pool): Promise<void> {
     ALTER TABLE purchase ADD COLUMN IF NOT EXISTS refunded_at timestamptz;
     -- Coin packs bought before bonus coins existed gave exactly their base amount (the number in the id).
     UPDATE purchase SET coins = split_part(item, ':', 2)::int WHERE coins IS NULL AND item ~ '^coins:[0-9]+$';
+    -- The buyer's country (ISO code, from Stripe or Google), when known.
+    ALTER TABLE purchase ADD COLUMN IF NOT EXISTS region text;
     CREATE TABLE IF NOT EXISTS player_stats (
       user_id       text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       online_played integer NOT NULL DEFAULT 0,
@@ -86,6 +95,29 @@ export async function migrate(db: Pool): Promise<void> {
       cancelled_at timestamptz
     );
     CREATE INDEX IF NOT EXISTS gift_from ON gift (from_user, created_at);
+    -- Where a wallet's coins came from (see the top of this file). The lots'
+    -- left_coins add up to the wallet's coins (or 0 while it's below zero).
+    CREATE TABLE IF NOT EXISTS coin_lot (
+      id          bigserial PRIMARY KEY,
+      user_id     text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+      -- The payment they came from (purchase.id); null if not bought.
+      purchase_id text,
+      -- Bought with money (false: bonus coins, test purchases, coins from before lots).
+      paid        boolean NOT NULL,
+      region      text,
+      coins       integer NOT NULL,
+      -- What they cost, in the currency's smallest unit (pence), 0 if free.
+      value       integer NOT NULL DEFAULT 0,
+      currency    text,
+      left_coins  integer NOT NULL,
+      -- Refunded or charged back: these coins went with the money.
+      revoked     boolean NOT NULL DEFAULT false,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS coin_lot_user ON coin_lot (user_id) WHERE left_coins > 0;
+    CREATE INDEX IF NOT EXISTS coin_lot_purchase ON coin_lot (purchase_id);
+    -- Which lots a gift's coins came from, so cancelling it puts them back.
+    ALTER TABLE gift ADD COLUMN IF NOT EXISTS lots jsonb;
     -- One-off data jobs that have run, so they never run twice.
     CREATE TABLE IF NOT EXISTS done_once (
       name text PRIMARY KEY,
@@ -103,6 +135,70 @@ export async function migrate(db: Pool): Promise<void> {
     );
   `);
   await backfillSpends(db);
+  await backfillLots(db);
+}
+
+/**
+ * Coins already in wallets when lots began: one free lot each, of unknown
+ * country (no shop was open in Japan before then).
+ */
+async function backfillLots(db: Pool): Promise<void> {
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    await c.query("SELECT pg_advisory_xact_lock(hashtext('coin_lots_backfill'))");
+    const done = await c.query(`SELECT 1 FROM done_once WHERE name = 'coin_lots_backfill'`);
+    if (!done.rowCount) {
+      await c.query(
+        `INSERT INTO coin_lot (user_id, paid, coins, left_coins)
+         SELECT w.user_id, false, w.coins, w.coins FROM wallet w
+         WHERE w.coins > 0 AND NOT EXISTS (SELECT 1 FROM coin_lot l WHERE l.user_id = w.user_id)`,
+      );
+      await c.query(`INSERT INTO done_once (name) VALUES ('coin_lots_backfill')`);
+    }
+    await c.query('COMMIT');
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+/** Coins taken from one lot. */
+interface LotUse {
+  id: string;
+  n: number;
+}
+
+/**
+ * Make the lots add up to the wallet again after it changed: coins spent (or
+ * taken back) come off the lots, free coins first, then the oldest paid ones;
+ * coins that appeared from nowhere (e.g. added by hand) become a free lot.
+ * Returns what was taken. Call inside the transaction that changed the wallet.
+ */
+async function settleLots(c: PoolClient, userId: string): Promise<LotUse[]> {
+  const w = await c.query<{ coins: number }>('SELECT coins FROM wallet WHERE user_id = $1', [userId]);
+  const target = Math.max(0, w.rows[0]?.coins ?? 0);
+  const lots = await c.query<{ id: string; left_coins: number }>(
+    'SELECT id, left_coins FROM coin_lot WHERE user_id = $1 AND left_coins > 0 ORDER BY paid, created_at, id FOR UPDATE',
+    [userId],
+  );
+  const have = lots.rows.reduce((a, l) => a + l.left_coins, 0);
+  if (have < target) {
+    if (w.rows.length) await c.query('INSERT INTO coin_lot (user_id, paid, coins, left_coins) VALUES ($1, false, $2, $2)', [userId, target - have]);
+    return [];
+  }
+  const used: LotUse[] = [];
+  let extra = have - target;
+  for (const l of lots.rows) {
+    if (extra <= 0) break;
+    const n = Math.min(extra, l.left_coins);
+    await c.query('UPDATE coin_lot SET left_coins = left_coins - $2 WHERE id = $1', [l.id, n]);
+    used.push({ id: l.id, n });
+    extra -= n;
+  }
+  return used;
 }
 
 /**
@@ -281,6 +377,13 @@ export interface PaidCheckout {
   amount: number;
   currency: string;
   paymentIntent: string | null;
+  /** The buyer's country (ISO 3166 code), if the payment says. */
+  region?: string | null;
+}
+
+/** A country code as we keep it: two capital letters, or null. */
+export function cleanRegion(v: unknown): string | null {
+  return typeof v === 'string' && /^[A-Za-z]{2}$/.test(v) ? v.toUpperCase() : null;
 }
 
 /** Record a completed payment and grant the item. Safe to call twice for the same session. */
@@ -376,6 +479,7 @@ export async function unlockItem(db: Pool, userId: string, itemId: string): Prom
     }
     await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, $3)`, [userId, item.id, currency]);
     await c.query('INSERT INTO spend (item, currency, amount) VALUES ($1, $2, $3)', [item.id, currency, price]);
+    if (currency === 'coins') await settleLots(c, userId);
     await c.query('COMMIT');
     return 'ok';
   } catch (e) {
@@ -414,6 +518,7 @@ export async function unlockBundle(db: Pool, userId: string, bundleId: string): 
       if (!owned.includes(id)) await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, 'coins')`, [userId, id]);
     }
     await c.query(`INSERT INTO spend (item, currency, amount) VALUES ($1, 'coins', $2)`, [b.id, price]);
+    await settleLots(c, userId);
     await c.query('COMMIT');
     return 'ok';
   } catch (e) {
@@ -431,9 +536,9 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<boolean
   try {
     await c.query('BEGIN');
     const ins = await c.query(
-      `INSERT INTO purchase (id, user_id, item, amount, currency, payment_intent, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'paid') ON CONFLICT (id) DO NOTHING`,
-      [p.sessionId, p.userId, p.item, p.amount, p.currency, p.paymentIntent],
+      `INSERT INTO purchase (id, user_id, item, amount, currency, payment_intent, status, region)
+       VALUES ($1, $2, $3, $4, $5, $6, 'paid', $7) ON CONFLICT (id) DO NOTHING`,
+      [p.sessionId, p.userId, p.item, p.amount, p.currency, p.paymentIntent, cleanRegion(p.region)],
     );
     if (ins.rowCount === 1) {
       const pack = coinPack(p.item);
@@ -443,6 +548,14 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<boolean
         const coins = packTotal(pack);
         await c.query('UPDATE purchase SET coins = $2 WHERE id = $1', [p.sessionId, coins]);
         await credit(c, p.userId, coins, 0);
+        // The pack's own coins cost the payment; its bonus coins are free.
+        // A licence tester's purchase (amount 0) cost nothing either.
+        const lot = `INSERT INTO coin_lot (user_id, purchase_id, paid, region, coins, value, currency, left_coins)
+                     SELECT $1, $2, $3, $4, $5::int, $6, $7, $5::int WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)`;
+        await c.query(lot, [p.userId, p.sessionId, p.amount > 0, cleanRegion(p.region), pack.coins, p.amount, p.currency]);
+        if (pack.bonus) await c.query(lot, [p.userId, p.sessionId, false, cleanRegion(p.region), pack.bonus, 0, p.currency]);
+        // A wallet below zero (after a refund) pays that back from these first.
+        await settleLots(c, p.userId);
       }
       else {
         // Items sold directly for money before coins existed.
@@ -470,20 +583,51 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<boolean
  * spending until it's topped up).
  */
 export async function revokePurchase(db: Pool, paymentIntent: string, status: 'refunded' | 'disputed'): Promise<void> {
-  const r = await db.query<{ user_id: string | null; item: string; coins: number | null }>(
-    `UPDATE purchase SET status = $2, refunded_at = now() WHERE payment_intent = $1 AND status = 'paid' RETURNING user_id, item, coins`,
-    [paymentIntent, status],
-  );
-  for (const row of r.rows) {
-    if (!row.user_id) continue;
-    const pack = coinPack(row.item);
-    // No record means an old purchase, from before bonus coins: it gave the base amount.
-    if (pack) await credit(db, row.user_id, -(row.coins ?? pack.coins), 0);
-    else await db.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    const r = await c.query<{ id: string; user_id: string | null; item: string; coins: number | null }>(
+      `UPDATE purchase SET status = $2, refunded_at = now() WHERE payment_intent = $1 AND status = 'paid' RETURNING id, user_id, item, coins`,
+      [paymentIntent, status],
+    );
+    for (const row of r.rows) {
+      if (!row.user_id) continue;
+      const pack = coinPack(row.item);
+      if (pack) {
+        // No record means an old purchase, from before bonus coins: it gave the base amount.
+        await credit(c, row.user_id, -(row.coins ?? pack.coins), 0);
+        // Its own coins go; any already spent come off the player's other coins.
+        await c.query('UPDATE coin_lot SET left_coins = 0, revoked = true WHERE purchase_id = $1', [row.id]);
+        await settleLots(c, row.user_id);
+      } else await c.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
+    }
+    await c.query('COMMIT');
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
   }
 }
 
-export async function salesReport(db: Pool, days: number): Promise<SalesReport> {
+/** Unspent paid coins, by the buyer's country and the currency paid: what they cost. */
+export type UnspentCoins = UnspentRow;
+
+/**
+ * Coins bought with money and not yet spent, with what they cost (each lot's
+ * price shared over its coins). Japan's Payment Services Act counts these
+ * for players in Japan.
+ */
+export async function unspentCoins(db: Pool): Promise<UnspentCoins[]> {
+  const r = await db.query<{ region: string | null; currency: string | null; coins: string; value: string }>(
+    `SELECT region, currency, sum(left_coins) AS coins, sum(round(value::numeric * left_coins / coins)) AS value
+     FROM coin_lot WHERE paid AND left_coins > 0 AND coins > 0
+     GROUP BY region, currency ORDER BY value DESC`,
+  );
+  return r.rows.map((x) => ({ region: x.region, currency: x.currency, coins: Number(x.coins), value: Number(x.value) }));
+}
+
+export async function salesReport(db: Pool, days: number, jpyPerGbp = DEFAULT_JPY_PER_GBP): Promise<SalesReport> {
   // The owner can start the figures from zero (docs/ACCOUNTS.md): nothing
   // before then counts. Records are kept, as refunds and Stripe's retries need them.
   const reset = await db.query<{ at: Date }>(`SELECT at FROM done_once WHERE name = 'sales_reset'`);
@@ -524,6 +668,7 @@ export async function salesReport(db: Pool, days: number): Promise<SalesReport> 
   ]);
   const n = (v: string) => Number(v);
   const p = players.rows[0];
+  const unspent = await unspentCoins(db);
   return {
     days,
     resetAt: resetAt ? resetAt.toISOString() : null,
@@ -531,6 +676,8 @@ export async function salesReport(db: Pool, days: number): Promise<SalesReport> 
     packs: packs.rows.map((r) => ({ item: r.item, currency: r.currency, sold: n(r.sold), amount: n(r.amount), refunded: n(r.refunded), refundedAmount: n(r.refunded_amount) })),
     spends: spends.rows.map((r) => ({ item: r.item, currency: r.currency, buys: n(r.buys), amount: n(r.amount) })),
     owners: owners.rows.map((r) => ({ item: r.item, owners: n(r.owners) })),
+    unspent,
+    japan: { yen: japanYen(unspent, jpyPerGbp), limit: JAPAN_LIMIT_YEN, jpyPerGbp },
   };
 }
 
@@ -569,9 +716,10 @@ export async function buyGift(db: Pool, userId: string, itemId: string, message:
       return { ok: false, why: 'poor' };
     }
     const spend = await c.query<{ id: string }>(`INSERT INTO spend (item, currency, amount) VALUES ($1, 'coins', $2) RETURNING id`, [itemId, g.coins]);
+    const lots = await settleLots(c, userId);
     await c.query(
-      `INSERT INTO gift (code_hash, hint, item, coins, message, from_user, spend_id) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [hashCode(code), code.slice(-4), itemId, g.coins, msg, userId, spend.rows[0].id],
+      `INSERT INTO gift (code_hash, hint, item, coins, message, from_user, spend_id, lots) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [hashCode(code), code.slice(-4), itemId, g.coins, msg, userId, spend.rows[0].id, JSON.stringify(lots)],
     );
     await c.query('COMMIT');
     return { ok: true, code };
@@ -628,10 +776,10 @@ export async function cancelGift(db: Pool, userId: string, giftId: number): Prom
   const c = await db.connect();
   try {
     await c.query('BEGIN');
-    const r = await c.query<{ coins: number; spend_id: string | null }>(
+    const r = await c.query<{ coins: number; spend_id: string | null; lots: LotUse[] | null }>(
       `UPDATE gift SET cancelled_at = now()
        WHERE id = $1 AND from_user = $2 AND redeemed_at IS NULL AND cancelled_at IS NULL
-       RETURNING coins, spend_id`,
+       RETURNING coins, spend_id, lots`,
       [giftId, userId],
     );
     const g = r.rows[0];
@@ -640,6 +788,11 @@ export async function cancelGift(db: Pool, userId: string, giftId: number): Prom
       return false;
     }
     await credit(c, userId, g.coins, 0);
+    // The coins go back where they came from (unless that payment was refunded since).
+    for (const u of g.lots ?? []) {
+      await c.query('UPDATE coin_lot SET left_coins = least(coins, left_coins + $3) WHERE id = $1 AND user_id = $2 AND NOT revoked', [u.id, userId, u.n]);
+    }
+    await settleLots(c, userId);
     // Not a sale after all.
     if (g.spend_id) await c.query('DELETE FROM spend WHERE id = $1', [g.spend_id]);
     await c.query('COMMIT');
@@ -666,4 +819,24 @@ export async function giftsSent(db: Pool, userId: string): Promise<GiftSent[]> {
     createdAt: g.created_at.toISOString(),
     status: g.cancelled_at ? 'cancelled' : g.redeemed_at ? 'claimed' : 'waiting',
   }));
+}
+
+/**
+ * The Japan alert levels (shares of the ¥10 million limit) the figure has
+ * newly reached: each is returned once, then not again until the figure
+ * has dropped 10 points below it. The caller emails the owner.
+ */
+export async function japanAlertsDue(db: Pool, jpyPerGbp = DEFAULT_JPY_PER_GBP): Promise<{ yen: number; levels: number[] }> {
+  const yen = japanYen(await unspentCoins(db), jpyPerGbp);
+  const reached = japanLevelsReached(yen);
+  const name = (l: number) => `japan_alert_${Math.round(l * 100)}`;
+  // Well below a level again: it may alert again next time it's reached.
+  const rearm = JAPAN_ALERTS.filter((l) => yen < (l - 0.1) * JAPAN_LIMIT_YEN).map(name);
+  if (rearm.length) await db.query('DELETE FROM done_once WHERE name = ANY($1::text[])', [rearm]);
+  const levels: number[] = [];
+  for (const l of reached) {
+    const r = await db.query('INSERT INTO done_once (name) VALUES ($1) ON CONFLICT DO NOTHING', [name(l)]);
+    if (r.rowCount) levels.push(l);
+  }
+  return { yen, levels };
 }

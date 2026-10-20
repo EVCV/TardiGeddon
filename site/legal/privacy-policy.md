@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 17 October 2026
-**Document Version:** v2.5
+**Last Modified:** 20 October 2026
+**Document Version:** v2.6
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -55,6 +55,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.0.3 This information stays on your device. In our Android app, it is kept in the app's own storage on your device instead of a browser's. It is not sent to us, except as described in Section 2.1 when you play online and in Section 2.2 if you have an account, and you can delete it at any time by clearing your browser's site data.
 
+2.0.4 In our Android app, when you open the coin packs in the shop, the app asks Google Play for your age range (for example "13 to 15" or "18 and over"), using Google's Play Age Signals service. Google may first ask you, or a parent or carer through Google Family Link, whether to share it. The app uses the answer only to adjust buying coins: it reminds players under 18 that a parent or carer may need to approve purchases, and switches buying coins off while a parent or carer has not yet approved the latest version of the app, or while Google needs to confirm your age. The answer is kept in the app's memory until you close it: it is not saved on your device, not sent to us, and not used for anything else. We do this because Brazil's Digital Statute of Children and Adolescents (Digital ECA) asks apps that children and teenagers may use to take account of the age range app stores provide.
+
 ### 2.1 Information Used When You Play Online
 
 2.1.1 When you play online, your device connects to our game server and sends: your team name, team colour, hat, and tardigrade names; the room code you create or join; and your game inputs (such as moving, aiming, and firing) during your turns.
@@ -95,11 +97,13 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.3.1 Payments are handled by Stripe on its own secure payment page. Your card or other payment details go directly to Stripe; we never see or store your full card number.
 
-2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account. Stripe acts as the merchant of record for the payment (see our Terms of Service, Section 5.1.3): on its payment page it asks for the details it needs to take payment and work out the VAT or sales tax that applies, such as your country or address, and it emails you a receipt. We receive back, and keep, a purchase record: the item, how many coins it gave, the amount and currency, the date, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, the time you confirmed that you wanted the item straight away, and the time you confirmed you were 18 or over or had a parent's or guardian's agreement (see our Terms of Service, Section 5).
+2.3.2 Money is only ever spent on coin packs. When you buy your first coin pack, we ask Stripe to create a customer record for you with your email address and player name, so that all your purchases and receipts are kept together; we keep Stripe's reference for it with your account. For each purchase we send Stripe the coin pack and its price and an identifier for your account. Stripe acts as the merchant of record for the payment (see our Terms of Service, Section 5.1.3): on its payment page it asks for the details it needs to take payment and work out the VAT or sales tax that applies, such as your country or address, and it emails you a receipt. We receive back, and keep, a purchase record: the item, how many coins it gave, the amount and currency, the date, the country of the payment, Stripe's references for the payment, whether it has been refunded or disputed, the account it was for, the time you confirmed that you wanted the item straight away, and the time you confirmed you were 18 or over or had a parent's or guardian's agreement (see our Terms of Service, Section 5).
 
 2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
 
-2.3.4 In our Android app, coin packs are bought through Google Play's billing system instead, and Google takes the payment as the seller, under its own terms and privacy policy (https://policies.google.com/privacy). We never see your payment details. When you start a purchase, the app gives Google a code made from your account identifier by a one-way calculation (a "hash"), so that we can check the purchase belongs to your account without Google learning which account it is. Google gives the app a purchase reference, which the app sends to our server; our server then asks Google whether the purchase is complete and genuine, and later whether it has been refunded. We keep a purchase record as in Section 2.3.2: the coin pack, how many coins it gave, its list price in pounds (or nothing, for Google's test purchases), the date, Google's purchase reference, whether it has been refunded or disputed, and the account it was for.
+2.3.4 In our Android app, coin packs are bought through Google Play's billing system instead, and Google takes the payment as the seller, under its own terms and privacy policy (https://policies.google.com/privacy). We never see your payment details. When you start a purchase, the app gives Google a code made from your account identifier by a one-way calculation (a "hash"), so that we can check the purchase belongs to your account without Google learning which account it is. Google gives the app a purchase reference, which the app sends to our server; our server then asks Google whether the purchase is complete and genuine, and later whether it has been refunded. We keep a purchase record as in Section 2.3.2: the coin pack, how many coins it gave, its list price in pounds (or nothing, for Google's test purchases), the date, the billing country Google gives us, Google's purchase reference, whether it has been refunded or disputed, and the account it was for.
+
+2.3.5 With your account we also keep a record of where the coins in your wallet came from: which purchase (or bonus) each batch of coins came from, its country and what it cost, and how many of those coins you have not spent yet. We use it to keep your wallet correct when a purchase is refunded or a gift is cancelled, and to meet the law in countries that treat unspent paid coins as prepaid credit, such as Japan's Payment Services Act, which requires us to know the value of unspent coins bought by players in Japan. It is deleted with your account.
 
 ### 2.4 Visit Statistics
 
@@ -251,7 +255,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 9.0 Children
 
-9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. Please see our Children's Privacy Policy for further detail.
+9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. In our Android app, the shop also takes account of the age range Google Play provides (Section 2.0.4). Please see our Children's Privacy Policy for further detail.
 
 ## Section 10 — Regional Supplements
 

@@ -239,9 +239,53 @@ button, the tutorial, and that links open in the browser.
 ## 6. Production
 
 When the internal build is good: **Production → Create new release**, use
-the same `.aab` (or a newer one), choose **countries** (the game plan
-suggests a few countries first, e.g. the UK and Ireland, then the rest), and
-**Send for review**. The first review usually takes a few days.
+the same `.aab` (or a newer one), choose **countries** (see below), and
+**Send for review**. The first review usually takes a few days. EVCV is an
+organisation account, so Google's 12-tester, 14-day closed test (for new
+personal accounts) doesn't apply.
+
+**Countries** (Google's
+[country requirements](https://support.google.com/googleplay/android-developer/answer/6223646)):
+
+- **EU:** all EU countries or none. The Geo-blocking Regulation forbids
+  picking only some of them.
+- **Japan:** fine. Google shows the seller's name, address and phone number
+  (from Account details) to Japanese players, as the Specified Commercial
+  Transactions Act requires. Coins count as prepaid credit under the Payment
+  Services Act. A filing with the Local Finance Bureau is only needed if
+  unspent *paid* coins bought in Japan pass ¥10 million on 31 March or
+  30 September. The deposit is half of what's over. Nothing is owed to a
+  player who just stops playing; unspent coins are only paid back if we stop
+  selling coins in Japan. The sales page shows the figure, and the owner is
+  emailed at 50%, 75% and 90% (`docs/ACCOUNTS.md`, "Unspent coins and
+  Japan"). Refunds Google makes (including to minors) take the coins back
+  (§7).
+- **Brazil:** fine with the age check in the app (below). If Google asks
+  for merchant details (an email "Important Information Regarding Your
+  Google Account", and a Play Console banner), fill them in.
+- **Korea, India, Israel:** nothing extra. We have a game rating, ask for
+  no location, have no money games, and aren't based there.
+- **Vietnam:** leave out. Online games there need a government licence.
+
+**Age signals (Brazil's Digital ECA).** Apps children and teenagers are
+likely to use must read the age band Google Play provides, and games for
+them must have no loot boxes (we have none). The app asks Google when the
+player opens the coin packs (`AgeSignalsPlugin.java`, `src/shop/ageSignals.ts`).
+Google may show its own "share your age range?" prompt then. The answer
+only changes buying coins:
+
+- **Under 18:** a reminder that a parent or carer may need to approve.
+- **A parent hasn't approved this version yet (Family Link):** buying coins is off.
+- **Google needs to confirm the age:** buying coins is off until the player does so in the Play Store.
+
+It stays in memory for the visit and is never sent to the server, so Data
+safety doesn't change. Test it with a licence-tester account on a phone
+that installed the app from Play. Apps installed any other way get
+`APP_NOT_OWNED`, and the shop then works as usual.
+
+**"No deobfuscation file" warning:** ignore it. The release build doesn't
+shrink or rename code (`minifyEnabled false`; the game is JavaScript in a
+WebView, so it would save little), so there's no mapping file to upload.
 
 ## 7. Coins in the app (Google Play Billing)
 

@@ -303,6 +303,9 @@ following for today, 7 days, 30 days, a year or all time:
 - new and paying players
 - what players spend coins and Slime on, bundles included
 - the most-owned items
+- **unspent coins**: coins players paid for and haven't spent yet, by the
+  buyer's country, with the Japan figure against its ¥10 million limit
+  (see below)
 
 It shows totals only, never who bought what. The spend log behind it isn't
 linked to players.
@@ -316,6 +319,20 @@ counts once that account's **email is confirmed**, so nobody can claim it by
 signing up with your address. Anyone else asking for the figures gets "not
 found". Stripe's dashboard remains the record of what reaches your bank after
 VAT and fees.
+
+**Unspent coins and Japan.** Each wallet's coins are kept as lots
+(`coin_lot`): what each batch cost, the buyer's country (from Stripe or
+Google), and whether it was paid for or free (pack bonuses, coins added by
+hand, coins from before lots). Spending takes free coins first, then the
+oldest paid ones. Japan's Payment Services Act counts the unspent paid coins
+of players in Japan. Once these are worth more than ¥10 million on 31 March
+or 30 September, EVCV must notify the Local Finance Bureau. Every hour the
+server checks this figure and emails the `ADMIN_EMAILS` (or
+support@tardigeddon.com if none are set) the first time it reaches 50%, 75%
+and 90%. Pounds are converted at `JPY_PER_GBP` (default 220, set high on
+purpose so it warns early); change it with
+`fly secrets set JPY_PER_GBP=200`. Refunds take a purchase's coins out of
+the figure. Starting the sales figures from zero doesn't change it.
 
 **Starting the figures from zero** (e.g. after testing): in Neon's **SQL
 Editor** run

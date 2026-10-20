@@ -3,6 +3,7 @@
 // its session cookie. Ownership is enforced by the server for online games;
 // the copy cached here only decides what this device shows as unlocked.
 
+import type { UnspentRow } from '../shop/japan';
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
@@ -51,6 +52,10 @@ export interface SalesReport {
   spends: { item: string; currency: string; buys: number; amount: number }[];
   /** How many players own each shop item (all time, whatever the period). */
   owners: { item: string; owners: number }[];
+  /** Coins bought with money and not spent yet (now, whatever the period), by country and currency. */
+  unspent: UnspentRow[];
+  /** Japan's Payment Services Act figure: what players in Japan's unspent paid coins cost (src/shop/japan.ts). */
+  japan: { yen: number; limit: number; jpyPerGbp: number };
 }
 
 /** A gift this player has sent (the full code is only shown once, when it's bought). */

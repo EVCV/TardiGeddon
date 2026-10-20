@@ -83,6 +83,52 @@ function card(title: string, ...body: HTMLElement[]): HTMLElement {
   return c;
 }
 
+const countryNames = (() => {
+  try {
+    return new Intl.DisplayNames(['en-GB'], { type: 'region' });
+  } catch {
+    return null;
+  }
+})();
+const countryName = (code: string | null): string => (code ? (countryNames?.of(code) ?? code) : 'Country not known');
+
+/**
+ * Coins players paid for and haven't spent (right now, whatever the period),
+ * and how close Japan is to its Payment Services Act limit (src/shop/japan.ts).
+ */
+function unspentCard(r: SalesReport): HTMLElement {
+  const j = r.japan;
+  const share = j.limit ? j.yen / j.limit : 0;
+  const meter = el('div', 'japan-meter' + (share >= 0.9 ? ' high' : share >= 0.5 ? ' mid' : ''));
+  meter.setAttribute('role', 'meter');
+  meter.setAttribute('aria-valuemin', '0');
+  meter.setAttribute('aria-valuemax', String(j.limit));
+  meter.setAttribute('aria-valuenow', String(j.yen));
+  meter.setAttribute('aria-label', 'Japan: unspent paid coins against the ¥10 million limit');
+  const fill = el('span', 'japan-fill');
+  fill.style.width = `${Math.min(100, share * 100)}%`;
+  meter.append(fill);
+  const yen = (n: number) => `¥${formatNumber(Math.round(n))}`;
+  return card(
+    'Unspent coins',
+    el('p', 'japan-figure', `🇯🇵 Japan: ${yen(j.yen)} of ${yen(j.limit)} (${(share * 100).toFixed(1)}%)`),
+    meter,
+    el(
+      'p',
+      'account-note',
+      `What players in Japan paid for coins they haven't spent yet (bonus coins don't count). If it's over ¥10 million on 31 March or 30 September, EVCV must tell the Local Finance Bureau and lodge a deposit; you're emailed at 50%, 75% and 90%. Pounds count at ¥${formatNumber(j.jpyPerGbp)}, on the high side on purpose.`,
+    ),
+    barList(
+      r.unspent.map((u) => ({
+        label: `${countryName(u.region)}${u.currency && u.currency !== 'gbp' ? ` · ${u.currency.toUpperCase()}` : ''}`,
+        value: u.value,
+        text: `🪙 ${formatNumber(u.coins)} · ${money(u.value, u.currency ?? 'gbp')}`,
+      })),
+      'No unspent paid coins.',
+    ),
+  );
+}
+
 export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesState): HTMLElement {
   const page = el('div', 'page page-sales');
 
@@ -191,6 +237,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
         'No Slime unlocks in this period.',
       ),
     ),
+    unspentCard(r),
     card(
       'Most owned (all time)',
       barList(

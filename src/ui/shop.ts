@@ -17,6 +17,7 @@ import { WEAPONS } from '../sim/weapons';
 import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { playPrices } from '../shop/playBilling';
+import { ageSignal, coinRules, onAgeSignalStale, type AgeSignal } from '../shop/ageSignals';
 import { buyCoins, buyCoinsInApp, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
@@ -471,6 +472,33 @@ function loadInAppPrices(ctx: HubContext): void {
     },
   );
 }
+// The player's age band from Google Play (Brazil's Digital ECA): asked the
+// first time the coin packs show in the app, then kept for the visit.
+// Until it answers, the packs stay off, so nobody can buy before a block arrives.
+let age: AgeSignal | null = null;
+let ageDone = false;
+let askingAge = false;
+let ageCtx: HubContext | null = null;
+let agePacks: HTMLElement | null = null;
+onAgeSignalStale(() => {
+  // Back from the Play Store or Family Link: ask again, packs off meanwhile.
+  age = null;
+  ageDone = false;
+  if (agePacks?.isConnected) ageCtx?.rerender();
+});
+function loadAgeSignal(ctx: HubContext, packs: HTMLElement): void {
+  ageCtx = ctx;
+  agePacks = packs;
+  if (ageDone || askingAge) return;
+  askingAge = true;
+  void ageSignal().then((a) => {
+    askingAge = false;
+    age = a;
+    ageDone = true;
+    if (agePacks?.isConnected) ageCtx?.rerender();
+  });
+}
+
 /** The pack's price as the player will pay it. */
 const packPrice = (p: CoinPack): string => (inApp() ? (inAppPrices?.[p.id] ?? '…') : formatPrice(p.price));
 
@@ -673,9 +701,13 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   icon.innerHTML = coinIcon();
   head.append(icon, el('h3', '', 'Get coins'), el('span', '', `Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include ${inApp() ? 'tax' : 'VAT'}.`));
   box.append(head);
+  const rules = inApp() ? coinRules(age) : {};
   if (inApp()) {
     loadInAppPrices(ctx);
+    loadAgeSignal(ctx, box);
     if (inAppPricesFailed) box.append(el('p', 'account-note', "Couldn't get prices from Google Play. Check your connection, then open the shop again."));
+    if (rules.blocked) box.append(el('p', 'account-note coin-age', rules.blocked));
+    else if (rules.note) box.append(el('p', 'account-note coin-age', rules.note));
   }
 
   const grid = el('div', 'coin-grid');
@@ -714,7 +746,7 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
       el('span', 'pack-price', packPrice(p)),
     );
     // In the app, not until Google's price is known (it must be the price shown).
-    b.disabled = inApp() && !inAppPrices?.[p.id];
+    b.disabled = inApp() && (!inAppPrices?.[p.id] || !ageDone || !!rules.blocked);
     b.onclick = () => openCheckout(me, ctx, p, b);
     grid.append(b);
   }

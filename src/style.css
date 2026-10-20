@@ -1171,6 +1171,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .coins-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .coins-head h3 { margin: 0; font-family: var(--title); font-weight: normal; font-size: 26px; letter-spacing: .5px; }
 .coins-head > span:last-child { font-size: 13px; font-weight: 700; }
+/* Sales page: Japan's unspent coins against the ¥10 million limit. */
+.japan-figure { margin: 4px 0 6px; font-weight: 700; }
+.japan-meter { height: 14px; border: 2px solid var(--ink, #2b1b24); border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, .6); }
+.japan-fill { display: block; height: 100%; background: #5cc46b; }
+.japan-meter.mid .japan-fill { background: #ffb02e; }
+.japan-meter.high .japan-fill { background: #e04848; }
+/* Google Play's age band changed something about buying coins (src/shop/ageSignals.ts). */
+.coin-age { margin: 6px 0; padding: 8px 12px; border-radius: 10px; background: rgba(255, 214, 102, .25); font-weight: 700; }
 .coins-head-icon svg { width: 34px; height: 34px; display: block; }
 .coin-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 16px; padding-top: 12px; }
 @media (max-width: 980px) { .coin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -26,6 +26,8 @@ export interface ProductPurchase {
   orderId?: string;
   /** What the app set when it started the purchase: playAccountTag(userId). */
   obfuscatedExternalAccountId?: string;
+  /** The buyer's billing country (ISO 3166-1 alpha-2) when it was bought. */
+  regionCode?: string;
 }
 
 export interface VoidedPurchase {
