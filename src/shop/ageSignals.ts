@@ -60,6 +60,30 @@ export function mayChange(signal: AgeSignal): boolean {
   return signal.status === 'verification_required' || signal.status === 'error' || (signal.status === 'shared' && (signal.change === 'pending' || signal.change === 'declined'));
 }
 
+/**
+ * Longest wait for Google Play's answer. The coin packs stay off until it
+ * comes, so a Play Store that never answers mustn't keep them off for
+ * everyone; long enough for a player to answer Google's own prompt.
+ */
+export const AGE_SIGNAL_TIMEOUT_MS = 15_000;
+
+/** The answer, or an error if it takes longer than `ms`. */
+export function withTimeout(p: Promise<AgeSignal>, ms: number): Promise<AgeSignal> {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve({ status: 'error', message: 'timeout' }), ms);
+    p.then(
+      (a) => {
+        clearTimeout(t);
+        resolve(a);
+      },
+      () => {
+        clearTimeout(t);
+        resolve({ status: 'error' });
+      },
+    );
+  });
+}
+
 let asked: Promise<AgeSignal | null> | null = null;
 let last: AgeSignal | null = null;
 const staleFns = new Set<() => void>();
@@ -87,8 +111,7 @@ export function ageSignal(): Promise<AgeSignal | null> {
       for (const fn of [...staleFns]) fn();
     });
   }
-  asked ??= AgeSignals.check()
-    .catch((): AgeSignal => ({ status: 'error' }))
-    .then((a) => (last = a));
+  // A timeout counts as an error, so it's asked again when the app comes back to the front.
+  asked ??= withTimeout(AgeSignals.check(), AGE_SIGNAL_TIMEOUT_MS).then((a) => (last = a));
   return asked;
 }
