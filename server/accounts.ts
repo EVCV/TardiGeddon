@@ -41,8 +41,9 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
   /** "on" to let Stripe Tax work out VAT for the buyer's country (needs Stripe Tax set up; prices stay VAT-inclusive). */
   STRIPE_AUTOMATIC_TAX?: string;
   /**
-   * "on" to use Stripe Managed Payments (Stripe as merchant of record). Off by
-   * default: EVCV Limited is the seller, as the Terms say. Needs STRIPE_TAX_CODE.
+   * "on" to use Stripe Managed Payments (Stripe as merchant of record), as
+   * production does and the Terms (5.1.3) and Privacy Policy (4.0.4) say
+   * (docs/ACCOUNTS.md). Off (e.g. in tests), EVCV Limited is the seller. Needs STRIPE_TAX_CODE.
    */
   STRIPE_MANAGED_PAYMENTS?: string;
   /** Stripe product tax code for shop items (e.g. txcd_…), required by Managed Payments. */
