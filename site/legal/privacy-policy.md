@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 17 October 2026
-**Document Version:** v2.5
+**Last Modified:** 20 October 2026
+**Document Version:** v2.6
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -54,6 +54,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. If you change your controls on the Settings page (which keys, mouse buttons and touch buttons do what), the game keeps them there too. This is deleted when you close the tab.
 
 2.0.3 This information stays on your device. In our Android app, it is kept in the app's own storage on your device instead of a browser's. It is not sent to us, except as described in Section 2.1 when you play online and in Section 2.2 if you have an account, and you can delete it at any time by clearing your browser's site data.
+
+2.0.4 In our Android app, when you open the coin packs in the shop, the app asks Google Play for your age range (for example "13 to 15" or "18 and over"), using Google's Play Age Signals service. Google may first ask you, or a parent or carer through Google Family Link, whether to share it. The app uses the answer only to adjust buying coins: it reminds players under 18 that a parent or carer may need to approve purchases, and switches buying coins off while a parent or carer has not yet approved the latest version of the app, or while Google needs to confirm your age. The answer is kept in the app's memory until you close it: it is not saved on your device, not sent to us, and not used for anything else. We do this because Brazil's Digital Statute of Children and Adolescents (Digital ECA) asks apps that children and teenagers may use to take account of the age range app stores provide.
 
 ### 2.1 Information Used When You Play Online
 
@@ -251,7 +253,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 9.0 Children
 
-9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. Please see our Children's Privacy Policy for further detail.
+9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. In our Android app, the shop also takes account of the age range Google Play provides (Section 2.0.4). Please see our Children's Privacy Policy for further detail.
 
 ## Section 10 — Regional Supplements
 
