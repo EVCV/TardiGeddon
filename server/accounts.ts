@@ -58,6 +58,8 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
   ADMIN_EMAILS?: string;
   /** Yen per pound for the Japan coins figure (default src/shop/japan.ts DEFAULT_JPY_PER_GBP, set high on purpose). */
   JPY_PER_GBP?: string;
+  /** Where the Japan coins alerts go (default support@tardigeddon.com). */
+  JAPAN_ALERT_EMAIL?: string;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -220,13 +222,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   // paid coins near ¥10 million (src/shop/japan.ts), once per level.
   const rate = Number(env.JPY_PER_GBP);
   const jpyPerGbp = Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_JPY_PER_GBP;
-  const ownerEmails = () => [...(env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim()).filter(Boolean)];
+  const alertTo = (env.JAPAN_ALERT_EMAIL ?? '').trim() || 'support@tardigeddon.com';
   const checkJapan = async () => {
     const { yen, levels } = await japanAlertsDue(db, jpyPerGbp);
-    if (!levels.length) return;
-    const to = ownerEmails();
-    // No owner set up: the support inbox gets it.
-    for (const addr of to.length ? to : ['support@tardigeddon.com']) send(japanAlertEmail(addr, yen, Math.max(...levels), JAPAN_LIMIT_YEN, gameUrl));
+    if (levels.length) send(japanAlertEmail(alertTo, yen, Math.max(...levels), JAPAN_LIMIT_YEN, gameUrl));
   };
   const japanTimer = setInterval(() => void checkJapan().catch((e) => console.error('japan coins check failed', e)), 60 * 60_000);
   japanTimer.unref();

@@ -459,7 +459,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     // £23,000 of unspent paid coins in Japan: ¥5,060,000 at the default ¥220, 50.6% of the limit.
     await accounts.db.query(`INSERT INTO coin_lot (user_id, paid, region, coins, value, currency, left_coins) VALUES ($1, true, 'JP', 1000000, 2300000, 'gbp', 1000000)`, [id]);
     await accounts.checkJapan();
-    const mail = await mailTo('Boss@example.com', /Japan coins at 50%/);
+    const mail = await mailTo('support@tardigeddon.com', /Japan coins at 50%/);
     expect(mail.text).toContain('¥5,060,000');
     // Not again for the same level.
     await accounts.checkJapan();
@@ -468,7 +468,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     // Past 90%: one more email, for the highest level reached.
     await accounts.db.query(`UPDATE coin_lot SET value = 4200000 WHERE user_id = $1`, [id]);
     await accounts.checkJapan();
-    await mailTo('Boss@example.com', /Japan coins at 90%/);
+    await mailTo('support@tardigeddon.com', /Japan coins at 90%/);
     expect(sent.filter((m) => /Japan/.test(m.subject))).toHaveLength(2);
     await accounts.db.query('DELETE FROM coin_lot WHERE user_id = $1', [id]);
     await accounts.checkJapan();
