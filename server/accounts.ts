@@ -535,8 +535,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       paymentIntent: `gplay:${token}`,
       region: p.regionCode,
     });
-    // Not consumed (Google down): the app sends it again next time, which grants nothing twice.
-    await play.consume(productId, token).catch((e) => console.error('google play consume failed', e));
+    // Not consumed (Google down, or it refused): the app sends it again next time, which
+    // grants nothing twice and tries again. Meanwhile it's acknowledged, so Google
+    // doesn't refund it after three days (which would take the coins back).
+    await play.consume(productId, token).catch(async (e: unknown) => {
+      console.error('google play consume failed', e);
+      if (p.acknowledgementState !== 1) await play.acknowledge(productId, token).catch((e2: unknown) => console.error('google play acknowledge failed', e2));
+    });
     json(res, 200, { ok: true, coins: granted ? packTotal(pack) : 0 });
   }
 
