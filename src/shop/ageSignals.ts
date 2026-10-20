@@ -9,6 +9,7 @@
 // phone or sent to our server.
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 /** What Google Play said. Ages are inclusive; no `upper` means "and over" (18+). */
 export type AgeSignal =
@@ -50,14 +51,44 @@ export function coinRules(signal: AgeSignal | null): CoinRules {
   return {};
 }
 
+/**
+ * An answer that can change while the app is open: the player confirms
+ * their age in the Play Store, or a parent approves in Family Link, then
+ * comes back. These are asked again when the app returns to the front.
+ */
+export function mayChange(signal: AgeSignal): boolean {
+  return signal.status === 'verification_required' || signal.status === 'error' || (signal.status === 'shared' && (signal.change === 'pending' || signal.change === 'declined'));
+}
+
 let asked: Promise<AgeSignal | null> | null = null;
+let last: AgeSignal | null = null;
+const staleFns = new Set<() => void>();
+let listening = false;
+
+/** Called when an answer that may have changed should be asked for again. */
+export function onAgeSignalStale(fn: () => void): () => void {
+  staleFns.add(fn);
+  return () => staleFns.delete(fn);
+}
 
 /**
- * Ask Google Play once per visit (it may show its own "share your age range?"
- * prompt). Null outside the Android app.
+ * Ask Google Play (it may show its own "share your age range?" prompt).
+ * A settled answer is kept for the visit; one that may change is asked
+ * again after the app comes back to the front. Null outside the Android app.
  */
 export function ageSignal(): Promise<AgeSignal | null> {
   if (Capacitor.getPlatform() !== 'android' || !Capacitor.isPluginAvailable('AgeSignals')) return Promise.resolve(null);
-  asked ??= AgeSignals.check().catch((): AgeSignal => ({ status: 'error' }));
+  if (!listening) {
+    listening = true;
+    void App.addListener('resume', () => {
+      if (!last || !mayChange(last)) return;
+      asked = null;
+      last = null;
+      for (const fn of [...staleFns]) fn();
+    });
+  }
+  asked ??= AgeSignals.check()
+    .catch((): AgeSignal => ({ status: 'error' }))
+    .then((a) => (last = a));
   return asked;
 }

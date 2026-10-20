@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coinRules } from '../src/shop/ageSignals';
+import { coinRules, mayChange } from '../src/shop/ageSignals';
 
 // Brazil's Digital ECA: Google Play's age band only changes buying coins.
 describe('age signals and the coin shop', () => {
@@ -27,5 +27,15 @@ describe('age signals and the coin shop', () => {
 
   it('asks the player to confirm their age with Google Play where the law requires it', () => {
     expect(coinRules({ status: 'verification_required' }).blocked).toMatch(/Play Store/);
+  });
+
+  it('asks again after the app comes back only when the answer can change', () => {
+    expect(mayChange({ status: 'verification_required' })).toBe(true);
+    expect(mayChange({ status: 'shared', lower: 13, upper: 15, change: 'pending' })).toBe(true);
+    expect(mayChange({ status: 'shared', lower: 13, upper: 15, change: 'declined' })).toBe(true);
+    expect(mayChange({ status: 'error' })).toBe(true);
+    expect(mayChange({ status: 'shared', lower: 18 })).toBe(false);
+    expect(mayChange({ status: 'shared', lower: 13, upper: 15, change: 'approved' })).toBe(false);
+    expect(mayChange({ status: 'not_shared' })).toBe(false);
   });
 });
