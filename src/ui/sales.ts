@@ -186,13 +186,13 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   const slime = r.spends.filter((s) => s.currency === 'slime');
   const coinsSpent = coins.reduce((s, x) => s + x.amount, 0);
 
-  const big = el('section', 'card');
-  const tiles = el('div', 'stats-big sales-big');
+  // Two squarer cards side by side: the money, and the players.
+  const tiles = el('div', 'stats-grid sales-quad sales-big');
   tiles.append(statTile(takings, 'Paid by players', 'gold'), statTile(formatNumber(sold), 'Coin packs sold', 'gold'), statTile(
       refunds && currencies.length === 1 ? `${refunds} · ${money(currencies[0][1].refunded, currencies[0][0])}` : formatNumber(refunds),
       'Refunds',
     ), statTile(`🪙 ${formatNumber(coinsSpent)}`, 'Coins spent'));
-  const people = el('div', 'stats-grid sales-people');
+  const people = el('div', 'stats-grid sales-quad sales-people');
   people.append(
     statTile(formatNumber(r.players.total), 'Players (all time)'),
     statTile(formatNumber(r.players.joined), r.days || r.resetAt ? 'New players' : 'Signed up'),
@@ -204,10 +204,12 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   );
   if (r.resetAt) {
     const when = new Date(r.resetAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    big.append(el('p', 'account-note', `Counting from ${when}, when the figures were last started from zero.`));
+    page.append(el('p', 'account-note sales-reset', `Counting from ${when}, when the figures were last started from zero.`));
   }
-  big.append(tiles, people, el('p', 'account-note', "Money is what players paid in this period, VAT included, before refunds. Refunds count on the day they happened. Stripe's dashboard shows what reaches your bank after VAT and fees."));
-  page.append(big);
+  page.append(
+    card('💷 Money', tiles, el('p', 'account-note', "What players paid in this period, VAT included, before refunds. Refunds count on the day they happened. Stripe's dashboard shows what reaches your bank after VAT and fees.")),
+    card('👥 Players', people),
+  );
 
   page.append(
     card(

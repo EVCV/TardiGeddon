@@ -769,6 +769,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lobby-learn { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .learn-new { background: var(--accent); animation: nudge .9s infinite alternate; }
 @keyframes nudge { to { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .learn-new { animation: none; } }
 
 /* Career panel (ui/dashboard.ts) */
 .dash { display: flex; flex-direction: column; gap: 12px; }
@@ -1326,21 +1327,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .coin-pack.best .pack-tag { background: var(--moss); font-size: 17px; }
 
 /* ---- Sales page (owner only) ---- */
+/* The sales page: a two-column grid of squarer cards, not full-width strips. */
+.page-sales { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; max-width: 980px; margin: 0 auto; }
+.page-sales > .sales-head, .page-sales > .sales-reset, .page-sales > .page-loading, .page-sales > .account-note { grid-column: 1 / -1; }
+.page-sales > .card { min-width: 0; }
 .sales-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
-.sales-big { margin-bottom: 10px; }
-.sales-big .stat-value { font-size: 26px; overflow-wrap: anywhere; }
-.sales-people { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.sales-people .stat-value { font-size: 24px; }
+.sales-quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sales-quad .stat-tile { aspect-ratio: 2 / 1; display: flex; flex-direction: column; justify-content: center; }
+.sales-quad .stat-value { font-size: 24px; overflow-wrap: anywhere; }
 .sales-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.sales-row { display: grid; grid-template-columns: minmax(0, 14em) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-weight: 700; }
+.sales-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; font-weight: 700; }
 .sales-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sales-track { height: 14px; }
+.sales-track { grid-column: 1 / -1; grid-row: 2; height: 10px; }
 .sales-bar { display: block; height: 100%; background: var(--sky-deep); border-radius: 0 4px 4px 0; }
 .sales-value { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14px; }
 @media (max-width: 560px) {
-  .sales-people { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sales-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .sales-track { grid-column: 1 / -1; grid-row: 2; height: 10px; }
   .sales-head .seg { width: 100%; }
   .sales-head .seg-btn { flex: 1; justify-content: center; padding: 6px 2px; font-size: 14px; }
 }
@@ -1376,9 +1377,44 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gift-dialog-art .bundle-art { width: 160px; height: 100px; }
 
 /* ---------- Settings page ---------- */
-.page-settings { display: grid; gap: 20px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; max-width: 1080px; margin: 0 auto; }
-.settings-status { grid-column: 1 / -1; margin: 0; text-align: center; font-weight: 800; }
-.settings-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+/* One section at a time, beside the list of sections (as on phones). */
+.page-settings {
+  display: grid;
+  gap: 14px 20px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-areas: 'menu status' 'menu content';
+  align-items: start;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.settings-status { grid-area: status; margin: 0; font-weight: 800; }
+.settings-menu { grid-area: menu; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.settings-menu-btn {
+  flex-shrink: 0; /* never squashed: the list scrolls instead (phones) */
+  text-align: left;
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--ink);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.settings-menu-btn:hover { background: #f4eedf; }
+.settings-menu-btn.on { background: var(--accent); }
+.page-settings > .card { grid-area: content; display: none; min-width: 0; }
+.page-settings[data-section=text] > [data-section=text],
+.page-settings[data-section=sound] > [data-section=sound],
+.page-settings[data-section=blocked] > [data-section=blocked],
+.page-settings[data-section=touch] > [data-section=touch],
+.page-settings[data-section=keys] > [data-section=keys],
+.page-settings[data-section=about] > [data-section=about] { display: block; }
 .bind-table { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .bind-row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 128px; gap: 8px; align-items: center; }
 .bind-name { font-weight: 800; }
@@ -1402,9 +1438,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .settings-label { margin: 0 0 6px; font-weight: 800; }
 .settings-touch .seg { width: max-content; }
 .settings-swap { margin-top: 12px; }
-.settings-learn .big-btn { margin-top: 10px; }
 @media (max-width: 760px) {
-  .page-settings { grid-template-columns: minmax(0, 1fr); }
+  /* Narrow windows: the sections become a row of buttons above the one showing. */
+  .page-settings { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'menu' 'status' 'content'; }
+  .settings-menu { flex-direction: row; flex-wrap: wrap; }
+  .settings-menu-btn { padding: 6px 10px; font-size: 14px; }
+  .page-sales { grid-template-columns: minmax(0, 1fr); }
   .bind-row { grid-template-columns: minmax(0, 1fr) 100px 100px; }
 }
 
@@ -1662,35 +1701,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: 'menu status' 'menu content';
   }
-  .page-settings .settings-side { display: contents; }
   /* The section list scrolls inside its column if it's longer than the screen (bigger text, small phones). */
-  .settings-menu.phone-only { grid-area: menu; align-self: stretch; contain: size; height: 100%; display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
-  .settings-menu-btn {
-    flex-shrink: 0; /* never squashed: the list scrolls instead */
-    text-align: left;
-    padding: 8px 10px;
-    border: 3px solid var(--ink);
-    border-radius: 12px;
-    background: var(--paper);
-    box-shadow: 0 3px 0 var(--ink);
-    color: var(--ink);
-    font: inherit;
-    font-weight: 800;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .settings-menu-btn.on { background: var(--accent); }
-  .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
-  .page-settings > .card, .page-settings .settings-side > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
-  .page-settings[data-section=text] [data-section=text],
-  .page-settings[data-section=sound] [data-section=sound],
-  .page-settings[data-section=blocked] [data-section=blocked],
-  .page-settings[data-section=touch] [data-section=touch],
-  .page-settings[data-section=keys] [data-section=keys],
-  .page-settings[data-section=learn] [data-section=learn],
-  .page-settings[data-section=about] [data-section=about] { display: block; }
+  .page-settings .settings-menu { align-self: stretch; contain: size; height: 100%; flex-direction: column; flex-wrap: nowrap; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
+  .page-settings .settings-menu-btn { padding: 8px 10px; font-size: 14px; }
+  .settings-menu-btn.phone-only { display: block; }
+  .page-settings .settings-status { font-size: 12px; }
+  .page-settings > .card { min-height: 0; overflow-y: auto; }
   .page-settings .bind-row { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 6px; }
   .page-settings .bind-key { min-height: 32px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
   .page-settings .bind-name { font-size: 13px; }
@@ -1806,4 +1822,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .practice-option b { font-family: var(--title); font-size: 20px; font-weight: 400; }
 .practice-option span { font-size: 14px; }
 
-.text-size-seg { flex-wrap: wrap; }
+/* Five sizes in one row (equal widths); at big text sizes they wrap into rows, so the outline is rounded, not a pill. */
+.text-size-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); border-radius: 18px; }
+.text-size-seg .seg-btn { justify-content: center; padding: 6px 2px; font-size: 14px; }
