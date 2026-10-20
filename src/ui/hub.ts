@@ -216,7 +216,7 @@ export function showHub(
     }
     lobby = null;
     if (tab === 'settings') {
-      page.replaceChildren(renderSettingsPage(ctx, settingsState, onTutorial, onPractice));
+      page.replaceChildren(renderSettingsPage(ctx, settingsState));
       return;
     }
     if (tab === 'guide') {

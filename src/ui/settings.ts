@@ -1,8 +1,9 @@
-// The Settings page of the menu hub: sound (music and effects, on/off and
-// volume, which track and sound pack), controls (keys and mouse buttons for
-// every action, the touch pads) and the tutorial. Signed in, the controls
-// are saved to the account; signed out, they last for this visit. Sound
-// settings are kept on this device.
+// The Settings page of the menu hub: text size, sound (music and effects,
+// on/off and volume, which track and sound pack), controls (keys and mouse
+// buttons for every action, the touch pads) and blocked players, one section
+// at a time beside a list of them. Signed in, the controls are saved to the
+// account; signed out, they last for this visit. Sound settings are kept on
+// this device. (The tutorial, practice and the guide are in the lobby.)
 
 import { ACTIONS, MAX_BINDINGS, bind, bindable, controls, defaultControls, keyLabel, unbind, type Action, type Controls, type TouchSize } from '../input/controls';
 import { account, chooseMusic, chooseSounds, ownedItems, saveControls, wearMusic, wearSounds } from '../account/session';
@@ -32,18 +33,18 @@ export interface SettingsState {
   note: string;
   /** Where the last save went. */
   saved: 'account' | 'visit' | 'error' | '';
-  /** Phones: the section showing (they show one at a time). */
+  /** The section showing (one at a time). */
   section: Section | null;
 }
 
-type Section = 'text' | 'sound' | 'touch' | 'keys' | 'blocked' | 'learn' | 'about';
+type Section = 'text' | 'sound' | 'touch' | 'keys' | 'blocked' | 'about';
 const SECTIONS: [Section, string][] = [
-  ['text', '🔤 Text size'],
-  ['sound', '🔊 Sound'],
-  ['touch', '👆 Touch controls'],
   ['keys', '⌨️ Keyboard & mouse'],
+  ['touch', '👆 Touch controls'],
+  ['sound', '🔊 Sound'],
+  ['text', '🔤 Text size'],
   ['blocked', '🚫 Blocked players'],
-  ['learn', '🎓 How to play'],
+  // Phones only: on bigger screens the hub's footer has these links.
   ['about', 'ℹ️ About & legal'],
 ];
 
@@ -54,7 +55,7 @@ export function newSettingsState(): SettingsState {
 /** Stops listening for a key (the page is being redrawn or left). */
 let stopListening: (() => void) | null = null;
 
-export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTutorial: () => void, onPractice: () => void = () => {}): HTMLElement {
+export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLElement {
   stopListening?.();
   const root = el('div', 'page page-settings');
   const { me } = account();
@@ -147,21 +148,6 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   // ---- Sound ----
   const soundCard = soundSettings(ctx);
 
-  // ---- Tutorial ----
-  const learnCard = el('section', 'card settings-learn');
-  learnCard.dataset.section = 'learn';
-  learnCard.append(el('h2', 'card-title', '🎓 Learn to play'));
-  learnCard.append(el('p', 'account-note', 'A short practice match against a target dummy that walks you through moving, aiming, firing and targeting.'));
-  const tut = el('button', 'big-btn', 'Start the tutorial');
-  tut.onclick = onTutorial;
-  const more = el('div', 'guide-buttons');
-  const prac = el('button', 'hud-btn', '🎯 Practice');
-  prac.onclick = onPractice;
-  const guide = el('button', 'hud-btn', '📖 Guide: wind, weapons, online play');
-  guide.onclick = () => ctx.go('guide');
-  more.append(prac, guide);
-  learnCard.append(tut, more);
-
   // ---- Where it's saved ----
   const status = el('p', 'settings-status');
   status.setAttribute('role', 'status');
@@ -179,23 +165,20 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
     status.append(' ', link);
   }
 
-  // Two columns of about the same height: the long controls list with Learn to
-  // play under it, and the shorter settings stacked beside them.
-  const main = el('div', 'settings-main');
-  main.append(keysCard, learnCard);
-  const side = el('div', 'settings-side');
-  side.append(textSettings(ctx), soundCard, touchCard, blockedSettings(ctx));
-  // On a touch screen the touch settings come first.
-  const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  root.append(status, ...(touchFirst ? [side, main] : [main, side]));
+  root.append(status, keysCard, touchCard, soundCard, textSettings(ctx), blockedSettings(ctx));
 
-  // Phones: a list of sections beside the one showing, instead of one long page.
+  // One section at a time, beside the list of them (on a touch screen, touch controls first).
+  const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   state.section ??= touchFirst ? 'touch' : 'keys';
+  // About & legal is only a section on phones (the same media query as the phone menu in style.css).
+  const phoneMenu = typeof matchMedia === 'function' && matchMedia('(max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px)').matches;
+  if (state.section === 'about' && !phoneMenu) state.section = 'keys';
   root.dataset.section = state.section;
-  const menu = el('nav', 'settings-menu phone-only');
+  const menu = el('nav', 'settings-menu');
   menu.setAttribute('aria-label', 'Settings sections');
-  for (const [id, label] of SECTIONS) {
-    const b = el('button', 'settings-menu-btn' + (state.section === id ? ' on' : ''), label);
+  const order = touchFirst ? [...SECTIONS.filter(([id]) => id === 'touch'), ...SECTIONS.filter(([id]) => id !== 'touch')] : SECTIONS;
+  for (const [id, label] of order) {
+    const b = el('button', 'settings-menu-btn' + (state.section === id ? ' on' : '') + (id === 'about' ? ' phone-only' : ''), label);
     if (state.section === id) b.setAttribute('aria-current', 'true');
     b.onclick = () => {
       state.section = id;

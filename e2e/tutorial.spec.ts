@@ -15,7 +15,9 @@ test('settings bind left-click to Fire, and the tutorial walks through the basic
   await page.mouse.click(30, 300);
   await expect(page.getByRole('button', { name: /^Fire \(hold to charge\), second key: Left click/ })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Start the tutorial' }).click();
+  // The tutorial starts from the lobby.
+  await page.locator('.hub-tabs').getByRole('button', { name: /Lobby/ }).click();
+  await page.locator('.learn-btn').click();
   const coach = page.locator('.coach');
   await page.waitForFunction(() => (window as unknown as { __tardi?: Game }).__tardi?.state.turn.phase === 'aim');
   await expect(coach).toContainText('Step 1 of');

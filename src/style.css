@@ -1376,9 +1376,44 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gift-dialog-art .bundle-art { width: 160px; height: 100px; }
 
 /* ---------- Settings page ---------- */
-.page-settings { display: grid; gap: 20px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; max-width: 1080px; margin: 0 auto; }
-.settings-status { grid-column: 1 / -1; margin: 0; text-align: center; font-weight: 800; }
-.settings-main, .settings-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+/* One section at a time, beside the list of sections (as on phones). */
+.page-settings {
+  display: grid;
+  gap: 14px 20px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-areas: 'menu status' 'menu content';
+  align-items: start;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.settings-status { grid-area: status; margin: 0; font-weight: 800; }
+.settings-menu { grid-area: menu; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.settings-menu-btn {
+  flex-shrink: 0; /* never squashed: the list scrolls instead (phones) */
+  text-align: left;
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--ink);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.settings-menu-btn:hover { background: #f4eedf; }
+.settings-menu-btn.on { background: var(--accent); }
+.page-settings > .card { grid-area: content; display: none; min-width: 0; }
+.page-settings[data-section=text] > [data-section=text],
+.page-settings[data-section=sound] > [data-section=sound],
+.page-settings[data-section=blocked] > [data-section=blocked],
+.page-settings[data-section=touch] > [data-section=touch],
+.page-settings[data-section=keys] > [data-section=keys],
+.page-settings[data-section=about] > [data-section=about] { display: block; }
 .bind-table { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .bind-row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 128px; gap: 8px; align-items: center; }
 .bind-name { font-weight: 800; }
@@ -1402,9 +1437,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .settings-label { margin: 0 0 6px; font-weight: 800; }
 .settings-touch .seg { width: max-content; }
 .settings-swap { margin-top: 12px; }
-.settings-learn .big-btn { margin-top: 10px; }
 @media (max-width: 760px) {
-  .page-settings { grid-template-columns: minmax(0, 1fr); }
+  /* Narrow windows: the sections become a row of buttons above the one showing. */
+  .page-settings { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'menu' 'status' 'content'; }
+  .settings-menu { flex-direction: row; flex-wrap: wrap; }
+  .settings-menu-btn { padding: 6px 10px; font-size: 14px; }
   .page-sales { grid-template-columns: minmax(0, 1fr); }
   .bind-row { grid-template-columns: minmax(0, 1fr) 100px 100px; }
 }
@@ -1663,35 +1700,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: 'menu status' 'menu content';
   }
-  .page-settings .settings-side, .page-settings .settings-main { display: contents; }
   /* The section list scrolls inside its column if it's longer than the screen (bigger text, small phones). */
-  .settings-menu.phone-only { grid-area: menu; align-self: stretch; contain: size; height: 100%; display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
-  .settings-menu-btn {
-    flex-shrink: 0; /* never squashed: the list scrolls instead */
-    text-align: left;
-    padding: 8px 10px;
-    border: 3px solid var(--ink);
-    border-radius: 12px;
-    background: var(--paper);
-    box-shadow: 0 3px 0 var(--ink);
-    color: var(--ink);
-    font: inherit;
-    font-weight: 800;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .settings-menu-btn.on { background: var(--accent); }
-  .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
-  .page-settings > .card, .page-settings .settings-side > .card, .page-settings .settings-main > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
-  .page-settings[data-section=text] [data-section=text],
-  .page-settings[data-section=sound] [data-section=sound],
-  .page-settings[data-section=blocked] [data-section=blocked],
-  .page-settings[data-section=touch] [data-section=touch],
-  .page-settings[data-section=keys] [data-section=keys],
-  .page-settings[data-section=learn] [data-section=learn],
-  .page-settings[data-section=about] [data-section=about] { display: block; }
+  .page-settings .settings-menu { align-self: stretch; contain: size; height: 100%; flex-direction: column; flex-wrap: nowrap; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
+  .page-settings .settings-menu-btn { padding: 8px 10px; font-size: 14px; }
+  .settings-menu-btn.phone-only { display: block; }
+  .page-settings .settings-status { font-size: 12px; }
+  .page-settings > .card { min-height: 0; overflow-y: auto; }
   .page-settings .bind-row { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 6px; }
   .page-settings .bind-key { min-height: 32px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
   .page-settings .bind-name { font-size: 13px; }
