@@ -19,10 +19,11 @@ import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
-import { resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
+import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
+import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
@@ -55,6 +56,8 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
   APPLE_APP_BUNDLE_IDENTIFIER?: string;
   /** Comma-separated emails that may see the sales page (confirmed email only). */
   ADMIN_EMAILS?: string;
+  /** Yen per pound for the Japan coins figure (default src/shop/japan.ts DEFAULT_JPY_PER_GBP, set high on purpose). */
+  JPY_PER_GBP?: string;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -212,6 +215,21 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   };
   const voidedTimer = setInterval(() => void checkVoided().catch((e) => console.error('google play refunds check failed', e)), 60 * 60_000);
   voidedTimer.unref();
+
+  // Japan's Payment Services Act: email the owner as Japanese players' unspent
+  // paid coins near ¥10 million (src/shop/japan.ts), once per level.
+  const rate = Number(env.JPY_PER_GBP);
+  const jpyPerGbp = Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_JPY_PER_GBP;
+  const ownerEmails = () => [...(env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim()).filter(Boolean)];
+  const checkJapan = async () => {
+    const { yen, levels } = await japanAlertsDue(db, jpyPerGbp);
+    if (!levels.length) return;
+    const to = ownerEmails();
+    // No owner set up: the support inbox gets it.
+    for (const addr of to.length ? to : ['support@tardigeddon.com']) send(japanAlertEmail(addr, yen, Math.max(...levels), JAPAN_LIMIT_YEN, gameUrl));
+  };
+  const japanTimer = setInterval(() => void checkJapan().catch((e) => console.error('japan coins check failed', e)), 60 * 60_000);
+  japanTimer.unref();
 
   async function userFrom(headers: IncomingHttpHeaders): Promise<MeResponse['user']> {
     const s = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
@@ -515,6 +533,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       amount: p.purchaseType === 0 ? 0 : pack.price,
       currency: CURRENCY,
       paymentIntent: `gplay:${token}`,
+      region: p.regionCode,
     });
     // Not consumed (Google down): the app sends it again next time, which grants nothing twice.
     await play.consume(productId, token).catch((e) => console.error('google play consume failed', e));
@@ -558,6 +577,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           amount: Number(o.amount_total ?? 0),
           currency: String(o.currency ?? CURRENCY),
           paymentIntent: str(o.payment_intent),
+          region: (o.customer_details as { address?: { country?: unknown } } | null | undefined)?.address?.country as string | undefined,
         });
       }
     } else if (event.type === 'charge.refunded' && o.refunded === true) {
@@ -631,7 +651,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           // Anyone else gets "not found", so the page isn't even known to exist.
           const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
           if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: 'Not found.' });
-          else json(res, 200, await salesReport(db, [1, 7, 30, 365].includes(days) ? days : 0));
+          else json(res, 200, await salesReport(db, [1, 7, 30, 365].includes(days) ? days : 0, jpyPerGbp));
         } else if (path === '/api/settings' && req.method === 'POST') {
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
@@ -655,6 +675,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     },
     /** Take back coins for Google Play refunds and chargebacks now (also runs hourly). */
     checkVoided,
+    /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
+    checkJapan,
     /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
     async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[] }> {
       const user = await userFrom(headers);
@@ -673,6 +695,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     async close(): Promise<void> {
       clearInterval(purge);
       clearInterval(voidedTimer);
+      clearInterval(japanTimer);
       await db.end();
     },
   };

@@ -9,7 +9,7 @@ import { createAccounts, type Accounts, type MeResponse } from '../server/accoun
 import type { GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
-import { migrate, revokePurchase } from '../server/store';
+import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
@@ -82,7 +82,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
       { stripe, mailer, play },
     );
-    await accounts.db.query('DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user";');
+    await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
     await new Promise<void>((r) => server.listen(0, r));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -408,6 +408,72 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(cookie)).owned).toEqual([]);
   });
 
+  it("keeps where unspent paid coins came from, for Japan's Payment Services Act", async () => {
+    const { cookie, id } = await signUp('tokyo@example.com');
+    await accounts.db.query(`UPDATE "user" SET "emailVerified" = true, "createdAt" = now() - interval '2 days' WHERE id = $1`, [id]);
+    const lots = async () =>
+      (
+        await accounts.db.query<{ paid: boolean; region: string | null; coins: number; value: number; left_coins: number }>(
+          'SELECT paid, region, coins, value, left_coins FROM coin_lot WHERE user_id = $1 ORDER BY id',
+          [id],
+        )
+      ).rows;
+    const japan = async () => (await unspentCoins(accounts.db)).filter((u) => u.region === 'JP');
+    // Bought in Japan through Google Play: 1,000 paid coins (£9.99) and 150 free bonus coins.
+    playPurchases.set('jp1', { productId: 'coins_1000', purchaseState: 0, consumptionState: 0, obfuscatedExternalAccountId: playAccountTag(id), regionCode: 'JP' });
+    expect((await post('/api/shop/google', { productId: 'coins_1000', token: 'jp1' }, cookie)).status).toBe(200);
+    expect(await lots()).toEqual([
+      { paid: true, region: 'JP', coins: 1000, value: 999, left_coins: 1000 },
+      { paid: false, region: 'JP', coins: 150, value: 0, left_coins: 150 },
+    ]);
+    expect(await japan()).toEqual([{ region: 'JP', currency: 'gbp', coins: 1000, value: 999 }]);
+    // Spending takes the free coins first: a 200-coin hat leaves 950 paid coins.
+    expect((await post('/api/shop/unlock', { item: 'hat:wizard' }, cookie)).status).toBe(200);
+    expect((await lots()).map((l) => l.left_coins)).toEqual([950, 0]);
+    expect(await japan()).toEqual([{ region: 'JP', currency: 'gbp', coins: 950, value: 949 }]);
+    // A gift spends paid coins; cancelling it puts them back where they were.
+    const gift = await post('/api/gift/buy', { item: 'hat:pirate', message: 'none' }, cookie);
+    expect(gift.status).toBe(200);
+    expect((await lots())[0].left_coins).toBe(750);
+    const sent = (await (await fetch(base + '/api/gift/sent', { headers: { cookie } })).json()) as { gifts: GiftSent[] };
+    expect((await post('/api/gift/cancel', { id: sent.gifts[0].id }, cookie)).status).toBe(200);
+    expect((await lots()).map((l) => l.left_coins)).toEqual([950, 0]);
+    // Lots always add up to the wallet.
+    expect((await me(cookie)).wallet.coins).toBe(950);
+    // Refunded: those coins are gone, and so is Japan's figure.
+    voided = [{ purchaseToken: 'jp1', voidedReason: 1 }];
+    await accounts.checkVoided();
+    voided = [];
+    expect(await japan()).toEqual([]);
+    expect((await me(cookie)).wallet.coins).toBe(-200);
+    // The debt comes out of the next pack first (bought in the UK on the website this time).
+    expect(await sendWebhook('checkout.session.completed', { ...paid('cs_after_refund', id, 'coins:500'), customer_details: { address: { country: 'GB' } } })).toBe(200);
+    expect((await me(cookie)).wallet.coins).toBe(350);
+    const left = (await lots()).filter((l) => l.left_coins > 0);
+    expect(left).toEqual([{ paid: true, region: 'GB', coins: 500, value: 199, left_coins: 350 }]);
+  });
+
+  it('emails the owner as Japan nears the ¥10 million limit, once per level', async () => {
+    const { id } = await signUp('osaka@example.com');
+    sent.length = 0;
+    // £23,000 of unspent paid coins in Japan: ¥5,060,000 at the default ¥220, 50.6% of the limit.
+    await accounts.db.query(`INSERT INTO coin_lot (user_id, paid, region, coins, value, currency, left_coins) VALUES ($1, true, 'JP', 1000000, 2300000, 'gbp', 1000000)`, [id]);
+    await accounts.checkJapan();
+    const mail = await mailTo('Boss@example.com', /Japan coins at 50%/);
+    expect(mail.text).toContain('¥5,060,000');
+    // Not again for the same level.
+    await accounts.checkJapan();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(sent.filter((m) => /Japan/.test(m.subject))).toHaveLength(1);
+    // Past 90%: one more email, for the highest level reached.
+    await accounts.db.query(`UPDATE coin_lot SET value = 4200000 WHERE user_id = $1`, [id]);
+    await accounts.checkJapan();
+    await mailTo('Boss@example.com', /Japan coins at 90%/);
+    expect(sent.filter((m) => /Japan/.test(m.subject))).toHaveLength(2);
+    await accounts.db.query('DELETE FROM coin_lot WHERE user_id = $1', [id]);
+    await accounts.checkJapan();
+  });
+
   it('sells coin packs in the Android app through Google Play: checked with Google, granted once, consumed, refundable', async () => {
     const { cookie, id } = await signUp('play@example.com');
     expect((await me(cookie)).playBilling).toBe(true);
@@ -539,11 +605,15 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   it("puts a player's name into emails as text, never as HTML", async () => {
     sent.length = 0;
-    const r = await post('/api/auth/sign-up/email', { email: 'html@example.com', password: 'correct horse', name: '<img src=x onerror=alert(1)>' });
+    // HTML can't get into a name at all (src/names.ts)...
+    const bad = await post('/api/auth/sign-up/email', { email: 'html@example.com', password: 'correct horse', name: '<img src=x onerror=alert(1)>' });
+    expect(bad.status).toBe(400);
+    expect(sent.some((m) => m.to === 'html@example.com')).toBe(false);
+    // ...and what can is escaped in the email.
+    const r = await post('/api/auth/sign-up/email', { email: 'quote@example.com', password: 'correct horse', name: "Zoe O'Brien" });
     expect(r.status).toBe(200);
-    const mail = await mailTo('html@example.com', /confirm/i);
-    expect(mail.html).not.toContain('<img');
-    expect(mail.html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    const mail = await mailTo('quote@example.com', /confirm/i);
+    expect(mail.html).toContain('Zoe O&#39;Brien');
   });
 
   it('gives looks as gifts with one-use codes, with limits and take-backs', async () => {
@@ -571,7 +641,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(code).toMatch(/^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
     expect((await me(giver.cookie)).wallet.coins).toBe(coins0 - 200);
     // Only a hash of the code is stored.
-    const stored = await accounts.db.query<{ code_hash: string; hint: string }>('SELECT code_hash, hint FROM gift');
+    const stored = await accounts.db.query<{ code_hash: string; hint: string }>('SELECT code_hash, hint FROM gift WHERE from_user = $1', [giver.id]);
     expect(JSON.stringify(stored.rows)).not.toContain(code.replace(/-/g, ''));
     expect(stored.rows[0].hint).toBe(code.slice(-4));
 

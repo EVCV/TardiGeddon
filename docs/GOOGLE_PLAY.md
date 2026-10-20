@@ -253,8 +253,13 @@ personal accounts) doesn't apply.
   (from Account details) to Japanese players, as the Specified Commercial
   Transactions Act requires. Coins count as prepaid credit under the Payment
   Services Act. A filing with the Local Finance Bureau is only needed if
-  unspent coins pass ¥10 million on 31 March or 30 September. Refunds Google
-  makes (including to minors) take the coins back (§7).
+  unspent *paid* coins bought in Japan pass ¥10 million on 31 March or
+  30 September. The deposit is half of what's over. Nothing is owed to a
+  player who just stops playing; unspent coins are only paid back if we stop
+  selling coins in Japan. The sales page shows the figure, and the owner is
+  emailed at 50%, 75% and 90% (`docs/ACCOUNTS.md`, "Unspent coins and
+  Japan"). Refunds Google makes (including to minors) take the coins back
+  (§7).
 - **Brazil:** fine with the age check in the app (below). If Google asks
   for merchant details (an email "Important Information Regarding Your
   Google Account", and a Play Console banner), fill them in.

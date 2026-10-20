@@ -99,3 +99,26 @@ export function verifyEmail(to: string, name: string, url: string): Mail {
     ),
   };
 }
+
+/**
+ * To the owner: the unspent paid coins of players in Japan are getting close
+ * to the Payment Services Act's ¥10 million limit (src/shop/japan.ts).
+ */
+export function japanAlertEmail(to: string, yen: number, level: number, limit: number, salesUrl: string): Mail {
+  const pct = Math.round(level * 100);
+  const fmt = (n: number) => `¥${Math.round(n).toLocaleString('en-GB')}`;
+  return {
+    to,
+    subject: `TardiGeddon: Japan coins at ${pct}% of the ¥10 million limit`,
+    ...layout(
+      'there',
+      `Players in Japan now hold unspent coins they paid ${fmt(yen)} for: ${pct}% of the ${fmt(limit)} limit in Japan's Payment Services Act. ` +
+        'If that figure is over the limit on 31 March or 30 September, EVCV must notify the Local Finance Bureau within two months ' +
+        'and lodge a deposit (or bank guarantee) for half of the amount over. Nothing has to be paid back to players unless TardiGeddon ' +
+        'stops selling coins in Japan. Now is a good time to speak to an accountant or lawyer in Japan.',
+      'Open TardiGeddon',
+      salesUrl,
+      'The Sales page (signed in as the owner) shows the figure by country. It counts only coins bought with money, not bonus coins, at what they cost, with pounds converted at a deliberately high rate so it errs high.',
+    ),
+  };
+}
