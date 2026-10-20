@@ -21,6 +21,8 @@ export interface ProductPurchase {
   purchaseState: number;
   /** 0 not yet consumed, 1 consumed. */
   consumptionState: number;
+  /** 0 not yet acknowledged, 1 acknowledged (consuming also acknowledges). */
+  acknowledgementState?: number;
   /** Absent for real purchases; 0 test (licence testers), 1 promo code, 2 rewarded. */
   purchaseType?: number;
   orderId?: string;
@@ -40,6 +42,8 @@ export interface PlayApi {
   /** Null if Google doesn't know the token (made up, or for another app). */
   getProduct(productId: string, token: string): Promise<ProductPurchase | null>;
   consume(productId: string, token: string): Promise<void>;
+  /** Mark it as delivered without consuming it: Google refunds purchases not acknowledged within 3 days. */
+  acknowledge(productId: string, token: string): Promise<void>;
   /** Purchases refunded or charged back since this time. */
   voided(sinceMs: number): Promise<VoidedPurchase[]>;
 }
@@ -96,8 +100,22 @@ export function googlePlayApi(env: PlayEnv, fetchFn: typeof fetch = fetch): Play
     return access.token;
   }
 
-  async function api(method: 'GET' | 'POST', path: string): Promise<Response> {
-    return fetchFn(`${API}/${encodeURIComponent(pkg)}/${path}`, { method, headers: { authorization: `Bearer ${await accessToken()}` } });
+  async function api(method: 'GET' | 'POST', path: string, json?: string): Promise<Response> {
+    const headers: Record<string, string> = { authorization: `Bearer ${await accessToken()}` };
+    if (json !== undefined) headers['content-type'] = 'application/json';
+    return fetchFn(`${API}/${encodeURIComponent(pkg)}/${path}`, { method, headers, body: json });
+  }
+
+  /** An error with Google's own reason in it (it names no player), for the server log. */
+  async function failed(what: string, r: Response): Promise<Error> {
+    let why = '';
+    try {
+      const body = (await r.json()) as { error?: { message?: string; status?: string } };
+      why = [body.error?.status, body.error?.message].filter(Boolean).join(': ');
+    } catch {
+      // Not JSON: the status is all there is.
+    }
+    return new Error(`${what} failed (${r.status})${why ? `: ${why.slice(0, 300)}` : ''}`);
   }
 
   const productPath = (productId: string, token: string) =>
@@ -108,12 +126,16 @@ export function googlePlayApi(env: PlayEnv, fetchFn: typeof fetch = fetch): Play
       const r = await api('GET', productPath(productId, token));
       // Google answers 400 or 404 for tokens it doesn't recognise.
       if (r.status === 400 || r.status === 404 || r.status === 410) return null;
-      if (!r.ok) throw new Error(`Google Play purchase check failed (${r.status})`);
+      if (!r.ok) throw await failed('Google Play purchase check', r);
       return (await r.json()) as ProductPurchase;
     },
     async consume(productId, token) {
       const r = await api('POST', `${productPath(productId, token)}:consume`);
-      if (!r.ok) throw new Error(`Google Play consume failed (${r.status})`);
+      if (!r.ok) throw await failed('Google Play consume', r);
+    },
+    async acknowledge(productId, token) {
+      const r = await api('POST', `${productPath(productId, token)}:acknowledge`, '{}');
+      if (!r.ok) throw await failed('Google Play acknowledge', r);
     },
     async voided(sinceMs) {
       const out: VoidedPurchase[] = [];
@@ -122,7 +144,7 @@ export function googlePlayApi(env: PlayEnv, fetchFn: typeof fetch = fetch): Play
         const q = new URLSearchParams({ startTime: String(Math.floor(sinceMs)), type: '0', maxResults: '1000' });
         if (page) q.set('token', page);
         const r = await api('GET', `purchases/voidedpurchases?${q}`);
-        if (!r.ok) throw new Error(`Google Play voided purchases check failed (${r.status})`);
+        if (!r.ok) throw await failed('Google Play voided purchases check', r);
         const data = (await r.json()) as { voidedPurchases?: VoidedPurchase[]; tokenPagination?: { nextPageToken?: string } };
         out.push(...(data.voidedPurchases ?? []));
         page = data.tokenPagination?.nextPageToken ?? '';

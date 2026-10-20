@@ -49,6 +49,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   // No Google in tests: purchases the fake knows about, by token.
   const playPurchases = new Map<string, ProductPurchase & { productId: string }>();
   const consumed: string[] = [];
+  const acknowledged: string[] = [];
+  let consumeFails = false;
   let voided: VoidedPurchase[] = [];
   const play: PlayApi = {
     getProduct: async (productId, token) => {
@@ -56,10 +58,12 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       return p && p.productId === productId ? p : null;
     },
     consume: async (_productId, token) => {
+      if (consumeFails) throw new Error('Google Play consume failed (400)');
       consumed.push(token);
       const p = playPurchases.get(token);
       if (p) p.consumptionState = 1;
     },
+    acknowledge: async (_productId, token) => void acknowledged.push(token),
     voided: async () => voided,
   };
 
@@ -472,6 +476,21 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(sent.filter((m) => /Japan/.test(m.subject))).toHaveLength(2);
     await accounts.db.query('DELETE FROM coin_lot WHERE user_id = $1', [id]);
     await accounts.checkJapan();
+  });
+
+  it("acknowledges a Google Play purchase Google won't consume, so it isn't refunded, and consumes it next time", async () => {
+    const { cookie, id } = await signUp('ack@example.com');
+    const buy = (token: string) => post('/api/shop/google', { productId: 'coins_500', token }, cookie);
+    consumeFails = true;
+    playPurchases.set('ack1', { productId: 'coins_500', purchaseState: 0, consumptionState: 0, acknowledgementState: 0, obfuscatedExternalAccountId: playAccountTag(id) });
+    expect(await (await buy('ack1')).json()).toMatchObject({ coins: 550 });
+    expect(acknowledged).toContain('ack1');
+    expect(consumed).not.toContain('ack1');
+    // The app sends it again later: no more coins, and this time it's consumed.
+    consumeFails = false;
+    expect(await (await buy('ack1')).json()).toMatchObject({ coins: 0 });
+    expect(consumed).toContain('ack1');
+    expect((await me(cookie)).wallet.coins).toBe(550);
   });
 
   it('sells coin packs in the Android app through Google Play: checked with Google, granted once, consumed, refundable', async () => {
