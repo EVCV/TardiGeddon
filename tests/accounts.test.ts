@@ -478,6 +478,18 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await accounts.checkJapan();
   });
 
+  it('handles one Google Play purchase reported twice at once: one consume, coins once', async () => {
+    const { cookie, id } = await signUp('twice@example.com');
+    const buy = () => post('/api/shop/google', { productId: 'coins_500', token: 'dup1' }, cookie);
+    playPurchases.set('dup1', { productId: 'coins_500', purchaseState: 0, consumptionState: 0, acknowledgementState: 0, obfuscatedExternalAccountId: playAccountTag(id) });
+    const [a, b] = await Promise.all([buy(), buy()]);
+    const coins = [((await a.json()) as { coins: number }).coins, ((await b.json()) as { coins: number }).coins].sort();
+    expect(coins).toEqual([0, 550]);
+    expect(consumed.filter((t) => t === 'dup1')).toHaveLength(1);
+    expect(acknowledged).not.toContain('dup1');
+    expect((await me(cookie)).wallet.coins).toBe(550);
+  });
+
   it("acknowledges a Google Play purchase Google won't consume, so it isn't refunded, and consumes it next time", async () => {
     const { cookie, id } = await signUp('ack@example.com');
     const buy = (token: string) => post('/api/shop/google', { productId: 'coins_500', token }, cookie);

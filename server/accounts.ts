@@ -17,7 +17,7 @@ import { APIError } from 'better-auth/api';
 import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem, type CoinPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
@@ -496,6 +496,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
    * must be safe to call more than once for the same purchase.
    */
   const playChecks = new Map<string, number[]>();
+  /** Purchases being checked right now, by token (see googlePlayPurchase). */
+  const playInFlight = new Map<string, Promise<void>>();
   async function googlePlayPurchase(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
     const user = await userFrom(req.headers);
@@ -511,6 +513,25 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     // Only coin packs, priced in the Play Console; never trust the app's word for what was bought.
     const pack = packForPlayProduct(productId);
     if (!pack || !token) return json(res, 400, { error: 'No such coin pack.' });
+    // The app reports a new purchase twice at once (its Buy button, and Google's
+    // "purchases updated" signal). Done side by side, both would try to consume it
+    // and Google refuses the second; so the second waits, then finds it done.
+    const before = playInFlight.get(token) ?? Promise.resolve();
+    const mine = before.then(() => settlePlayPurchase(res, user, pack, productId, token));
+    // What the next report waits on: never fails, and is what gets removed once done.
+    const tracked = mine.catch(() => {});
+    playInFlight.set(token, tracked);
+    try {
+      await mine;
+    } finally {
+      // Forget it, unless another report of the same purchase has queued behind it.
+      if (playInFlight.get(token) === tracked) playInFlight.delete(token);
+    }
+  }
+
+  /** Check one Google Play purchase with Google, grant it once, and consume it. */
+  async function settlePlayPurchase(res: ServerResponse, user: NonNullable<MeResponse['user']>, pack: CoinPack, productId: string, token: string): Promise<void> {
+    if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
     const p = await play.getProduct(productId, token);
     if (!p) return json(res, 400, { error: "Google Play doesn't know that purchase." });
     if (p.purchaseState === 2) return json(res, 202, { pending: true });
