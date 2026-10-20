@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { coinRules, mayChange } from '../src/shop/ageSignals';
+import { describe, expect, it, vi } from 'vitest';
+import { coinRules, mayChange, withTimeout } from '../src/shop/ageSignals';
 
 // Brazil's Digital ECA: Google Play's age band only changes buying coins.
 describe('age signals and the coin shop', () => {
@@ -37,5 +37,19 @@ describe('age signals and the coin shop', () => {
     expect(mayChange({ status: 'shared', lower: 18 })).toBe(false);
     expect(mayChange({ status: 'shared', lower: 13, upper: 15, change: 'approved' })).toBe(false);
     expect(mayChange({ status: 'not_shared' })).toBe(false);
+  });
+
+  it("doesn't wait for ever on a Play Store that never answers", async () => {
+    vi.useFakeTimers();
+    try {
+      const never = withTimeout(new Promise(() => {}), 15_000);
+      vi.advanceTimersByTime(15_000);
+      expect(await never).toEqual({ status: 'error', message: 'timeout' });
+      // A failure is an error too, and a quick answer comes through as it is.
+      expect(await withTimeout(Promise.reject(new Error('x')), 15_000)).toEqual({ status: 'error' });
+      expect(await withTimeout(Promise.resolve({ status: 'not_shared' }), 15_000)).toEqual({ status: 'not_shared' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

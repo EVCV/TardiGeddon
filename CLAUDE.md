@@ -40,3 +40,19 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - Never copy Worms Armageddon assets or signature names (see plan §1).
 - Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only.
   Weapons unlock with Slime, which is earned by playing and must never be buyable or convertible from coins.
+
+## Business facts (settled — don't ask the owner again)
+
+- **Who sells:** in the browser, **Stripe Managed Payments is on in production**: Stripe is the
+  merchant of record and handles VAT (`STRIPE_MANAGED_PAYMENTS=on`; Terms 5.1.3, Privacy 4.0.4).
+  In the Android app, Google Play is the seller; an iOS app will use Apple's payments.
+- **Company:** EVCV Limited (England and Wales, 13570383), 28 Oak Tree Lane, Cookhill, Alcester, B49 5LH.
+  The Google Play developer account is an **organisation** account ("EVCV Studios"), so Google's
+  12-tester closed test doesn't apply.
+- **Email:** support@tardigeddon.com forwards to the owner, so owner alerts go there (e.g. the Japan
+  coins alert; `ADMIN_EMAILS` is only who can open the Sales page).
+- **Countries:** everywhere except Vietnam (online games need a licence there). The EU is all or
+  nothing (geo-blocking rules). Brazil needs the in-app age check (`src/shop/ageSignals.ts`); Japan
+  needs the unspent-coin record (`coin_lot`, `src/shop/japan.ts`). See `docs/GOOGLE_PLAY.md`.
+- **Coins are never refunded just because a player stops playing.** The only exceptions are the law's:
+  faulty items, and in Japan, unspent bought coins if we stop selling coins there (Terms 5.5.4).
