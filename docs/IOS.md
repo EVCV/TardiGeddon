@@ -18,7 +18,7 @@ Apple's rules on this page were checked against Apple's documentation in
 | Building | **GitHub Actions macOS runners**: no Mac needed |
 | Signing | **fastlane `match`** (certificates kept encrypted in a private repo) |
 | Paying in the iOS app | **Apple in-app purchase only**, in every country, the US included (§3) |
-| Sign-in | Email + **Sign in with Apple** in the iOS app; Google too, later, on every platform (§2) |
+| Sign-in | **Email, Apple and Google on every platform** (website, iOS, Android) (§2) |
 | Test devices | The owner's iPhone and iPad, through TestFlight |
 
 ## 0. What carries over, and what doesn't
@@ -37,10 +37,32 @@ runs. That's fine: the phone menu has a Back button on every page.
 ## 1. Owner tasks to start now (they take the longest)
 
 1. **Apple Developer Program, as an organisation:**
-   <https://developer.apple.com/programs/enroll/>. Enrol as **EVCV Limited**,
-   with the D-U-N-S number Google already verified, and an Apple Account
-   with two-factor authentication. $99 a year. Apple phones to check
-   the company. Allow one to two weeks.
+   <https://developer.apple.com/programs/enroll/>. $99 a year. Apple phones
+   to check the company. Allow one to two weeks.
+   1. **An email on the company's domain.** Apple wants a work email on
+      the organisation's own domain, not Gmail. Add a forwarding address
+      such as `developer@tardigeddon.com` (like `support@`), so Apple's
+      emails reach the owner's inbox. The website already shows "developed
+      by EVCV Limited … company number 13570383" in its footer, which is
+      what Apple checks the domain against.
+   2. **A new Apple Account with that email**
+      (<https://account.apple.com> → Create your Apple Account), in the
+      owner's **own legal first and last name** (not "EVCV"), with the
+      owner's mobile as the trusted phone number. New Apple Accounts have
+      two-factor authentication on from the start: codes come by text
+      message to that phone. Keep it separate from the Apple Account on the
+      owner's iPhone (iCloud, photos); it's the company's.
+   3. **Check the D-U-N-S record** at
+      <https://developer.apple.com/enroll/duns-lookup/>: the legal name
+      **EVCV Limited** and the address must match what's entered in the
+      enrolment exactly. If Dun & Bradstreet has an old address or name,
+      correct it with them first (it takes a few days to reach Apple).
+   4. **Enrol in the Apple Developer app** on the iPhone or iPad (from the
+      App Store). Sign in inside that app with the new account; the phone's
+      own iCloud sign-in stays as it is. Choose **Organisation**, and
+      enter the D-U-N-S number, `https://tardigeddon.com`, and a phone
+      number Apple can call. (The website at developer.apple.com works too.)
+      The owner enrols as a director, which covers "legal binding authority".
 2. **Agreements, tax and banking** (App Store Connect → Business): sign the
    **Paid Apps Agreement**, fill in the tax forms (the US W-8BEN-E for a UK
    company) and add the bank account. In-app purchases don't work, even
@@ -103,14 +125,18 @@ quicker than typing an email and password and confirming the email.
 sign-in must also offer Sign in with Apple, or a sign-in with the same
 privacy promises. Email sign-in on its own needs neither.
 
-**Where each one goes:**
+**Decided: email, Apple and Google everywhere**, so a player can sign in the
+same way on any device:
 
 | | Email | Apple | Google |
 |---|---|---|---|
 | Website | ✓ now | ✓ (server already supports it: needs its secrets in production) | ✓ (the same) |
-| iOS app, first release | ✓ | ✓ **native sheet** | later |
-| Android app, after its launch | ✓ | later | ✓ native account picker |
-| Both apps, later | ✓ | ✓ | ✓ |
+| iOS app | ✓ | ✓ native sheet | ✓ through the system browser |
+| Android app | ✓ | ✓ through the system browser | ✓ native account picker |
+
+The iOS app's first release needs at least email + Apple. Google can follow
+in an update if it isn't ready, but Apple must never be missing while Google
+is offered (Guideline 4.8).
 
 Natively, both work the same way: the phone's own sheet gives the app an
 **ID token**, and the app sends it to the server
@@ -137,9 +163,9 @@ account, but only if both are true:
 If the existing account isn't confirmed, Better Auth refuses the sign-in
 (`account_not_linked`). It **doesn't** make a second account. The game has to
 explain this: "An account with this email already exists: sign in with your
-password and confirm your email first, then you can use Apple." **This depends
-on confirmation emails working in production** (SMTP: `docs/ACCOUNTS.md`
-step 7, still listed as "highest priority" in `docs/SECURITY.md`).
+password and confirm your email first, then you can use Apple."
+Confirmation emails already work in production (the test accounts were
+confirmed that way).
 
 Two cases where the emails don't match, so it **would** make a new account:
 
@@ -364,7 +390,7 @@ online play are 13+.
 | 7 | One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
 | 8 | `server/appStore.ts`, notifications, tests; products in App Store Connect | Code + owner (IAP key, products) | 1, 7 |
 | 9 | Sandbox purchases on TestFlight: pay, refund, app closed mid-purchase, wrong account | Owner | 6, 8 |
-| 10 | Sign in with Apple (native) + "Link Apple" + add a password; confirmation emails live | Code + owner (Apple keys, SMTP) | 2 |
+| 10 | Apple and Google sign-in in the app + "Link Apple/Google" + add a password; Apple and Google keys live on the server | Code + owner (Apple and Google keys) | 2 |
 | 11 | Age range, Significant Change API, consent notifications; sandbox-tested | Code | 7, 8 |
 | 12 | Screenshots, listing, App Privacy, age rating, legal pages | Code + owner | 6 |
 | 13 | Submit for review | Owner | all |

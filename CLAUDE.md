@@ -56,7 +56,8 @@ The iOS app plan: `docs/IOS.md`.
   nothing (geo-blocking rules). Brazil needs the in-app age check (`src/shop/ageSignals.ts`); Japan
   needs the unspent-coin record (`coin_lot`, `src/shop/japan.ts`). See `docs/GOOGLE_PLAY.md`.
 - **iOS app:** iPhone and iPad; built on GitHub Actions macOS runners with fastlane `match` (no Mac);
-  coins only through Apple in-app purchase in the app (no US link-out for now); Sign in with Apple in
-  the iOS app. The owner has an iPhone and an iPad for TestFlight. See `docs/IOS.md`.
+  coins only through Apple in-app purchase in the app (no US link-out for now).
+- **Sign-in:** email, Apple and Google on every platform (website, iOS, Android). Email confirmation
+  works in production. The owner has an iPhone and an iPad for TestFlight. See `docs/IOS.md`.
 - **Coins are never refunded just because a player stops playing.** The only exceptions are the law's:
   faulty items, and in Japan, unspent bought coins if we stop selling coins there (Terms 5.5.4).
