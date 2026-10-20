@@ -2,6 +2,7 @@
 
 Turn-based artillery game (Worms Armageddon mechanics) starring tardigrades.
 Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
+The iOS app plan: `docs/IOS.md`.
 
 ## Commands
 

@@ -79,15 +79,6 @@ answers for Google's content rating, target audience and Data safety forms.
 Still to build: Google
 sign-in with the native account picker, and app links for invites.
 
-iOS, after Android:
-
-- Building needs a Mac with Xcode, or a macOS cloud build (GitHub Actions
-  macOS runners, Codemagic, Ionic Appflow). An Apple Developer account costs
-  $99 a year. `npx cap add ios` creates the project.
-- **Sign-in needs work first:** iOS apps can't use an `https` address inside
-  the phone, so the cookie becomes cross-site and Safari's rules block it.
-  The fix is the token sign-in already planned in `SECURITY.md` (a Better
-  Auth bearer token kept in the phone's secure storage, also sent when
-  joining an online game).
-- Sign in with Apple is required once Google sign-in is offered; buying coins
-  goes through Apple's in-app purchases.
+iOS, after Android: **see `docs/IOS.md`** (the plan: token sign-in, Apple
+in-app purchases, building on GitHub's macOS runners, the App Store listing,
+and the order of work).

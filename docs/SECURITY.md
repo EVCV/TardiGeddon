@@ -103,7 +103,7 @@ game's code. Please:
 - **Phone apps:** the Android app runs at `https://app.tardigeddon.com` (inside the
   phone), which must be in `TRUSTED_ORIGINS`; it signs in with the same
   same-site cookie as the website. The iOS app (`capacitor://` scheme) will need to sign in with a
-  token kept in the phone's secure storage instead (docs/APPS.md).
+  token kept in the phone's secure storage instead (docs/IOS.md §2).
 
 ## Testing the security headers
 
