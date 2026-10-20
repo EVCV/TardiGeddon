@@ -63,7 +63,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     inp.maxLength = TARDI_NAME_MAX;
     inp.placeholder = placeholder;
     inp.value = draft.names[i] ?? '';
-    inp.setAttribute('aria-label', `Tardi ${i + 1} name`);
+    inp.setAttribute('aria-label', `Tardigrade ${i + 1} name`);
     inp.oninput = () => (draft.names[i] = inp.value);
     names.append(inp);
   });
@@ -189,7 +189,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     el('h3', '', 'Explosion effect'),
     effects,
     hatHint,
-    el('h3', '', 'Tardi names'),
+    el('h3', '', 'Tardigrade names'),
     names,
   );
   box.append(side, options, actions);

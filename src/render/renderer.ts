@@ -433,12 +433,19 @@ export class GameRenderer {
     // Tardis
     const active = activeTardi(s);
     for (const t of s.tardis) {
-      const v = this.tardiViews.get(t.id);
+      let v = this.tardiViews.get(t.id);
+      if (!v && t.alive && !this.dying.has(t.id)) {
+        // Back again (endless practice targets): a fresh view.
+        v = new TardiView(t, s.teams[t.team].color, s.teams[t.team].hat, s.teams[t.team].skin);
+        this.tardiViews.set(t.id, v);
+        this.entities.addChild(v.root);
+      }
       if (!v) continue;
       if (!t.alive && t.y > s.waterY) {
         v.root.visible = false;
         continue;
       }
+      v.root.visible = true;
       const p = this.lerpPos(t.id, t.x, t.y, alpha);
       v.mood = this.moodFor(s, t, v);
       const dyingSince = this.dying.get(t.id);
@@ -448,6 +455,18 @@ export class GameRenderer {
       v.root.alpha = ghost ? 0.35 : 1;
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
       if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color);
+    }
+    // Tardigrades taken out of the world (endless practice clears popped targets).
+    if (this.tardiViews.size > s.tardis.length) {
+      for (const [id, v] of this.tardiViews) {
+        if (s.tardis.some((t) => t.id === id)) continue;
+        // Still curling up from its pop: finish with the bang where it lay.
+        if (this.dying.has(id)) this.pop(id, v.root.x, v.root.y, 0x9aa4ad);
+        else {
+          v.root.destroy({ children: true });
+          this.tardiViews.delete(id);
+        }
+      }
     }
     if (s.turn.phase === 'gameover' && !this.confettiDone) {
       this.confettiDone = true;

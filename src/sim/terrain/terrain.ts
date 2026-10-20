@@ -133,7 +133,10 @@ export function placeGirder(
   const x1 = Math.floor(cx) + ex;
   const y1 = Math.floor(cy) + ey;
   if (x0 < 0 || y0 < 0 || x1 >= t.w || y1 >= t.h) return null;
+  // A girder may rest on or dig into the ground (that's how bridges and ramps
+  // are built), but not be mostly buried: then there's nothing to build.
   const cells: number[] = [];
+  let total = 0;
   for (let py = y0; py <= y1; py++) {
     for (let px = x0; px <= x1; px++) {
       const dx = px + 0.5 - cx;
@@ -141,11 +144,12 @@ export function placeGirder(
       const along = dx * ux + dy * uy;
       const across = dy * ux - dx * uy;
       if (Math.abs(along) <= half && Math.abs(across) <= ht) {
-        if (t.mask[py * t.w + px] !== 0) return null;
-        cells.push(py * t.w + px);
+        total++;
+        if (t.mask[py * t.w + px] === 0) cells.push(py * t.w + px);
       }
     }
   }
+  if (cells.length * 2 < total) return null;
   if (commit) for (const i of cells) t.mask[i] = 2;
   return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }

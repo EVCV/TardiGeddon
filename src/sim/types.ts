@@ -16,8 +16,14 @@ export type Command =
   | { t: 'weapon'; id: string }
   | { t: 'fuse'; s: number }
   | { t: 'target'; x: number; y: number }
-  /** Set the aim directly (drag-to-aim on touch screens). */
+  /** Set the aim directly (drag-to-aim on touch screens, and online when ▲▼ are let go). */
   | { t: 'aim'; facing: number; aim: number }
+  /**
+   * Sent with letting go of Fire online: the power the player saw. The
+   * server's charge runs ahead of the player's screen by the connection's
+   * delay, so the shot uses this instead (never more than was charged).
+   */
+  | { t: 'power'; p: number }
   | { t: 'skip' };
 
 export interface InputFrame {
@@ -49,6 +55,15 @@ export interface Scheme {
   race: boolean;
   /** Rope Race: how many attempts each team gets. */
   raceRounds: number;
+  /** false = a team's own weapons don't hurt (or push) its own tardigrades. */
+  friendlyFire: boolean;
+  /**
+   * Practice: one human tardigrade that can't be hurt (it climbs back out of
+   * the water), unlimited ammo, against this many target dummies (team 1).
+   */
+  practiceTargets?: number;
+  /** Practice: popped targets come back somewhere else, and it goes on until you quit. */
+  practiceEndless?: boolean;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
   /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
@@ -72,6 +87,7 @@ export const DEFAULT_SCHEME: Scheme = {
   supers: 0,
   race: false,
   raceRounds: 3,
+  friendlyFire: true,
 };
 
 export interface Tardi {
@@ -184,6 +200,8 @@ export interface TurnState {
   winner: number; // team id, -1 = none/draw
   /** Ticks Up (+) or Down (-) has been held, so aiming starts fine and speeds up. */
   aimHeld: number;
+  /** Ticks Fire has been held at full power (the shot goes off by itself after FULL_HOLD_TICKS). */
+  fullHold: number;
 }
 
 /** Rope Race course and results. */
@@ -234,6 +252,8 @@ export interface WorldState {
   scheme: Scheme;
   /** Set in Rope Race games. */
   race: RaceState | null;
+  /** Practice: where the immortal tardigrade (team 0) climbs back out after a dunking. */
+  practice: { x: number; y: number; /** Targets popped so far. */ popped: number } | null;
 }
 
 export type SimEvent =

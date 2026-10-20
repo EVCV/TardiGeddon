@@ -151,7 +151,7 @@ export function Home() {
           <div className="feature-text">
             <h2 className="display">Win with style</h2>
             <p>
-              Tardis taunt, make excuses and shout their last words before they curl up and pop. Wipe out the other teams
+              Tardigrades taunt, make excuses and shout their last words before they curl up and pop. Wipe out the other teams
               and yours does a victory dance in the confetti.
             </p>
           </div>
@@ -213,7 +213,7 @@ export function Home() {
 
       <section className="band squad-band">
         <h2 className="display section-title">Dress your squad</h2>
-        <p className="band-lead">Name your team and your tardis, then pick a colour and a hat.</p>
+        <p className="band-lead">Name your team and your tardigrades, then pick a colour and a hat.</p>
         <ul className="squad">
           {TEAM_NAMES.map((name, i) => (
             <li className="squad-member" key={name}>

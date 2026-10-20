@@ -30,6 +30,8 @@ html, body {
 }
 #game, #game canvas { position: fixed; inset: 0; display: block; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
+/* Text size (Settings, ui/textSize.ts): menus and the match HUD scale as a whole, text and buttons together. */
+#ui { zoom: var(--ui-scale, 1); }
 .hidden { display: none !important; }
 
 /* ---------- Buttons ---------- */
@@ -129,6 +131,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--ink);
 }
 .hud-wind-fill { position: absolute; top: 0; bottom: 0; transition: all .3s; }
+.hud-wind-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--title);
+  font-size: 11px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  pointer-events: none;
+  z-index: 1;
+}
 .hud-wind-fill.left { background: repeating-linear-gradient(90deg, #3a7be0 0 8px, #6ea3ff 8px 12px); }
 .hud-wind-fill.right { background: repeating-linear-gradient(270deg, #e04848 0 8px, #ff8a7a 8px 12px); }
 
@@ -278,6 +296,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .touch-left { left: calc(12px + var(--safe-l)); }
 .touch-right { right: calc(12px + var(--safe-r)); }
 .touch-aim { display: flex; flex-direction: column; gap: 8px; }
+.touch-aim.aim-off { visibility: hidden; } /* weapons that don't aim: the buttons keep their place, so Jump and Fire don't move */
 .touch-btn {
   pointer-events: auto;
   touch-action: none;
@@ -1426,6 +1445,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .phone-only, .hub-back, .hub-title { display: none; }
 @media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
   .menu.hub { height: 100vh; height: 100dvh; overflow: hidden; }
+  /* Bigger text: the phone screens lay out on the screen as it is after scaling. */
+  .menu.hub { height: calc(100dvh / var(--ui-scale, 1)); }
   .menu.hub .hub-footer, .menu.hub .hub-tabs, .menu.hub .hub-logo, .menu.hub .hub-me { display: none; }
   .menu.hub[data-tab=lobby] .hub-bar { display: none; }
   .hub-bar { padding: 6px calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
@@ -1634,8 +1655,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
     grid-template-areas: 'menu status' 'menu content';
   }
   .page-settings .settings-side { display: contents; }
-  .settings-menu.phone-only { grid-area: menu; display: flex; flex-direction: column; gap: 6px; }
+  /* The section list scrolls inside its column if it's longer than the screen (bigger text, small phones). */
+  .settings-menu.phone-only { grid-area: menu; align-self: stretch; contain: size; height: 100%; display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
   .settings-menu-btn {
+    flex-shrink: 0; /* never squashed: the list scrolls instead */
     text-align: left;
     padding: 8px 10px;
     border: 3px solid var(--ink);
@@ -1653,6 +1676,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .settings-menu-btn.on { background: var(--accent); }
   .page-settings .settings-status { grid-area: status; font-size: 12px; text-align: left; }
   .page-settings > .card, .page-settings .settings-side > .card { grid-area: content; display: none; min-height: 0; overflow-y: auto; }
+  .page-settings[data-section=text] [data-section=text],
   .page-settings[data-section=sound] [data-section=sound],
   .page-settings[data-section=blocked] [data-section=blocked],
   .page-settings[data-section=touch] [data-section=touch],
@@ -1749,3 +1773,29 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .blocked-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; margin: 6px 0; }
 .blocked-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .blocked-when { font-size: 12px; opacity: 0.7; }
+
+/* ---- Guide (ui/guide.ts) ---- */
+.page-guide { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; max-width: 1080px; margin: 0 auto; }
+.guide-start { grid-column: 1 / -1; }
+.guide-list { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; text-align: left; font-size: 15px; line-height: 1.45; }
+.guide-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.guide-box { max-width: 560px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.guide-box .card { box-shadow: none; border: 0; padding: 0; background: none; }
+@media (max-width: 760px) {
+  .page-guide { grid-template-columns: minmax(0, 1fr); }
+}
+/* Phones: the guide scrolls inside the page, so the page still fits the screen. */
+@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
+  .menu.hub .page-guide { height: 100%; max-width: none; overflow-y: auto; gap: 10px; align-content: start; }
+  .guide-list { font-size: 13px; gap: 5px; }
+  .guide-box { max-height: 86vh; }
+}
+
+/* ---- Practice: which kind (ui/tutorial.ts choosePractice) ---- */
+.practice-choice { max-width: 440px; display: flex; flex-direction: column; gap: 10px; }
+.practice-option { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 4px 0 var(--ink); font: inherit; color: var(--ink); cursor: pointer; }
+.practice-option:hover, .practice-option:focus-visible { background: var(--accent); }
+.practice-option b { font-family: var(--title); font-size: 20px; font-weight: 400; }
+.practice-option span { font-size: 14px; }
+
+.text-size-seg { flex-wrap: wrap; }

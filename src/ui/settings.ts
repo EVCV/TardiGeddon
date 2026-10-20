@@ -10,6 +10,7 @@ import { audioSettings, saveAudioSettings, unlockAudio, type AudioSettings } fro
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS, sfx, useSoundPack } from '../audio/sfx';
 import { blockedPlayers, unblock } from '../net/blocked';
+import { TEXT_SIZES, deviceTextScale, maxScaleHere, setTextSize, textSize, uiScale } from './textSize';
 import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
@@ -35,8 +36,9 @@ export interface SettingsState {
   section: Section | null;
 }
 
-type Section = 'sound' | 'touch' | 'keys' | 'blocked' | 'learn' | 'about';
+type Section = 'text' | 'sound' | 'touch' | 'keys' | 'blocked' | 'learn' | 'about';
 const SECTIONS: [Section, string][] = [
+  ['text', '🔤 Text size'],
   ['sound', '🔊 Sound'],
   ['touch', '👆 Touch controls'],
   ['keys', '⌨️ Keyboard & mouse'],
@@ -52,7 +54,7 @@ export function newSettingsState(): SettingsState {
 /** Stops listening for a key (the page is being redrawn or left). */
 let stopListening: (() => void) | null = null;
 
-export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTutorial: () => void): HTMLElement {
+export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTutorial: () => void, onPractice: () => void = () => {}): HTMLElement {
   stopListening?.();
   const root = el('div', 'page page-settings');
   const { me } = account();
@@ -152,7 +154,13 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   learnCard.append(el('p', 'account-note', 'A short practice match against a target dummy that walks you through moving, aiming, firing and targeting.'));
   const tut = el('button', 'big-btn', 'Start the tutorial');
   tut.onclick = onTutorial;
-  learnCard.append(tut);
+  const more = el('div', 'guide-buttons');
+  const prac = el('button', 'hud-btn', '🎯 Practice');
+  prac.onclick = onPractice;
+  const guide = el('button', 'hud-btn', '📖 Guide: wind, weapons, online play');
+  guide.onclick = () => ctx.go('guide');
+  more.append(prac, guide);
+  learnCard.append(tut, more);
 
   // ---- Where it's saved ----
   const status = el('p', 'settings-status');
@@ -172,7 +180,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   }
 
   const side = el('div', 'settings-side');
-  side.append(soundCard, touchCard, blockedSettings(ctx), learnCard);
+  side.append(textSettings(ctx), soundCard, touchCard, blockedSettings(ctx), learnCard);
   // On a touch screen the touch settings come first.
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   root.append(status, ...(touchFirst ? [side, keysCard] : [keysCard, side]));
@@ -214,6 +222,34 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState, onTuto
   root.prepend(menu);
   root.append(about);
   return root;
+}
+
+/** Text size: everything (text and buttons) scales together. */
+function textSettings(ctx: HubContext): HTMLElement {
+  const card = el('section', 'card settings-text');
+  card.dataset.section = 'text';
+  card.append(el('h2', 'card-title', '🔤 Text size'));
+  const now = textSize();
+  const seg = el('div', 'seg text-size-seg');
+  for (const [id, label] of TEXT_SIZES) {
+    const b = el('button', 'seg-btn' + (now === id ? ' on' : ''), label);
+    b.setAttribute('aria-pressed', String(now === id));
+    b.onclick = () => {
+      setTextSize(id);
+      ctx.rerender();
+    };
+    seg.append(b);
+  }
+  const dev = deviceTextScale();
+  card.append(
+    seg,
+    el(
+      'p',
+      'account-note',
+      `Makes all the writing bigger, with the buttons around it, in the menus and in matches. Auto follows your device${dev > 1 ? ` (${Math.round(dev * 100)}% now)` : ''}. Now: ${Math.round(uiScale() * 100)}%${maxScaleHere() < 1.5 ? ` (this screen has room for up to ${Math.round(maxScaleHere() * 100)}%; more on a bigger screen)` : ''}. Kept on this device.`,
+    ),
+  );
+  return card;
 }
 
 /** Players you've blocked in online play, to unblock. */

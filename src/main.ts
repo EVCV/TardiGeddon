@@ -3,6 +3,7 @@ import '@fontsource/nunito/600.css';
 import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
+import { initTextSize } from './ui/textSize';
 import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearMusic, wearSkin, wearSounds } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
@@ -10,7 +11,7 @@ import { showHub, type Hub } from './ui/hub';
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import { createWorld, tick, type TeamConfig } from './sim/world';
-import { Coach, dummyPlayer, tutorialWorld } from './ui/tutorial';
+import { Coach, choosePractice, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
 import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
 import { arenaTheme } from './render/arenas';
@@ -31,7 +32,7 @@ import { loadRejoin, showOnline } from './ui/online';
 import { NetClient } from './net/client';
 import { hideTeams, isBlocked, tardiLabel, teamLabel } from './net/blocked';
 import { openPlayers } from './ui/safety';
-import { Lockstep } from './net/lockstep';
+import { Lockstep, SeenInput, connectionState } from './net/lockstep';
 import { toWire, type ServerMsg } from './net/protocol';
 import { presetScheme } from './sim/schemes';
 import { ANGLE_FULL } from './sim/math/trig';
@@ -40,6 +41,7 @@ const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 
 async function boot(): Promise<void> {
+  void initTextSize();
   if (touchMode) enforceLandscape();
   const app = new Application();
   await app.init({
@@ -78,7 +80,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial());
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice));
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
@@ -93,6 +95,13 @@ async function boot(): Promise<void> {
     ui.innerHTML = '';
     unlockAudio();
     current = new Match(app, ui, { kind: 'tutorial' }, menu, tutorial);
+  };
+  const practice = (endless: boolean) => {
+    current?.destroy();
+    hub = onlineScreen = null;
+    ui.innerHTML = '';
+    unlockAudio();
+    current = new Match(app, ui, { kind: 'practice', endless }, menu, () => practice(endless));
   };
   const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
     current?.destroy();
@@ -138,6 +147,7 @@ async function boot(): Promise<void> {
   const auto = params.get('autostart');
   const room = params.get('room');
   if (auto === 'tutorial') tutorial();
+  else if (auto === 'practice') practice(params.get('endless') !== null);
   else if (auto) {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
     const n = Number(params.get('players')) || 2;
@@ -184,7 +194,7 @@ async function boot(): Promise<void> {
   }
 }
 
-type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'online'; client: NetClient; ls: Lockstep };
+type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'online'; client: NetClient; ls: Lockstep };
 
 class Match {
   private local: WorldState | null = null;
@@ -217,6 +227,11 @@ class Match {
   private sentTurn = -1;
   private resyncAsked = false;
   private reconnecting = false;
+  private seen = new SeenInput();
+  /** When the server last sent frames (ms), to notice a struggling connection. */
+  private heardAt = performance.now();
+  /** Connections dropped for going quiet since frames last came (stops trying after a few). */
+  private quietDrops = 0;
   /** Called when the server starts a new match on this connection (a rematch). */
   onNetStart: ((ls: Lockstep) => void) | null = null;
   /** Latest lobby state from the server (for "Back to room" after the match). */
@@ -246,6 +261,12 @@ class Match {
       this.local = createWorld(tutorialWorld(you));
       this.cpu.set(1, dummyPlayer);
       this.coach = new Coach(touchMode, { onMenu, onAgain });
+    } else if (mode.kind === 'practice') {
+      // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
+      const p = loadProfiles()[0];
+      const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
+      this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
+      this.cpu.set(1, dummyPlayer);
     } else {
       this.net = { client: mode.client, ls: mode.ls };
       this.listenNet();
@@ -285,10 +306,15 @@ class Match {
     const net = this.net!;
     this.offNet = net.client.on((msg) => {
       switch (msg.t) {
-        case 'frames': net.ls.onFrames(msg.from, msg.f); break;
+        case 'frames':
+          this.heardAt = performance.now();
+          this.quietDrops = 0;
+          net.ls.onFrames(msg.from, msg.f);
+          break;
         case 'hash': net.ls.onHash(msg.tick, msg.h); break;
         case 'snapshot':
           net.ls.onSnapshot(msg.state, msg.you);
+          this.heardAt = performance.now();
           this.resyncAsked = false;
           // The world was replaced wholesale: redraw it from scratch.
           this.renderer.destroy();
@@ -316,6 +342,7 @@ class Match {
       try {
         await this.net.client.connect();
         this.net.client.join(re.code, { name: '', color: 0, hat: '', names: [] }, re.token);
+        this.heardAt = performance.now();
         this.reconnecting = false;
         return;
       } catch {
@@ -406,7 +433,7 @@ class Match {
           this.sentHeld = 0;
         }
         if (f.held !== this.sentHeld || f.pressed !== 0 || f.cmd) {
-          client.send({ t: 'input', f: toWire(f) });
+          for (const g of this.seen.frames(f, this.sentHeld, ls.state)) client.send({ t: 'input', f: toWire(g) });
           this.sentHeld = f.held;
         }
       }
@@ -426,6 +453,16 @@ class Match {
     if (ls.desynced && !this.resyncAsked) {
       this.resyncAsked = true;
       client.send({ t: 'resync' });
+    }
+    // The server sends frames all match long, so a gap means trouble: say so,
+    // and if it goes on, stop waiting on this connection and make a new one.
+    if (!this.reconnecting && ls.state.turn.phase !== 'gameover') {
+      const health = connectionState(performance.now() - this.heardAt);
+      if (health === 'lost' && this.quietDrops < 3) {
+        this.quietDrops++;
+        client.drop();
+      } else if (health === 'lost') this.hud.showBanner('Disconnected', 0xe04848, 1);
+      else if (health === 'slow') this.hud.showBanner('⚠️ Slow connection…', 0xe0a030, 1);
     }
   }
 

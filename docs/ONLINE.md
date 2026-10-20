@@ -16,8 +16,27 @@ same match while only a few bytes per tick go over the network.
   turns are played by the CPU until they rejoin (their slot is kept, and they
   get a full snapshot); every 2 s the server sends a state hash, and a client
   that disagrees asks for a snapshot.
-- **Tests:** `tests/room.test.ts` (rooms, sync, rejoin, desync recovery) and
-  `e2e/online.spec.ts` (two browsers play a match).
+- **Tests:** `tests/room.test.ts` (rooms, sync, rejoin, desync recovery, lag),
+  `tests/lag.test.ts` and `e2e/online.spec.ts` (two browsers play a match).
+
+## Lag
+
+The server is ahead of each player's screen by their connection's delay. So:
+
+- **Letting go of Fire or ▲▼ sends what the player saw** (`SeenInput` in
+  `src/net/lockstep.ts`): the power on screen, which the shot uses instead
+  of the server's own charge (never more than that charge), and the aim
+  once they've seen it move. At full power a shot waits `FULL_HOLD_TICKS`
+  (0.4 s) for the player to let go before it goes by itself.
+- **Fire after the turn ran out** gets "Too late: …" back (`TOO_LATE`), not silence.
+- **A struggling connection is shown.** The server sends frames every 40 ms all
+  match long. No frames for 0.7 s shows "⚠️ Slow connection…". After 6 s
+  the game drops that connection and reconnects (`NetClient.drop`). Its rejoin
+  token may take the slot back even while the server still thinks the old
+  connection is open.
+- **The CPU never stalls the server.** One clock runs every room, so the CPU
+  (CPU teams, and dropped players) works out its shot in 4 ms slices per tick
+  while it "thinks" (`SLICE_MS` in `src/ai/cpu.ts`), never all at once.
 
 Accounts and the shop are served by the same server when it has a database
 (docs/ACCOUNTS.md). Not yet: running more than
