@@ -41,7 +41,7 @@ This page explains how to delete your TardiGeddon account, or just some of your 
 
 ### 2.1 Kept
 
-2.1.1 **Purchase records** (what was bought, when, for how much, the country of the payment, and the payment references): kept for six years after the end of the financial year of the purchase, because UK tax law requires it. They are no longer linked to you once your account is deleted. Google and Stripe keep their own records of payments made through them.
+2.1.1 **Purchase records** (what was bought, when, for how much, the country of the payment if known, and the payment references): kept for six years after the end of the financial year of the purchase, because UK tax law requires it. They are no longer linked to you once your account is deleted. Google and Stripe keep their own records of payments made through them.
 
 2.1.2 **Gifts** you sent or claimed: the record stays while the other player's account exists, so they keep what they were given, but it no longer points to your account.
 
