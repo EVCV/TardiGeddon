@@ -140,6 +140,15 @@ New screenshots after the game changes: `npm run build`, `npx vite preview
 --port 4173` (and `npm run server` with accounts, for the full home screen),
 then `PW_CHROMIUM_PATH=… node scripts/store-images.mjs`.
 
+**Languages.** The game itself is in English, Spanish, Brazilian Portuguese,
+German, French and Japanese (`src/i18n/`, following the phone's language).
+Translate the listing to match: Grow → Store presence → Translations → add
+es-419/es-ES, pt-BR, de-DE, fr-FR and ja-JP (Google's machine translation is
+fine as a start; have the short description checked). **App strings
+translation** (Gemini) isn't needed: it only translates the Android
+`strings.xml`, which holds just the app name and two ids, all marked
+`translatable="false"`; the game's text is in the web bundle, out of its reach.
+
 ## 4. App content (Policy → App content)
 
 Answer each section:
