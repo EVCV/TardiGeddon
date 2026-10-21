@@ -910,8 +910,10 @@ export class GameRenderer {
   destroy(): void {
     this.app.stage.removeChildren();
     this.world.destroy({ children: true });
+    // The terrain and sky are big canvas textures, made per match: free them, or each match leaves its copy on the GPU.
+    this.terrainView.destroy();
     this.weather.destroy();
-    this.sky.destroy();
+    this.sky.destroy({ texture: true, textureSource: true });
     this.ambient.destroy();
   }
 }
