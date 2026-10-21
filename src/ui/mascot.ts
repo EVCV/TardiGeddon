@@ -30,6 +30,7 @@ export function mascotSvg(teamColor = 0xe04848, hat = 'beanie', skinId = 'classi
     <rect x="9" y="2" width="7" height="15" rx="3.5" fill="${shade}" stroke-width="2"/>
     <ellipse cx="0" cy="-2" rx="27" ry="16" fill="${body}" stroke-width="3"/>
     ${patternSvg(k)}
+    <path d="M0 -17.9 Q-3.6 -2 0 13.8 L6.75 13.2 Q3.15 -2 6.75 -17.2 Z" fill="${hex(teamColor)}" stroke-width="2"/>
     <ellipse cx="-2" cy="6" rx="20" ry="6" fill="${shade}" opacity=".55" stroke="none"/>
     <path d="M-13 -15 q-3 10 0 19 M-3 -17 q-3 11 0 21 M7 -16 q-3 10 0 19" fill="none" stroke="${shade}" stroke-width="2"/>
     <rect x="-22" y="5" width="8" height="14" rx="4" fill="${body}" stroke-width="2"/>

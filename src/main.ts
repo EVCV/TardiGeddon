@@ -14,6 +14,8 @@ import { createWorld, tick, type TeamConfig } from './sim/world';
 import { Coach, choosePractice, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
 import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
+import { WEATHER_NAMES } from './render/weather';
+import { mapStyleName } from './sim/terrain/generate';
 import { arenaTheme } from './render/arenas';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
@@ -149,11 +151,13 @@ async function boot(): Promise<void> {
   if (auto === 'tutorial') tutorial();
   else if (auto === 'practice') practice(params.get('endless') !== null);
   else if (auto) {
-    // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
+    // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU),
+    // &style=PRESET (game style), &map=STYLE (map style) and &seed=N.
     const n = Number(params.get('players')) || 2;
     const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
     const skill = (params.get('skill') ?? 'normal') as CpuSkill;
-    start({ players, teams: loadProfiles().slice(0, n), scheme: presetScheme('standard'), seed: 12345, cpuSkill: skill });
+    const scheme = { ...presetScheme(params.get('style') ?? 'standard'), mapStyle: params.get('map') ?? undefined };
+    start({ players, teams: loadProfiles().slice(0, n), scheme, seed: Number(params.get('seed')) || 12345, cpuSkill: skill });
   } else if (room) {
     // Invite link: ?room=CODE
     online({ code: room.toUpperCase() });
@@ -289,7 +293,7 @@ class Match {
     }
     this.detachKeys = attachKeyboard(this.input, this.keyHooks);
     this.attachPointer();
-    this.announceTurn();
+    this.announceMap();
     app.ticker.add(this.tickerFn);
     (window as unknown as { __tardi: unknown }).__tardi = this; // for e2e tests
   }
@@ -491,6 +495,10 @@ class Match {
           setTimeout(() => this.hud.showBanner('SUDDEN DEATH!', 0xe04848, 2.5), 2100);
           break;
         case 'waterRise': sfx.splash(); break;
+        case 'tornado':
+          sfx.suddenDeath();
+          this.hud.showBanner('🌪️ TORNADO!', 0xffffff, 2.5);
+          break;
         case 'gas': sfx.chute(); break;
         case 'damage':
           if (!hurt) {
@@ -530,6 +538,20 @@ class Match {
           break;
       }
     }
+  }
+
+  /** Which realm and weather this match got, then whose turn it is. */
+  private announceMap(): void {
+    const s = this.state;
+    if (s.race || s.practice || this.coach) {
+      this.announceTurn();
+      return;
+    }
+    const sky = WEATHER_NAMES[s.weather.kind];
+    this.hud.showBanner(`${mapStyleName(s.realm)}${sky ? ` · ${sky}` : ''}`, 0xffffff, 1.6);
+    setTimeout(() => {
+      if (!this.destroyed) this.announceTurn();
+    }, 1700);
   }
 
   private announceTurn(): void {

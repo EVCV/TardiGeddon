@@ -11,6 +11,7 @@ import { ObjectView } from './objectView';
 import { PALETTE, hex } from './palette';
 import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 import { arenaTheme, type ArenaTheme } from './arenas';
+import { WeatherView } from './weather';
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
@@ -84,6 +85,7 @@ export class GameRenderer {
   /** Cosmetic sound hook (set by the game). */
   onSound: ((name: 'pop' | 'whoa') => void) | null = null;
   private time = 0;
+  private weather: WeatherView;
 
   constructor(
     private app: Application,
@@ -99,6 +101,8 @@ export class GameRenderer {
         this.ambientBits.push({ x: Math.random(), y: Math.random(), r: 0.8 + Math.random() * 1.8, v: 0.02 + Math.random() * 0.05, p: Math.random() * 6.28 });
       }
     }
+    this.weather = new WeatherView(state.weather.kind, state.terrain.w, !!theme.drift);
+    app.stage.addChild(this.weather.back);
     this.terrainView = new TerrainView(state.terrain, theme);
     this.world.addChild(
       this.hills,
@@ -112,10 +116,11 @@ export class GameRenderer {
       this.projectiles,
       this.fx,
       this.overlay,
+      this.weather.world,
       this.waterFront,
       this.floatLayer,
     );
-    app.stage.addChild(this.world);
+    app.stage.addChild(this.world, this.weather.front);
     for (const t of state.tardis) {
       const v = new TardiView(t, state.teams[t.team].color, state.teams[t.team].hat, state.teams[t.team].skin);
       this.tardiViews.set(t.id, v);
@@ -181,6 +186,9 @@ export class GameRenderer {
               life: 0.8, max: 0.8, r: 2 + Math.random() * 2, color: this.theme.waterLight, kind: 'debris',
             });
           }
+          break;
+        case 'tornado':
+          this.weather.tornado();
           break;
         case 'ropeMiss': {
           const t = this.state.tardis.find((x) => x.id === e.id);
@@ -445,6 +453,7 @@ export class GameRenderer {
     this.sky.width = width;
     this.sky.height = height;
     this.drawAmbient(width, height, dt);
+    this.weather.update(dt, width, height, s.wind, s.waterY);
 
     // Tardis
     const active = activeTardi(s);
@@ -874,6 +883,7 @@ export class GameRenderer {
   destroy(): void {
     this.app.stage.removeChildren();
     this.world.destroy({ children: true });
+    this.weather.destroy();
     this.sky.destroy();
     this.ambient.destroy();
   }

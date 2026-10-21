@@ -28,6 +28,9 @@ export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie', sk
   for (const sx of [-6, -1.5, 3]) {
     g.moveTo(sx, -7).quadraticCurveTo(sx - 1.5, -2, sx, 2).stroke({ width: 0.9, color: skin.shade });
   }
+  // Team collar: a band in the team colour behind the head, so every team looks different whatever the skin.
+  g.moveTo(0, -8.4).quadraticCurveTo(-1.6, -1, 0, 6.4).lineTo(3, 6.1).quadraticCurveTo(1.4, -1, 3, -8.1).closePath();
+  g.fill(teamColor).stroke({ width: 1, color: O });
   // Round mouth / snout
   g.circle(11.5, 0.5, 2.4).fill(skin.mouth).stroke({ width: 1.2, color: O });
   g.circle(11.9, 0.5, 0.9).fill(O);
@@ -39,6 +42,15 @@ export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie', sk
   g.circle(8.7, -4.2, 0.5).fill(PALETTE.eyeWhite);
   // Hat (first cosmetic slot)
   drawHatPixi(g, hat, teamColor, 2.5, -6.6, 4);
+}
+
+/** Steel armour plates riveted over the back. */
+function drawPlates(g: Graphics): void {
+  for (const [x, w] of [[-10, 5.5], [-5.5, 5.5], [-1, 4.5]] as const) {
+    g.moveTo(x, -4.5).quadraticCurveTo(x + w / 2, -9.8, x + w, -4.5).lineTo(x + w, -2.5).quadraticCurveTo(x + w / 2, -6.5, x, -2.5).closePath();
+    g.fill(0xaab6c6).stroke({ width: 1, color: O });
+    g.circle(x + w / 2, -6.2, 0.6).fill(0x5d6678);
+  }
 }
 
 /** Leaf canopy with silk strings, drawn above the tardi's origin. */
@@ -67,6 +79,10 @@ export class TardiView {
   private hpText: Text;
   private shownHp: number;
   private chute = new Graphics();
+  /** Armour plates over the back (Scheme.armour), shown while any are left. */
+  private plates = new Graphics();
+  private armourText: Text;
+  private shownArmour: number;
   private skin: SkinDef;
 
   constructor(
@@ -78,7 +94,8 @@ export class TardiView {
     this.skin = skinById(skin);
     const g = new Graphics();
     drawTardiBody(g, teamColor, hat, skin);
-    this.body.addChild(g, this.legs);
+    drawPlates(this.plates);
+    this.body.addChild(g, this.plates, this.legs);
     // Lift the art so the claws rest on the physics circle's bottom.
     this.body.y = -2;
     this.root.addChild(this.body);
@@ -100,8 +117,12 @@ export class TardiView {
     this.hpText.anchor.set(0.5, 1);
     this.hpText.position.set(0, -17);
     this.hpText.resolution = 3;
-    this.root.addChild(this.label, this.hpText);
+    this.armourText = new Text({ text: '', style: { ...style, fontSize: 10, fill: '#c9d4e4' } });
+    this.armourText.anchor.set(0, 1);
+    this.armourText.resolution = 3;
+    this.root.addChild(this.label, this.hpText, this.armourText);
     this.shownHp = t.hp;
+    this.shownArmour = -1;
   }
 
   update(t: Tardi, x: number, y: number, time: number, active: boolean, showLabels: boolean): void {
@@ -151,10 +172,17 @@ export class TardiView {
       this.shownHp = t.hp;
       this.hpText.text = String(t.hp);
     }
+    if (this.shownArmour !== t.armour) {
+      this.shownArmour = t.armour;
+      this.armourText.text = t.armour > 0 ? `+${t.armour}` : '';
+      this.plates.visible = t.armour > 0;
+    }
     this.label.visible = showLabels;
     this.hpText.visible = showLabels;
+    this.armourText.visible = showLabels && t.armour > 0;
     const bounce = (active ? Math.abs(Math.sin(time * 4)) * 3 : 0) + (t.chute ? 34 : 0);
     this.label.y = -30 - bounce;
     this.hpText.y = -17 - bounce;
+    this.armourText.position.set(this.hpText.width / 2 + 2, -17.5 - bounce);
   }
 }
