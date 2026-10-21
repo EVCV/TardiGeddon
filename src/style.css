@@ -1459,6 +1459,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .settings-menu-btn:hover { background: #f4eedf; }
 .settings-menu-btn.on { background: var(--accent); }
 .page-settings > .card { grid-area: content; display: none; min-width: 0; }
+.page-settings[data-section=language] > [data-section=language],
 .page-settings[data-section=text] > [data-section=text],
 .page-settings[data-section=access] > [data-section=access],
 .page-settings[data-section=sound] > [data-section=sound],

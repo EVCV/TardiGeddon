@@ -7,6 +7,7 @@ import { packFrames } from '../challenge/daily';
 import { mapStyleName } from '../sim/terrain/generate';
 import type { InputFrame, WorldState } from '../sim/types';
 import type { WireFrame } from '../net/protocol';
+import { t } from '../i18n/i18n';
 
 export const REPLAY_VERSION = 1;
 
@@ -50,8 +51,9 @@ export class MatchRecorder {
   finish(s: WorldState, teamLabel: (id: number) => string): MatchReplay | null {
     if (!this.start || this.frames.length === 0) return null;
     const w = s.turn.winner;
-    const title = this.names.length > 3 ? `${this.names.length} teams` : s.teams.map((t) => teamLabel(t.id)).join(' vs ');
-    const summary = `${mapStyleName(s.realm)} · ${w >= 0 ? `${teamLabel(w)} won` : 'a draw'}`;
+    const title = this.names.length > 3 ? t('{n} teams', { n: this.names.length }) : s.teams.map((x) => teamLabel(x.id)).join(t(' vs '));
+    // In the player's language when it's saved.
+    const summary = w >= 0 ? t('{map} · {team} won', { map: t(mapStyleName(s.realm)), team: teamLabel(w) }) : t('{map} · a draw', { map: t(mapStyleName(s.realm)) });
     return { v: REPLAY_VERSION, at: Date.now(), title, summary, start: this.start, frames: packFrames(this.frames), ticks: this.frames.length };
   }
 }

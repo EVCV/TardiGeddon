@@ -174,7 +174,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
     status.append(' ', link);
   }
 
-  const langCard = languageSettings(state.section === 'language');
+  const langCard = languageSettings();
   root.append(status, langCard, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx, save), blockedSettings(ctx));
 
   // One section at a time, beside the list of them (on a touch screen, touch controls first).
@@ -222,11 +222,9 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
 }
 
 /** The language the game is shown in: the device's, or one picked here. Changing it reloads the page so every screen redraws in it. */
-function languageSettings(open: boolean): HTMLElement {
+function languageSettings(): HTMLElement {
   const card = el('section', 'card settings-language');
   card.dataset.section = 'language';
-  // style.css shows only the open section's card; this one isn't listed there.
-  if (open) card.style.display = 'block';
   card.append(el('h2', 'card-title', `🌐 ${t('Language')}`));
   const box = el('label', 'sound-pick');
   box.append(el('span', 'settings-label', t('Language')));

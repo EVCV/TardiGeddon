@@ -16,6 +16,7 @@ import { SKINS } from '../render/skins';
 import { WEATHER_NAMES } from '../render/weather';
 import { BUNDLES, GIFT_MESSAGES, SHOP_ITEMS } from '../shop/catalog';
 import { EGGS } from '../eggs';
+import { TRACKS } from '../audio/music';
 
 export function DATA_KEYS(): string[] {
   const named: { name: string; blurb?: string }[] = [
@@ -34,6 +35,7 @@ export function DATA_KEYS(): string[] {
     ...SKINS,
     ...SHOP_ITEMS,
     ...BUNDLES,
+    ...TRACKS,
   ];
   return [
     ...named.flatMap((x) => [x.name, x.blurb ?? '']),
