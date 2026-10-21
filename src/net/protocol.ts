@@ -62,6 +62,8 @@ export type ClientMsg =
   | { t: 'report'; idx: number; reason: string };
 
 export type ServerMsg =
+  /** A friend invites you to their room (server/friends.ts). */
+  | { t: 'invite'; from: string; code: string }
   | { t: 'room'; code: string; slots: LobbySlot[]; you: number; token: string; started: boolean }
   | { t: 'start'; seed: number; scheme: Partial<Scheme>; teams: TeamConfig[]; you: number }
   /** Frames for consecutive ticks; `from` is the sim tick count before the first one. */

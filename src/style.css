@@ -268,6 +268,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .overlay {
   position: absolute;
   inset: 0;
+  pointer-events: auto; /* #ui lets taps through by default */
   display: grid;
   place-items: center;
   background: rgba(43, 27, 36, .45);
@@ -1971,7 +1972,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .replay-bar {
   position: fixed; top: calc(56px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6;
   display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper);
+  pointer-events: auto; /* #ui lets taps through by default */
 }
 .replay-bar .hud-btn.on { background: var(--accent); }
 .watching-badge { position: fixed; top: calc(56px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6; padding: 4px 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper); font-weight: 900; }
 .rank-badge { margin-top: 4px; padding: 2px 10px; border: 2px solid var(--ink); border-radius: 999px; background: #e8f4ff; font-weight: 800; font-size: 14px; width: fit-content; }
+
+/* ---------- Friends ---------- */
+.friends { margin-top: 12px; padding-top: 8px; border-top: 2px dashed #e4dccb; display: flex; flex-direction: column; gap: 6px; }
+.friend-code { margin: 0; }
+.friend-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; }
+.friend-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; text-align: left; }
+.friend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: #c9c2b4; flex: none; }
+.friend-dot.on { background: #5ad06a; }
+.invite-toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60; pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 3px solid var(--ink); border-radius: 16px; background: var(--paper); box-shadow: 0 6px 0 var(--ink); font-weight: 900; }

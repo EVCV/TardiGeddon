@@ -540,3 +540,27 @@ export async function challengeBoard(kind: string, day: string): Promise<{ rows:
 export function submitChallenge(kind: string, day: string, frames: unknown): Promise<{ me: BoardRow | null }> {
   return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames });
 }
+
+/** A friend (server/friends.ts), named by their friend code. */
+export interface Friend {
+  code: string;
+  name: string;
+  online?: boolean;
+  /** The private room they're in, if you could still join it. */
+  room?: string | null;
+}
+
+export interface FriendLists {
+  /** Your own friend code, to give to friends. */
+  code: string;
+  friends: Friend[];
+  /** People asking to be your friend. */
+  requests: Friend[];
+  /** Your requests still waiting for an answer. */
+  sent: Friend[];
+}
+
+export const friendsList = (): Promise<FriendLists> => call<FriendLists>('/api/friends');
+export const addFriend = (code: string): Promise<{ result: 'asked' | 'friends' | 'self' | 'unknown' | 'full' }> => call('/api/friends/add', { code });
+export const removeFriend = (code: string): Promise<{ ok: true }> => call('/api/friends/remove', { code });
+export const inviteFriend = (code: string): Promise<{ result: 'sent' | 'offline' | 'noroom' }> => call('/api/friends/invite', { code });

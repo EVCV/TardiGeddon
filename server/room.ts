@@ -216,6 +216,11 @@ export class Room {
     return this.state !== null;
   }
 
+  /** A friend could still come in: a private room's lobby with a slot free. */
+  get joinable(): boolean {
+    return !this.state && !this.quick && this.slots.length < MAX_TEAMS;
+  }
+
   get world(): WorldState | null {
     return this.state;
   }

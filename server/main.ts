@@ -7,7 +7,7 @@ import { createHmac, randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Room, wearableTeam, type Member, type PlayerReport } from './room';
 import { escapeHtml, smtpMailer } from './mail';
-import { createAccounts, type Accounts } from './accounts';
+import { createAccounts, type Accounts, type Presence } from './accounts';
 import { unlockedWeapons } from '../src/shop/catalog';
 import { Matchmaker, cleanBlocks } from './matchmaker';
 import { SCHEME_PRESETS } from '../src/sim/schemes';
@@ -37,6 +37,32 @@ const MAX_CONN_PER_IP = 8;
 const HEARTBEAT_MS = 30_000;
 
 const rooms = new Map<string, Room>();
+/** Everyone connected, for friends' online status and invites. */
+const connected = new Set<Member>();
+
+/** Who's online and where, for friends (server/friends.ts, via accounts). */
+const presence: Presence = {
+  status(userId) {
+    let online = false;
+    let room: string | null = null;
+    for (const m of connected) {
+      if (m.userId !== userId) continue;
+      online = true;
+      const r = roomOf.get(m);
+      if (r?.joinable) room = r.code;
+    }
+    return { online, room };
+  },
+  invite(fromUserId, fromName, toUserId) {
+    const from = [...connected].find((m) => m.userId === fromUserId && roomOf.get(m)?.joinable);
+    const code = from ? roomOf.get(from)!.code : null;
+    if (!code) return 'noroom';
+    const to = [...connected].filter((m) => m.userId === toUserId);
+    if (!to.length) return 'offline';
+    for (const m of to) m.send({ t: 'invite', from: fromName, code });
+    return 'sent';
+  },
+};
 /** Which room each connection is in. */
 const roomOf = new Map<Member, Room>();
 
@@ -152,6 +178,7 @@ let accounts: Accounts | null = null;
 if (process.env.DATABASE_URL) {
   try {
     accounts = await createAccounts(process.env);
+    accounts.setPresence(presence);
     console.log('Accounts enabled');
   } catch (e) {
     console.error('Accounts disabled: could not set up the database', e);
@@ -235,6 +262,8 @@ wss.on('connection', (ws: WebSocket, req) => {
     member.pid = playerId(member.userId);
     member.unlocked = unlockedWeapons(p.owned);
     member.owned = p.owned;
+    // (Not if they've already gone while we looked them up.)
+    if (ws.readyState === ws.OPEN) connected.add(member);
     member.rating = 'rating' in p ? p.rating : undefined;
     return p.owned;
   });
@@ -358,6 +387,7 @@ wss.on('connection', (ws: WebSocket, req) => {
   };
 
   ws.on('close', () => {
+    connected.delete(member);
     const n = (connsByIp.get(ip) ?? 1) - 1;
     if (n > 0) connsByIp.set(ip, n);
     else connsByIp.delete(ip);

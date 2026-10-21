@@ -62,6 +62,8 @@ export function onlineGuide(): HTMLElement {
       '**With friends:** tap “Create a room”, then share the 5-letter room code or the invite link. Your friends type the code in the Room code box and tap Join (or just open the link). The host can add CPU teams, picks the game style and starts the match.',
       '**Slow or dropped connection?** You’ll see ⚠️ Slow connection, and if it stops for a few seconds the game reconnects by itself and puts you back in your place. While you’re away, the computer plays your turns.',
       '**Rematch:** after a match everyone goes back to the room, so you can play again straight away.',
+      '**Friends** (signed in): swap friend codes on the Play online screen. Once you’ve both said yes, you see when each other is online, can join their room, or invite them to yours. There’s no chat.',
+      '**Quick play is ranked** for signed-in players: you’re matched with players near your rank first (see Stats).',
       '**Watch a match:** type the room code and press 👀 Watch to see it without playing (up to 8 people per room). Every match you play is also kept in 🎬 Replays in the lobby.',
       '**Stats and Slime:** sign in to earn Slime and keep your stats from online games.',
       '**Staying safe:** there is no chat. Names are checked for anything rude or personal. Use ⚑ Report or 🚫 Block next to a player in the room, or the 👥 button in a match. Blocked players never join your quick-play games.',

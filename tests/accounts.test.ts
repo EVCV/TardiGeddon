@@ -782,6 +782,46 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await accounts.playerFor({ cookie: a.cookie })).rating).toBe(1020);
   });
 
+  it('makes friends only when both say yes, and only friends see each other online or invite each other', async () => {
+    const a = await signUp('friend-a@example.com');
+    const b = await signUp('friend-b@example.com');
+    const c = await signUp('friend-c@example.com');
+    const get = async (cookie: string) => (await (await fetch(base + '/api/friends', { headers: { cookie } })).json()) as {
+      code: string; friends: { code: string; online: boolean; room: string | null }[]; requests: { code: string }[]; sent: { code: string }[];
+    };
+    const invites: string[] = [];
+    accounts.setPresence({
+      status: (id) => (id === a.id ? { online: true, room: 'ROOMA' } : { online: false, room: null }),
+      invite: (_from, name, to) => (invites.push(`${name}->${to}`), 'sent'),
+    });
+    const codeA = (await get(a.cookie)).code;
+    const codeB = (await get(b.cookie)).code;
+    expect(codeA).toMatch(/^[A-Z2-9]{8}$/);
+    expect((await get(a.cookie)).code).toBe(codeA); // the same every time
+    expect((await fetch(base + '/api/friends')).status).toBe(401);
+    const add = async (cookie: string, code: string) => (await (await post('/api/friends/add', { code }, cookie)).json()) as { result: string };
+    expect((await post('/api/friends/add', { code: 'nope' }, b.cookie)).status).toBe(400);
+    expect((await add(b.cookie, codeA)).result).toBe('asked');
+    expect((await add(b.cookie, codeB)).result).toBe('self');
+    // A request isn't a friendship: no status, no invites yet.
+    expect((await get(a.cookie)).requests.map((x) => x.code)).toEqual([codeB]);
+    expect((await get(b.cookie)).friends).toEqual([]);
+    expect((await post('/api/friends/invite', { code: codeA }, b.cookie)).status).toBe(404);
+    // A says yes (adding B's code back): friends both ways.
+    expect((await add(a.cookie, codeB)).result).toBe('friends');
+    const bView = await get(b.cookie);
+    expect(bView.friends).toMatchObject([{ code: codeA, online: true, room: 'ROOMA' }]);
+    expect(bView.sent).toEqual([]);
+    expect((await (await post('/api/friends/invite', { code: codeA }, b.cookie)).json()).result).toBe('sent');
+    expect(invites).toEqual([`Tester->${a.id}`]);
+    // A stranger with A's code can only ask.
+    expect((await add(c.cookie, codeA)).result).toBe('asked');
+    expect((await get(c.cookie)).friends).toEqual([]);
+    // Unfriending goes both ways.
+    await post('/api/friends/remove', { code: codeB }, a.cookie);
+    expect((await get(b.cookie)).friends).toEqual([]);
+  });
+
   it('deleting an account removes what it owned', async () => {
     const { cookie, id } = await signUp('five@example.com');
     await sendWebhook('checkout.session.completed', paid('cs_4', id, 'hat:viking'));

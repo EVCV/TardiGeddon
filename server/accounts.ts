@@ -8,6 +8,7 @@
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
 // See docs/ACCOUNTS.md for setup.
 
+import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash } from 'node:crypto';
@@ -68,6 +69,14 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
 const MAX_BODY = 64 * 1024;
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
+
+/** What the game server knows about who's connected (for friends). */
+export interface Presence {
+  /** Online, and the private room they're in if a friend could still join it. */
+  status(userId: string): { online: boolean; room: string | null };
+  /** Tell a friend (if connected) that `fromName` invites them to the room `fromUserId` is in. */
+  invite(fromUserId: string, fromName: string, toUserId: string): 'sent' | 'offline' | 'noroom';
+}
 
 export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null } = {}) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
@@ -193,6 +202,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   await runMigrations();
   await migrate(db);
   await migrateChallenges(db);
+  await migrateFriends(db);
   const auth = betterAuth(options);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
@@ -397,6 +407,52 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   /** Spend coins or Slime on a shop item. */
+  /** Who's online and where, from the game server (setPresence). */
+  let presence: Presence | null = null;
+  /** Friend requests sent in the last hour, and when each player last invited someone. */
+  const friendAsks = new Map<string, number[]>();
+  const lastInvite = new Map<string, number>();
+
+  async function friendsApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Sign in to have friends in the game.' });
+    if (req.method === 'GET') {
+      const lists = await friendLists(db, user.id);
+      const strip = (f: FriendRow) => ({ code: f.code, name: f.name });
+      return json(res, 200, {
+        code: await friendCode(db, user.id),
+        // Only friends (both said yes) see each other's status and room.
+        friends: lists.friends.map((f) => ({ ...strip(f), ...(presence?.status(f.userId) ?? { online: false, room: null }) })),
+        requests: lists.requests.map(strip),
+        sent: lists.sent.map(strip),
+      });
+    }
+    const body = await readJson(req);
+    const code = normaliseFriendCode(body?.code);
+    if (!code) return json(res, 400, { error: 'Friend codes are 8 letters and numbers.' });
+    if (path === '/api/friends/add') {
+      const now = Date.now();
+      const recent = (friendAsks.get(user.id) ?? []).filter((t) => now - t < 3_600_000);
+      if (recent.length >= 20) return json(res, 429, { error: 'That’s a lot of friend requests. Try again later.' });
+      friendAsks.set(user.id, [...recent, now]);
+      await friendCode(db, user.id); // so they can see who asked
+      return json(res, 200, { result: await addFriend(db, user.id, code) });
+    }
+    if (path === '/api/friends/remove') {
+      await removeFriend(db, user.id, code);
+      return json(res, 200, { ok: true });
+    }
+    // Invite a friend to the room you're in.
+    const lists = await friendLists(db, user.id);
+    const friend = lists.friends.find((f) => f.code === code);
+    if (!friend) return json(res, 404, { error: 'You can only invite your friends.' });
+    const now = Date.now();
+    if (now - (lastInvite.get(user.id) ?? 0) < 3000) return json(res, 429, { error: 'Wait a moment before inviting again.' });
+    lastInvite.set(user.id, now);
+    const sent = presence?.invite(user.id, user.name, friend.userId) ?? 'offline';
+    json(res, 200, { result: sent });
+  }
+
   const lastRun = new Map<string, number>();
   /** A daily challenge run: played through the sim here, never taken on trust. */
   async function challengeSubmit(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -703,6 +759,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
+        } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
+          await friendsApi(req, res, path);
         } else if (path === '/api/challenge/submit' && req.method === 'POST') {
           await challengeSubmit(req, res);
         } else if (path === '/api/challenge/board' && req.method === 'GET') {
@@ -743,6 +801,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       const r = (await ratingsOf(db, [user.id])).get(user.id)!;
       return { userId: user.id, owned: await ownedItems(db, user.id), rating: r.rating };
     },
+    /** The game server says who's online and passes on invites. */
+    setPresence(p: Presence): void {
+      presence = p;
+    },
     /** Add a finished online match to the players' stats. */
     async recordResults(results: MatchResult[]): Promise<void> {
       await recordResults(db, results);
@@ -753,6 +815,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     resetLimits(): void {
       lastReport.clear();
       lastRun.clear();
+      friendAsks.clear();
+      lastInvite.clear();
       redeemTries.clear();
     },
     async close(): Promise<void> {

@@ -13,8 +13,9 @@ free without an account.
   plus `inventory` (who owns what), `wallet` (coins and Slime),
   `player_stats`, `player_settings` (control settings from the Settings page),
   `stripe_customer`, `purchase` (every payment), `gift`,
-  `spend` (the Sales page's log, not linked to players), `done_once` and
-  `challenge_score` (each player's best daily challenge run per day).
+  `spend` (the Sales page's log, not linked to players), `done_once`,
+  `challenge_score` (each player's best daily challenge run per day),
+  `friend_code` and `friend`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -41,6 +42,11 @@ free without an account.
   accounts (`MatchResult.ranked`; private rooms never count). The game server
   reads it on connect (`playerFor`) and the matchmaker pairs similar ratings
   first, widening the range the longer someone waits.
+- **Friends** (`server/friends.ts`, `src/ui/friends.ts`): `friend_code` (8
+  letters each) and `friend` (one row per direction: 'asked' or 'friends').
+  Only mutual friends see each other's online status and joinable private
+  room (from the game server's `Presence`, `setPresence`) or send invites
+  (a `{ t: 'invite' }` message to the friend's connections). No chat.
 - **Daily challenges** (`src/challenge/daily.ts`, `server/challenges.ts`):
   the game sends a finished run's input frames to `POST /api/challenge/submit`;
   the server plays them through the sim itself (the stand-in team's frames

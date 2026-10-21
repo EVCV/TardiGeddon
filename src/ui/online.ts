@@ -13,6 +13,7 @@ import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
 import { account, usableArenas, wornLooks } from '../account/session';
 import { tierFor } from '../stats/rank';
+import { friendsPanel, showInvite } from './friends';
 import { MAP_STYLES } from '../sim/terrain/generate';
 import { arenaTheme } from '../render/arenas';
 import { Lockstep } from '../net/lockstep';
@@ -98,6 +99,7 @@ export function showOnline(
     off?.();
     off = c.on((msg: ServerMsg) => {
       if (msg.t === 'error') status.textContent = msg.msg;
+      else if (msg.t === 'invite') showInvite(msg.from, () => void joinRoom(msg.code));
       else if (msg.t === 'queue') renderQueue(msg.waiting);
       else if (msg.t === 'room') {
         stopQueueClock();
@@ -117,6 +119,13 @@ export function showOnline(
     c.onDrop = () => {
       status.textContent = 'Lost connection to the game server.';
     };
+  };
+
+  /** Join a room by its code (a friend's, or an invite). */
+  const joinRoom = async (code: string) => {
+    const c = await connect();
+    const re = loadRejoin();
+    c?.join(code, myTeam(), re && re.code === code ? re.token : undefined);
   };
 
   const connect = async (): Promise<NetClient | null> => {
@@ -234,6 +243,11 @@ export function showOnline(
     };
     colA.append(help, back);
     colB.append(quick, or, create, joinRow, status);
+    // Signed in: friends, and a connection so friends see you online and can invite you.
+    if (account().me?.user) {
+      colB.append(friendsPanel({ inRoom: false, onJoin: (c) => void joinRoom(c) }));
+      void connect();
+    }
     if (opts.code) join.click();
   };
 
@@ -358,6 +372,7 @@ export function showOnline(
     } else {
       colB.append(el('p', 'online-note', room.you < 0 ? '👀 You’re watching. The match shows here when the host starts it.' : 'Waiting for the host to start the match…'));
     }
+    if (room.you >= 0 && account().me?.user) colB.append(friendsPanel({ inRoom: true, onJoin: (c) => void joinRoom(c) }));
     const back = el('button', 'hud-btn online-back', room.you < 0 ? 'Stop watching' : 'Leave room');
     back.onclick = leave;
     colA.append(status, back);
