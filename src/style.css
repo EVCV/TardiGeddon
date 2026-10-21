@@ -246,8 +246,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: 0 6px 0 var(--ink);
   padding: 12px;
 }
-.weapon-panel h2 { font-family: var(--title); margin: 0 0 8px; font-weight: normal; letter-spacing: 1px; }
-.panel-close { position: absolute; top: 8px; right: 8px; }
+/* Stays put while the weapons scroll, so ✕ is always in reach. */
+.panel-head { position: sticky; top: -12px; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -12px -12px 10px; padding: 12px 12px 6px; background: var(--paper); }
+.weapon-panel h2 { font-family: var(--title); margin: 0; font-weight: normal; letter-spacing: 1px; }
+.panel-close { flex: none; }
 .weapon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .weapon-cell {
   display: flex;
@@ -1639,15 +1641,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
   .lobby[data-view] .dash { display: none; }
   .lobby[data-view=home] .lobby-setup { display: none; }
-  .lobby[data-view] .lobby-hero { grid-area: hero; flex-direction: column; justify-content: center; align-items: center; gap: 6px; padding: 8px; text-align: center; min-height: 0; overflow: hidden; }
+  /* "safe": if it's ever too tall, it's cut at the bottom, never the top. */
+  .lobby[data-view] .lobby-hero { grid-area: hero; flex-direction: column; justify-content: center; justify-content: safe center; align-items: center; gap: 6px; padding: 8px; text-align: center; min-height: 0; overflow: hidden; }
   .lobby[data-view] .hero-art { padding: 4px 10px 8px; gap: 4px; border-radius: 14px; }
-  .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(54px, 26vh, 150px); display: block; }
+  .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(44px, calc(100dvh - 300px), 150px); display: block; }
+  /* The seasonal note: one line, so the column fits short screens. */
+  .lobby[data-view] .hero-season { margin: 0; padding: 3px 10px; font-size: 12px; border-width: 2px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
   .lobby[data-view] .hero-text { text-align: center; max-width: 100%; }
   .lobby[data-view] .title { font-size: min(4vw, 7vh, 40px); white-space: nowrap; }
   .lobby[data-view] .tagline { display: none; }
   .lobby[data-view] .hero-team { font-size: 13px; margin-top: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
   .lobby[data-view] .hero-edit, .lobby[data-view] .hero-looks { font-size: 12px; min-height: 28px; }
-  .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; padding: 10px; min-height: 0; align-self: stretch; }
+  .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; justify-content: safe center; padding: 10px; min-height: 0; align-self: stretch; overflow: hidden; }
   .lobby[data-view] .lobby-hero { align-self: stretch; }
   .lobby[data-view] .lobby-play .menu-buttons { gap: 8px; margin: 0; }
   .lobby[data-view] .lobby-play .play { display: flex; flex-direction: column; align-items: center; font-size: clamp(26px, 10vh, 52px); line-height: 1.05; padding: 6px 14px 8px; }
@@ -1715,6 +1720,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @media (max-height: 340px) {
   .lobby[data-view] .lobby-setup .players-hint { display: none; }
+  /* Small phones: the Play card's buttons shrink to fit, never past the card. */
+  .lobby[data-view] .lobby-play { padding: 8px; }
+  .lobby[data-view] .lobby-play .menu-buttons { gap: 6px; }
+  .lobby[data-view] .lobby-play .play { font-size: 28px; padding: 4px 12px 6px; }
+  .lobby[data-view] .menu-row .big-btn { font-size: 14px; padding: 6px; }
+  .lobby[data-view] .lobby-learn { margin-top: 6px; gap: 6px; }
+  .lobby[data-view] .lobby-learn .hud-btn { font-size: 12px; min-height: 0; padding: 4px 6px; line-height: 1.15; }
 }
 
 @media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
@@ -1732,6 +1744,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
     box-shadow: 0 5px 0 var(--ink);
   }
   .menu-card.online .online-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  /* Signed in: Friends gets a third column, scrolling inside itself if the list is long. */
+  .menu-card.online[data-screen=entry]:has(> .friends) { width: 100%; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.1fr) minmax(0, 1fr); max-height: 100%; }
+  .menu-card.online > .friends { margin: 0; padding: 0 0 0 12px; border-top: 0; border-left: 2px dashed #e4dccb; align-self: stretch; min-height: 0; max-height: calc(100dvh - 48px); overflow-y: auto; }
+  .menu-card.online > .friends .card-title { margin: 0; font-size: 18px; }
+  .menu-card.online > .friends .friend-row { flex-wrap: wrap; }
+  .menu-card.online > .friends .friend-row > .online-note { order: 5; flex-basis: 100%; text-align: left; font-size: 11px; }
+  .menu-card.online:has(> .friends) .code-input { font-size: 16px; letter-spacing: 2px; }
+  /* The room code gets a row of its own there, Join and Watch below it. */
+  .menu-card.online:has(> .friends) .online-col .join-row { flex-wrap: wrap; }
+  .menu-card.online:has(> .friends) .online-col .join-row .code-input { flex: 1 1 100%; }
+  .menu-card.online:has(> .friends) .online-col .join-row > button { flex: 1 1 0; }
   .menu-card.online .title-small { font-size: 28px; }
   .menu-card.online .online-me svg { width: 56px; }
   .menu-card.online .online-me-name { font-size: 20px; }
@@ -1862,6 +1885,34 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .editor-options h3:first-child { margin-top: 0; }
   .editor .editor-actions { grid-area: actions; margin: 0; flex-wrap: wrap; justify-content: center; }
   .editor .editor-actions .big-btn { padding: 6px 18px; font-size: 16px; }
+
+  /* ---- Small choosers (Daily challenge, Practice, Replays): not the team
+     editor's full-screen layout. Their choices sit side by side, and the box
+     never runs off the screen: what doesn't fit scrolls inside it. ---- */
+  .editor.practice-choice {
+    display: grid;
+    margin: auto;
+    width: min(680px, 100%);
+    height: auto;
+    max-height: 100%;
+    max-width: none;
+    overflow-y: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-template-areas: none;
+    gap: 8px;
+  }
+  .editor.practice-choice > :not(.practice-option) { grid-column: 1 / -1; }
+  .editor.practice-choice .editor-title { font-size: 22px; margin: 0; }
+  .editor.practice-choice .account-note { margin: 0; font-size: 12px; }
+  .editor.practice-choice .practice-option { padding: 8px 10px; }
+  .editor.practice-choice .practice-option b { font-size: 17px; }
+  .editor.practice-choice .practice-option span { font-size: 12px; }
+  .editor.practice-choice > .hud-btn { justify-self: center; min-width: 50%; }
+  /* Replays: one column, the list scrolls between the title and the buttons. */
+  .editor.practice-choice.replays { display: flex; flex-direction: column; }
+  .editor.practice-choice.replays .replay-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .editor.practice-choice.replays > .hud-btn { align-self: center; }
 }
 
 /* Tablets (landscape touch screens taller than phones): the phone menu, scaled

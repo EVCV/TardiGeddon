@@ -246,8 +246,9 @@ export function showOnline(
     colA.append(help, back);
     colB.append(quick, or, create, joinRow, status);
     // Signed in: friends, and a connection so friends see you online and can invite you.
+    // (Its own part of the card: on phones it's a third column, so the screen fits without scrolling.)
     if (account().me?.user) {
-      colB.append(friendsPanel({ inRoom: false, onJoin: (c) => void joinRoom(c) }));
+      card.append(friendsPanel({ inRoom: false, onJoin: (c) => void joinRoom(c) }));
       void connect();
     }
     if (opts.code) join.click();

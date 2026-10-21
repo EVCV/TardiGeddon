@@ -11,6 +11,7 @@ import type { InputCollector } from '../input/input';
 import { controls } from '../input/controls';
 import { hex, shown, teamSymbol } from '../render/palette';
 import { t } from '../i18n/i18n';
+import { weaponUse } from './weaponUse';
 
 export interface HudHooks {
   onQuit: () => void;
@@ -25,22 +26,6 @@ export interface HudHooks {
 /** Do the up/down (aim) controls do anything with this weapon? */
 export function usesUpDown(def: WeaponDef, onRope: boolean): boolean {
   return onRope || def.kind === 'charge' || def.kind === 'hitscan' || def.kind === 'rope' || !!def.girder;
-}
-
-/** How a weapon is used, for its tag in the weapon panel: aimed and thrown, a straight shot, a spot on the map… */
-export function weaponUse(def: WeaponDef): { icon: string; label: string } {
-  if (def.id === 'skip') return { icon: '⏭️', label: t('Skip') };
-  if (def.shower) return { icon: '🌍', label: t('Whole map') };
-  if (def.strike || def.projectile?.crusher) return { icon: '☁️', label: t('From the sky') };
-  if (def.kind === 'target') return { icon: '📍', label: t('Pick a spot') };
-  if (def.projectile?.homing) return { icon: '🎯', label: t('Homing') };
-  if (def.kind === 'hitscan') return { icon: '➖', label: t('Straight shot') };
-  if (def.kind === 'melee') return { icon: '👊', label: t('Close up') };
-  if (def.kind === 'drop') return { icon: '⬇️', label: t('Drop and run') };
-  if (def.kind === 'walker') return { icon: '🐾', label: t('Walks there') };
-  if (def.kind === 'rope' || def.kind === 'parachute') return { icon: '🧭', label: t('Getting about') };
-  if (def.projectile?.bounce !== null && def.projectile?.bounce !== undefined) return { icon: '⏱️', label: t('Bounces, fuse') };
-  return { icon: '💥', label: t('On impact') };
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -168,7 +153,7 @@ export class Hud {
       const b = el('button', 'weapon-cell');
       b.dataset.id = w.id;
       const use = weaponUse(w);
-      b.innerHTML = `<span class="wi">${w.icon}</span><span class="wn">${t(w.name)}</span><span class="wu">${use.icon} ${use.label}</span><span class="wa"></span>`;
+      b.innerHTML = `<span class="wi">${w.icon}</span><span class="wn">${t(w.name)}</span><span class="wu">${use.icon} ${t(use.label)}</span><span class="wa"></span>`;
       if (w.blurb) b.title = t(w.blurb);
       const show = () => this.showInfo(w);
       b.onmouseenter = show;
@@ -185,8 +170,20 @@ export class Hud {
     const close = el('button', 'hud-btn panel-close', '✕');
     close.setAttribute('aria-label', t('Close'));
     close.onclick = () => this.togglePanel(false);
-    this.panel.append(el('h2', '', t('Weapons')), close, grid, this.info);
+    // The ✕ sits in a header row of its own, clear of the weapons.
+    const head = el('div', 'panel-head');
+    head.append(el('h2', '', t('Weapons')), close);
+    this.panel.append(head, grid, this.info);
   }
+
+  /** A tap or click anywhere but the panel (or its button) closes it, and does nothing else. */
+  private readonly outside = (e: PointerEvent): void => {
+    const target = e.target as Node | null;
+    if (target && (this.panel.contains(target) || this.weaponBtn.contains(target))) return;
+    e.stopPropagation();
+    e.preventDefault();
+    this.togglePanel(false);
+  };
 
   /** The line under the weapons: what the one under the pointer (or the one in hand) does. */
   private showInfo(w: WeaponDef | null): void {
@@ -201,6 +198,8 @@ export class Hud {
     if (open && !this.humanTurn) return;
     if (open) this.showInfo(null);
     this.panel.classList.toggle('hidden', !open);
+    if (open) document.addEventListener('pointerdown', this.outside, true);
+    else document.removeEventListener('pointerdown', this.outside, true);
   }
 
   get panelOpen(): boolean {
