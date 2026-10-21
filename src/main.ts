@@ -22,6 +22,7 @@ import { mapStyleName } from './sim/terrain/generate';
 import { arenaTheme, type ArenaTheme } from './render/arenas';
 import { shareMatch } from './ui/share';
 import { findEgg, onEggFound } from './ui/eggs';
+import { Captions, captionFor } from './ui/captions';
 import { ChallengeRun, TARGET_TURNS, challengeDay, challengeWorld, type ChallengeKind } from './challenge/daily';
 import { chooseChallenge, showChallengeResult } from './ui/challenge';
 import { Banter } from './render/banter';
@@ -229,6 +230,8 @@ class Match {
   private events: SimEvent[] = [];
   /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
   private tally: MatchTally | null = null;
+  /** Words on screen for the sounds (Settings → Accessibility). */
+  private captions = new Captions();
   /** A daily challenge run: records its frames for the leaderboard and says when it's over. */
   private challenge: ChallengeRun | null = null;
   /** Everyone's numbers for the end-of-match screen (every kind of match). */
@@ -313,7 +316,10 @@ class Match {
     // Online, the host may have picked the world for everyone.
     this.theme = arenaTheme(this.state.scheme.arena ?? wearArena());
     this.renderer = new GameRenderer(app, this.state, this.theme);
-    this.renderer.onSound = (name) => sfx[name]();
+    this.renderer.onSound = (name) => {
+      sfx[name]();
+      this.captions.say(name === 'pop' ? '💨 Pop!' : '😱 Whoa!');
+    };
     this.renderer.onEgg = (id) => findEgg(id);
     // Online: names of players you've blocked are hidden from you.
     this.hideBlocked();
@@ -323,7 +329,7 @@ class Match {
     useSoundPack(wearSounds());
     previewMusic(null);
     playMusic(wearMusic());
-    ui.append(this.hud.root);
+    ui.append(this.hud.root, this.captions.root);
     if (this.coach) {
       this.hud.root.classList.add('has-coach');
       ui.append(this.coach.root);
@@ -453,7 +459,10 @@ class Match {
   private newRenderer(s: WorldState): void {
     this.renderer.destroy();
     this.renderer = new GameRenderer(this.app, s, this.theme);
-    this.renderer.onSound = (name) => sfx[name]();
+    this.renderer.onSound = (name) => {
+      sfx[name]();
+      this.captions.say(name === 'pop' ? '💨 Pop!' : '😱 Whoa!');
+    };
     this.renderer.onEgg = (id) => findEgg(id);
   }
 
@@ -545,6 +554,7 @@ class Match {
     this.events.length = 0;
     this.renderer.render(this.state, Math.min(1, this.acc / TICK_MS), dt / 1000, true);
     this.hud.update(this.state, this.isHumanTurn());
+    this.captions.update();
   }
 
   /** The end-of-match numbers, started on first use (a rejoined online match starts counting then). */
@@ -612,6 +622,7 @@ class Match {
   private playSounds(events: SimEvent[]): void {
     let hurt = false; // one voice per batch of damage
     for (const e of events) {
+      this.captions.say(captionFor(e));
       switch (e.t) {
         case 'explosion': sfx.explosion(e.r); break;
         case 'fire':

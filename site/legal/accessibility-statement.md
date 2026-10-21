@@ -57,7 +57,7 @@ We want as many people as possible to be able to enjoy TardiGeddon. This stateme
 
 2.0.2 The game can be played with a keyboard, a mouse, or touch controls, and turn-based play means there is no need for fast reactions: each turn has a timer, and game styles with longer turn times can be chosen in the menu.
 
-2.0.3 Teams are identified by name as well as by colour, and speech-bubble reactions in the game are shown as text. The game's Settings have an Accessibility section with: colour-blind friendly team colours (a palette designed to be told apart with any common colour blindness), with a symbol for each team beside its name and a pattern on its health bar; a high contrast mode (black-on-white menus, white-on-black text over the game, bigger name tags); and calmer effects (no lightning flashes or menu animations), which is switched on automatically if your device asks for reduced motion. Every control shows a clear focus ring when used with a keyboard, and text size can be changed in Settings.
+2.0.3 Teams are identified by name as well as by colour, and speech-bubble reactions in the game are shown as text. The game's Settings have an Accessibility section with: colour-blind friendly team colours (a palette designed to be told apart with any common colour blindness), with a symbol for each team beside its name and a pattern on its health bar; a high contrast mode (black-on-white menus, white-on-black text over the game, bigger name tags); and calmer effects (no lightning flashes or menu animations), which is switched on automatically if your device asks for reduced motion. Every control shows a clear focus ring when used with a keyboard, and text size can be changed in Settings. Sound captions show short words on screen for the game's sound effects. Tap to fire lets you charge and fire a shot with two taps instead of holding a button, and an optional shot-path guide shows where a shot will land.
 
 2.0.4 Including accessibility considerations at the design and development stage of new features, so far as reasonably practicable given the BETA status, and conducting periodic internal reviews using automated testing tools and manual review.
 
@@ -83,8 +83,7 @@ We want as many people as possible to be able to enjoy TardiGeddon. This stateme
 
 - The game is drawn on a canvas, so the playing field (the landscape, tardigrades, and weapons) is not available to screen readers. The menus are standard web pages.
 - The game has explosions and camera movement. The calmer effects setting removes the flashes from storms and menu animations, but explosions still move and flash briefly.
-- Sound effects do not have captions, although the game does not rely on sound to play.
-- Aiming and charging a shot require holding a button or key, which may be difficult for some players.
+- Music is not captioned (sound effects can be, with Sound captions in Settings → Accessibility).
 
 4.0.2 We will update this list as issues are identified and resolved.
 

@@ -10,6 +10,8 @@ export interface AccessSettings {
   highContrast: boolean;
   /** Fewer flashes and less movement. Starts on if the device asks for reduced motion. */
   calm: boolean;
+  /** Words on screen for the game's sounds (ui/captions.ts). */
+  captions: boolean;
 }
 
 const KEY = 'tardigeddon.access';
@@ -44,6 +46,7 @@ export function accessSettings(): AccessSettings {
     colourBlind: saved.colourBlind === true,
     highContrast: typeof saved.highContrast === 'boolean' ? saved.highContrast : deviceWantsContrast(),
     calm: typeof saved.calm === 'boolean' ? saved.calm : deviceWantsCalm(),
+    captions: saved.captions === true,
   };
   return current;
 }

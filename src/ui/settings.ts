@@ -288,6 +288,7 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
     row.append(label, b);
     card.append(row);
   }
+  toggle('captions', 'Sound captions', 'Short words at the bottom of the screen for what the sounds are saying (“💥 Boom”, “⚠️ Mine ticking”, “🔔 Next turn”), so nothing is missed with the sound off.');
   toggle('calm', 'Calmer effects', 'No lightning flashes or other sudden flashes, and less movement in the menus. On by itself if your device asks for reduced motion.');
   card.append(el('p', 'account-note', 'Only changes what you see on this device, never the match. Kept on this device.'));
   return card;
