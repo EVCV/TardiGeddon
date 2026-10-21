@@ -127,6 +127,13 @@ export class GameRenderer {
     );
     app.stage.addChild(this.world, this.weather.front);
     for (const t of state.tardis) {
+      if (!t.alive) {
+        // Popped before this view was made (a replay of the winning shot, a rejoin): its gravestone, not a tardi on 0.
+        const grave = state.teams[t.team].grave;
+        const color = shown(state.teams[t.team].color);
+        if (t.y < state.waterY) this.markers.addChild(grave === 'classic' ? makeHusk(t.x, t.y, color) : makeGrave(t.x, t.y, color, grave));
+        continue;
+      }
       const v = new TardiView(t, shown(state.teams[t.team].color), state.teams[t.team].hat, state.teams[t.team].skin, state.teams[t.team].dance, teamSymbol(state.teams[t.team].color));
       this.tardiViews.set(t.id, v);
       this.entities.addChild(v.root);
@@ -910,8 +917,10 @@ export class GameRenderer {
   destroy(): void {
     this.app.stage.removeChildren();
     this.world.destroy({ children: true });
+    // The terrain and sky are big canvas textures, made per match: free them, or each match leaves its copy on the GPU.
+    this.terrainView.destroy();
     this.weather.destroy();
-    this.sky.destroy();
+    this.sky.destroy({ texture: true, textureSource: true });
     this.ambient.destroy();
   }
 }

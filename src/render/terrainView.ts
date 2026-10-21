@@ -84,6 +84,12 @@ export class TerrainView {
     }
   }
 
+  /** Frees the tiles' canvases on the GPU: a new match makes new ones. */
+  destroy(): void {
+    for (const t of this.tiles) t.texture.destroy(true);
+    this.tiles = [];
+  }
+
   private flush(): void {
     for (const t of this.tiles) {
       if (t.dirty) {

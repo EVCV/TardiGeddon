@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-type W = { world: { tick: number; turn: { teamIdx: number; phase: string; timer: number }; tardis: { hp: number }[] } };
+type W = { world: { tick: number; waterY: number; turn: { teamIdx: number; phase: string; timer: number }; tardis: { hp: number; team: number; y: number; airborne: boolean }[] } };
 const tardi = (p: Page) => p.evaluate(() => (window as unknown as { __tardi: W }).__tardi.world.tick);
 
 test('a daily challenge ends with its result, and its buttons work', async ({ page }, info) => {
@@ -28,15 +28,22 @@ test('a finished match can be watched again, with working replay controls', asyn
   test.setTimeout(150_000);
   await page.goto('/?autostart=cpu');
   await page.waitForFunction(() => (window as unknown as { __tardi?: W }).__tardi?.world.turn.phase === 'aim');
+  // End it quickly: on our go, our whole team falls in the water. (Waiting for
+  // the CPU to pop all four took most of two minutes on CI.)
   await page.waitForFunction(
     () => {
       const w = (window as unknown as { __tardi: W }).__tardi.world;
-      for (const t of w.tardis) t.hp = Math.min(t.hp, 5);
-      if (w.turn.teamIdx === 0 && w.turn.phase === 'aim') w.turn.timer = 1;
+      if (w.turn.teamIdx === 0 && w.turn.phase === 'aim') {
+        for (const t of w.tardis) {
+          if (t.team !== 0) continue;
+          t.y = w.waterY + 40;
+          t.airborne = true;
+        }
+      }
       return w.turn.phase === 'gameover';
     },
     null,
-    { timeout: 120_000, polling: 300 },
+    { timeout: 60_000, polling: 300 },
   );
   await page.getByRole('button', { name: 'Main menu' }).click({ timeout: 15_000 });
   await page.getByRole('button', { name: '🎬 Replays' }).click();
