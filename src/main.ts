@@ -5,6 +5,7 @@ import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
+import { loadLang } from './i18n/i18n';
 import { confirmEmail, finishPlayPurchases, refreshAccount } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
@@ -32,11 +33,14 @@ const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams
 async function boot(): Promise<void> {
   void initTextSize();
   if (touchMode) enforceLandscape();
+  // The player's language (if not English) loads alongside the font.
+  const langReady = loadLang();
   try {
     await document.fonts.load('16px "Luckiest Guy"');
   } catch {
     /* fall back to system font */
   }
+  await langReady;
 
   // Browsers only allow sound after a tap or key press: start the menu music on the first one.
   // A touch only counts once the finger lifts (pointerup / touchend / click), not on pointerdown,
