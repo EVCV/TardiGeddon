@@ -8,6 +8,9 @@
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
 // See docs/ACCOUNTS.md for setup.
 
+import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
+import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
@@ -15,6 +18,7 @@ import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { APIError } from 'better-auth/api';
 import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
+import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem, type CoinPack } from '../src/shop/catalog';
@@ -23,7 +27,7 @@ import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, typ
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
@@ -66,6 +70,14 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
 const MAX_BODY = 64 * 1024;
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
+
+/** What the game server knows about who's connected (for friends). */
+export interface Presence {
+  /** Online, and the private room they're in if a friend could still join it. */
+  status(userId: string): { online: boolean; room: string | null };
+  /** Tell a friend (if connected) that `fromName` invites them to the room `fromUserId` is in. */
+  invite(fromUserId: string, fromName: string, toUserId: string): 'sent' | 'offline' | 'noroom';
+}
 
 export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null } = {}) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
@@ -117,7 +129,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const checkedName = (raw: unknown): string => {
     const name = tidyName(raw, 32);
     const problem = name ? nameProblem(name) : null;
-    if (!name) throw new APIError('BAD_REQUEST', { message: 'Please choose a player name.' });
+    if (!name) throw new APIError('BAD_REQUEST', { message: tk('Please choose a player name.') });
     if (problem) throw new APIError('BAD_REQUEST', { message: NAME_PROBLEM_TEXT[problem] });
     return name;
   };
@@ -190,6 +202,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const { runMigrations } = await getMigrations(options);
   await runMigrations();
   await migrate(db);
+  await migrateChallenges(db);
+  await migrateFriends(db);
   const auth = betterAuth(options);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
@@ -269,23 +283,23 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   async function checkout(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    if (!stripe) return json(res, 503, { error: 'The shop is not open yet.' });
+    if (!stripe) return json(res, 503, { error: tk('The shop is not open yet.') });
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     let body: { item?: unknown; consent?: unknown; grownUp?: unknown };
     try {
       body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
     } catch {
-      return json(res, 400, { error: 'Bad request.' });
+      return json(res, 400, { error: tk('Bad request.') });
     }
     // Money only ever buys coin packs; prices come from the catalogue, never the browser.
     const item = typeof body.item === 'string' ? coinPack(body.item) : undefined;
-    if (!item) return json(res, 400, { error: 'No such coin pack.' });
+    if (!item) return json(res, 400, { error: tk('No such coin pack.') });
     // UK consumer law: digital content supplied straight away needs the buyer's express
     // consent and acknowledgement that they lose the 14-day right to cancel (Terms §5).
-    if (body.consent !== true) return json(res, 400, { error: 'Please confirm you want the coins straight away.' });
+    if (body.consent !== true) return json(res, 400, { error: tk('Please confirm you want the coins straight away.') });
     // Every pack: 18 or over, or a parent or carer has agreed (Terms 5.1.1).
-    if (body.grownUp !== true) return json(res, 400, { error: "Please confirm you're 18 or over, or that a parent or carer has agreed." });
+    if (body.grownUp !== true) return json(res, 400, { error: tk("Please confirm you're 18 or over, or that a parent or carer has agreed.") });
     const back = new URL(gameUrl);
     back.searchParams.set('shop', 'done');
     const cancel = new URL(gameUrl);
@@ -324,7 +338,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       // Usually a Stripe setting (e.g. no business name yet). Shown to players only with test keys.
       const why = e instanceof Error ? e.message : String(e);
       console.error('checkout: Stripe refused:', why);
-      return json(res, 502, { error: testMode ? `Stripe said: ${why}` : "The shop couldn't start your payment. Please try again later." });
+      return json(res, 502, { error: testMode ? `Stripe said: ${why}` : tk("The shop couldn't start your payment. Please try again later.") });
     }
     json(res, 200, { url: session.url });
   }
@@ -339,15 +353,15 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
 
   /** Stripe's own page where players see their purchases, download receipts and update billing details. */
   async function purchasesPortal(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    if (!stripe) return json(res, 503, { error: 'The shop is not open yet.' });
+    if (!stripe) return json(res, 503, { error: tk('The shop is not open yet.') });
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     // With Managed Payments there are no invoices for the page to list: Stripe emails the receipts.
-    if (managed) return json(res, 404, { error: 'Your receipts are in the emails from Stripe. For help with a purchase, email support@tardigeddon.com.' });
+    if (managed) return json(res, 404, { error: tk('Your receipts are in the emails from Stripe. For help with a purchase, email support@tardigeddon.com.') });
     const customer = await stripeCustomerId(db, user.id);
     // The purchases page is made with the first coin purchase. Items bought directly,
     // before coins existed (test payments only), have no page: don't claim "nothing bought".
-    if (!customer) return json(res, 404, { error: 'Your purchases page appears after your first coin purchase. For anything bought before then, email support@tardigeddon.com for a receipt.' });
+    if (!customer) return json(res, 404, { error: tk('Your purchases page appears after your first coin purchase. For anything bought before then, email support@tardigeddon.com for a receipt.') });
     try {
       const portal = await stripe.billingPortal.sessions.create({ customer, return_url: gameUrl });
       json(res, 200, { url: portal.url });
@@ -355,7 +369,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       // e.g. the Customer Portal hasn't been set up in the Stripe dashboard yet.
       const why = e instanceof Error ? e.message : String(e);
       console.error('portal: Stripe refused:', why);
-      json(res, 502, { error: testMode ? `Stripe said: ${why}` : "Your purchases page isn't available right now. Please try again later." });
+      json(res, 502, { error: testMode ? `Stripe said: ${why}` : tk("Your purchases page isn't available right now. Please try again later.") });
     }
   }
 
@@ -369,15 +383,15 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
    */
   async function reportCpuMatch(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     let body: Record<string, unknown>;
     try {
       body = JSON.parse((await readBody(req)).toString('utf8')) as Record<string, unknown>;
     } catch {
-      return json(res, 400, { error: 'Bad request.' });
+      return json(res, 400, { error: tk('Bad request.') });
     }
     const now = Date.now();
-    if (now - (lastReport.get(user.id) ?? 0) < 20_000) return json(res, 429, { error: 'Too many reports.' });
+    if (now - (lastReport.get(user.id) ?? 0) < 20_000) return json(res, 429, { error: tk('Too many reports.') });
     lastReport.set(user.id, now);
     const count = (v: unknown, max: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : 0);
     const result: MatchResult = {
@@ -394,38 +408,102 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   /** Spend coins or Slime on a shop item. */
+  /** Who's online and where, from the game server (setPresence). */
+  let presence: Presence | null = null;
+  /** Friend requests sent in the last hour, and when each player last invited someone. */
+  const friendAsks = new Map<string, number[]>();
+  const lastInvite = new Map<string, number>();
+
+  async function friendsApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Sign in to have friends in the game.') });
+    if (req.method === 'GET') {
+      const lists = await friendLists(db, user.id);
+      const strip = (f: FriendRow) => ({ code: f.code, name: f.name });
+      return json(res, 200, {
+        code: await friendCode(db, user.id),
+        // Only friends (both said yes) see each other's status and room.
+        friends: lists.friends.map((f) => ({ ...strip(f), ...(presence?.status(f.userId) ?? { online: false, room: null }) })),
+        requests: lists.requests.map(strip),
+        sent: lists.sent.map(strip),
+      });
+    }
+    const body = await readJson(req);
+    const code = normaliseFriendCode(body?.code);
+    if (!code) return json(res, 400, { error: tk('Friend codes are 8 letters and numbers.') });
+    if (path === '/api/friends/add') {
+      const now = Date.now();
+      const recent = (friendAsks.get(user.id) ?? []).filter((t) => now - t < 3_600_000);
+      if (recent.length >= 20) return json(res, 429, { error: tk('That’s a lot of friend requests. Try again later.') });
+      friendAsks.set(user.id, [...recent, now]);
+      await friendCode(db, user.id); // so they can see who asked
+      return json(res, 200, { result: await addFriend(db, user.id, code) });
+    }
+    if (path === '/api/friends/remove') {
+      await removeFriend(db, user.id, code);
+      return json(res, 200, { ok: true });
+    }
+    // Invite a friend to the room you're in.
+    const lists = await friendLists(db, user.id);
+    const friend = lists.friends.find((f) => f.code === code);
+    if (!friend) return json(res, 404, { error: tk('You can only invite your friends.') });
+    const now = Date.now();
+    if (now - (lastInvite.get(user.id) ?? 0) < 3000) return json(res, 429, { error: tk('Wait a moment before inviting again.') });
+    lastInvite.set(user.id, now);
+    const sent = presence?.invite(user.id, user.name, friend.userId) ?? 'offline';
+    json(res, 200, { result: sent });
+  }
+
+  const lastRun = new Map<string, number>();
+  /** A daily challenge run: played through the sim here, never taken on trust. */
+  async function challengeSubmit(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Sign in to put your score on the leaderboard.') });
+    const body = await readJson(req);
+    if (!body || !isChallengeKind(body.kind) || !acceptableDay(body.day)) return json(res, 400, { error: tk('Bad request.') });
+    // Playing a run back costs real work: one every few seconds each.
+    const now = Date.now();
+    if (now - (lastRun.get(user.id) ?? 0) < 5_000) return json(res, 429, { error: tk('Too many runs. Try again in a moment.') });
+    lastRun.set(user.id, now);
+    const result = checkRun(body.kind, body.day, body.frames);
+    if (!result || !result.done) return json(res, 400, { error: tk('That run didn’t finish.') });
+    const best = await saveRun(db, user.id, body.kind, body.day, result);
+    const b = await board(db, body.kind, body.day, user.id);
+    json(res, 200, { result, best, me: b.me });
+  }
+
   async function unlock(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     let body: { item?: unknown };
     try {
       body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
     } catch {
-      return json(res, 400, { error: 'Bad request.' });
+      return json(res, 400, { error: tk('Bad request.') });
     }
     // A whole bundle at once.
     const set = typeof body.item === 'string' ? bundle(body.item) : undefined;
     if (set) {
       const r = await unlockBundle(db, user.id, set.id);
-      if (r === 'owned') return json(res, 409, { error: 'You already have everything in that bundle.' });
-      if (r === 'poor') return json(res, 402, { error: 'Not enough coins.' });
+      if (r === 'owned') return json(res, 409, { error: tk('You already have everything in that bundle.') });
+      if (r === 'poor') return json(res, 402, { error: tk('Not enough coins.') });
       return json(res, 200, { ok: true });
     }
     const item = typeof body.item === 'string' ? shopItem(body.item) : undefined;
-    if (!item) return json(res, 400, { error: 'No such item.' });
+    if (!item) return json(res, 400, { error: tk('No such item.') });
     const r = await unlockItem(db, user.id, item.id);
-    if (r === 'owned') return json(res, 409, { error: 'You already have that.' });
-    if (r === 'poor') return json(res, 402, { error: item.coins !== undefined ? 'Not enough coins.' : 'Not enough Slime yet: keep playing!' });
+    if (r === 'owned') return json(res, 409, { error: tk('You already have that.') });
+    if (r === 'poor') return json(res, 402, { error: item.coins !== undefined ? tk('Not enough coins.') : tk('Not enough Slime yet: keep playing!') });
     json(res, 200, { ok: true });
   }
 
   /** Save the player's control settings (Settings page). */
   async function saveSettings(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     const body = await readJson(req);
     const controls = sanitiseControls(body?.controls);
-    if (!controls) return json(res, 400, { error: 'Bad request.' });
+    if (!controls) return json(res, 400, { error: tk('Bad request.') });
     await saveControlsFor(db, user.id, controls);
     json(res, 200, { ok: true });
   }
@@ -445,19 +523,19 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   /** Buy a gift with your coins: you get a one-use code to pass on. */
   async function giftBuy(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     // A confirmed email and a day-old account, so a stolen card can't be turned straight into gifts.
-    if (!user.emailVerified) return json(res, 403, { error: 'Confirm your email first (on the Account page) to send gifts.' });
+    if (!user.emailVerified) return json(res, 403, { error: tk('Confirm your email first (on the Account page) to send gifts.') });
     if (Date.now() - Date.parse(user.createdAt) < GIFT_MIN_ACCOUNT_HOURS * 3600_000) {
-      return json(res, 403, { error: 'New accounts can send gifts after their first day.' });
+      return json(res, 403, { error: tk('New accounts can send gifts after their first day.') });
     }
     const body = await readJson(req);
-    if (!body || typeof body.item !== 'string' || !giftable(body.item)) return json(res, 400, { error: 'That can’t be given as a gift.' });
+    if (!body || typeof body.item !== 'string' || !giftable(body.item)) return json(res, 400, { error: tk('That can’t be given as a gift.') });
     const r = await buyGift(db, user.id, body.item, typeof body.message === 'string' ? body.message : 'none');
     if (!r.ok) {
-      if (r.why === 'poor') return json(res, 402, { error: 'Not enough coins.' });
+      if (r.why === 'poor') return json(res, 402, { error: tk('Not enough coins.') });
       if (r.why === 'limit') return json(res, 429, { error: `You can send up to ${GIFTS_PER_DAY} gifts a day. Try again tomorrow.` });
-      return json(res, 400, { error: 'That can’t be given as a gift.' });
+      return json(res, 400, { error: tk('That can’t be given as a gift.') });
     }
     json(res, 200, { code: r.code });
   }
@@ -465,23 +543,23 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   /** Claim a gift with its code. */
   async function giftRedeem(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     const now = Date.now();
     const t = redeemTries.get(user.id);
     const tries = t && now - t.at < 60_000 ? t : { at: now, n: 0 };
-    if (tries.n >= 10) return json(res, 429, { error: 'Too many tries. Wait a minute and check the code.' });
+    if (tries.n >= 10) return json(res, 429, { error: tk('Too many tries. Wait a minute and check the code.') });
     tries.n++;
     redeemTries.set(user.id, tries);
     const body = await readJson(req);
     const code = body && typeof body.code === 'string' ? body.code.slice(0, 40) : '';
-    if (!code) return json(res, 400, { error: 'Type in the gift code.' });
+    if (!code) return json(res, 400, { error: tk('Type in the gift code.') });
     const r = await redeemGift(db, user.id, code);
     if (!r.ok) {
       const why = {
-        unknown: "That code doesn't match a gift. Check it and try again.",
-        used: 'That gift has already been claimed.',
-        own: "That's a gift you bought: give the code to a friend.",
-        owned: 'You already have everything in that gift. The code still works, so it can go to someone else.',
+        unknown: tk("That code doesn't match a gift. Check it and try again."),
+        used: tk('That gift has already been claimed.'),
+        own: tk("That's a gift you bought: give the code to a friend."),
+        owned: tk('You already have everything in that gift. The code still works, so it can go to someone else.'),
       }[r.why];
       return json(res, r.why === 'unknown' ? 404 : 409, { error: why });
     }
@@ -499,20 +577,20 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   /** Purchases being checked right now, by token (see googlePlayPurchase). */
   const playInFlight = new Map<string, Promise<void>>();
   async function googlePlayPurchase(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
+    if (!play) return json(res, 503, { error: tk('Buying in the app is not open yet.') });
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     // Each check is a call to Google: a few a minute is plenty for any player.
     const now = Date.now();
     const recent = (playChecks.get(user.id) ?? []).filter((t) => now - t < 60_000);
-    if (recent.length >= 20) return json(res, 429, { error: 'Too many tries. Please wait a minute.' });
+    if (recent.length >= 20) return json(res, 429, { error: tk('Too many tries. Please wait a minute.') });
     playChecks.set(user.id, [...recent, now]);
     const body = await readJson(req);
     const productId = typeof body?.productId === 'string' ? body.productId : '';
     const token = typeof body?.token === 'string' && body.token.length <= 4000 ? body.token : '';
     // Only coin packs, priced in the Play Console; never trust the app's word for what was bought.
     const pack = packForPlayProduct(productId);
-    if (!pack || !token) return json(res, 400, { error: 'No such coin pack.' });
+    if (!pack || !token) return json(res, 400, { error: tk('No such coin pack.') });
     // The app reports a new purchase twice at once (its Buy button, and Google's
     // "purchases updated" signal). Done side by side, both would try to consume it
     // and Google refuses the second; so the second waits, then finds it done.
@@ -531,20 +609,20 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
 
   /** Check one Google Play purchase with Google, grant it once, and consume it. */
   async function settlePlayPurchase(res: ServerResponse, user: NonNullable<MeResponse['user']>, pack: CoinPack, productId: string, token: string): Promise<void> {
-    if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
+    if (!play) return json(res, 503, { error: tk('Buying in the app is not open yet.') });
     const p = await play.getProduct(productId, token);
-    if (!p) return json(res, 400, { error: "Google Play doesn't know that purchase." });
+    if (!p) return json(res, 400, { error: tk("Google Play doesn't know that purchase.") });
     if (p.purchaseState === 2) return json(res, 202, { pending: true });
-    if (p.purchaseState !== 0) return json(res, 400, { error: 'That purchase was cancelled.' });
+    if (p.purchaseState !== 0) return json(res, 400, { error: tk('That purchase was cancelled.') });
     // Bought while signed in to a different account (or not in our app at all): not this player's.
     if (p.obfuscatedExternalAccountId !== playAccountTag(user.id)) {
-      return json(res, 403, { error: 'That purchase was made on a different TardiGeddon account. Sign in to that account to get the coins.' });
+      return json(res, 403, { error: tk('That purchase was made on a different TardiGeddon account. Sign in to that account to get the coins.') });
     }
     const id = `gplay:${createHash('sha256').update(token).digest('hex')}`;
     if (p.consumptionState === 1) {
       // Already delivered (consumed after we granted it): nothing more to do, if it was ours.
       const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
-      return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: 'That purchase has already been used.' });
+      return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: tk('That purchase has already been used.') });
     }
     // Licence testers' purchases (purchaseType 0) cost nothing: count them as £0, so the sales page stays true.
     const granted = await recordPurchase(db, {
@@ -568,10 +646,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
 
   async function giftCancel(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
-    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     const body = await readJson(req);
     const id = body && typeof body.id === 'number' && Number.isSafeInteger(body.id) ? body.id : 0;
-    if (!(await cancelGift(db, user.id, id))) return json(res, 409, { error: 'That gift has already been claimed or cancelled.' });
+    if (!(await cancelGift(db, user.id, id))) return json(res, 409, { error: tk('That gift has already been claimed or cancelled.') });
     json(res, 200, { ok: true });
   }
 
@@ -636,7 +714,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           // Our own POSTs (shop, stats) only from the game's own pages, as JSON: a page on
           // another site, even one on a sibling subdomain, can't spend a player's coins.
           // (Better Auth checks its own /api/auth/* requests the same way.)
-          json(res, 403, { error: 'Please use the game at tardigeddon.com.' });
+          json(res, 403, { error: tk('Please use the game at tardigeddon.com.') });
         } else if (path.startsWith('/api/auth/')) {
           // Refused sign-ins are logged with the reason (never the email or password).
           res.on('finish', () => {
@@ -671,17 +749,31 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await giftCancel(req, res);
         } else if (path === '/api/gift/sent' && req.method === 'GET') {
           const user = await userFrom(req.headers);
-          if (!user) json(res, 401, { error: 'Please sign in first.' });
+          if (!user) json(res, 401, { error: tk('Please sign in first.') });
           else json(res, 200, { gifts: await giftsSent(db, user.id) });
         } else if (path === '/api/admin/sales' && req.method === 'GET') {
           // Anyone else gets "not found", so the page isn't even known to exist.
           const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
-          if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: 'Not found.' });
+          if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: tk('Not found.') });
           else json(res, 200, await salesReport(db, [1, 7, 30, 365].includes(days) ? days : 0, jpyPerGbp));
         } else if (path === '/api/settings' && req.method === 'POST') {
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
+        } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
+          await friendsApi(req, res, path);
+        } else if (path === '/api/challenge/submit' && req.method === 'POST') {
+          await challengeSubmit(req, res);
+        } else if (path === '/api/challenge/board' && req.method === 'GET') {
+          // Public: the website's leaderboards read this too.
+          const q = new URL(req.url ?? '', 'http://x').searchParams;
+          const kind = q.get('kind');
+          const day = q.get('day') ?? challengeDay();
+          if (!isChallengeKind(kind) || !/^\d{4}-\d{2}-\d{2}$/.test(day)) json(res, 400, { error: tk('Bad request.') });
+          else {
+            const user = await userFrom(req.headers);
+            json(res, 200, { kind, day, ...(await board(db, kind, day, user?.id)) });
+          }
         } else if (path === '/api/shop/unlock' && req.method === 'POST') {
           await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
@@ -691,11 +783,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {
           await checkout(req, res);
         } else {
-          json(res, 404, { error: 'Not found.' });
+          json(res, 404, { error: tk('Not found.') });
         }
       } catch (e) {
         console.error('api error', path, e);
-        if (!res.headersSent) json(res, 500, { error: 'Something went wrong. Please try again.' });
+        if (!res.headersSent) json(res, 500, { error: tk('Something went wrong. Please try again.') });
       }
       return true;
     },
@@ -704,18 +796,28 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[] }> {
+    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[]; rating?: number }> {
       const user = await userFrom(headers);
-      return user ? { userId: user.id, owned: await ownedItems(db, user.id) } : { owned: [] };
+      if (!user) return { owned: [] };
+      const r = (await ratingsOf(db, [user.id])).get(user.id)!;
+      return { userId: user.id, owned: await ownedItems(db, user.id), rating: r.rating };
+    },
+    /** The game server says who's online and passes on invites. */
+    setPresence(p: Presence): void {
+      presence = p;
     },
     /** Add a finished online match to the players' stats. */
     async recordResults(results: MatchResult[]): Promise<void> {
       await recordResults(db, results);
       for (const r of results) await earnSlime(db, r);
+      if (results.length >= 2 && results.every((r) => r.ranked)) await rateMatch(db, results);
     },
     /** Tests only: forget the per-player rate limits. */
     resetLimits(): void {
       lastReport.clear();
+      lastRun.clear();
+      friendAsks.clear();
+      lastInvite.clear();
       redeemTries.clear();
     },
     async close(): Promise<void> {

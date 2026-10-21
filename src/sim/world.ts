@@ -7,8 +7,9 @@
 //  - All state lives in WorldState so it can be cloned, hashed and replayed.
 
 import { cosA, sinA, ANGLE_QUARTER } from './math/trig';
-import { createRng, rngFloat, rngInt } from './math/prng';
-import { generateMap } from './terrain/generate';
+import { createRng, rngFloat, rngInt, rngNext } from './math/prng';
+import { generateMap, isMapStyle, randomMapStyle, type MapStyle } from './terrain/generate';
+import { decodeCustomMap } from './terrain/custom';
 import { carveCircle, circleCollides, isSolid, normalAt, placeGirder, surfaceBelow, type Rect, type Terrain } from './terrain/terrain';
 import {
   BTN_DOWN,
@@ -24,6 +25,7 @@ import {
   type ObjectKind,
   type Projectile,
   type Scheme,
+  type WeatherKind,
   type SimEvent,
   type Tardi,
   type Team,
@@ -95,6 +97,9 @@ export interface TeamConfig {
   skin?: string;
   aim?: string;
   fx?: string;
+  dance?: string;
+  grave?: string;
+  emblem?: string;
 }
 
 export interface WorldConfig {
@@ -105,16 +110,8 @@ export interface WorldConfig {
   mapH?: number;
 }
 
-export const DEFAULT_NAMES = [
-  'Waddles', 'Tun', 'Mossy', 'Pudge', 'Cuticle', 'Stylet', 'Bubbles', 'Nibs',
-  'Squish', 'Clawdia', 'Dewdrop', 'Gristle', 'Puddles', 'Lichen', 'Bramble', 'Pip',
-  'Sprout', 'Gloop', 'Pebble', 'Fuzz', 'Dumpling', 'Biscuit', 'Wiggles', 'Plop',
-  'Nugget', 'Snoot', 'Tater', 'Bean', 'Mochi', 'Crumb', 'Sludge', 'Zippy',
-  'Barnacle', 'Muffin', 'Scoot', 'Gumdrop', 'Toggle', 'Blip', 'Ripple', 'Puff',
-];
-
-/** Most teams a match supports. */
-export const MAX_TEAMS = 10;
+export { DEFAULT_NAMES, MAX_TEAMS } from './rosters';
+import { DEFAULT_NAMES, MAX_TEAMS } from './rosters';
 
 /**
  * Map size for a match: 2000x1000 for the classic 2 teams of 4, growing with
@@ -135,14 +132,20 @@ export function createWorld(cfg: WorldConfig): WorldState {
   // Practice: one tardigrade against the targets; otherwise the same number per team.
   const needed = practice ? 1 + practice : cfg.teams.length * scheme.tardisPerTeam;
   const size = mapSizeFor(needed);
-  const w = cfg.mapW ?? size.w;
-  const h = cfg.mapH ?? size.h;
+  // A map from the map editor brings its own size.
+  const custom = scheme.customMap ? decodeCustomMap(scheme.customMap) : null;
+  const w = custom?.w ?? cfg.mapW ?? size.w;
+  const h = custom?.h ?? cfg.mapH ?? size.h;
   const waterY = h - 70;
+
+  // Rope Race courses are always the classic islands under a ceiling.
+  const style: MapStyle = scheme.race ? 'islands' : isMapStyle(scheme.mapStyle) ? scheme.mapStyle : randomMapStyle(cfg.seed);
+  const weather = pickWeather(cfg.seed, scheme);
 
   // Retry seeds until the map has room for every tardi.
   for (let attempt = 0; attempt < 50; attempt++) {
     const seed = (cfg.seed + attempt * 7919) | 0;
-    const terrain = generateMap({ w, h, waterY, seed, ceiling: scheme.race });
+    const terrain = custom ? { w, h, mask: custom.mask.slice() } : generateMap({ w, h, waterY, seed, ceiling: scheme.race, style });
     const rng = createRng(seed ^ 0x5eed);
     const spots = findSpawns(terrain, waterY, needed, rng);
     if (!spots) continue;
@@ -185,6 +188,8 @@ export function createWorld(cfg: WorldConfig): WorldState {
       scheme,
       race: null,
       practice: null,
+      realm: custom ? 'custom' : style,
+      weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7) },
     };
 
     cfg.teams.forEach((tc, ti) => {
@@ -198,7 +203,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         if (practice && ti === 0 && !def.hidden) ammo[def.id] = -1;
         if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', dance: tc.dance ?? 'classic', grave: tc.grave ?? 'classic', emblem: tc.emblem ?? '', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map (practice: you, then the targets).
@@ -227,6 +232,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
           rope: null,
           chute: false,
           poison: false,
+          armour: scheme.armour,
         };
         s.tardis.push(t);
         team.tardiIds.push(t.id);
@@ -255,7 +261,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
     beginTurn(s, s.turn.teamIdx, []);
     return s;
   }
-  throw new Error('Could not generate a map with enough room');
+  throw new Error(custom ? 'That map hasn’t room for everyone: draw more land above the water.' : 'Could not generate a map with enough room');
 }
 
 function newObject(s: WorldState, kind: ObjectKind, x: number, y: number): MapObject {
@@ -582,26 +588,51 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   }
 }
 
-function castRope(s: WorldState, t: Tardi, events: SimEvent[]): void {
-  const { dx, dy } = aimVector(t.facing, s.turn.aim);
-  let x = t.x;
-  let y = t.y;
-  for (let i = 0; i < ROPE_MAX; i++) {
+/**
+ * Where a Silk Rope cast from (x, y) along the aim catches. `beyond` is how
+ * much further than the rope reaches the first rock on that line is (0 when
+ * it catches, -1 when there's no rock on the map that way): the "missed by"
+ * the view shows. Also used by the view to show where the rope will land.
+ */
+export function ropeTrace(
+  terrain: Terrain,
+  x: number,
+  y: number,
+  facing: number,
+  aim: number,
+): { hit: boolean; x: number; y: number; len: number; beyond: number } {
+  const { dx, dy } = aimVector(facing, aim);
+  let endX = x;
+  let endY = y;
+  for (let i = 0; i < ROPE_MAX * 4; i++) {
     const nx = x + dx;
     const ny = y + dy;
-    if (nx < 0 || nx >= s.terrain.w || ny < 0 || ny >= s.terrain.h) return;
-    if (isSolid(s.terrain, nx, ny)) {
-      const len = Math.max(ROPE_MIN, i);
-      t.rope = { x, y, len, bends: [] };
-      t.airborne = true;
-      t.knocked = false;
-      t.chute = false;
-      events.push({ t: 'rope', id: t.id, x, y });
-      return;
+    if (nx < 0 || nx >= terrain.w || ny < 0 || ny >= terrain.h) break;
+    if (isSolid(terrain, nx, ny)) {
+      if (i < ROPE_MAX) return { hit: true, x, y, len: Math.max(ROPE_MIN, i), beyond: 0 };
+      return { hit: false, x: endX, y: endY, len: ROPE_MAX, beyond: i - ROPE_MAX };
     }
     x = nx;
     y = ny;
+    if (i < ROPE_MAX) {
+      endX = x;
+      endY = y;
+    }
   }
+  return { hit: false, x: endX, y: endY, len: ROPE_MAX, beyond: -1 };
+}
+
+function castRope(s: WorldState, t: Tardi, events: SimEvent[]): void {
+  const r = ropeTrace(s.terrain, t.x, t.y, t.facing, s.turn.aim);
+  if (!r.hit) {
+    events.push({ t: 'ropeMiss', id: t.id, x: r.x, y: r.y, beyond: r.beyond });
+    return;
+  }
+  t.rope = { x: r.x, y: r.y, len: r.len, bends: [] };
+  t.airborne = true;
+  t.knocked = false;
+  t.chute = false;
+  events.push({ t: 'rope', id: t.id, x: r.x, y: r.y });
 }
 
 function releaseRope(t: Tardi): void {
@@ -698,6 +729,38 @@ function spawnProjectile(
   const p: Projectile = { id: s.nextId++, weapon, x, y, vx, vy, fuse, owner, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
   s.projectiles.push(p);
   return p;
+}
+
+/**
+ * Where a charged shot would fly, without firing it: points along its path
+ * (every `every` ticks) until it goes off, splashes or leaves the map, at
+ * most `maxTicks`. Reads the world only (the shot is a throwaway copy), so
+ * the view can draw the shot-path guide (Scheme.aimGuide).
+ */
+export function predictPath(
+  s: WorldState,
+  weapon: string,
+  t: Tardi,
+  aim: number,
+  power: number,
+  fuseTicks: number,
+  maxTicks: number,
+  every = 3,
+): { x: number; y: number }[] {
+  const spec = WEAPONS[weapon]?.projectile;
+  if (!spec) return [];
+  const { vx, vy } = launchVelocity(spec, t.facing, aim, power);
+  const p: Projectile = { id: -1, weapon, x: t.x, y: t.y, vx, vy, fuse: spec.playerFuse ? fuseTicks : (spec.fuseTicks ?? -1), owner: t.id, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < maxTicks; i++) {
+    const r = stepProjectile(s, p, null);
+    if (r.k !== 'alive') {
+      if (r.k === 'explode') out.push({ x: r.x, y: r.y });
+      break;
+    }
+    if (i % every === 0) out.push({ x: p.x, y: p.y });
+  }
+  return out;
 }
 
 export function launchVelocity(
@@ -1259,6 +1322,7 @@ function refillTargets(s: WorldState, events: SimEvent[]): void {
         rope: null,
         chute: false,
         poison: false,
+        armour: s.scheme.armour,
       };
       s.tardis.push(t);
       team.tardiIds.push(t.id);
@@ -1690,6 +1754,13 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   const hurt = s.tardis.filter((t) => t.alive && t.pendingDmg > 0);
   if (hurt.length > 0) {
     for (const t of hurt) {
+      // Armour takes half of each hit (rounded down) until it's used up.
+      const soak = Math.min(t.armour, Math.floor(t.pendingDmg / 2));
+      if (soak > 0) {
+        t.armour -= soak;
+        t.pendingDmg -= soak;
+        events.push({ t: 'armour', id: t.id, amount: soak });
+      }
       t.hp = Math.max(0, t.hp - t.pendingDmg);
       events.push({ t: 'damage', id: t.id, amount: t.pendingDmg });
       t.pendingDmg = 0;
@@ -1780,13 +1851,67 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
 
   if (!s.suddenDeath && !s.practice && s.roundTicks >= s.scheme.roundTime * 60 * TICK_RATE) {
     s.suddenDeath = true;
-    for (const t of s.tardis) if (t.alive) t.hp = 1;
+    for (const t of s.tardis) {
+      if (!t.alive) continue;
+      t.hp = 1;
+      t.armour = 0;
+    }
     events.push({ t: 'suddenDeath' });
   } else if (s.suddenDeath) {
     s.waterY = Math.max(60, s.waterY - s.scheme.waterRise);
     events.push({ t: 'waterRise', y: s.waterY });
   }
   if (turn.turnNumber > 1 && rngFloat(s.rng) < s.scheme.crateChance) dropCrate(s, events);
+  if (turn.turnNumber > 1 && s.scheme.weather && !s.race && !s.practice) {
+    const odds = s.weather.kind === 'storm' ? TORNADO_ODDS_STORM : TORNADO_ODDS;
+    if (rngNext(s.weather.rng) % odds === 0) tornado(s, events);
+  }
+}
+
+/** One turn in this many brings a tornado (a rare surprise)... */
+export const TORNADO_ODDS = 5000;
+/** ...or one in this many when the weather is stormy. */
+export const TORNADO_ODDS_STORM = 60;
+
+/** How often each kind of weather comes up, out of 100 matches. */
+const WEATHER_ODDS: [WeatherKind, number][] = [
+  ['clear', 40],
+  ['sunny', 18],
+  ['rain', 18],
+  ['snow', 10],
+  ['fog', 9],
+  ['storm', 5],
+];
+
+export function pickWeather(seed: number, scheme: Scheme): WeatherKind {
+  if (!scheme.weather || scheme.race || scheme.practiceTargets) return 'clear';
+  let roll = rngInt(createRng(seed ^ 0x77e1), 0, 99);
+  for (const [kind, n] of WEATHER_ODDS) {
+    if (roll < n) return kind;
+    roll -= n;
+  }
+  return 'clear';
+}
+
+/** A tornado: every tardigrade still in the game is picked up and set down somewhere new. */
+function tornado(s: WorldState, events: SimEvent[]): void {
+  const alive = s.tardis.filter((t) => t.alive);
+  const spots = findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng);
+  if (!spots) return;
+  events.push({ t: 'tornado' });
+  alive.forEach((t, i) => {
+    const p = spots[i];
+    t.x = p.x;
+    t.y = p.y;
+    t.vx = 0;
+    t.vy = 0;
+    t.airborne = false;
+    t.knocked = false;
+    t.fallStartY = p.y;
+    t.rope = null;
+    t.chute = false;
+    events.push({ t: 'teleport', id: t.id, x: p.x, y: p.y });
+  });
 }
 
 // ---------------------------------------------------------------- hashing
@@ -1811,11 +1936,12 @@ export function hashWorld(s: WorldState): number {
   };
   mix(s.tick);
   mixInt(s.rng.a);
+  mixInt(s.weather.rng.a);
   mix(s.wind);
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
-    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0);
+    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
     if (t.rope) {
       mix(t.rope.x); mix(t.rope.y); mix(t.rope.len);
       for (const b of t.rope.bends) { mix(b.x); mix(b.y); mix(b.side); }

@@ -27,13 +27,19 @@ export const SCHEME_PRESETS: SchemePreset[] = [
     id: 'pro',
     name: 'Pro',
     blurb: 'Tight 30-second turns, fewer mines and crates. Skill over luck.',
-    scheme: { turnTime: 30, mines: 4, drums: 2, crateChance: 0.3, roundTime: 15 },
+    scheme: { turnTime: 30, mines: 4, drums: 2, crateChance: 0.3, roundTime: 15, aimGuide: 0 },
   },
   {
     id: 'chaos',
     name: 'Chaos',
     blurb: 'Mines everywhere, drums galore, a crate every turn and a superweapon each.',
     scheme: { mines: 16, drums: 8, crateChance: 1, startHp: 150, roundTime: 10, supers: 1 },
+  },
+  {
+    id: 'armoured',
+    name: 'Armoured',
+    blurb: 'Every tardigrade wears armour plates that soak up half of each hit until they crack. Long, tough battles.',
+    scheme: { armour: 50 },
   },
   {
     id: 'bng',

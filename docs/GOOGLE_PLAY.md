@@ -140,6 +140,15 @@ New screenshots after the game changes: `npm run build`, `npx vite preview
 --port 4173` (and `npm run server` with accounts, for the full home screen),
 then `PW_CHROMIUM_PATH=… node scripts/store-images.mjs`.
 
+**Languages.** The game itself is in English, Spanish, Brazilian Portuguese,
+German, French and Japanese (`src/i18n/`, following the phone's language).
+Translate the listing to match: Grow → Store presence → Translations → add
+es-419/es-ES, pt-BR, de-DE, fr-FR and ja-JP (Google's machine translation is
+fine as a start; have the short description checked). **App strings
+translation** (Gemini) isn't needed: it only translates the Android
+`strings.xml`, which holds just the app name and two ids, all marked
+`translatable="false"`; the game's text is in the web bundle, out of its reach.
+
 ## 4. App content (Policy → App content)
 
 Answer each section:
@@ -207,11 +216,13 @@ account), purpose **App functionality** and **Account management**:
 | Personal info → Email address | the account's email |
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
-| App activity → Other actions | gameplay data: game stats (wins, pops, damage), items owned, coin and Slime balances, control settings |
+| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → Other user-generated content** (team and
-tardigrade names shown to other players in online play): collected, **not**
+tardigrade names shown to other players in online play, and a map from the
+map editor when a host plays it online; the server keeps a map only for that
+match): collected, **not**
 ephemeral (a player report emails the names to support, kept up to 24
 months), not shared (showing them to other players is the player's choice,
 not "sharing" in Google's sense), optional, purposes **App functionality**

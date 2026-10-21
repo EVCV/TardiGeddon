@@ -4,8 +4,9 @@
 import { tardiLabel } from '../net/blocked';
 import { Container, Graphics, Text } from 'pixi.js';
 import type { Tardi } from '../sim/types';
-import { PALETTE, hex } from './palette';
+import { PALETTE, VIEW, hex } from './palette';
 import { drawHatPixi } from './hats';
+import { dancePose } from './finales';
 import { patternMarks, skinById, type SkinDef } from './skins';
 
 const O = PALETTE.outline;
@@ -28,6 +29,9 @@ export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie', sk
   for (const sx of [-6, -1.5, 3]) {
     g.moveTo(sx, -7).quadraticCurveTo(sx - 1.5, -2, sx, 2).stroke({ width: 0.9, color: skin.shade });
   }
+  // Team collar: a band in the team colour behind the head, so every team looks different whatever the skin.
+  g.moveTo(0, -8.4).quadraticCurveTo(-1.6, -1, 0, 6.4).lineTo(3, 6.1).quadraticCurveTo(1.4, -1, 3, -8.1).closePath();
+  g.fill(teamColor).stroke({ width: 1, color: O });
   // Round mouth / snout
   g.circle(11.5, 0.5, 2.4).fill(skin.mouth).stroke({ width: 1.2, color: O });
   g.circle(11.9, 0.5, 0.9).fill(O);
@@ -39,6 +43,15 @@ export function drawTardiBody(g: Graphics, teamColor: number, hat = 'beanie', sk
   g.circle(8.7, -4.2, 0.5).fill(PALETTE.eyeWhite);
   // Hat (first cosmetic slot)
   drawHatPixi(g, hat, teamColor, 2.5, -6.6, 4);
+}
+
+/** Steel armour plates riveted over the back. */
+function drawPlates(g: Graphics): void {
+  for (const [x, w] of [[-10, 5.5], [-5.5, 5.5], [-1, 4.5]] as const) {
+    g.moveTo(x, -4.5).quadraticCurveTo(x + w / 2, -9.8, x + w, -4.5).lineTo(x + w, -2.5).quadraticCurveTo(x + w / 2, -6.5, x, -2.5).closePath();
+    g.fill(0xaab6c6).stroke({ width: 1, color: O });
+    g.circle(x + w / 2, -6.2, 0.6).fill(0x5d6678);
+  }
 }
 
 /** Leaf canopy with silk strings, drawn above the tardi's origin. */
@@ -67,6 +80,10 @@ export class TardiView {
   private hpText: Text;
   private shownHp: number;
   private chute = new Graphics();
+  /** Armour plates over the back (Scheme.armour), shown while any are left. */
+  private plates = new Graphics();
+  private armourText: Text;
+  private shownArmour: number;
   private skin: SkinDef;
 
   constructor(
@@ -74,11 +91,16 @@ export class TardiView {
     teamColor: number,
     hat = 'beanie',
     skin = 'classic',
+    /** Victory dance (render/finales.ts). */
+    private dance = 'classic',
+    /** Colour-blind mode: the team's symbol before its name ('' otherwise). */
+    private symbol = '',
   ) {
     this.skin = skinById(skin);
     const g = new Graphics();
     drawTardiBody(g, teamColor, hat, skin);
-    this.body.addChild(g, this.legs);
+    drawPlates(this.plates);
+    this.body.addChild(g, this.plates, this.legs);
     // Lift the art so the claws rest on the physics circle's bottom.
     this.body.y = -2;
     this.root.addChild(this.body);
@@ -86,13 +108,14 @@ export class TardiView {
     this.chute.visible = false;
     this.root.addChild(this.chute);
     const style = {
-      fontFamily: 'Luckiest Guy, Arial Black, sans-serif',
-      fontSize: 12,
+      fontFamily: 'Luckiest Guy, Arial Black, Hiragino Maru Gothic ProN, Yu Gothic, Noto Sans JP, sans-serif',
+      // High contrast: bigger letters on a thicker black edge.
+      fontSize: VIEW.highContrast ? 14 : 12,
       fill: hex(teamColor),
-      stroke: { color: '#1b1016', width: 3, join: 'round' as const },
+      stroke: { color: VIEW.highContrast ? '#000000' : '#1b1016', width: VIEW.highContrast ? 5 : 3, join: 'round' as const },
       letterSpacing: 0.5,
     };
-    this.label = new Text({ text: tardiLabel(t), style });
+    this.label = new Text({ text: this.symbol + tardiLabel(t), style });
     this.label.anchor.set(0.5, 1);
     this.label.position.set(0, -30);
     this.label.resolution = 3;
@@ -100,8 +123,12 @@ export class TardiView {
     this.hpText.anchor.set(0.5, 1);
     this.hpText.position.set(0, -17);
     this.hpText.resolution = 3;
-    this.root.addChild(this.label, this.hpText);
+    this.armourText = new Text({ text: '', style: { ...style, fontSize: 10, fill: '#c9d4e4' } });
+    this.armourText.anchor.set(0, 1);
+    this.armourText.resolution = 3;
+    this.root.addChild(this.label, this.hpText, this.armourText);
     this.shownHp = t.hp;
+    this.shownArmour = -1;
   }
 
   update(t: Tardi, x: number, y: number, time: number, active: boolean, showLabels: boolean): void {
@@ -128,10 +155,15 @@ export class TardiView {
 
     // Moods (cosmetic): victory dance, teetering on a cliff edge.
     this.body.y = -2;
+    this.body.x = 0;
     if (this.mood === 'dance') {
-      this.body.y = -2 - Math.abs(Math.sin(time * 8 + t.id)) * 7;
-      this.body.rotation = Math.sin(time * 6 + t.id) * 0.3;
-      this.body.scale.x = Math.sin(time * 3 + t.id) > 0 ? 1 : -1;
+      // The team's victory dance (a cosmetic everyone sees).
+      const pose = dancePose(this.dance, time, t.id);
+      this.body.y = -2 - pose.lift;
+      this.body.x = pose.slide;
+      this.body.rotation = pose.rot;
+      if (pose.face !== 0) this.body.scale.x = pose.face;
+      this.body.scale.y *= pose.squash;
     } else if (this.mood === 'teeter') {
       this.body.rotation = this.teeterDir * (0.15 + Math.abs(Math.sin(time * 9 + t.id)) * 0.35);
     }
@@ -151,10 +183,17 @@ export class TardiView {
       this.shownHp = t.hp;
       this.hpText.text = String(t.hp);
     }
+    if (this.shownArmour !== t.armour) {
+      this.shownArmour = t.armour;
+      this.armourText.text = t.armour > 0 ? `+${t.armour}` : '';
+      this.plates.visible = t.armour > 0;
+    }
     this.label.visible = showLabels;
     this.hpText.visible = showLabels;
+    this.armourText.visible = showLabels && t.armour > 0;
     const bounce = (active ? Math.abs(Math.sin(time * 4)) * 3 : 0) + (t.chute ? 34 : 0);
     this.label.y = -30 - bounce;
     this.hpText.y = -17 - bounce;
+    this.armourText.position.set(this.hpText.width / 2 + 2, -17.5 - bounce);
   }
 }

@@ -4,6 +4,9 @@ import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
 import { ARENAS, arenaTheme } from '../src/render/arenas';
+import { DANCES, GRAVES } from '../src/render/finales';
+import { SEASONS, currentSeason, seasonArenaOpen, seasonEnds } from '../src/render/seasons';
+import { defaultEmblem, emblemSvg, isEmblem, parseEmblem, randomEmblem } from '../src/render/emblems';
 import { TRACKS } from '../src/audio/music';
 import { SOUND_PACKS } from '../src/audio/sfx';
 import { cleanTeam, wearableTeam } from '../server/room';
@@ -18,6 +21,9 @@ describe('shop catalogue', () => {
       skin: SKINS.map((s) => s.id),
       aim: AIM_STYLES.map((a) => a.id),
       fx: FX_STYLES.map((f) => f.id),
+      // The first two dances and the husk and headstone are free.
+      dance: DANCES.map((d) => d.id).filter((id) => id !== 'classic' && id !== 'wiggle'),
+      grave: GRAVES.map((g) => g.id).filter((id) => id !== 'classic' && id !== 'stone'),
       arena: ARENAS.map((a) => a.id),
       // The menu theme and the standard tracks are free.
       music: TRACKS.map((t) => t.id).filter((id) => id !== 'menu' && id !== 'classic'),
@@ -28,7 +34,7 @@ describe('shop catalogue', () => {
       if (item.kind !== 'weapon') expect(known[item.kind], item.id).toContain(item.ref);
       // Exactly one price; aim styles and effects are coins only.
       expect((item.coins === undefined) !== (item.slime === undefined), item.id).toBe(true);
-      if (['aim', 'fx', 'arena', 'music', 'sound'].includes(item.kind)) expect(item.coins, item.id).toBeGreaterThan(0);
+      if (['aim', 'fx', 'dance', 'grave', 'arena', 'music', 'sound'].includes(item.kind)) expect(item.coins, item.id).toBeGreaterThan(0);
       // Money never buys weapons.
       if (item.kind === 'weapon') expect(item.coins, item.id).toBeUndefined();
     }
@@ -63,15 +69,20 @@ describe('shop catalogue', () => {
     expect(arenaTheme('nope').id).toBe('classic');
   });
 
-  it('has a full palette for every arena, and the meadow is free', () => {
+  it('has a full palette for every arena; the meadow and a few plain looks are free', () => {
     expect(new Set(ARENAS.map((a) => a.id)).size).toBe(ARENAS.length);
     expect(SHOP_ITEMS.some((i) => i.id === 'arena:classic')).toBe(false);
     for (const a of ARENAS) {
       expect(a.skyTop, a.id).toMatch(/^#[0-9a-f]{6}$/i);
       expect(a.skyBottom, a.id).toMatch(/^#[0-9a-f]{6}$/i);
       for (const c of [a.hillFar, a.hillNear, a.water, a.waterLight, ...a.grass, ...a.soil]) expect(c, a.id).toBeLessThanOrEqual(0xffffff);
-      if (a.id !== 'classic') expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
+      // Free looks stay plain, so they never undercut the shop's.
+      if (a.free) expect([shopItem(`arena:${a.id}`), a.stars, a.drift], a.id).toEqual([undefined, undefined, undefined]);
+      // Seasonal worlds are free while their event is on, never sold.
+      else if (a.season) expect([shopItem(`arena:${a.id}`), SEASONS.find((x) => x.id === a.season)?.arena], a.id).toEqual([undefined, a.id]);
+      else expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
     }
+    expect(ARENAS.filter((a) => a.free).map((a) => a.id)).toEqual(['classic', 'spring', 'moor', 'cove', 'bog']);
   });
 });
 
@@ -102,5 +113,75 @@ describe('explosion effects', () => {
     w.turn.teamIdx = 0;
     explode(w, 600, 300, 20, 0, ev);
     expect(ev.map((e) => (e.t === 'explosion' ? e.team : -1))).toEqual([1, 0]);
+  });
+});
+
+describe('victory dances, gravestones and emblems', () => {
+  it('sells every dance and gravestone except the free ones, for coins', () => {
+    for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id));
+    for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id));
+  });
+
+  it('go online with the team, but only if the player owns them; emblems are free but must be real', () => {
+    const t = cleanTeam({ name: 'A', dance: 'worm', grave: 'rocket', emblem: '3-10-2-11-4' }, 0);
+    expect(t).toMatchObject({ dance: 'worm', grave: 'rocket', emblem: '3-10-2-11-4' });
+    expect(cleanTeam({ name: 'A', dance: '<b>', grave: 7, emblem: '99-0-0-0-0' }, 2)).toMatchObject({ dance: 'classic', grave: 'classic', emblem: defaultEmblem(2) });
+    expect(wearableTeam({ dance: 'worm', grave: 'rocket', emblem: '1-1-1-1-1' }, [])).toEqual({ dance: 'classic', grave: 'classic', emblem: '1-1-1-1-1' });
+    expect(wearableTeam({ dance: 'worm', grave: 'stone' }, ['dance:worm'])).toEqual({ dance: 'worm', grave: 'stone' });
+  });
+
+  it('builds emblems from parts, and rejects anything else', () => {
+    for (let i = 0; i < 50; i++) expect(isEmblem(randomEmblem())).toBe(true);
+    for (let slot = 0; slot < 10; slot++) expect(isEmblem(defaultEmblem(slot))).toBe(true);
+    for (const bad of ['', '1-2-3-4', '1-2-3-4-5-6', 'a-b-c-d-e', '0-66-0-0-0', '0-0-14-0-0', '0-0-0-0-8', '<svg>', '1-1-1-1-1 ']) expect(isEmblem(bad), bad).toBe(false);
+    expect(parseEmblem('9-65-13-13-7')).toEqual({ shape: 9, icon: 65, bg: 13, fg: 13, pattern: 7 });
+    expect(new Set(Array.from({ length: 10 }, (_, i) => defaultEmblem(i))).size).toBe(10);
+  });
+});
+
+describe('emblem pictures', () => {
+  it('never lets a team name out of its label', () => {
+    const svg = emblemSvg('1-1-1-1-1', '"><img src=x onerror=alert(1)> emblem');
+    expect(svg).not.toContain('<img');
+    expect(svg).toContain('&#34;&#62;&#60;img');
+  });
+});
+
+describe('seasonal events', () => {
+  const on = (m: number, d: number) => currentSeason(new Date(Date.UTC(2026, m - 1, d, 12)))?.id ?? null;
+  it('run between their dates every year, including across New Year', () => {
+    expect(on(10, 19)).toBeNull();
+    expect(on(10, 20)).toBe('halloween');
+    expect(on(11, 2)).toBe('halloween');
+    expect(on(11, 3)).toBeNull();
+    expect(on(12, 31)).toBe('newyear');
+    expect(on(1, 3)).toBe('newyear');
+    expect(on(1, 4)).toBeNull();
+    expect(on(12, 20)).toBe('winter');
+    expect(seasonEnds(SEASONS.find((s) => s.id === 'halloween')!)).toBe('2 Nov');
+  });
+  it('go by the UTC date, the same on the server and on every device', () => {
+    // Already 30 Dec in Kiribati (UTC+14), still 29 Dec in UTC: not New Year yet anywhere.
+    expect(currentSeason(new Date('2026-12-29T11:00:00Z'))?.id).toBe('winter');
+    expect(currentSeason(new Date('2026-12-30T00:00:00Z'))?.id).toBe('newyear');
+  });
+
+  it('open their world only while on, and never overlap', () => {
+    expect(seasonArenaOpen('pumpkin', new Date(Date.UTC(2026, 9, 25)))).toBe(true);
+    expect(seasonArenaOpen('pumpkin', new Date(Date.UTC(2026, 5, 1)))).toBe(false);
+    expect(seasonArenaOpen('classic', new Date(Date.UTC(2026, 5, 1)))).toBe(true);
+    // Each season alone, on each day: never two at once.
+    const k = (m: number, d: number) => m * 32 + d;
+    for (let day = 0; day < 366; day++) {
+      const d = new Date(Date.UTC(2028, 0, 1 + day));
+      const t = k(d.getUTCMonth() + 1, d.getUTCDate());
+      const hits = SEASONS.filter((s) => {
+        const a = k(...s.from);
+        const b = k(...s.to);
+        return a <= b ? t >= a && t <= b : t >= a || t <= b;
+      }).length;
+      expect(hits, d.toDateString()).toBeLessThanOrEqual(1);
+    }
+    for (const s of SEASONS) expect(ARENAS.find((a) => a.id === s.arena)?.season, s.id).toBe(s.id);
   });
 });

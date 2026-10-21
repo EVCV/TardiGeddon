@@ -15,6 +15,8 @@ import { compact } from './dashboard';
 import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
 import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
 export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'settings' | 'sales' | 'guide';
 
@@ -41,15 +43,15 @@ export interface Hub {
 }
 
 const TABS: [HubTab, string, string][] = [
-  ['lobby', '🏠', 'Lobby'],
-  ['stats', '📊', 'Stats'],
-  ['shop', '🛍️', 'Shop'],
-  ['account', '👤', 'Account'],
-  ['settings', '⚙️', 'Settings'],
+  ['lobby', '🏠', tk('Lobby')],
+  ['stats', '📊', tk('Stats')],
+  ['shop', '🛍️', tk('Shop')],
+  ['account', '👤', tk('Account')],
+  ['settings', '⚙️', tk('Settings')],
   // Only for the owner (me.admin).
-  ['sales', '📈', 'Sales'],
+  ['sales', '📈', tk('Sales')],
   // Not in the top bar: opened from the lobby and Settings.
-  ['guide', '📖', 'Guide'],
+  ['guide', '📖', tk('Guide')],
 ];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -65,6 +67,9 @@ export function showHub(
   onOnline?: () => void,
   onTutorial: () => void = () => {},
   onPractice: () => void = () => {},
+  onChallenge: () => void = () => {},
+  onReplays: () => void = () => {},
+  onMapEditor: () => void = () => {},
   tab: HubTab = 'lobby',
 ): Hub {
   root.innerHTML = '';
@@ -72,12 +77,12 @@ export function showHub(
   const bar = el('header', 'hub-bar');
   const barInner = el('div', 'hub-bar-inner');
   const logo = el('button', 'hub-logo');
-  logo.setAttribute('aria-label', 'TardiGeddon: lobby');
+  logo.setAttribute('aria-label', t('TardiGeddon: lobby'));
   const tabs = el('nav', 'seg hub-tabs');
-  tabs.setAttribute('aria-label', 'Menu');
+  tabs.setAttribute('aria-label', t('Menu'));
   const right = el('div', 'hub-right');
   // Phones: instead of the tabs, a Back button and the page's name.
-  const backBtn = el('button', 'hud-btn hub-back', '← Back');
+  const backBtn = el('button', 'hud-btn hub-back', t('← Back'));
   backBtn.onclick = () => go('lobby');
   const title = el('h1', 'hub-title');
   barInner.append(backBtn, logo, title, tabs, right);
@@ -101,7 +106,7 @@ export function showHub(
   const ctx: HubContext = {
     busy: false,
     run: (fn) => void run(fn),
-    go: (t) => go(t),
+    go: (to) => go(to),
     notify: (msg) => {
       status = msg;
       render();
@@ -123,17 +128,17 @@ export function showHub(
     render();
   };
 
-  const go = (t: HubTab, msg = '') => {
+  const go = (to: HubTab, msg = '') => {
     if (!shell.isConnected) return;
-    tab = t;
+    tab = to;
     status = msg;
     // A track being tried in the shop stops when you leave it.
-    if (t !== 'shop') previewMusic(null);
-    if (t === 'lobby') lobby = null; // rebuilt fresh
+    if (to !== 'shop') previewMusic(null);
+    if (to === 'lobby') lobby = null; // rebuilt fresh
     render();
     shell.scrollTo({ top: 0 });
     // Fresh stats and items each visit (a match or a purchase may have just finished).
-    if (t !== 'lobby') void refreshAccount();
+    if (to !== 'lobby') void refreshAccount();
   };
 
   const renderBar = () => {
@@ -144,41 +149,42 @@ export function showHub(
 
     tabs.innerHTML = '';
     // Without accounts there's only the lobby and Settings.
-    for (const [t, icon, label] of TABS) {
-      if (t === 'sales' && !me?.admin) continue;
-      if (t === 'guide') continue;
-      if (!me && t !== 'lobby' && t !== 'settings') continue;
-      const b = el('button', 'seg-btn' + (tab === t ? ' on' : '') + (t === 'sales' ? ' tab-owner' : ''));
-      b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', label));
-      b.setAttribute('aria-label', label);
-      if (tab === t) b.setAttribute('aria-current', 'page');
-      b.onclick = () => go(t);
+    for (const [id, icon, label] of TABS) {
+      if (id === 'sales' && !me?.admin) continue;
+      if (id === 'guide') continue;
+      if (!me && id !== 'lobby' && id !== 'settings') continue;
+      const b = el('button', 'seg-btn' + (tab === id ? ' on' : '') + (id === 'sales' ? ' tab-owner' : ''));
+      b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', t(label)));
+      b.setAttribute('aria-label', t(label));
+      if (tab === id) b.setAttribute('aria-current', 'page');
+      b.onclick = () => go(id);
       tabs.append(b);
     }
 
-    title.textContent = TABS.find(([t]) => t === tab)?.[2] ?? '';
+    const shownTab = TABS.find(([id]) => id === tab)?.[2];
+    title.textContent = shownTab ? t(shownTab) : '';
     right.innerHTML = '';
     if (!me) return;
     if (me.user) {
       const coins = el('button', 'chip chip-coins', `🪙 ${compact(me.wallet.coins)}`);
-      coins.setAttribute('aria-label', `${me.wallet.coins} coins: open the shop`);
+      coins.setAttribute('aria-label', t('{n} coins: open the shop', { n: me.wallet.coins }));
       coins.onclick = () => {
         if (me.shop) shopState.category = 'coins';
         go('shop');
       };
       const slime = el('button', 'chip chip-slime', `🟢 ${compact(me.wallet.slime)}`);
-      slime.setAttribute('aria-label', `${me.wallet.slime} Slime: open the shop`);
+      slime.setAttribute('aria-label', t('{n} Slime: open the shop', { n: me.wallet.slime }));
       slime.onclick = () => {
         shopState.category = 'weapon';
         go('shop');
       };
       const who = el('button', 'chip hub-me');
-      who.setAttribute('aria-label', `Signed in as ${me.user.name}: your account`);
+      who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
       who.append(el('span', 'hub-me-name', me.user.name));
       who.onclick = () => go('account');
       right.append(coins, slime, who);
     } else {
-      const signIn = el('button', 'chip hub-me', 'Sign in');
+      const signIn = el('button', 'chip hub-me', t('Sign in'));
       signIn.onclick = () => go('account');
       right.append(signIn);
     }
@@ -194,12 +200,12 @@ export function showHub(
     renderBar();
 
     notice.innerHTML = '';
-    const shown = status || (me?.preview && !previewDismissed ? "Preview build: accounts and payments aren't connected here, so signing in and buying won't work." : '');
+    const shown = status || (me?.preview && !previewDismissed ? t("Preview build: accounts and payments aren't connected here, so signing in and buying won't work.") : '');
     notice.classList.toggle('hidden', !shown);
     if (shown) {
       notice.append(el('span', '', shown));
       const x = el('button', 'hub-notice-x', '×');
-      x.setAttribute('aria-label', 'Dismiss');
+      x.setAttribute('aria-label', t('Dismiss'));
       x.onclick = () => {
         if (!status) previewDismissed = true;
         ctx.notify('');
@@ -209,7 +215,7 @@ export function showHub(
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays, onMapEditor);
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;
@@ -224,7 +230,7 @@ export function showHub(
       return;
     }
     if (!loaded || !me) {
-      page.replaceChildren(el('p', 'page-loading', 'Loading…'));
+      page.replaceChildren(el('p', 'page-loading', t('Loading…')));
       return;
     }
     page.replaceChildren(
@@ -272,12 +278,12 @@ function footer(): HTMLElement {
   };
   f.append(
     link('https://tardigeddon.com/', 'tardigeddon.com'),
-    link(LEGAL + 'terms-of-service', 'Terms'),
-    link(LEGAL + 'privacy-policy', 'Privacy'),
-    link(LEGAL + 'cookie-policy', 'Cookies'),
-    link(LEGAL + 'childrens-privacy', "Children's privacy"),
-    link(LEGAL + 'community-guidelines', 'Community'),
-    link('mailto:support@tardigeddon.com', 'Support'),
+    link(LEGAL + 'terms-of-service', t('Terms')),
+    link(LEGAL + 'privacy-policy', t('Privacy')),
+    link(LEGAL + 'cookie-policy', t('Cookies')),
+    link(LEGAL + 'childrens-privacy', t("Children's privacy")),
+    link(LEGAL + 'community-guidelines', t('Community')),
+    link('mailto:support@tardigeddon.com', t('Support')),
     el('span', 'hub-version', `v${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'}`),
   );
   return f;

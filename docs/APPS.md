@@ -70,6 +70,23 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   scale; Settings → Text size "Auto" then scales the whole interface, text and
   buttons together (`src/ui/textSize.ts`, up to what the screen has room for).
 
+## "It won't install"
+
+The app runs on **Android 7 (API 24) and newer** (`android/variables.gradle`;
+Capacitor 8 can't go lower), so Android 14 (API 34) and 15 are fine. When a
+phone won't take it, it's almost always one of these:
+
+| What they see | Why | Fix |
+|---|---|---|
+| Not in Play, or "item not found" | The release is on **internal testing**, and only listed testers can see it | Add their Google account to the testers list (Play Console → Testing → Internal testing → Testers), then they open the **Join on the web** link *with that account* and install from Play |
+| "Your device isn't compatible" | Their country isn't in the release's countries, or the device is excluded | Play Console → the release's countries; Reach and devices → Device catalog (look up their model) |
+| "App not installed" / "package conflicts" (APK from Actions) | Another copy signed with a different key is already there (e.g. the debug APK, or the Play copy) | Uninstall the old one first. Debug and release APKs can't replace each other |
+| "App not installed" (APK) | An older APK than the one installed (a lower versionCode) | Uninstall first, or use the newest build |
+| Blocked by Play Protect, or no "Install" button | Installing APKs from files isn't allowed yet | Settings → Apps → the browser or Files app → **Install unknown apps** → allow; "Install anyway" on the Play Protect prompt |
+| Installs, then a blank screen | Out-of-date **Android System WebView** | Update "Android System WebView" and Chrome in the Play Store |
+
+Ask for the exact words on the screen: they say which row it is.
+
 ## Still to do
 
 Android, before Google Play: **see `docs/GOOGLE_PLAY.md`**: the upload key

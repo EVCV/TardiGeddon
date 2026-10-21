@@ -4,22 +4,25 @@
 // only for this visit (sessionStorage). The server checks them with the same
 // sanitiseControls, so this file must stay free of DOM-only code at the top level.
 
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
+
 export type Action = 'left' | 'right' | 'up' | 'down' | 'fire' | 'jump' | 'weapons' | 'fuse1' | 'fuse2' | 'fuse3' | 'fuse4' | 'fuse5';
 
-/** In the order the Settings page lists them. */
+/** In the order the Settings page lists them. Names are English: shown with t(name). */
 export const ACTIONS: { id: Action; name: string }[] = [
-  { id: 'left', name: 'Walk left' },
-  { id: 'right', name: 'Walk right' },
-  { id: 'up', name: 'Aim up' },
-  { id: 'down', name: 'Aim down' },
-  { id: 'fire', name: 'Fire (hold to charge)' },
-  { id: 'jump', name: 'Jump (twice: backflip)' },
-  { id: 'weapons', name: 'Weapons' },
-  { id: 'fuse1', name: 'Fuse 1 second' },
-  { id: 'fuse2', name: 'Fuse 2 seconds' },
-  { id: 'fuse3', name: 'Fuse 3 seconds' },
-  { id: 'fuse4', name: 'Fuse 4 seconds' },
-  { id: 'fuse5', name: 'Fuse 5 seconds' },
+  { id: 'left', name: tk('Walk left') },
+  { id: 'right', name: tk('Walk right') },
+  { id: 'up', name: tk('Aim up') },
+  { id: 'down', name: tk('Aim down') },
+  { id: 'fire', name: tk('Fire (hold to charge)') },
+  { id: 'jump', name: tk('Jump (twice: backflip)') },
+  { id: 'weapons', name: tk('Weapons') },
+  { id: 'fuse1', name: tk('Fuse 1 second') },
+  { id: 'fuse2', name: tk('Fuse 2 seconds') },
+  { id: 'fuse3', name: tk('Fuse 3 seconds') },
+  { id: 'fuse4', name: tk('Fuse 4 seconds') },
+  { id: 'fuse5', name: tk('Fuse 5 seconds') },
 ];
 
 /** Keys or mouse buttons per action, at most this many each. */
@@ -37,6 +40,8 @@ export interface Controls {
   touchSize: TouchSize;
   /** Walk buttons on the right, aim/jump/fire on the left. */
   touchSwap: boolean;
+  /** Charging a shot: tap Fire to start and tap again to let go, instead of holding it. */
+  tapFire: boolean;
 }
 
 export function defaultControls(): Controls {
@@ -57,6 +62,7 @@ export function defaultControls(): Controls {
     },
     touchSize: 'm',
     touchSwap: false,
+    tapFire: false,
   };
 }
 
@@ -95,6 +101,7 @@ export function sanitiseControls(v: unknown): Controls | null {
   }
   out.touchSize = o.touchSize === 's' || o.touchSize === 'l' ? o.touchSize : 'm';
   out.touchSwap = o.touchSwap === true;
+  out.tapFire = o.tapFire === true;
   return out;
 }
 
@@ -126,22 +133,22 @@ const NAMES: Record<string, string> = {
   ArrowRight: '→',
   ArrowUp: '↑',
   ArrowDown: '↓',
-  Space: 'Space',
-  Enter: 'Enter',
-  NumpadEnter: 'Num Enter',
-  Mouse0: 'Left click',
-  Mouse1: 'Middle click',
-  Mouse2: 'Right click',
-  Mouse3: 'Mouse back',
-  Mouse4: 'Mouse forward',
-  ShiftLeft: 'Left Shift',
-  ShiftRight: 'Right Shift',
-  ControlLeft: 'Left Ctrl',
-  ControlRight: 'Right Ctrl',
-  AltLeft: 'Left Alt',
-  AltRight: 'Right Alt',
-  MetaLeft: 'Left ⌘',
-  MetaRight: 'Right ⌘',
+  Space: tk('Space'),
+  Enter: tk('Enter'),
+  NumpadEnter: tk('Num Enter'),
+  Mouse0: tk('Left click'),
+  Mouse1: tk('Middle click'),
+  Mouse2: tk('Right click'),
+  Mouse3: tk('Mouse back'),
+  Mouse4: tk('Mouse forward'),
+  ShiftLeft: tk('Left Shift'),
+  ShiftRight: tk('Right Shift'),
+  ControlLeft: tk('Left Ctrl'),
+  ControlRight: tk('Right Ctrl'),
+  AltLeft: tk('Left Alt'),
+  AltRight: tk('Right Alt'),
+  MetaLeft: tk('Left ⌘'),
+  MetaRight: tk('Right ⌘'),
   Backquote: '`',
   Minus: '-',
   Equal: '=',
@@ -155,19 +162,21 @@ const NAMES: Record<string, string> = {
   Slash: '/',
 };
 
-/** How a binding is shown: "A", "Space", "Left click". */
+/** How a binding is shown, in the player's language: "A", "Space", "Left click". */
 export function keyLabel(code: string): string {
-  if (NAMES[code]) return NAMES[code];
+  if (NAMES[code]) return t(NAMES[code]);
   if (/^Key[A-Z]$/.test(code)) return code.slice(3);
   if (/^Digit\d$/.test(code)) return code.slice(5);
-  if (/^Numpad/.test(code)) return 'Num ' + code.slice(6);
+  if (/^Numpad/.test(code)) return t('Num {key}', { key: code.slice(6) });
   return code;
 }
 
 /** "A or ←", or "(not set)": for hints and the tutorial. */
 export function bindingText(c: Controls, action: Action): string {
-  const k = c.keys[action];
-  return k.length ? k.map(keyLabel).join(' or ') : '(not set)';
+  const k = c.keys[action].map(keyLabel);
+  if (!k.length) return t('(not set)');
+  // At most MAX_BINDINGS (2) keys each.
+  return k.reduce((a, b) => t('{a} or {b}', { a, b }));
 }
 
 // ---- The current settings, for this page ----

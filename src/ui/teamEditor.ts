@@ -6,7 +6,9 @@ import { HATS } from '../render/hats';
 import { canUse, itemFor } from '../shop/catalog';
 import { SKINS } from '../render/skins';
 import { AIM_STYLES, FX_STYLES } from '../render/cosmetics';
-import { aimSvg, fxSvg } from './cosmeticArt';
+import { aimSvg, danceSvg, fxSvg, graveSvg } from './cosmeticArt';
+import { DANCES, GRAVES } from '../render/finales';
+import { renderEmblemBuilder } from './emblemBuilder';
 import { priceLabel } from './shop';
 import { account, ownedItems } from '../account/session';
 import { TEAM_COLORS, hex } from '../render/palette';
@@ -18,6 +20,7 @@ import {
   defaultTardiNames,
   type TeamProfile,
 } from './teams';
+import { t } from '../i18n/i18n';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -36,18 +39,20 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   if (!canUse('skin', draft.skin, ownedItems())) draft.skin = 'classic';
   if (!canUse('aim', draft.aim, ownedItems())) draft.aim = 'classic';
   if (!canUse('fx', draft.fx, ownedItems())) draft.fx = 'classic';
+  if (!canUse('dance', draft.dance, ownedItems())) draft.dance = 'classic';
+  if (!canUse('grave', draft.grave, ownedItems())) draft.grave = 'classic';
 
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor');
   box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-label', 'Edit team');
+  box.setAttribute('aria-label', t('Edit team'));
   const preview = el('div', 'editor-preview');
-  const title = el('h2', 'editor-title', 'Edit team');
+  const title = el('h2', 'editor-title', t('Edit team'));
 
   const nameInput = el('input', 'editor-name');
   nameInput.maxLength = TEAM_NAME_MAX;
   nameInput.value = draft.name;
-  nameInput.setAttribute('aria-label', 'Team name');
+  nameInput.setAttribute('aria-label', t('Team name'));
   nameInput.oninput = () => (draft.name = nameInput.value);
 
   const colours = el('div', 'editor-swatches');
@@ -55,6 +60,9 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   const skins = el('div', 'editor-hats');
   const aims = el('div', 'editor-hats');
   const effects = el('div', 'editor-hats');
+  const dances = el('div', 'editor-hats');
+  const graves = el('div', 'editor-hats');
+  const emblem = el('div', 'emblem-builder');
   const hatHint = el('p', 'account-note');
   const names = el('div', 'editor-tardis');
   const defaults = defaultTardiNames(slot);
@@ -63,7 +71,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     inp.maxLength = TARDI_NAME_MAX;
     inp.placeholder = placeholder;
     inp.value = draft.names[i] ?? '';
-    inp.setAttribute('aria-label', `Tardigrade ${i + 1} name`);
+    inp.setAttribute('aria-label', t('Tardigrade {n} name', { n: i + 1 }));
     inp.oninput = () => (draft.names[i] = inp.value);
     names.append(inp);
   });
@@ -75,7 +83,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     for (const c of TEAM_COLORS) {
       const b = el('button', 'swatch' + (c === draft.color ? ' on' : ''));
       b.style.background = hex(c);
-      b.setAttribute('aria-label', `Colour ${hex(c)}`);
+      b.setAttribute('aria-label', t('Colour {code}', { code: hex(c) }));
       b.onclick = () => {
         draft.color = c;
         refresh();
@@ -85,7 +93,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     const owned = ownedItems();
     // Shop items are only advertised when accounts are on.
     const shopOn = account().me !== null;
-    const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
+    const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
       box.innerHTML = '';
       for (const it of list) {
         const locked = !canUse(kind, it.id, owned);
@@ -96,15 +104,20 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
             ? mascotSvg(draft.color, it.id, draft.skin)
             : kind === 'skin'
               ? mascotSvg(draft.color, draft.hat, it.id)
+              : kind === 'dance'
+                ? danceSvg(it.id, draft.color, draft.hat, draft.skin)
+              : kind === 'grave'
+                ? graveSvg(it.id, draft.color)
               : kind === 'aim'
                 ? aimSvg(it.id, draft.color)
                 : fxSvg(it.id);
         const item = itemFor(kind, it.id);
-        b.append(el('span', '', locked && item ? `🔒 ${priceLabel(item)}` : it.name));
-        b.setAttribute('aria-label', locked ? `${it.name} (in the shop)` : it.name);
+        const name = t(it.name);
+        b.append(el('span', '', locked && item ? `🔒 ${priceLabel(item)}` : name));
+        b.setAttribute('aria-label', locked ? t('{name} (in the shop)', { name }) : name);
         b.onclick = () => {
           if (locked) {
-            hatHint.textContent = `The ${it.name} is in the Shop: open the 🛍️ Shop tab in the menu.`;
+            hatHint.textContent = t('The {name} is in the Shop: open the 🛍️ Shop tab in the menu.', { name });
             return;
           }
           set(it.id);
@@ -117,20 +130,26 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     pick(skins, 'skin', SKINS, draft.skin, (id) => (draft.skin = id));
     pick(aims, 'aim', AIM_STYLES, draft.aim, (id) => (draft.aim = id));
     pick(effects, 'fx', FX_STYLES, draft.fx, (id) => (draft.fx = id));
+    pick(dances, 'dance', DANCES, draft.dance, (id) => (draft.dance = id));
+    pick(graves, 'grave', GRAVES, draft.grave, (id) => (draft.grave = id));
+    renderEmblemBuilder(emblem, draft.emblem, (e) => {
+      draft.emblem = e;
+      refresh();
+    });
   };
 
   const close = () => overlay.remove();
   const actions = el('div', 'editor-actions');
-  const reset = el('button', 'hud-btn', 'Reset');
+  const reset = el('button', 'hud-btn', t('Reset'));
   reset.onclick = () => {
     draft = defaultProfile(slot);
     nameInput.value = draft.name;
     names.querySelectorAll('input').forEach((inp) => (inp.value = ''));
     refresh();
   };
-  const cancel = el('button', 'hud-btn', 'Cancel');
+  const cancel = el('button', 'hud-btn', t('Cancel'));
   cancel.onclick = close;
-  const save = el('button', 'big-btn', 'Save');
+  const save = el('button', 'big-btn', t('Save'));
   save.onclick = () => {
     // Names other players may see: safe for children, and no way to get in touch.
     const inputs = [nameInput, ...names.querySelectorAll('input')];
@@ -147,7 +166,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       if (problem) {
         inputs[i].classList.add('bad');
         inputs[i].setAttribute('aria-invalid', 'true');
-        nameNote.textContent = `“${v}”: ${NAME_PROBLEM_TEXT[problem]}`;
+        nameNote.textContent = `“${v}”: ${t(NAME_PROBLEM_TEXT[problem])}`;
         nameNote.hidden = false;
         inputs[i].focus();
         return;
@@ -160,6 +179,9 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       skin: draft.skin,
       aim: draft.aim,
       fx: draft.fx,
+      dance: draft.dance,
+      grave: draft.grave,
+      emblem: draft.emblem,
       names: draft.names.map((n) => cleanName(n, TARDI_NAME_MAX)),
     });
     close();
@@ -178,18 +200,24 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   side.append(preview, title, nameInput);
   const options = el('div', 'editor-options');
   options.append(
-    el('h3', '', 'Colour'),
+    el('h3', '', t('Colour')),
     colours,
-    el('h3', '', 'Hat'),
+    el('h3', '', t('Hat')),
     hats,
-    el('h3', '', 'Skin'),
+    el('h3', '', t('Skin')),
     skins,
-    el('h3', '', 'Aim style'),
+    el('h3', '', t('Aim style')),
     aims,
-    el('h3', '', 'Explosion effect'),
+    el('h3', '', t('Explosion effect')),
     effects,
+    el('h3', '', t('Victory dance')),
+    dances,
+    el('h3', '', t('Gravestone')),
+    graves,
+    el('h3', '', t('Team emblem (free)')),
+    emblem,
     hatHint,
-    el('h3', '', 'Tardigrade names'),
+    el('h3', '', t('Tardigrade names')),
     names,
   );
   box.append(side, options, actions);

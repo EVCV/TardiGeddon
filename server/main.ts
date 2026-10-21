@@ -7,12 +7,13 @@ import { createHmac, randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Room, wearableTeam, type Member, type PlayerReport } from './room';
 import { escapeHtml, smtpMailer } from './mail';
-import { createAccounts, type Accounts } from './accounts';
+import { createAccounts, type Accounts, type Presence } from './accounts';
 import { unlockedWeapons } from '../src/shop/catalog';
 import { Matchmaker, cleanBlocks } from './matchmaker';
 import { SCHEME_PRESETS } from '../src/sim/schemes';
 import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/protocol';
 import { TICK_RATE } from '../src/sim/types';
+import { tk } from '../src/i18n/tk';
 
 const PORT = Number(process.env.PORT) || 8787;
 /**
@@ -37,6 +38,32 @@ const MAX_CONN_PER_IP = 8;
 const HEARTBEAT_MS = 30_000;
 
 const rooms = new Map<string, Room>();
+/** Everyone connected, for friends' online status and invites. */
+const connected = new Set<Member>();
+
+/** Who's online and where, for friends (server/friends.ts, via accounts). */
+const presence: Presence = {
+  status(userId) {
+    let online = false;
+    let room: string | null = null;
+    for (const m of connected) {
+      if (m.userId !== userId) continue;
+      online = true;
+      const r = roomOf.get(m);
+      if (r?.joinable) room = r.code;
+    }
+    return { online, room };
+  },
+  invite(fromUserId, fromName, toUserId) {
+    const from = [...connected].find((m) => m.userId === fromUserId && roomOf.get(m)?.joinable);
+    const code = from ? roomOf.get(from)!.code : null;
+    if (!code) return 'noroom';
+    const to = [...connected].filter((m) => m.userId === toUserId);
+    if (!to.length) return 'offline';
+    for (const m of to) m.send({ t: 'invite', from: fromName, code });
+    return 'sent';
+  },
+};
 /** Which room each connection is in. */
 const roomOf = new Map<Member, Room>();
 
@@ -52,7 +79,7 @@ function leaveRoom(member: Member): void {
 /** End a room for everyone in it (after a crash): they're told, and go back to the online screen. */
 function closeRoom(room: Room): void {
   for (const m of room.members) {
-    m.send({ t: 'error', msg: 'Sorry, this match hit a problem and had to stop.' });
+    m.send({ t: 'error', msg: tk('Sorry, this match hit a problem and had to stop.') });
     roomOf.delete(m);
   }
   rooms.delete(room.code);
@@ -62,7 +89,7 @@ function closeRoom(room: Room): void {
 const QUICK_SCHEME = SCHEME_PRESETS.find((p) => p.id === 'quick')!.scheme;
 const matchmaker = new Matchmaker((players, cpu) => {
   if (rooms.size >= MAX_ROOMS) {
-    for (const p of players) p.member.send({ t: 'error', msg: 'The server is full right now. Please try again soon.' });
+    for (const p of players) p.member.send({ t: 'error', msg: tk('The server is full right now. Please try again soon.') });
     return;
   }
   const r = newRoom();
@@ -152,6 +179,7 @@ let accounts: Accounts | null = null;
 if (process.env.DATABASE_URL) {
   try {
     accounts = await createAccounts(process.env);
+    accounts.setPresence(presence);
     console.log('Accounts enabled');
   } catch (e) {
     console.error('Accounts disabled: could not set up the database', e);
@@ -173,7 +201,7 @@ const http = createServer(async (req, res) => {
       'x-content-type-options': 'nosniff',
       vary: 'origin',
     });
-    res.end(JSON.stringify(me ? { accounts: false } : { error: 'Accounts are not enabled on this server.' }));
+    res.end(JSON.stringify(me ? { accounts: false } : { error: tk('Accounts are not enabled on this server.') }));
     return;
   }
   // Health check for the host platform.
@@ -181,7 +209,8 @@ const http = createServer(async (req, res) => {
   res.end(req.url === '/rooms' ? String(rooms.size) : req.url === '/queue' ? String(matchmaker.waiting) : 'TardiGeddon server ok');
 });
 
-const wss = new WebSocketServer({ server: http, maxPayload: 16 * 1024 });
+// Room for a custom map in the host's rules (CUSTOM_MAX_LENGTH, terrain/custom.ts).
+const wss = new WebSocketServer({ server: http, maxPayload: 96 * 1024 });
 
 /** Open connections, and recent room creations, per client address. */
 const connsByIp = new Map<string, number>();
@@ -234,6 +263,10 @@ wss.on('connection', (ws: WebSocket, req) => {
     member.userId = 'userId' in p ? p.userId : undefined;
     member.pid = playerId(member.userId);
     member.unlocked = unlockedWeapons(p.owned);
+    member.owned = p.owned;
+    // (Not if they've already gone while we looked them up.)
+    if (ws.readyState === ws.OPEN) connected.add(member);
+    member.rating = 'rating' in p ? p.rating : undefined;
     return p.owned;
   });
   // Messages are handled in order, once we know what the player owns.
@@ -251,15 +284,15 @@ wss.on('connection', (ws: WebSocket, req) => {
   /** Rate-limit making rooms, and cap the total. */
   const mayCreate = (): boolean => {
     if (Date.now() - lastCreate < CREATE_COOLDOWN_MS) {
-      fail('Please wait a moment and try again.');
+      fail(tk('Please wait a moment and try again.'));
       return false;
     }
     if (rooms.size >= MAX_ROOMS) {
-      fail('The server is full right now. Please try again soon.');
+      fail(tk('The server is full right now. Please try again soon.'));
       return false;
     }
     if (!ipMayCreate(ip)) {
-      fail('Lots of games started from your network just now. Please wait a minute and try again.');
+      fail(tk('Lots of games started from your network just now. Please wait a minute and try again.'));
       return false;
     }
     lastCreate = Date.now();
@@ -268,11 +301,11 @@ wss.on('connection', (ws: WebSocket, req) => {
 
   const mayQuick = (): boolean => {
     if (rooms.size >= MAX_ROOMS) {
-      fail('The server is full right now. Please try again soon.');
+      fail(tk('The server is full right now. Please try again soon.'));
       return false;
     }
     if (!ipMayCreate(ip)) {
-      fail('Lots of games started from your network just now. Please wait a minute and try again.');
+      fail(tk('Lots of games started from your network just now. Please wait a minute and try again.'));
       return false;
     }
     return true;
@@ -297,7 +330,7 @@ wss.on('connection', (ws: WebSocket, req) => {
 
   const handle = (msg: ClientMsg, ownedItems: string[]): void => {
     if (msg.t === 'create' || msg.t === 'join' || msg.t === 'quick') {
-      if (msg.v !== PROTOCOL_VERSION) return fail('Please reload the page: the game has been updated.');
+      if (msg.v !== PROTOCOL_VERSION) return fail(tk('Please reload the page: the game has been updated.'));
       // Shop hats only for players who own them.
       msg.team = wearableTeam(msg.team, ownedItems);
       if (msg.t === 'create' && !mayCreate()) return;
@@ -316,12 +349,22 @@ wss.on('connection', (ws: WebSocket, req) => {
         roomOf.set(member, r);
       } else {
         const r = rooms.get(String(msg.code).toUpperCase().trim());
-        if (!r) return fail('No room with that code.');
+        if (!r) return fail(tk('No room with that code.'));
         if (!r.join(member, msg.team, typeof msg.token === 'string' ? msg.token : undefined)) {
-          return fail(r.started ? 'That match has already started.' : 'That room is full.');
+          return fail(r.started ? tk('That match has already started.') : tk('That room is full.'));
         }
         roomOf.set(member, r);
       }
+      return;
+    }
+    if (msg.t === 'watch') {
+      if (msg.v !== PROTOCOL_VERSION) return fail(tk('Please reload the page: the game has been updated.'));
+      leaveRoom(member);
+      matchmaker.remove(member);
+      const r = rooms.get(String(msg.code).toUpperCase().trim());
+      if (!r) return fail(tk('No room with that code.'));
+      if (!r.watch(member)) return fail(tk('That room already has as many people watching as it can take.'));
+      roomOf.set(member, r);
       return;
     }
     if (msg.t === 'quickCancel') return matchmaker.remove(member);
@@ -333,7 +376,7 @@ wss.on('connection', (ws: WebSocket, req) => {
     if (msg.t === 'report') {
       const now = Date.now();
       reports = reports.filter((t) => now - t < 10 * 60_000);
-      if (reports.length >= REPORTS_PER_10_MIN) return fail('You have sent a lot of reports. Please email support@tardigeddon.com instead.');
+      if (reports.length >= REPORTS_PER_10_MIN) return fail(tk('You have sent a lot of reports. Please email support@tardigeddon.com instead.'));
       reports.push(now);
       if (typeof msg.idx !== 'number' || typeof msg.reason !== 'string') return;
     }
@@ -346,6 +389,7 @@ wss.on('connection', (ws: WebSocket, req) => {
   };
 
   ws.on('close', () => {
+    connected.delete(member);
     const n = (connsByIp.get(ip) ?? 1) - 1;
     if (n > 0) connsByIp.set(ip, n);
     else connsByIp.delete(ip);

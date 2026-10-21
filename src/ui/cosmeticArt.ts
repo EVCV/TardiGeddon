@@ -7,6 +7,7 @@ import { arenaTheme } from '../render/arenas';
 import { hex } from '../render/palette';
 import { musicTrack } from '../audio/music';
 import { soundPack } from '../audio/sfx';
+import { mascotSvg } from './mascot';
 
 const INK = '#2b1b24';
 let uid = 0;
@@ -147,4 +148,48 @@ export function soundSvg(id: string): string {
     + `<path d="M-26 -8 H-14 L0 -20 V20 L-14 8 H-26 Z" fill="${a}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`
     + `<rect x="-26" y="-8" width="12" height="16" fill="${b}" stroke="${INK}" stroke-width="2"/>`
     + `<g fill="none" stroke="${b}" stroke-width="3.5" stroke-linecap="round"><path d="M8 -9 Q13 0 8 9"/><path d="M15 -16 Q24 0 15 16"/><path d="M22 -23 Q35 0 22 23"/></g></svg>`;
+}
+
+/** A victory dance: the tardi mid-move, with motion marks for how it moves. */
+export function danceSvg(id: string, teamColor = 0xe04848, hat = 'beanie', skin = 'classic'): string {
+  const pose: Record<string, string> = {
+    classic: 'translate(0 -6)',
+    wiggle: 'rotate(-12)',
+    spin: 'scale(-1 1)',
+    flip: 'rotate(-150)',
+    moonwalk: 'translate(6 0) scale(-1 1)',
+    floss: 'rotate(14)',
+    helicopter: 'translate(0 -10) rotate(30)',
+    worm: 'scale(1.1 .8)',
+  };
+  const marks: Record<string, string> = {
+    classic: '<path d="M-14 26 h28" stroke-dasharray="4 4"/>',
+    wiggle: '<path d="M-34 -6 q-4 6 0 12 M34 -6 q4 6 0 12"/>',
+    spin: '<path d="M-30 -20 A32 14 0 1 0 30 -20"/><path d="M30 -20 l-6 -2 m6 2 l-1 6"/>',
+    flip: '<path d="M-26 22 A28 28 0 1 1 26 22"/><path d="M26 22 l2 -7 m-2 7 l-7 -2"/>',
+    moonwalk: '<path d="M18 20 h18 M22 14 h14"/>',
+    floss: '<path d="M-36 -10 l8 8 l-8 8 M36 -10 l-8 8 l8 8"/>',
+    helicopter: '<path d="M-24 -26 h48 M-18 -32 h36"/>',
+    worm: '<path d="M-34 22 q8 -10 16 0 t16 0 t16 0 t16 0"/>',
+  };
+  return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+    + `<g fill="none" stroke="${hex(teamColor)}" stroke-width="2.5" stroke-linecap="round">${marks[id] ?? marks.classic}</g>`
+    + `<g transform="${pose[id] ?? pose.classic}">${mascotSvg(teamColor, hat, skin).replace('<svg ', '<svg x="-26" y="-20" width="52" height="40" ')}</g></svg>`;
+}
+
+/** A gravestone, as left where a tardigrade popped. */
+export function graveSvg(id: string, teamColor = 0xe04848): string {
+  const c = hex(teamColor);
+  const ground = `<path d="M-34 22 Q0 14 34 22 V30 H-34 Z" fill="#6fbf8a" stroke="${INK}" stroke-width="2"/>`;
+  const art: Record<string, string> = {
+    classic: `<ellipse cx="0" cy="14" rx="16" ry="9" fill="#f6c9ab" opacity=".7" stroke="${INK}" stroke-width="2"/><path d="M-8 10 l5 5 m0 -5 l-5 5 M3 10 l5 5 m0 -5 l-5 5" stroke="${INK}" stroke-width="2"/><circle cx="0" cy="2" r="4" fill="${c}" stroke="${INK}" stroke-width="1.5"/>`,
+    stone: `<path d="M-14 20 V-6 Q-14 -20 0 -20 Q14 -20 14 -6 V20 Z" fill="#a9b3bf" stroke="${INK}" stroke-width="2.5"/><text x="0" y="0" font-size="10" font-weight="900" text-anchor="middle" fill="${INK}">RIP</text><rect x="-8" y="6" width="16" height="4" rx="2" fill="${c}"/>`,
+    cross: `<path d="M-2 20 V-20 M-12 -8 H10" stroke="#8f5f2e" stroke-width="6" stroke-linecap="round"/><path d="M-2 20 V-20 M-12 -8 H10" stroke="${INK}" stroke-width="1.2" fill="none"/><circle cx="-2" cy="-8" r="3" fill="${c}"/>`,
+    flowers: `<path d="M-12 20 L-9 4 H9 L12 20 Z" fill="#c8693a" stroke="${INK}" stroke-width="2"/><path d="M0 4 V-10 M-6 4 Q-8 -4 -10 -8 M6 4 Q8 -4 10 -8" stroke="#3a8a28" stroke-width="2" fill="none"/>${[[-10, -10], [0, -14], [10, -10]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="${c}" stroke="${INK}" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="1.8" fill="#ffd84a"/>`).join('')}`,
+    ghost: `<path d="M-12 14 V-6 Q-12 -20 0 -20 Q12 -20 12 -6 V14 l-4 -4 l-4 4 l-4 -4 l-4 4 l-4 -4 Z" fill="#f4f6fb" stroke="${INK}" stroke-width="2"/><circle cx="-4" cy="-6" r="2" fill="${INK}"/><circle cx="4" cy="-6" r="2" fill="${INK}"/><ellipse cx="0" cy="18" rx="10" ry="2" fill="${c}" opacity=".5"/>`,
+    trophy: `<path d="M-10 -18 H10 V-6 Q10 6 0 6 Q-10 6 -10 -6 Z" fill="#ffd84a" stroke="${INK}" stroke-width="2"/><path d="M-10 -14 Q-18 -14 -16 -6 Q-14 0 -9 0 M10 -14 Q18 -14 16 -6 Q14 0 9 0" fill="none" stroke="${INK}" stroke-width="2"/><rect x="-3" y="6" width="6" height="8" fill="#e0a920" stroke="${INK}" stroke-width="1.5"/><rect x="-10" y="14" width="20" height="6" rx="1" fill="${c}" stroke="${INK}" stroke-width="1.5"/>`,
+    rocket: `<path d="M0 -24 Q10 -12 8 10 H-8 Q-10 -12 0 -24 Z" fill="#e8ecf2" stroke="${INK}" stroke-width="2"/><circle cx="0" cy="-8" r="4" fill="${c}" stroke="${INK}" stroke-width="1.5"/><path d="M-8 4 L-14 16 L-7 12 M8 4 L14 16 L7 12" fill="${c}" stroke="${INK}" stroke-width="1.5"/><path d="M-4 12 Q0 22 4 12" fill="#ffb02e" stroke="${INK}" stroke-width="1.2"/>`,
+    crystal: `<path d="M0 -24 L10 -4 L6 20 H-6 L-10 -4 Z" fill="#bff3ff" stroke="${INK}" stroke-width="2"/><path d="M0 -24 L-3 20 M0 -24 L3 20 M-10 -4 H10" stroke="#6ab0d8" stroke-width="1.2"/><circle cx="0" cy="-4" r="3" fill="${c}" opacity=".8"/>`,
+  };
+  return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ground}<g stroke-linejoin="round">${art[id] ?? art.classic}</g></svg>`;
 }

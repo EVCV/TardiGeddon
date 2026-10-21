@@ -12,6 +12,7 @@
 // The server is the only thing that grants items: the game never does.
 
 import type { Pool, PoolClient } from 'pg';
+import { START_RATING, newRatings } from '../src/stats/rank';
 import { createHash, randomInt } from 'node:crypto';
 import { GIFTS_PER_DAY, GIFT_ALPHABET, GIFT_MESSAGES, SHOP_ITEMS, bundle, bundlePrice, coinPack, giftable, normaliseGiftCode, packTotal, shopItem } from '../src/shop/catalog';
 import type { GiftSent, SalesReport } from '../src/account/session';
@@ -60,7 +61,9 @@ export async function migrate(db: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS streak         integer NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS best_streak    integer NOT NULL DEFAULT 0,
       ADD COLUMN IF NOT EXISTS self_damage    integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS self_popped    integer NOT NULL DEFAULT 0;
+      ADD COLUMN IF NOT EXISTS self_popped    integer NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS rating         integer NOT NULL DEFAULT 1000,
+      ADD COLUMN IF NOT EXISTS rated_games    integer NOT NULL DEFAULT 0;
     CREATE TABLE IF NOT EXISTS wallet (
       user_id         text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       coins           integer NOT NULL DEFAULT 0,
@@ -289,13 +292,16 @@ export interface PlayerStats {
   /** Own goals: damage to their own team, and their own tardis popped. */
   selfDamage: number;
   selfPopped: number;
+  /** Quick-play rating (src/stats/rank.ts) and how many rated matches it's from. */
+  rating: number;
+  ratedGames: number;
 }
 
-export const NO_STATS: PlayerStats = { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0 };
+export const NO_STATS: PlayerStats = { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0, rating: START_RATING, ratedGames: 0 };
 
 export async function playerStats(db: Pool, userId: string): Promise<PlayerStats> {
   const r = await db.query(
-    `SELECT online_played, online_won, cpu_played, cpu_won, popped, damage, streak, best_streak, self_damage, self_popped
+    `SELECT online_played, online_won, cpu_played, cpu_won, popped, damage, streak, best_streak, self_damage, self_popped, rating, rated_games
        FROM player_stats WHERE user_id = $1`,
     [userId],
   );
@@ -312,7 +318,32 @@ export async function playerStats(db: Pool, userId: string): Promise<PlayerStats
     bestStreak: x.best_streak,
     selfDamage: x.self_damage,
     selfPopped: x.self_popped,
+    rating: x.rating,
+    ratedGames: x.rated_games,
   };
+}
+
+/** Players' quick-play ratings (new players start at START_RATING). */
+export async function ratingsOf(db: Pool, userIds: string[]): Promise<Map<string, { rating: number; rated: number }>> {
+  const r = await db.query('SELECT user_id, rating, rated_games FROM player_stats WHERE user_id = ANY($1)', [userIds]);
+  const out = new Map(userIds.map((id) => [id, { rating: START_RATING, rated: 0 }]));
+  for (const x of r.rows) out.set(x.user_id, { rating: x.rating, rated: x.rated_games });
+  return out;
+}
+
+/**
+ * A ranked (quick-play) match between signed-in players: everyone's new
+ * rating. Call after recordResults, so each player has a stats row.
+ */
+export async function rateMatch(db: Pool, results: MatchResult[]): Promise<void> {
+  const ids = results.map((r) => r.userId);
+  if (new Set(ids).size < 2) return;
+  const now = await ratingsOf(db, ids);
+  const players = ids.map((id) => now.get(id)!);
+  const after = newRatings(players, results.findIndex((r) => r.won));
+  for (let i = 0; i < ids.length; i++) {
+    await db.query('UPDATE player_stats SET rating = $2, rated_games = rated_games + 1 WHERE user_id = $1', [ids[i], after[i]]);
+  }
 }
 
 /** One finished match for one signed-in player. */
@@ -330,6 +361,8 @@ export interface MatchResult {
   damage: number;
   selfDamage: number;
   selfPopped: number;
+  /** A quick-play match between signed-in players: it changes their ratings. */
+  ranked?: boolean;
 }
 
 /** Add finished matches to the players' stats. */

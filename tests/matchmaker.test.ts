@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Matchmaker, QUICK_FILL_MS, QUICK_MAX, type Waiting } from '../server/matchmaker';
 import type { ServerMsg } from '../src/net/protocol';
+import { newRatings, ratingWindow, tierFor } from '../src/stats/rank';
 
 const member = () => {
   const msgs: ServerMsg[] = [];
@@ -87,5 +88,51 @@ describe('quick play matchmaker', () => {
     expect(matches).toHaveLength(1);
     expect(matches[0].players.map((w) => w.member)).toEqual([a, c]);
     expect(mm.waiting).toBe(1); // b still waits for someone else
+  });
+});
+
+describe('ranked quick play', () => {
+  it('matches players of a similar rating first, and widens the range the longer they wait', () => {
+    const { mm, matches, advance } = setup();
+    const pro = { ...member(), rating: 1800 };
+    const newbie = { ...member(), rating: 950 };
+    const mid = { ...member(), rating: 1050 };
+    mm.add(pro, {});
+    mm.add(newbie, {});
+    advance(QUICK_FILL_MS + 100);
+    mm.tick();
+    expect(matches).toHaveLength(0); // 850 apart: not yet
+    mm.add(mid, {});
+    advance(QUICK_FILL_MS + 100);
+    mm.tick();
+    // The newbie and the similar player go together; the pro keeps waiting...
+    expect(matches.map((m) => m.players.map((p) => p.member))).toEqual([[newbie, mid]]);
+    // ...until the range is wide enough for anyone (a guest counts as a new player).
+    const guest = member();
+    mm.add(guest, {});
+    advance(20_000);
+    mm.tick();
+    expect(matches[1].players.map((p) => p.member)).toEqual([pro, guest]);
+  });
+
+  it('moves ratings: beating a stronger player is worth more, and new players move faster', () => {
+    const [w1, l1] = newRatings([{ rating: 1000, rated: 30 }, { rating: 1000, rated: 30 }], 0);
+    expect(w1).toBe(1012);
+    expect(l1).toBe(988);
+    const [upset] = newRatings([{ rating: 1000, rated: 30 }, { rating: 1400, rated: 30 }], 0);
+    expect(upset - 1000).toBeGreaterThan(20);
+    const [fresh] = newRatings([{ rating: 1000, rated: 0 }, { rating: 1000, rated: 30 }], 0);
+    expect(fresh).toBe(1020);
+    // Four players: the winner gains, each loser loses a little.
+    const four = newRatings(Array.from({ length: 4 }, () => ({ rating: 1000, rated: 30 })), 2);
+    expect(four[2]).toBeGreaterThan(1000);
+    for (const i of [0, 1, 3]) expect(four[i]).toBeLessThan(1000);
+    // A draw between equals changes nothing.
+    expect(newRatings([{ rating: 1200, rated: 30 }, { rating: 1200, rated: 30 }], -1)).toEqual([1200, 1200]);
+    expect(tierFor(1000).name).toBe('Moss');
+    expect(tierFor(1750).name).toBe('Tun Legend');
+    expect(tierFor(400).name).toBe('Egg');
+    expect(ratingWindow(0)).toBe(200);
+    expect(ratingWindow(60_000)).toBe(2000);
   });
 });

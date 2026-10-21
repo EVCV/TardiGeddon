@@ -6,6 +6,7 @@
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { COIN_PACKS, playProductId } from './catalog';
 import { playAccountTagWeb } from './playAccount';
+import { t } from '../i18n/i18n';
 
 interface PlayPurchase {
   id: string;
@@ -56,7 +57,7 @@ export type PlayBuyResult = { status: 'purchased'; productId: string; token: str
 /** Show Google's payment sheet for a pack. */
 export async function playBuy(packId: string, userId: string): Promise<PlayBuyResult> {
   const pack = COIN_PACKS.find((p) => p.id === packId);
-  if (!pack) throw new Error('No such coin pack.');
+  if (!pack) throw new Error(t('No such coin pack.'));
   await playPrices(); // the plugin needs the product's details first
   const r = await PlayBilling.buy({ id: playProductId(pack), account: await playAccountTagWeb(userId) });
   if (r.status === 'purchased' && r.id && r.token) return { status: 'purchased', productId: r.id, token: r.token };

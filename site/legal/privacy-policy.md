@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 20 October 2026
+**Last Modified:** 21 October 2026
 **Document Version:** v2.6
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -49,7 +49,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.0 Information Stored Only on Your Device
 
-2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; whether you have started the tutorial; your text size, sound settings, match music and sound pack; the players you have blocked in online play (the id our server gave them and the team name you saw); and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
+2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; whether you have started the tutorial; your language and text size, sound settings, match music and sound pack; the players you have blocked in online play (the id our server gave them and the team name you saw); replays of the last few matches you played; the maps you saved in the map editor; and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
 
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. If you change your controls on the Settings page (which keys, mouse buttons and touch buttons do what), the game keeps them there too. This is deleted when you close the tab.
 
@@ -59,7 +59,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.1 Information Used When You Play Online
 
-2.1.1 When you play online, your device connects to our game server and sends: your team name, team colour, hat, and tardigrade names; the room code you create or join; and your game inputs (such as moving, aiming, and firing) during your turns.
+2.1.1 When you play online, your device connects to our game server and sends: your team name, team colour, hat, and tardigrade names; the room code you create or join; if you host a room on a map you made in the map editor, that map (it is shown to the other players in the room); and your game inputs (such as moving, aiming, and firing) during your turns.
 
 2.1.2 Your Team Details are shown to the other players in your match. Please do not use your real name or other personal information in them. The game and our server refuse names with rude words, phone numbers, email or website addresses or social media. In quick play, where you are matched with people you don't know, other players see a made-up team name and standard tardigrade names instead of the names you chose.
 
@@ -83,7 +83,9 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - if you send or claim gifts: for each gift, the item, its price in coins, the preset message chosen, when it was bought, claimed or taken back, the account that bought it and the account that claimed it, and the last four characters of its code. We keep the full code only in scrambled ("hashed") form, so it cannot be read back from our records;
 - your coin and Slime balances, and how much Slime you have earned from games against the computer today (for the daily limit);
 - your control settings, if you change them on the Settings page while signed in (which keys, mouse buttons and touch buttons do what), so they follow you to any device;
-- your game stats while signed in: online games and one-player games against the computer played and won, win streaks, how many tardigrades you have popped, the damage you have dealt, and your own goals (damage to, and pops of, your own team). They are shown to you, not to other players.
+- your game stats while signed in: online games and one-player games against the computer played and won, win streaks, how many tardigrades you have popped, the damage you have dealt, and your own goals (damage to, and pops of, your own team), and your quick-play rating (a number that goes up and down with your quick-play results, used to match you with players of a similar level). They are shown to you, not to other players.
+- your friends, if you add any while signed in: your friend code, the players you've asked or accepted, and when. Only players who have both accepted each other are friends. Your friends can see your player name, whether you're on the online screen, and the code of a private room you're in so they can join it; they can send you an invite to their room. There is no chat. You can remove a friend or cancel a request at any time, and deleting your account removes your friends list.
+- your daily challenge scores, if you send them while signed in: which challenge, the day, your best result (targets popped or race time) and when you set it. To check a score, the game sends us the buttons pressed during that run; we play it back on our server and then discard it, keeping only the result. Your best result for each day's challenge is shown on the public leaderboards in the game and on our Website, next to your account's player name (not your email). If you don't want to appear, don't send a score, or ask us to remove it.
 
 2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
 
@@ -195,7 +197,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
-5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, and your game stats: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle. Records of gifts you sent or claimed stay while the other account exists, so it can still claim or see them, but the link to your deleted account is removed.
+5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, your game stats, your friends list and your daily challenge scores: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle. Records of gifts you sent or claimed stay while the other account exists, so it can still claim or see them, but the link to your deleted account is removed.
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 

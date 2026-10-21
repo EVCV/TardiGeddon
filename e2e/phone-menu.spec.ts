@@ -37,3 +37,40 @@ test('on a phone the menu is screens you tap through, each fitting the screen', 
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(page.locator('.hud-timer')).toBeVisible();
 });
+
+/** Buttons whose text spills out of them. */
+const spilling = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('button, .seg-btn')]
+      .filter((b) => b.offsetParent && b.scrollWidth > b.clientWidth + 2)
+      .map((b) => b.textContent?.trim()),
+  );
+
+for (const lang of ['es', 'pt-BR', 'de', 'fr', 'ja']) {
+  test(`in ${lang} the phone menu still fits, with no text spilling out of buttons`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'phone', 'phones only');
+    await page.goto(`/?lang=${lang}`);
+    await expect(page.locator('html')).toHaveAttribute('lang', lang);
+    await expect(page.locator('.lobby-nav')).toBeVisible();
+    // Translated, not English.
+    await expect(page.locator('.setup-btn')).not.toHaveText('Match setup');
+    await fits(page);
+    expect(await spilling(page)).toEqual([]);
+    await page.screenshot({ path: `test-results/lang-${lang}-home.png` });
+    await page.locator('.setup-btn').click();
+    await page.locator('select[name=players]').selectOption('6');
+    await fits(page);
+    expect(await spilling(page)).toEqual([]);
+    await page.screenshot({ path: `test-results/lang-${lang}-setup.png` });
+    await page.locator('.setup-back').click();
+    await page.locator('[data-go=settings]').click();
+    await fits(page);
+    expect(await spilling(page)).toEqual([]);
+    await page.locator('.hub-back').click();
+    await page.locator('.lobby-nav .big-btn, .lobby-play .play').first().click();
+    await expect(page.locator('.hud-timer')).toBeVisible();
+    await page.waitForTimeout(1500);
+    expect(await spilling(page)).toEqual([]);
+    await page.screenshot({ path: `test-results/lang-${lang}-match.png` });
+  });
+}

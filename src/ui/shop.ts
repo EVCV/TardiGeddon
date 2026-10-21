@@ -5,14 +5,15 @@
 // stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
-import { aimSvg, arenaSvg, fxSvg, musicSvg, soundSvg } from './cosmeticArt';
+import { aimSvg, arenaSvg, danceSvg, fxSvg, graveSvg, musicSvg, soundSvg } from './cosmeticArt';
+import { SURPRISE_ARENA } from '../render/arenas';
 import { previewMusic, previewingMusic } from '../audio/music';
 import { demoSoundPack } from '../audio/sfx';
 import { unlockAudio } from '../audio/mixer';
 import { coinIcon, packArt } from './coinArt';
-import { giftsTab, newGiftsState, openGiftDialog, type GiftsState } from './gifts';
+import { giftName, giftsTab, newGiftsState, openGiftDialog, type GiftsState } from './gifts';
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
-import { legalLink } from './account';
+import { legalLink, withNodes } from './account';
 import { WEAPONS } from '../sim/weapons';
 import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
 import { isNativeApp } from '../native';
@@ -21,8 +22,10 @@ import { ageSignal, coinRules, onAgeSignalStale, type AgeSignal } from '../shop/
 import { buyCoins, buyCoinsInApp, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
-type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
+type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
 
 export interface ShopState {
   category: Category;
@@ -57,6 +60,8 @@ export function itemArt(item: ShopItem | null): string {
   if (item.kind === 'skin') return mascotSvg(team.color, wearHat(team.hat), item.ref);
   if (item.kind === 'aim') return aimSvg(item.ref, team.color);
   if (item.kind === 'fx') return fxSvg(item.ref);
+  if (item.kind === 'dance') return danceSvg(item.ref, team.color, wearHat(team.hat), wearSkin(team.skin));
+  if (item.kind === 'grave') return graveSvg(item.ref, team.color);
   if (item.kind === 'arena') return arenaSvg(item.ref);
   if (item.kind === 'music') return musicSvg(item.ref);
   if (item.kind === 'sound') return soundSvg(item.ref);
@@ -64,19 +69,25 @@ export function itemArt(item: ShopItem | null): string {
 }
 
 const CATEGORIES: [Category, string][] = [
-  ['all', 'All'],
-  ['hat', '🎩 Hats'],
-  ['skin', '🎨 Skins'],
-  ['aim', '🎯 Aim'],
-  ['fx', '✨ Effects'],
-  ['arena', '🏞️ Arenas'],
-  ['music', '🎵 Music'],
-  ['sound', '🔊 Sounds'],
-  ['bundle', '🎁 Bundles'],
-  ['weapon', '💥 Weapons'],
-  ['gift', '🎀 Gifts'],
-  ['coins', '🪙 Get coins'],
+  ['all', tk('All')],
+  ['hat', tk('🎩 Hats')],
+  ['skin', tk('🎨 Skins')],
+  ['aim', tk('🎯 Aim')],
+  ['fx', tk('✨ Effects')],
+  ['dance', tk('💃 Dances')],
+  ['grave', tk('🪦 Gravestones')],
+  ['arena', tk('🏞️ Arenas')],
+  ['music', tk('🎵 Music')],
+  ['sound', tk('🔊 Sounds')],
+  ['bundle', tk('🎁 Bundles')],
+  ['weapon', tk('💥 Weapons')],
+  ['gift', tk('🎀 Gifts')],
+  ['coins', tk('🪙 Get coins')],
 ];
+
+/** Rarity labels (shown with t()). */
+const RARITY: Record<ShopItem['rarity'], string> = { common: tk('common'), rare: tk('rare'), epic: tk('epic'), legendary: tk('legendary') };
+const rarityLabel = (item: ShopItem): string => t(RARITY[item.rarity] ?? item.rarity);
 
 const affordable = (item: ShopItem, me: MeResponse) =>
   item.coins !== undefined ? me.wallet.coins >= item.coins : me.wallet.slime >= (item.slime ?? 0);
@@ -91,23 +102,23 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   if (me.user) {
     const wallet = el('div', 'shop-wallet');
     const coinBox = el('div', 'wallet-chip');
-    coinBox.append(el('b', '', `🪙 ${formatNumber(me.wallet.coins)}`), el('span', '', 'coins'));
+    coinBox.append(el('b', '', `🪙 ${formatNumber(me.wallet.coins)}`), el('span', '', t('coins')));
     const slimeBox = el('div', 'wallet-chip slime');
-    slimeBox.append(el('b', '', `🟢 ${formatNumber(me.wallet.slime)}`), el('span', '', 'Slime'));
+    slimeBox.append(el('b', '', `🟢 ${formatNumber(me.wallet.slime)}`), el('span', '', t('Slime')));
     wallet.append(coinBox, slimeBox);
     side.append(wallet);
   }
   side.append(stage(me, ctx, state));
   if (!me.user) {
     const cta = el('div', 'shop-cta');
-    const b = el('button', 'big-btn', 'Sign in to start collecting');
+    const b = el('button', 'big-btn', t('Sign in to start collecting'));
     b.onclick = () => ctx.go('account');
-    cta.append(el('p', '', 'Earn Slime every game you play, unlock weapons and looks, and keep them on every device.'), b);
+    cta.append(el('p', '', t('Earn Slime every game you play, unlock weapons and looks, and keep them on every device.')), b);
     side.append(cta);
   }
-  side.append(el('p', 'shop-fair', '✅ Fair play: coins only buy looks. Weapons are unlocked with Slime, which you earn by playing.'));
+  side.append(el('p', 'shop-fair', t('✅ Fair play: coins only buy looks. Weapons are unlocked with Slime, which you earn by playing.')));
   if (me.shop && me.user && me.receipts !== false) {
-    const manage = el('button', 'hud-btn shop-manage', '🧾 Purchases & receipts');
+    const manage = el('button', 'hud-btn shop-manage', t('🧾 Purchases & receipts'));
     manage.disabled = ctx.busy;
     manage.onclick = () => ctx.run(managePurchases);
     side.append(manage);
@@ -117,7 +128,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   const pills = el('div', 'seg shop-pills');
   for (const [c, label] of CATEGORIES) {
     if (c === 'coins' && !me.shop) continue;
-    const b = el('button', 'seg-btn' + (state.category === c ? ' on' : ''), label);
+    const b = el('button', 'seg-btn' + (state.category === c ? ' on' : ''), t(label));
     b.onclick = () => {
       state.category = c;
       ctx.rerender();
@@ -130,17 +141,17 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   const body = el('div', 'shop-body');
   main.append(body);
   if (state.category === 'coins') body.append(coinPacks(me, ctx, state));
-  else if (state.category === 'gift') body.append(giftsTab(me, ctx, state.gifts, (id) => giftable(id)?.name ?? id));
+  else if (state.category === 'gift') body.append(giftsTab(me, ctx, state.gifts, giftName));
   else if (state.category === 'bundle') {
-    body.append(bundleGrid(me, ctx, state), el('p', 'account-note', 'A bundle costs less than its looks one by one. Already own some of it? You only pay for the rest, at the same discount.'));
+    body.append(bundleGrid(me, ctx, state), el('p', 'account-note', t('A bundle costs less than its looks one by one. Already own some of it? You only pay for the rest, at the same discount.')));
   } else {
     const items = SHOP_ITEMS.filter((i) => state.category === 'all' || i.kind === state.category);
     const grid = el('div', 'shop-grid');
     for (const item of items) grid.append(card(item, me, ctx, state));
-    if (state.category === 'all') body.append(featureBanner(me, ctx, state), el('h3', 'shop-section', '🎁 Bundles'), bundleGrid(me, ctx, state), el('h3', 'shop-section', 'Everything'));
+    if (state.category === 'all') body.append(featureBanner(me, ctx, state), el('h3', 'shop-section', t('🎁 Bundles')), bundleGrid(me, ctx, state), el('h3', 'shop-section', t('Everything')));
     body.append(
       grid,
-      el('p', 'account-note', 'Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Unlocked weapons appear in the matches you start.'),
+      el('p', 'account-note', t('Earn Slime in every online game and in one-on-one games against the CPU (up to 200 Slime a day from CPU games). Unlocked weapons appear in the matches you start.')),
     );
   }
   // Redraws (picking an item, unlocking) keep the scroll position; a new tab starts at the top.
@@ -164,10 +175,10 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   const info = el('div', 'shop-stage-info');
   box.append(info);
   if (!item) {
-    info.append(el('b', '', 'Dress-up stage'), el('span', '', 'Pick anything in the shop to try it on your team.'));
+    info.append(el('b', '', t('Dress-up stage')), el('span', '', t('Pick anything in the shop to try it on your team.')));
     return box;
   }
-  info.append(el('span', `rarity rarity-${item.rarity}`, item.rarity), el('b', '', item.name), el('span', '', item.blurb));
+  info.append(el('span', `rarity rarity-${item.rarity}`, rarityLabel(item)), el('b', '', t(item.name)), el('span', '', t(item.blurb)));
 
   const action = el('div', 'shop-stage-action');
   info.append(action);
@@ -175,11 +186,11 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   if (me.user && giftable(item.id)) info.append(giftButton(me, ctx, state, item.id, itemArt(item)));
   const owned = me.owned.includes(item.id);
   if (owned) {
-    action.append(el('span', 'shop-owned', 'Owned ✓'));
+    action.append(el('span', 'shop-owned', t('Owned ✓')));
     if (item.kind === 'arena') {
       // Not part of a team: it's the world this player sees, in every match.
       const using = chosenArena() === item.ref;
-      const use = el('button', 'hud-btn', using ? 'Using ✓' : 'Use in my games');
+      const use = el('button', 'hud-btn', using ? t('Using ✓') : t('Use in my games'));
       use.disabled = using;
       use.onclick = () => {
         chooseArena(item.ref);
@@ -187,22 +198,22 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
       };
       action.append(use);
       if (using) {
-        const back = el('button', 'hud-btn', 'Back to the Meadow');
+        const back = el('button', 'hud-btn', t('Back to Surprise me'));
         back.onclick = () => {
-          chooseArena('classic');
+          chooseArena(SURPRISE_ARENA);
           ctx.rerender();
         };
         action.append(back);
       }
-      action.append(el('span', 'shop-note', 'Only you see your arena.'));
+      action.append(el('span', 'shop-note', t('Only you see your arena.')));
     } else if (item.kind === 'music' || item.kind === 'sound') {
       // Like arenas: what this player hears, in every match.
       const [chosen, choose, back, note] =
         item.kind === 'music'
-          ? [chosenMusic, chooseMusic, 'Back to the standard music', 'Only you hear your match music.']
-          : [chosenSounds, chooseSounds, 'Back to the standard sounds', 'Only you hear your sound pack.'];
+          ? [chosenMusic, chooseMusic, t('Back to the standard music'), t('Only you hear your match music.')]
+          : [chosenSounds, chooseSounds, t('Back to the standard sounds'), t('Only you hear your sound pack.')];
       const using = chosen() === item.ref;
-      const use = el('button', 'hud-btn', using ? 'Using ✓' : 'Use in my games');
+      const use = el('button', 'hud-btn', using ? t('Using ✓') : t('Use in my games'));
       use.disabled = using;
       use.onclick = () => {
         choose(item.ref);
@@ -221,8 +232,11 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
     } else if (item.kind !== 'weapon') {
       const team = loadProfiles()[0];
       const wearing = team[item.kind] === item.ref;
-      const verb = item.kind === 'hat' || item.kind === 'skin' ? 'Wear' : 'Use';
-      const wear = el('button', 'hud-btn', wearing ? `${verb === 'Wear' ? 'Wearing' : 'Using'} ✓` : `${verb} on ${team.name}`);
+      const worn = item.kind === 'hat' || item.kind === 'skin';
+      const label = worn
+        ? wearing ? t('Wearing ✓') : t('Wear on {team}', { team: team.name })
+        : wearing ? t('Using ✓') : t('Use on {team}', { team: team.name });
+      const wear = el('button', 'hud-btn', label);
       wear.disabled = wearing;
       wear.onclick = () => {
         saveProfiles(updateProfile(loadProfiles(), 0, { ...team, [item.kind]: item.ref }));
@@ -233,16 +247,16 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
     return box;
   }
   if (!me.user) {
-    const b = el('button', 'big-btn', 'Sign in to unlock');
+    const b = el('button', 'big-btn', t('Sign in to unlock'));
     b.onclick = () => ctx.go('account');
     action.append(el('span', 'shop-price', priceLabel(item)), b);
     return box;
   }
   if (!affordable(item, me)) {
     if (item.coins !== undefined) {
-      action.append(el('span', 'shop-short', `${priceLabel(item)} · you need ${formatNumber(item.coins - me.wallet.coins)} more coins`));
+      action.append(el('span', 'shop-short', t('{price} · you need {n} more coins', { price: priceLabel(item), n: formatNumber(item.coins - me.wallet.coins) })));
       if (me.shop) {
-        const get = el('button', 'big-btn', 'Get coins');
+        const get = el('button', 'big-btn', t('Get coins'));
         get.onclick = () => {
           state.category = 'coins';
           ctx.rerender();
@@ -250,12 +264,15 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
         action.append(get);
       }
     } else {
-      action.append(el('span', 'shop-short', `${priceLabel(item)} · ${formatNumber((item.slime ?? 0) - me.wallet.slime)} more Slime to go: keep playing!`));
+      action.append(el('span', 'shop-short', t('{price} · {n} more Slime to go: keep playing!', { price: priceLabel(item), n: formatNumber((item.slime ?? 0) - me.wallet.slime) })));
     }
     return box;
   }
-  const b = el('button', 'big-btn', `Unlock for ${priceLabel(item)}`);
-  b.title = item.coins !== undefined ? `${formatNumber(item.coins)} coins (${coinValue(item.coins)})` : `${formatNumber(item.slime ?? 0)} Slime`;
+  const b = el('button', 'big-btn', t('Unlock for {price}', { price: priceLabel(item) }));
+  b.title =
+    item.coins !== undefined
+      ? t('{n} coins ({value})', { n: formatNumber(item.coins), value: coinValue(item.coins) })
+      : t('{n} Slime', { n: formatNumber(item.slime ?? 0) });
   b.disabled = ctx.busy;
   b.onclick = () => ctx.run(() => unlock(item.id));
   action.append(b);
@@ -265,7 +282,7 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
 /** Try a track or a sound pack before buying it. */
 function listenButton(item: ShopItem, ctx: HubContext): HTMLElement {
   if (item.kind === 'sound') {
-    const b = el('button', 'hud-btn shop-listen', '▶ Hear it');
+    const b = el('button', 'hud-btn shop-listen', t('▶ Hear it'));
     b.onclick = () => {
       unlockAudio();
       demoSoundPack(item.ref);
@@ -273,7 +290,7 @@ function listenButton(item: ShopItem, ctx: HubContext): HTMLElement {
     return b;
   }
   const playing = previewingMusic() === item.ref;
-  const b = el('button', 'hud-btn shop-listen', playing ? '■ Stop' : '▶ Listen');
+  const b = el('button', 'hud-btn shop-listen', playing ? t('■ Stop') : t('▶ Listen'));
   b.setAttribute('aria-pressed', String(playing));
   b.onclick = () => {
     unlockAudio();
@@ -286,7 +303,7 @@ function listenButton(item: ShopItem, ctx: HubContext): HTMLElement {
 function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
   const has = me.owned.includes(item.id);
   const c = el('button', 'shop-card' + (has ? ' owned' : '') + (state.preview === item ? ' previewing' : ''));
-  c.setAttribute('aria-label', `${item.name}, ${has ? 'owned' : priceLabel(item)}`);
+  c.setAttribute('aria-label', has ? t('{name}, owned', { name: t(item.name) }) : `${t(item.name)}, ${priceLabel(item)}`);
   c.onclick = () => {
     state.preview = item;
     state.bundle = null;
@@ -295,19 +312,19 @@ function card(item: ShopItem, me: MeResponse, ctx: HubContext, state: ShopState)
     document.querySelector('.shop-stage')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
   const top = el('span', 'shop-card-top');
-  top.append(el('span', `rarity rarity-${item.rarity}`, item.rarity));
+  top.append(el('span', `rarity rarity-${item.rarity}`, rarityLabel(item)));
   const art = el('span', 'shop-card-art');
   art.innerHTML = itemArt(item);
   const foot = el('span', 'shop-card-foot');
-  if (has) foot.append(el('span', 'shop-owned', 'Owned ✓'));
+  if (has) foot.append(el('span', 'shop-owned', t('Owned ✓')));
   else foot.append(el('span', 'shop-price' + (me.user && affordable(item, me) ? ' can' : ''), priceLabel(item)));
-  c.append(top, art, el('b', 'shop-card-name', item.name), foot);
+  c.append(top, art, el('b', 'shop-card-name', t(item.name)), foot);
   return c;
 }
 
 /** A bundle's picture: your tardi in its hat and skin, with its aim style and effect beside. */
 function giftButton(me: MeResponse, ctx: HubContext, state: ShopState, id: string, art: string): HTMLElement {
-  const b = el('button', 'hud-btn gift-btn', '🎀 Give as a gift');
+  const b = el('button', 'hud-btn gift-btn', t('🎀 Give as a gift'));
   b.onclick = () =>
     openGiftDialog(me, id, art, b, () => {
       state.gifts.sent = null;
@@ -333,7 +350,10 @@ function bundleGrid(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElem
     const price = bundlePrice(b, me.owned);
     const worth = bundleValue(b, me.owned);
     const c = el('button', 'shop-card bundle-card' + (price === 0 ? ' owned' : '') + (state.bundle === b ? ' previewing' : ''));
-    c.setAttribute('aria-label', `${b.name} bundle, ${price === 0 ? 'owned' : `${formatNumber(price)} coins`}`);
+    c.setAttribute(
+      'aria-label',
+      price === 0 ? t('{name} bundle, owned', { name: t(b.name) }) : t('{name} bundle, {n} coins', { name: t(b.name), n: formatNumber(price) }),
+    );
     c.onclick = () => {
       state.bundle = b;
       state.preview = null;
@@ -341,16 +361,16 @@ function bundleGrid(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElem
       document.querySelector('.shop-stage')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     };
     const top = el('span', 'shop-card-top');
-    top.append(el('span', 'rarity rarity-bundle', `${b.items.length} looks`));
-    if (price > 0 && worth > price) top.append(el('span', 'bundle-save', `Save ${Math.round((1 - price / worth) * 100)}%`));
+    top.append(el('span', 'rarity rarity-bundle', t('{n} looks', { n: b.items.length })));
+    if (price > 0 && worth > price) top.append(el('span', 'bundle-save', t('Save {pct}%', { pct: Math.round((1 - price / worth) * 100) })));
     const art = el('span', 'shop-card-art');
     art.innerHTML = bundleArt(b);
     const foot = el('span', 'shop-card-foot');
-    if (price === 0) foot.append(el('span', 'shop-owned', 'Owned ✓'));
+    if (price === 0) foot.append(el('span', 'shop-owned', t('Owned ✓')));
     else {
       foot.append(el('s', 'bundle-was', formatNumber(worth)), el('span', 'shop-price' + (me.user && me.wallet.coins >= price ? ' can' : ''), `🪙 ${formatNumber(price)}`));
     }
-    c.append(top, art, el('b', 'shop-card-name', b.name), foot);
+    c.append(top, art, el('b', 'shop-card-name', t(b.name)), foot);
     grid.append(c);
   }
   return grid;
@@ -363,13 +383,13 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
   art.innerHTML = bundleArt(b);
   const info = el('div', 'shop-stage-info');
   box.append(art, info);
-  info.append(el('span', 'rarity rarity-bundle', 'Bundle'), el('b', '', b.name), el('span', '', b.blurb));
+  info.append(el('span', 'rarity rarity-bundle', t('Bundle')), el('b', '', t(b.name)), el('span', '', t(b.blurb)));
   const list = el('ul', 'bundle-list');
   for (const id of b.items) {
     const item = shopItem(id);
     if (!item) continue;
     const owned = me.owned.includes(id);
-    list.append(el('li', owned ? 'owned' : '', `${owned ? '✓' : '•'} ${item.name} (${priceLabel(item)})`));
+    list.append(el('li', owned ? 'owned' : '', `${owned ? '✓' : '•'} ${t('{name} ({price})', { name: t(item.name), price: priceLabel(item) })}`));
   }
   info.append(list);
   const action = el('div', 'shop-stage-action');
@@ -378,13 +398,13 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
   const price = bundlePrice(b, me.owned);
   const worth = bundleValue(b, me.owned);
   if (price === 0) {
-    action.append(el('span', 'shop-owned', 'Owned ✓'));
+    action.append(el('span', 'shop-owned', t('Owned ✓')));
     const team = loadProfiles()[0];
     const looks = b.items.map(shopItem).filter((i): i is ShopItem => !!i && i.kind !== 'weapon');
     const using = (i: ShopItem) =>
-      i.kind === 'arena' ? chosenArena() : i.kind === 'music' ? chosenMusic() : i.kind === 'sound' ? chosenSounds() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx'];
+      i.kind === 'arena' ? chosenArena() : i.kind === 'music' ? chosenMusic() : i.kind === 'sound' ? chosenSounds() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave'];
     const wearing = looks.every((i) => using(i) === i.ref);
-    const wear = el('button', 'hud-btn', wearing ? 'Wearing the set ✓' : `Wear the set on ${team.name}`);
+    const wear = el('button', 'hud-btn', wearing ? t('Wearing the set ✓') : t('Wear the set on {team}', { team: team.name }));
     wear.disabled = wearing;
     wear.onclick = () => {
       const next: TeamProfile = { ...team };
@@ -401,17 +421,17 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
     action.append(wear);
     return box;
   }
-  action.append(el('span', 'bundle-deal', `Worth 🪙 ${formatNumber(worth)} · you save 🪙 ${formatNumber(worth - price)}`));
+  action.append(el('span', 'bundle-deal', t('Worth 🪙 {worth} · you save 🪙 {saved}', { worth: formatNumber(worth), saved: formatNumber(worth - price) })));
   if (!me.user) {
-    const s = el('button', 'big-btn', 'Sign in to unlock');
+    const s = el('button', 'big-btn', t('Sign in to unlock'));
     s.onclick = () => ctx.go('account');
     action.append(s);
     return box;
   }
   if (me.wallet.coins < price) {
-    action.append(el('span', 'shop-short', `🪙 ${formatNumber(price)} · you need ${formatNumber(price - me.wallet.coins)} more coins`));
+    action.append(el('span', 'shop-short', t('{price} · you need {n} more coins', { price: `🪙 ${formatNumber(price)}`, n: formatNumber(price - me.wallet.coins) })));
     if (me.shop) {
-      const get = el('button', 'big-btn', 'Get coins');
+      const get = el('button', 'big-btn', t('Get coins'));
       get.onclick = () => {
         state.category = 'coins';
         ctx.rerender();
@@ -420,8 +440,8 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
     }
     return box;
   }
-  const buy = el('button', 'big-btn', `Unlock the set for 🪙 ${formatNumber(price)}`);
-  buy.title = `${formatNumber(price)} coins (${coinValue(price)})`;
+  const buy = el('button', 'big-btn', t('Unlock the set for 🪙 {n}', { n: formatNumber(price) }));
+  buy.title = t('{n} coins ({value})', { n: formatNumber(price), value: coinValue(price) });
   buy.disabled = ctx.busy;
   buy.onclick = () => ctx.run(() => unlock(b.id));
   action.append(buy);
@@ -435,19 +455,19 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
  * claims).
  */
 const PACK_LOOKS: Record<string, { art: string; name: string }> = {
-  'coins:200': { art: 'pouch', name: 'Pocket pouch' },
-  'coins:500': { art: 'stack', name: 'Coin stack' },
-  'coins:1000': { art: 'chest', name: 'Treasure chest' },
-  'coins:2000': { art: 'vault', name: 'Royal hoard' },
-  'coins:5000': { art: 'mountain', name: 'Mountain of coins' },
-  'coins:10000': { art: 'dragon', name: "Dragon's hoard" },
+  'coins:200': { art: 'pouch', name: tk('Pocket pouch') },
+  'coins:500': { art: 'stack', name: tk('Coin stack') },
+  'coins:1000': { art: 'chest', name: tk('Treasure chest') },
+  'coins:2000': { art: 'vault', name: tk('Royal hoard') },
+  'coins:5000': { art: 'mountain', name: tk('Mountain of coins') },
+  'coins:10000': { art: 'dragon', name: tk("Dragon's hoard") },
 };
 
 /** The pack with the lowest price per coin. */
 const bestValue = (): string => COIN_PACKS.reduce((a, b) => (pencePerCoin(b) < pencePerCoin(a) ? b : a)).id;
 
 /** "0.83p a coin". */
-const perCoin = (pence: number): string => `${pence.toFixed(2)}p a coin`;
+const perCoin = (pence: number): string => t('{pence}p a coin', { pence: pence.toFixed(2) });
 
 // In the Android app coin packs are bought with Google Play Billing, at the
 // price Google shows the player (their currency): fetched once, then cached.
@@ -545,8 +565,8 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
   const hero = el('div', 'banner-hero');
   hero.innerHTML = itemArt(items[0]);
   const text = el('div', 'banner-text');
-  text.append(el('span', 'banner-kicker', '✨ Featured looks'), el('b', 'banner-title', items[0].name), el('span', 'banner-sub', items[0].blurb));
-  const go = el('button', 'big-btn banner-go', 'Try it on');
+  text.append(el('span', 'banner-kicker', t('✨ Featured looks')), el('b', 'banner-title', t(items[0].name)), el('span', 'banner-sub', t(items[0].blurb)));
+  const go = el('button', 'big-btn banner-go', t('Try it on'));
   go.onclick = () => {
     state.preview = items[0];
     state.bundle = null;
@@ -557,10 +577,10 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
   const minis = el('div', 'banner-minis');
   for (const item of items) {
     const b = el('button', 'banner-mini');
-    b.setAttribute('aria-label', `Show ${item.name}`);
+    b.setAttribute('aria-label', t('Show {name}', { name: t(item.name) }));
     const art = el('span', 'banner-mini-art');
     art.innerHTML = itemArt(item);
-    b.append(el('span', `rarity rarity-${item.rarity}`, item.rarity), art, el('span', 'banner-mini-name', item.name), el('span', 'shop-price', priceLabel(item)));
+    b.append(el('span', `rarity rarity-${item.rarity}`, rarityLabel(item)), art, el('span', 'banner-mini-name', t(item.name)), el('span', 'shop-price', priceLabel(item)));
     b.onclick = () => {
       state.preview = item;
       state.bundle = null;
@@ -579,7 +599,7 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
  */
 function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTMLElement): void {
   const host = document.getElementById('ui') ?? document.body;
-  const look = PACK_LOOKS[pack.id] ?? { art: 'pouch', name: 'Coins' };
+  const look = PACK_LOOKS[pack.id] ?? { art: 'pouch', name: tk('Coins') };
   const total = packTotal(pack);
   const overlay = el('div', 'editor-overlay checkout-overlay');
   const box = el('div', 'coin-dialog');
@@ -603,16 +623,16 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     if (e.target === overlay) close();
   };
   const x = el('button', 'coin-dialog-x', '×');
-  x.setAttribute('aria-label', 'Close');
+  x.setAttribute('aria-label', t('Close'));
   x.onclick = close;
 
   const art = el('div', 'coin-dialog-art');
   art.innerHTML = packArt(look.art);
-  const title = el('h2', 'coin-dialog-title', look.name);
+  const title = el('h2', 'coin-dialog-title', t(look.name));
   title.id = 'coin-dialog-title';
-  const coins = el('div', 'coin-dialog-coins', `🪙 ${formatNumber(total)} coins`);
+  const coins = el('div', 'coin-dialog-coins', t('🪙 {n} coins', { n: formatNumber(total) }));
   const rate = inApp() ? '' : perCoin(pencePerCoin(pack));
-  const sub = el('div', 'coin-dialog-sub', pack.bonus ? `${formatNumber(pack.coins)} + ${formatNumber(pack.bonus)} bonus${rate ? ` · ${rate}` : ''}` : rate);
+  const sub = el('div', 'coin-dialog-sub', pack.bonus ? t('{coins} + {bonus} bonus', { coins: formatNumber(pack.coins), bonus: formatNumber(pack.bonus) }) + (rate ? ` · ${rate}` : '') : rate);
   // The pack on top (on the left on short landscape screens), what to do below (or beside).
   const head = el('div', 'coin-dialog-head');
   head.append(art, title, coins, sub);
@@ -620,33 +640,36 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
   box.append(x, head, body);
 
   if (!me.user) {
-    const b = el('button', 'big-btn', 'Sign in to buy coins');
+    const b = el('button', 'big-btn', t('Sign in to buy coins'));
     b.onclick = () => {
       close();
       ctx.go('account');
     };
-    body.append(el('p', 'account-note', 'Coins are kept on your account, so you need one to buy them. It only takes a moment.'), b);
+    body.append(el('p', 'account-note', t('Coins are kept on your account, so you need one to buy them. It only takes a moment.')), b);
   } else {
     const consent = el('label', 'account-check');
     const tick = el('input');
     tick.type = 'checkbox';
     const text = el('span');
     text.append(
-      `I want my ${formatNumber(total)} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected (`,
-      legalLink('terms-of-service', 'Terms'),
-      ' §5).',
+      ...withNodes(
+        t("I want my {n} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected ({terms} §5).", {
+          n: formatNumber(total),
+        }),
+        { terms: legalLink('terms-of-service', t('Terms')) },
+      ),
     );
     consent.append(tick, text);
     // Every pack also needs a grown-up's say-so (Terms 5.1.1).
     const adult = el('label', 'account-check');
     const adultTick = el('input');
     adultTick.type = 'checkbox';
-    adult.append(adultTick, el('span', '', "I'm 18 or over, or a parent or carer has said yes to this purchase."));
-    const payLabel = `Pay ${packPrice(pack)}`;
+    adult.append(adultTick, el('span', '', t("I'm 18 or over, or a parent or carer has said yes to this purchase.")));
+    const payLabel = t('Pay {price}', { price: packPrice(pack) });
     const pay = el('button', 'big-btn coin-dialog-pay', payLabel);
     const error = el('p', 'coin-dialog-error');
     error.setAttribute('role', 'alert');
-    const hint = el('p', 'coin-dialog-hint', 'Tick both boxes to continue');
+    const hint = el('p', 'coin-dialog-hint', t('Tick both boxes to continue'));
     let busy = false;
     const update = () => {
       const ready = tick.checked && adultTick.checked;
@@ -657,7 +680,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     adultTick.onchange = update;
     pay.onclick = async () => {
       busy = true;
-      pay.textContent = inApp() ? 'Opening Google Play…' : 'Opening secure checkout…';
+      pay.textContent = inApp() ? t('Opening Google Play…') : t('Opening secure checkout…');
       update();
       error.textContent = '';
       const again = () => {
@@ -675,16 +698,16 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
         close();
         ctx.notify(
           r.result === 'done'
-            ? `Thanks! ${formatNumber(r.coins || total)} coins are in your wallet.`
-            : "Thanks! Your payment is still going through: the coins will appear as soon as Google Play confirms it.",
+            ? t('Thanks! {n} coins are in your wallet.', { n: formatNumber(r.coins || total) })
+            : t('Thanks! Your payment is still going through: the coins will appear as soon as Google Play confirms it.'),
         );
       } catch (e) {
-        error.textContent = e instanceof Error ? e.message : String(e);
+        error.textContent = t(e instanceof Error ? e.message : String(e));
         again();
       }
     };
     body.append(consent, adult);
-    body.append(pay, hint, error, el('p', 'coin-dialog-small', inApp() ? '🔒 You pay with Google Play. Prices include tax.' : '🔒 You pay on Stripe\'s secure page. Prices include VAT.'));
+    body.append(pay, hint, error, el('p', 'coin-dialog-small', inApp() ? t('🔒 You pay with Google Play. Prices include tax.') : t("🔒 You pay on Stripe's secure page. Prices include VAT.")));
     update();
   }
   overlay.append(box);
@@ -699,46 +722,57 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   const head = el('div', 'coins-head');
   const icon = el('span', 'coins-head-icon');
   icon.innerHTML = coinIcon();
-  head.append(icon, el('h3', '', 'Get coins'), el('span', '', `Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include ${inApp() ? 'tax' : 'VAT'}.`));
+  head.append(
+    icon,
+    el('h3', '', t('Get coins')),
+    el(
+      'span',
+      '',
+      inApp()
+        ? t('Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include tax.')
+        : t('Coins unlock hats, skins, aim styles, effects and bundles. Bigger packs come with bonus coins. Prices include VAT.'),
+    ),
+  );
   box.append(head);
   const rules = inApp() ? coinRules(age) : {};
   if (inApp()) {
     loadInAppPrices(ctx);
     loadAgeSignal(ctx, box);
-    if (inAppPricesFailed) box.append(el('p', 'account-note', "Couldn't get prices from Google Play. Check your connection, then open the shop again."));
-    if (rules.blocked) box.append(el('p', 'account-note coin-age', rules.blocked));
-    else if (rules.note) box.append(el('p', 'account-note coin-age', rules.note));
+    if (inAppPricesFailed) box.append(el('p', 'account-note', t("Couldn't get prices from Google Play. Check your connection, then open the shop again.")));
+    if (rules.blocked) box.append(el('p', 'account-note coin-age', t(rules.blocked)));
+    else if (rules.note) box.append(el('p', 'account-note coin-age', t(rules.note)));
   }
 
   const grid = el('div', 'coin-grid');
   const best = bestValue();
   for (const p of COIN_PACKS) {
-    const look = PACK_LOOKS[p.id] ?? { art: 'pouch', name: `${formatNumber(p.coins)} coins` };
+    const look = PACK_LOOKS[p.id];
+    const packName = look ? t(look.name) : t('{n} coins', { n: formatNumber(p.coins) });
     const total = packTotal(p);
-    const tag = p.id === best ? 'Best value' : p.bonus ? `+${Math.round((p.bonus / p.coins) * 100)}% bonus` : '';
+    const tag = p.id === best ? t('Best value') : p.bonus ? t('+{pct}% bonus', { pct: Math.round((p.bonus / p.coins) * 100) }) : '';
     const b = el('button', 'coin-pack' + (tag ? ' tagged' : '') + (p.id === best ? ' best' : ''));
-    b.setAttribute('aria-label', `${formatNumber(total)} coins for ${packPrice(p)}`);
+    b.setAttribute('aria-label', t('{n} coins for {price}', { n: formatNumber(total), price: packPrice(p) }));
     if (tag) b.append(el('span', 'pack-tag', tag));
     const art = el('span', 'pack-art');
-    art.innerHTML = packArt(look.art);
+    art.innerHTML = packArt(look?.art ?? 'pouch');
     const ex = examples(total, me.owned);
     const exBox = el('span', 'pack-examples');
     if (ex.length) {
       const count = lookCount(total, me.owned);
-      exBox.append(el('span', 'pack-eg', count.all ? 'Enough for every look in the shop!' : count.n > 3 ? `Enough for up to ${count.n} looks, e.g.` : 'Enough for e.g.'));
+      exBox.append(el('span', 'pack-eg', count.all ? t('Enough for every look in the shop!') : count.n > 3 ? t('Enough for up to {n} looks, e.g.', { n: count.n }) : t('Enough for e.g.')));
       const row = el('span', 'pack-eg-row');
       for (const item of ex) {
         const m = el('span', 'pack-eg-item');
-        m.title = `${item.name} (${priceLabel(item)})`;
+        m.title = t('{name} ({price})', { name: t(item.name), price: priceLabel(item) });
         m.innerHTML = itemArt(item);
         row.append(m);
       }
       exBox.append(row);
     }
-    const bonus = el('span', 'pack-bonus' + (p.bonus ? '' : ' none'), p.bonus ? `${formatNumber(p.coins)} + ${formatNumber(p.bonus)} bonus` : 'No bonus');
+    const bonus = el('span', 'pack-bonus' + (p.bonus ? '' : ' none'), p.bonus ? t('{coins} + {bonus} bonus', { coins: formatNumber(p.coins), bonus: formatNumber(p.bonus) }) : t('No bonus'));
     b.append(
       art,
-      el('span', 'pack-name', look.name),
+      el('span', 'pack-name', packName),
       el('b', 'pack-coins', `🪙 ${formatNumber(total)}`),
       bonus,
       exBox,
@@ -750,13 +784,13 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
     b.onclick = () => openCheckout(me, ctx, p, b);
     grid.append(b);
   }
-  box.append(grid, el('p', 'coins-pick', '👆 Tap a pack to buy it'));
+  box.append(grid, el('p', 'coins-pick', t('👆 Tap a pack to buy it')));
 
   const trust = el('ul', 'coin-trust');
   const trustLines = inApp()
-    ? ['🔒 Secure checkout by Google Play', '🧾 Receipt from Google', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win']
-    : ['🔒 Secure checkout by Stripe', '🧾 Receipt by email', '🪙 Coins stay with your account', '✅ Looks only: never pay-to-win'];
-  for (const t of trustLines) trust.append(el('li', '', t));
-  box.append(trust, el('p', 'account-note', 'Coins have no cash value. Under 18? Please ask a parent or carer before buying.'));
+    ? [t('🔒 Secure checkout by Google Play'), t('🧾 Receipt from Google'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')]
+    : [t('🔒 Secure checkout by Stripe'), t('🧾 Receipt by email'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')];
+  for (const line of trustLines) trust.append(el('li', '', line));
+  box.append(trust, el('p', 'account-note', t('Coins have no cash value. Under 18? Please ask a parent or carer before buying.')));
   return box;
 }

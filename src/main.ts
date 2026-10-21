@@ -4,59 +4,43 @@ import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
-import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearMusic, wearSkin, wearSounds } from './account/session';
-import { MatchTally } from './stats/tally';
+import { applyAccess } from './ui/access';
+import { loadLang, t } from './i18n/i18n';
+import { confirmEmail, finishPlayPurchases, refreshAccount } from './account/session';
 import { showHub, type Hub } from './ui/hub';
-// Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
-import 'pixi.js/unsafe-eval';
-import { Application } from 'pixi.js';
-import { createWorld, tick, type TeamConfig } from './sim/world';
-import { Coach, choosePractice, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
-import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
-import { GameRenderer } from './render/renderer';
-import { arenaTheme } from './render/arenas';
-import { Banter } from './render/banter';
-import { loadProfiles, matchNames } from './ui/teams';
-import { InputCollector, attachKeyboard, doAction, type KeyboardHooks } from './input/input';
-import { actionFor, controls } from './input/controls';
-import { WEAPONS } from './sim/weapons';
-import { Hud } from './ui/hud';
-import { CpuPlayer, type CpuSkill } from './ai/cpu';
-import { sfx, useSoundPack } from './audio/sfx';
-import { anySound, audioRunning, pauseAudio, toggleAllSound, unlockAudio } from './audio/mixer';
-import { playMusic, previewMusic, refreshMusic } from './audio/music';
-import { attachNative } from './native';
+import type { Match, MatchMode } from './match';
+import { choosePractice } from './ui/learn';
+import type { ChallengeKind } from './challenge/meta';
+import { chooseChallenge } from './ui/challenge';
+import { openReplays } from './ui/replays';
+import type { MatchReplay } from './stats/matchReplay';
+import { loadProfiles } from './ui/teams';
+import type { CpuSkill } from './ai/skills';
+import { audioRunning, pauseAudio, unlockAudio } from './audio/mixer';
+import { refreshMusic } from './audio/music';
+import { attachNative, isNativeApp } from './native';
 import { onPlayPurchasesUpdated } from './shop/playBilling';
 import type { MatchSetup } from './ui/menu';
-import { loadRejoin, showOnline } from './ui/online';
-import { NetClient } from './net/client';
-import { hideTeams, isBlocked, tardiLabel, teamLabel } from './net/blocked';
-import { openPlayers } from './ui/safety';
-import { Lockstep, SeenInput, connectionState } from './net/lockstep';
-import { toWire, type ServerMsg } from './net/protocol';
+import type { ServerMsg } from './net/protocol';
+type OnlineModule = typeof import('./ui/online');
+import type { NetClient } from './net/client';
+import type { Lockstep } from './net/lockstep';
 import { presetScheme } from './sim/schemes';
-import { ANGLE_FULL } from './sim/math/trig';
 
-const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
-
+  void initTextSize();
+  applyAccess();
 async function boot(): Promise<void> {
   void initTextSize();
   if (touchMode) enforceLandscape();
-  const app = new Application();
-  await app.init({
-    resizeTo: window,
-    background: '#7fd3f7',
-    antialias: true,
-    autoDensity: true,
-    resolution: Math.min(window.devicePixelRatio || 1, 2),
-  });
-  document.getElementById('game')!.appendChild(app.canvas);
+  // The player's language (if not English) loads alongside the font.
+  const langReady = loadLang();
   try {
     await document.fonts.load('16px "Luckiest Guy"');
   } catch {
     /* fall back to system font */
   }
+  await langReady;
 
   // Browsers only allow sound after a tap or key press: start the menu music on the first one.
   // A touch only counts once the finger lifts (pointerup / touchend / click), not on pointerdown,
@@ -74,58 +58,74 @@ async function boot(): Promise<void> {
   const ui = document.getElementById('ui')!;
   let current: Match | null = null;
   let hub = null as Hub | null; // set by menu()
-  let onlineScreen = null as ReturnType<typeof showOnline> | null; // set by online()
+  let onlineScreen = null as ReturnType<OnlineModule['showOnline']> | null; // set by online()
+  /** Bumped by every new screen, so a match that finishes loading late doesn't start over it. */
+  let screen = 0;
 
   const menu = () => {
+    screen++;
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice));
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge), () => openReplays(ui, watch), () => void mapEditor());
   };
-  const start = (setup: MatchSetup) => {
+  /** Start a match, loading the game (renderer and all) the first time. */
+  const play = async (mode: MatchMode, onMenu: () => void, onAgain: () => void): Promise<Match | null> => {
+    const mine = ++screen;
     current?.destroy();
+    current = null;
     hub = onlineScreen = null;
-    ui.innerHTML = '';
+    ui.innerHTML = `<p class="loading-game" role="status">${t('Loading…')}</p>`;
     unlockAudio();
-    current = new Match(app, ui, { kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
-  };
-  const tutorial = () => {
-    current?.destroy();
-    hub = onlineScreen = null;
+    const { Match, gameApp } = await loadGame();
+    const app = await gameApp();
+    if (mine !== screen) return null; // they went somewhere else meanwhile
     ui.innerHTML = '';
-    unlockAudio();
-    current = new Match(app, ui, { kind: 'tutorial' }, menu, tutorial);
+    current = new Match(app, ui, mode, onMenu, onAgain);
+    return current;
   };
-  const practice = (endless: boolean) => {
-    current?.destroy();
-    hub = onlineScreen = null;
-    ui.innerHTML = '';
-    unlockAudio();
-    current = new Match(app, ui, { kind: 'practice', endless }, menu, () => practice(endless));
+  const start = (setup: MatchSetup) => void play({ kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
+  const tutorial = () => void play({ kind: 'tutorial' }, menu, tutorial);
+  const challenge = (kind: ChallengeKind) => void play({ kind: 'challenge', challenge: kind }, menu, () => challenge(kind));
+  const watch = (replay: MatchReplay) => void play({ kind: 'replay', replay }, menu, () => watch(replay));
+  const mapEditor = async () => {
+    const { openMapEditor } = await import('./ui/editor');
+    openMapEditor(ui, {
+      onPlay: (map) => start({ players: [false, true], teams: loadProfiles().slice(0, 2), scheme: { ...presetScheme('standard'), customMap: map }, seed: (Math.random() * 1e9) | 0, cpuSkill: 'normal' }),
+      onClose: menu, // the Map list in Customise picks up new maps
+    });
   };
-  const online = (opts: Parameters<typeof showOnline>[2] = {}) => {
+  const practice = (endless: boolean) => void play({ kind: 'practice', endless }, menu, () => practice(endless));
+  const online = async (opts: Parameters<OnlineModule['showOnline']>[2] = {}) => {
+    const mine = ++screen;
     current?.destroy();
     current = null;
     hub = null;
-    onlineScreen = showOnline(ui, { onBack: menu, onStart: startOnline }, opts);
+    const { showOnline } = await import('./ui/online');
+    if (mine !== screen) return;
+    onlineScreen = showOnline(ui, { onBack: menu, onStart: (c, ls) => void startOnline(c, ls) }, opts);
   };
-  const startOnline = (client: NetClient, ls: Lockstep) => {
-    current?.destroy();
-    hub = onlineScreen = null;
-    ui.innerHTML = '';
-    unlockAudio();
-    const m: Match = new Match(
-      app,
-      ui,
+  const startOnline = async (client: NetClient, ls: Lockstep) => {
+    // Frames the server sends while the game is still loading: kept, then handed over.
+    const early: ServerMsg[] = [];
+    const off = client.on((msg) => {
+      if (msg.t === 'frames' || msg.t === 'hash') early.push(msg);
+    });
+    let m: Match | null = null;
+    m = await play(
       { kind: 'online', client, ls },
       () => {
         client.close();
         menu();
       },
-      () => online({ client, room: m.lastRoom ?? undefined }),
+      () => online({ client, room: m?.lastRoom ?? undefined }),
     );
-    m.onNetStart = (next) => startOnline(client, next);
-    current = m;
+    off();
+    for (const msg of early) {
+      if (msg.t === 'frames') ls.onFrames(msg.from, msg.f);
+      else if (msg.t === 'hash') ls.onHash(msg.tick, msg.h);
+    }
+    if (m) m.onNetStart = (next) => void startOnline(client, next);
   };
   // Phone apps: the back button steps back through the screens; pausing silences the game.
   attachNative({
@@ -148,16 +148,23 @@ async function boot(): Promise<void> {
   const room = params.get('room');
   if (auto === 'tutorial') tutorial();
   else if (auto === 'practice') practice(params.get('endless') !== null);
+  else if (auto === 'targets' || auto === 'rope') challenge(auto);
   else if (auto) {
-    // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU)
+    // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU),
+    // &style=PRESET (game style), &map=STYLE (map style) and &seed=N.
     const n = Number(params.get('players')) || 2;
     const players = Array.from({ length: n }, (_, i) => (auto === 'hotseat' ? false : i > 0));
     const skill = (params.get('skill') ?? 'normal') as CpuSkill;
-    start({ players, teams: loadProfiles().slice(0, n), scheme: presetScheme('standard'), seed: 12345, cpuSkill: skill });
+    const scheme = { ...presetScheme(params.get('style') ?? 'standard'), mapStyle: params.get('map') ?? undefined };
+    start({ players, teams: loadProfiles().slice(0, n), scheme, seed: Number(params.get('seed')) || 12345, cpuSkill: skill });
   } else if (room) {
     // Invite link: ?room=CODE
     online({ code: room.toUpperCase() });
   } else menu();
+
+  // The game itself downloads, and its renderer starts, as soon as the first
+  // screen is up, so Play (or a match an invite link joins) starts at once.
+  setTimeout(() => void loadGame().then((g) => g.gameApp()), 0);
 
   // Links from our emails: ?reset=TOKEN (choose a new password), ?verify=TOKEN (confirm the email).
   // Taken out of the address bar straight away, so they don't linger in history.
@@ -174,7 +181,7 @@ async function boot(): Promise<void> {
   if (verify) {
     try {
       await confirmEmail(verify);
-      hub?.go('account', 'Thanks! Your email is confirmed.');
+      hub?.go('account', t('Thanks! Your email is confirmed.'));
     } catch (e) {
       hub?.go('account', e instanceof Error ? e.message : String(e));
     }
@@ -184,511 +191,30 @@ async function boot(): Promise<void> {
   if (shop) {
     history.replaceState(null, '', location.pathname);
     if (shop === 'done') {
-      hub?.go('shop', 'Thanks! Your coins will appear in your wallet in a moment.');
+      hub?.go('shop', t('Thanks! Your coins will appear in your wallet in a moment.'));
       // Stripe tells the server a few seconds after paying, so check back a few times.
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 2000));
         if (((await refreshAccount())?.wallet.coins ?? 0) > before) break;
       }
-    } else hub?.go('shop', 'Payment cancelled: nothing was charged.');
+    } else hub?.go('shop', t('Payment cancelled: nothing was charged.'));
   }
 }
 
-type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'online'; client: NetClient; ls: Lockstep };
-
-class Match {
-  private local: WorldState | null = null;
-  private net: { client: NetClient; ls: Lockstep } | null = null;
-  private renderer: GameRenderer;
-  private input = new InputCollector();
-  private hud: Hud;
-  private banter = new Banter();
-  private cpu = new Map<number, { next: (s: WorldState) => InputFrame }>();
-  /** The tutorial's coach card (tutorial matches only). */
-  private coach: Coach | null = null;
-  private events: SimEvent[] = [];
-  /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
-  private tally: MatchTally | null = null;
-  private acc = 0;
-  private last = performance.now();
-  private detachKeys: () => void;
-  private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean; aim: boolean; button: number }>();
-  private pinchDist = 0;
-  private over = false;
-  private destroyed = false;
-  private tickerFn = () => this.frame();
-  private keyHooks: KeyboardHooks = {
-    onWeaponPanel: () => this.hud.togglePanel(),
-    onEscape: () => this.hud.togglePanel(false),
-  };
-  // Online bookkeeping
-  private offNet: (() => void) | null = null;
-  private sentHeld = 0;
-  private sentTurn = -1;
-  private resyncAsked = false;
-  private reconnecting = false;
-  private seen = new SeenInput();
-  /** When the server last sent frames (ms), to notice a struggling connection. */
-  private heardAt = performance.now();
-  /** Connections dropped for going quiet since frames last came (stops trying after a few). */
-  private quietDrops = 0;
-  /** Called when the server starts a new match on this connection (a rematch). */
-  onNetStart: ((ls: Lockstep) => void) | null = null;
-  /** Latest lobby state from the server (for "Back to room" after the match). */
-  lastRoom: Extract<ServerMsg, { t: 'room' }> | null = null;
-
-  constructor(
-    private app: Application,
-    private ui: HTMLElement,
-    mode: MatchMode,
-    private onMenu: () => void,
-    private onAgain: () => void,
-  ) {
-    if (mode.kind === 'local') {
-      const setup = mode.setup;
-      const teams: TeamConfig[] = setup.players.map((cpu, i) => {
-        const p = setup.teams[i];
-        return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, i), cpu };
-      });
-      // Season weapons this player has unlocked are switched on for everyone in the match.
-      this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
-      // Only one human (the player's own team, slot 0) against the CPU counts for their stats.
-      if (!setup.players[0] && setup.players.slice(1).every(Boolean) && !this.local.race) this.tally = new MatchTally(teams.length);
-      for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
-    } else if (mode.kind === 'tutorial') {
-      const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
-      this.local = createWorld(tutorialWorld(you));
-      this.cpu.set(1, dummyPlayer);
-      this.coach = new Coach(touchMode, { onMenu, onAgain });
-    } else if (mode.kind === 'practice') {
-      // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
-      const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
-      this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
-      this.cpu.set(1, dummyPlayer);
-    } else {
-      this.net = { client: mode.client, ls: mode.ls };
-      this.listenNet();
-    }
-
-    this.renderer = new GameRenderer(app, this.state, arenaTheme(wearArena()));
-    this.renderer.onSound = (name) => sfx[name]();
-    // Online: names of players you've blocked are hidden from you.
-    this.hideBlocked();
-    const onPlayers = this.net ? () => this.showPlayers() : undefined;
-    this.hud = new Hud(this.input, { onQuit: onMenu, onToggleMute: () => toggleAllSound(), muted: !anySound(), onPlayers }, touchMode);
-    // This player's own match music and sound pack (only they hear them).
-    useSoundPack(wearSounds());
-    previewMusic(null);
-    playMusic(wearMusic());
-    ui.append(this.hud.root);
-    if (this.coach) {
-      this.hud.root.classList.add('has-coach');
-      ui.append(this.coach.root);
-    }
-    this.detachKeys = attachKeyboard(this.input, this.keyHooks);
-    this.attachPointer();
-    this.announceTurn();
-    app.ticker.add(this.tickerFn);
-    (window as unknown as { __tardi: unknown }).__tardi = this; // for e2e tests
-  }
-
-  get state(): WorldState {
-    return this.net ? this.net.ls.state : this.local!;
-  }
-
-  get world(): WorldState {
-    return this.state;
-  }
-
-  private listenNet(): void {
-    const net = this.net!;
-    this.offNet = net.client.on((msg) => {
-      switch (msg.t) {
-        case 'frames':
-          this.heardAt = performance.now();
-          this.quietDrops = 0;
-          net.ls.onFrames(msg.from, msg.f);
-          break;
-        case 'hash': net.ls.onHash(msg.tick, msg.h); break;
-        case 'snapshot':
-          net.ls.onSnapshot(msg.state, msg.you);
-          this.heardAt = performance.now();
-          this.resyncAsked = false;
-          // The world was replaced wholesale: redraw it from scratch.
-          this.renderer.destroy();
-          this.renderer = new GameRenderer(this.app, this.state, arenaTheme(wearArena()));
-          this.renderer.onSound = (name) => sfx[name]();
-          break;
-        case 'room': this.lastRoom = msg; break;
-        case 'start':
-          // The host started a rematch while we were still on the results screen.
-          this.onNetStart?.(Lockstep.start(msg.seed, msg.scheme, msg.teams, msg.you));
-          break;
-        case 'error': this.hud.showBanner(msg.msg, 0xe04848, 3); break;
-      }
-    });
-    net.client.onDrop = () => void this.reconnect();
-  }
-
-  /** Lost the server: keep trying to get back into our slot. */
-  private async reconnect(): Promise<void> {
-    if (this.reconnecting || !this.net) return;
-    this.reconnecting = true;
-    const re = loadRejoin();
-    for (let i = 0; i < 15 && this.net && re; i++) {
-      this.hud.showBanner('Reconnecting…', 0x7d8a99, 2.2);
-      try {
-        await this.net.client.connect();
-        this.net.client.join(re.code, { name: '', color: 0, hat: '', names: [] }, re.token);
-        this.heardAt = performance.now();
-        this.reconnecting = false;
-        return;
-      } catch {
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-    }
-    this.reconnecting = false;
-    if (this.net) this.hud.showBanner('Disconnected', 0xe04848, 5);
-  }
-
-  /** Hide the names of teams whose players this player has blocked (online only). */
-  private hideBlocked(): void {
-    const room = this.net?.client.room;
-    hideTeams(room ? room.slots.flatMap((sl, i) => (sl.pid && isBlocked(sl.pid) ? [i] : [])) : []);
-  }
-
-  /** 👥: the other players in this match, to report or block. */
-  private showPlayers(): void {
-    const net = this.net;
-    const room = net?.client.room;
-    if (!net || !room) return;
-    openPlayers(this.ui, room.slots, net.ls.you, (idx, reason) => net.client.report(idx, reason), () => {
-      // Blocking changes the names on screen: redraw the world.
-      this.hideBlocked();
-      this.renderer.destroy();
-      this.renderer = new GameRenderer(this.app, this.state, arenaTheme(wearArena()));
-      this.renderer.onSound = (name) => sfx[name]();
-    });
-  }
-
-  /** The phone's back button: close the weapon panel, else offer to quit. */
-  back(): void {
-    if (this.hud.panelOpen) this.hud.togglePanel(false);
-    else if (this.over || confirm('Quit this match?')) this.onMenu();
-  }
-
-  private isHumanTurn(): boolean {
-    if (this.net) return this.net.ls.myTurn;
-    const team = this.state.teams[this.state.turn.teamIdx];
-    return !team.cpu && this.state.turn.phase !== 'gameover';
-  }
-
-  private frame(): void {
-    const now = performance.now();
-    const dt = Math.min(250, now - this.last);
-    this.last = now;
-    this.acc += dt;
-    if (this.net) this.netFrame();
-    else {
-      const s = this.local!;
-      while (this.acc >= TICK_MS) {
-        this.acc -= TICK_MS;
-        const team = s.teams[s.turn.teamIdx];
-        const human = this.isHumanTurn();
-        const humanInput = this.input.frame(); // always drain
-        const input = team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
-        this.renderer.capturePrev(s);
-        const from = this.events.length;
-        tick(s, input, this.events);
-        this.tally?.add(s, this.events.slice(from));
-      }
-    }
-    this.coach?.update({
-      state: this.state,
-      events: this.events,
-      humanTurn: this.isHumanTurn(),
-      panelOpen: this.hud.panelOpen,
-      camera: this.renderer.camera,
-    });
-    this.renderer.handleEvents(this.events);
-    this.banter.onEvents(this.state, this.events, (id, text) => this.renderer.say(id, text));
-    this.playSounds(this.events);
-    this.events.length = 0;
-    this.renderer.render(this.state, Math.min(1, this.acc / TICK_MS), dt / 1000, true);
-    this.hud.update(this.state, this.isHumanTurn());
-  }
-
-  /** Online: send our inputs on our turn, and play the frames the server sends. */
-  private netFrame(): void {
-    const { client, ls } = this.net!;
-    while (this.acc >= TICK_MS) {
-      this.acc -= TICK_MS;
-      const f = this.input.frame();
-      if (ls.myTurn) {
-        // The server forgets held buttons when a turn starts.
-        if (ls.state.turn.turnNumber !== this.sentTurn) {
-          this.sentTurn = ls.state.turn.turnNumber;
-          this.sentHeld = 0;
-        }
-        if (f.held !== this.sentHeld || f.pressed !== 0 || f.cmd) {
-          for (const g of this.seen.frames(f, this.sentHeld, ls.state)) client.send({ t: 'input', f: toWire(g) });
-          this.sentHeld = f.held;
-        }
-      }
-      if (ls.buffered > 0) {
-        this.renderer.capturePrev(ls.state);
-        ls.step(this.events);
-      } else {
-        // Waiting on the server: don't bank time we'd then rush through.
-        this.acc = Math.min(this.acc, TICK_MS);
-      }
-    }
-    // Fell behind (slow device or a burst of frames): catch up quickly.
-    while (ls.buffered > 6) {
-      this.renderer.capturePrev(ls.state);
-      ls.step(this.events);
-    }
-    if (ls.desynced && !this.resyncAsked) {
-      this.resyncAsked = true;
-      client.send({ t: 'resync' });
-    }
-    // The server sends frames all match long, so a gap means trouble: say so,
-    // and if it goes on, stop waiting on this connection and make a new one.
-    if (!this.reconnecting && ls.state.turn.phase !== 'gameover') {
-      const health = connectionState(performance.now() - this.heardAt);
-      if (health === 'lost' && this.quietDrops < 3) {
-        this.quietDrops++;
-        client.drop();
-      } else if (health === 'lost') this.hud.showBanner('Disconnected', 0xe04848, 1);
-      else if (health === 'slow') this.hud.showBanner('⚠️ Slow connection…', 0xe0a030, 1);
-    }
-  }
-
-  private playSounds(events: SimEvent[]): void {
-    let hurt = false; // one voice per batch of damage
-    for (const e of events) {
-      switch (e.t) {
-        case 'explosion': sfx.explosion(e.r); break;
-        case 'fire': sfx.fire(); break;
-        case 'shot': sfx.shot(); break;
-        case 'jump': sfx.jump(); break;
-        case 'splash': sfx.splash(); break;
-        case 'bounce': sfx.bounce(); break;
-        case 'teleport': sfx.teleport(); break;
-        case 'rope': sfx.rope(); break;
-        case 'chute': sfx.chute(); break;
-        case 'punch': sfx.punch(); break;
-        case 'terrain': sfx.build(); break;
-        case 'mineArmed': sfx.tick(); break;
-        case 'crateDrop': sfx.chute(); break;
-        case 'collect': sfx.collect(); break;
-        case 'heal': sfx.collect(); break;
-        case 'dud': sfx.bounce(); break;
-        case 'suddenDeath':
-          sfx.suddenDeath();
-          setTimeout(() => this.hud.showBanner('SUDDEN DEATH!', 0xe04848, 2.5), 2100);
-          break;
-        case 'waterRise': sfx.splash(); break;
-        case 'gas': sfx.chute(); break;
-        case 'damage':
-          if (!hurt) {
-            hurt = true;
-            if (e.amount >= 35) sfx.oof();
-            else sfx.squeak();
-          }
-          break;
-        case 'drown': sfx.gargle(); break;
-        case 'finish': {
-          sfx.collect();
-          const tm = this.state.teams[e.team];
-          this.hud.showBanner(`${teamLabel(tm)}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, tm.color, 2.5);
-          break;
-        }
-        case 'turnStart':
-          sfx.turn();
-          this.announceTurn();
-          break;
-        case 'gameover':
-          if (!this.over) {
-            this.over = true;
-            playMusic(null);
-            sfx.fanfare();
-            // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
-            const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
-            if (youLost) sfx.wahwah();
-            if (this.tally) {
-              void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] }).then((slime) => {
-                if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);
-              });
-            }
-            if (this.coach) break; // the coach shows how the practice went
-            const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
-            setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
-          }
-          break;
-      }
-    }
-  }
-
-  private announceTurn(): void {
-    const s = this.state;
-    const team = s.teams[s.turn.teamIdx];
-    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, team.color);
-    this.renderer.camera.manualUntil = 0;
-  }
-
-  private attachPointer(): void {
-    const c = this.app.canvas;
-    c.style.touchAction = 'none';
-    // Mouse buttons bound in Settings (right-click opens the weapons by default).
-    c.oncontextmenu = (e) => e.preventDefault();
-    // No middle-click autoscroll, and the mouse's back/forward buttons don't leave the game.
-    c.onmousedown = (e) => {
-      if (e.button === 1) e.preventDefault();
-    };
-    c.onmouseup = (e) => {
-      if (e.button >= 3) e.preventDefault();
-    };
-    c.onpointerdown = (e) => {
-      unlockAudio();
-      if (e.pointerType === 'mouse' && this.mouseAction(e, true)) return;
-      c.setPointerCapture(e.pointerId);
-      // A drag that starts on your own tardi aims instead of moving the camera.
-      const aim = this.pointers.size === 0 && e.button === 0 && this.nearActiveTardi(e.clientX, e.clientY);
-      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, aim, button: e.button });
-      if (this.pointers.size === 2) this.pinchDist = this.pointerSpread();
-    };
-    c.onpointermove = (e) => {
-      const p = this.pointers.get(e.pointerId);
-      if (!p) return;
-      const cam = this.renderer.camera;
-      if (this.pointers.size === 2) {
-        p.x = e.clientX;
-        p.y = e.clientY;
-        const d = this.pointerSpread();
-        if (this.pinchDist > 0) cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (d / this.pinchDist)));
-        this.pinchDist = d;
-        p.moved = true;
-        cam.manualUntil = performance.now() + 3000;
-        return;
-      }
-      const dx = e.clientX - p.x;
-      const dy = e.clientY - p.y;
-      p.x = e.clientX;
-      p.y = e.clientY;
-      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) p.moved = true;
-      if (p.aim) {
-        if (p.moved) this.dragAim(e.clientX, e.clientY);
-        return;
-      }
-      if (p.moved) {
-        cam.x -= dx / cam.zoom;
-        cam.y -= dy / cam.zoom;
-        cam.manualUntil = performance.now() + 2500;
-      }
-    };
-    const up = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse') this.mouseAction(e, false);
-      const p = this.pointers.get(e.pointerId);
-      this.pointers.delete(e.pointerId);
-      if (this.pointers.size < 2) this.pinchDist = 0;
-      if (p && !p.moved && p.button === 0 && this.isHumanTurn()) this.pickTarget(e.clientX, e.clientY);
-    };
-    c.onpointerup = up;
-    c.onpointercancel = up;
-    c.onwheel = (e) => {
-      e.preventDefault();
-      const cam = this.renderer.camera;
-      cam.zoom = Math.max(this.renderer.minZoom(), Math.min(3, cam.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
-    };
-  }
-
-  private pickTarget(sx: number, sy: number): void {
-    const w = this.renderer.screenToWorld(sx, sy);
-    this.input.command({ t: 'target', x: Math.round(w.x), y: Math.round(w.y) });
-  }
-
-  /** Mouse buttons held for an action, so letting go ends it. */
-  private mouseHeld = new Set<number>();
-
-  /**
-   * A mouse button bound to an action in Settings. Returns true when it did
-   * that action (so it doesn't also scroll the map or pick a target).
-   */
-  private mouseAction(e: PointerEvent, down: boolean): boolean {
-    const code = `Mouse${e.button}`;
-    if (!down) {
-      if (!this.mouseHeld.delete(e.button)) return false;
-      this.input.hold(code, 0, false);
-      return true;
-    }
-    const action = actionFor(controls(), code);
-    if (!action) return false;
-    // Fire on a click, with a weapon that needs a target: the first click picks
-    // the spot; clicking that spot again fires.
-    const s = this.state;
-    const def = WEAPONS[s.turn.weapon];
-    if (action === 'fire' && this.isHumanTurn() && s.turn.phase === 'aim' && def && (def.kind === 'target' || def.projectile?.homing)) {
-      const tg = s.turn.target;
-      const cam = this.renderer.camera;
-      const w = this.renderer.screenToWorld(e.clientX, e.clientY);
-      if (!tg || Math.hypot(w.x - tg.x, w.y - tg.y) * cam.zoom > 40) {
-        this.pickTarget(e.clientX, e.clientY);
-        return true;
-      }
-    }
-    this.mouseHeld.add(e.button);
-    this.app.canvas.setPointerCapture(e.pointerId);
-    doAction(this.input, this.keyHooks, action, code, true);
-    return true;
-  }
-
-  /** Is this screen point on (or close to) the tardi whose turn it is? */
-  private nearActiveTardi(sx: number, sy: number): boolean {
-    const s = this.state;
-    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (!t || !this.isHumanTurn() || s.turn.phase !== 'aim' || t.rope) return false;
-    const w = this.renderer.screenToWorld(sx, sy);
-    return Math.hypot(w.x - t.x, w.y - t.y) * this.renderer.camera.zoom < 48;
-  }
-
-  /** Point the crosshair from the active tardi towards a screen point. */
-  private dragAim(sx: number, sy: number): void {
-    const s = this.state;
-    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (!t || !this.isHumanTurn()) return;
-    const w = this.renderer.screenToWorld(sx, sy);
-    const dx = w.x - t.x;
-    const dy = w.y - t.y;
-    if (Math.hypot(dx, dy) < 6) return;
-    const facing = Math.abs(dx) < 2 ? t.facing : dx > 0 ? 1 : -1;
-    const aim = (Math.atan2(-dy, Math.abs(dx)) * ANGLE_FULL) / (2 * Math.PI);
-    this.input.command({ t: 'aim', facing, aim: Math.round(aim) });
-  }
-
-  private pointerSpread(): number {
-    const [a, b] = [...this.pointers.values()];
-    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
-  }
-
-  destroy(): void {
-    this.destroyed = true;
-    this.offNet?.();
-    if (this.net) this.net.client.onDrop = null;
-    this.net = null;
-    this.app.ticker.remove(this.tickerFn);
-    this.detachKeys();
-    const c = this.app.canvas;
-    c.onpointerdown = c.onpointermove = c.onpointerup = c.onpointercancel = null;
-    c.onwheel = null;
-    c.oncontextmenu = null;
-    c.onmousedown = c.onmouseup = null;
-    this.renderer.destroy();
-    this.ui.innerHTML = '';
-  }
+/** The game (match, renderer, HUD, CPU): its own download, fetched once. */
+let game: Promise<typeof import('./match')> | null = null;
+function loadGame(): Promise<typeof import('./match')> {
+  return (game ??= import('./match'));
 }
 
 void boot();
+
+// Offline play: keep the game on the device (scripts/offline.ts). Not in the
+// phone apps (already on the phone) or while developing.
+if (import.meta.env.PROD && !isNativeApp() && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      /* no offline copy this time: everything still works online */
+    });
+  });
+}

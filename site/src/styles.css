@@ -319,3 +319,20 @@ h1, h2, h3 { line-height: 1.1; }
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }
+
+/* ---------- Leaderboards and easter eggs ---------- */
+.lead { font-size: 18px; }
+.board-days { display: flex; gap: 10px; margin: 0 0 18px; }
+.boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px; margin-bottom: 24px; }
+.board-card { padding: 18px 20px; }
+.board-card h2 { margin: 0 0 6px; font-size: 28px; }
+.board { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.board li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; }
+.board li:first-child { background: var(--accent); }
+.board-rank { font-weight: 900; text-align: right; }
+.board-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-value { font-weight: 800; white-space: nowrap; }
+.egg-riddles { list-style: none; padding: 0; margin: 0 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.egg-riddles li { padding: 16px 18px; }
+.egg-no { font-family: var(--title); font-size: 22px; }
+.egg-riddles p { margin: 6px 0 0; font-size: 17px; }

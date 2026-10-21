@@ -3,17 +3,26 @@
 // Play buttons and the career panel.
 
 import { mascotSvg } from './mascot';
-import { CPU_SKILLS, type CpuSkill } from '../ai/cpu';
+import { emblemSvg } from '../render/emblems';
+import { CPU_SKILLS, type CpuSkill } from '../ai/skills';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
-import { MAX_TEAMS } from '../sim/world';
-import { hex } from '../render/palette';
-import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
+import { MAX_TEAMS } from '../sim/rosters';
+import { MAP_STYLES } from '../sim/terrain/generate';
+import { hex, shown, teamSymbol } from '../render/palette';
+import { loadProfiles, nextColor, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
+import { arenaLabel, openLooks } from './looks';
+import { findEgg } from './eggs';
+import { currentSeason, seasonEnds } from '../render/seasons';
+import { arenaTheme } from '../render/arenas';
 import { renderDashboard } from './dashboard';
 import { account, wearHat, wearSkin } from '../account/session';
 import type { HubTab } from './hub';
-import { tutorialSeen } from './tutorial';
+import { tutorialSeen } from './learn';
+import { myMaps } from './myMaps';
+import { lang, t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -66,29 +75,53 @@ function save(v: Saved): void {
 interface Field {
   key: keyof Scheme;
   label: string;
-  options: [string, number | boolean][];
+  options: [string, number | boolean | string][];
   /** What it means, on hover. */
   hint?: string;
 }
 
 const FIELDS: Field[] = [
-  { key: 'tardisPerTeam', label: 'Tardigrades per team', options: [['2', 2], ['3', 3], ['4', 4]] },
-  { key: 'turnTime', label: 'Turn time', options: [['20s', 20], ['30s', 30], ['45s', 45], ['60s', 60], ['90s', 90]] },
-  { key: 'roundTime', label: 'Sudden death after', options: [['3 min', 3], ['5 min', 5], ['10 min', 10], ['15 min', 15], ['20 min', 20]] },
-  { key: 'startHp', label: 'Starting health', options: [['50', 50], ['60', 60], ['100', 100], ['150', 150], ['200', 200]] },
-  { key: 'mines', label: 'Mines', options: [['None', 0], ['Few', 4], ['Normal', 8], ['Lots', 16]] },
-  { key: 'drums', label: 'Brine drums', options: [['None', 0], ['Few', 3], ['Lots', 8]] },
-  { key: 'crateChance', label: 'Crates', options: [['Off', 0], ['Rare', 0.25], ['Normal', 0.5], ['Every turn', 1]] },
-  { key: 'supers', label: 'Superweapons', options: [['Crates only', 0], ['1 each', 1]] },
-  { key: 'windMax', label: 'Wind', options: [['Off', 0], ['Light', 0.5], ['Normal', 1]] },
-  { key: 'fallDamage', label: 'Fall damage', options: [['On', true], ['Off', false]] },
+  { key: 'tardisPerTeam', label: tk('Tardigrades per team'), options: [['2', 2], ['3', 3], ['4', 4]] },
+  { key: 'turnTime', label: tk('Turn time'), options: [[tk('20s'), 20], [tk('30s'), 30], [tk('45s'), 45], [tk('60s'), 60], [tk('90s'), 90]] },
+  { key: 'roundTime', label: tk('Sudden death after'), options: [[tk('3 min'), 3], [tk('5 min'), 5], [tk('10 min'), 10], [tk('15 min'), 15], [tk('20 min'), 20]] },
+  { key: 'startHp', label: tk('Starting health'), options: [['50', 50], ['60', 60], ['100', 100], ['150', 150], ['200', 200]] },
+  { key: 'mines', label: tk('Mines'), options: [[tk('None'), 0], [tk('Few'), 4], [tk('Normal'), 8], [tk('Lots'), 16]] },
+  { key: 'drums', label: tk('Brine drums'), options: [[tk('None'), 0], [tk('Few'), 3], [tk('Lots'), 8]] },
+  { key: 'crateChance', label: tk('Crates'), options: [[tk('Off'), 0], [tk('Rare'), 0.25], [tk('Normal'), 0.5], [tk('Every turn'), 1]] },
+  { key: 'supers', label: tk('Superweapons'), options: [[tk('Crates only'), 0], [tk('1 each'), 1]] },
+  { key: 'windMax', label: tk('Wind'), options: [[tk('Off'), 0], [tk('Light'), 0.5], [tk('Normal'), 1]] },
+  { key: 'fallDamage', label: tk('Fall damage'), options: [[tk('On'), true], [tk('Off'), false]] },
   {
     key: 'friendlyFire',
-    label: 'Friendly fire',
-    options: [['On', true], ['Off', false]],
-    hint: 'On: your own weapons can hurt your own team, and you. Off: they only hurt the other teams.',
+    label: tk('Friendly fire'),
+    options: [[tk('On'), true], [tk('Off'), false]],
+    hint: tk('On: your own weapons can hurt your own team, and you. Off: they only hurt the other teams.'),
   },
-  { key: 'movement', label: 'Walking', options: [['On', true], ['Off (Artillery)', false]] },
+  { key: 'movement', label: tk('Walking'), options: [[tk('On'), true], [tk('Off (Artillery)'), false]] },
+  {
+    key: 'mapStyle',
+    label: tk('Map'),
+    options: [[tk('Surprise me'), 'random'], ...MAP_STYLES.map((m): [string, string] => [m.name, m.id])],
+    hint: tk('What kind of land you fight on. Surprise me picks a different one every match.'),
+  },
+  {
+    key: 'armour',
+    label: tk('Armour'),
+    options: [[tk('None'), 0], [tk('Light'), 25], [tk('Heavy'), 50]],
+    hint: tk('Armour plates soak up half of each hit until they are used up.'),
+  },
+  {
+    key: 'aimGuide',
+    label: tk('Shot path guide'),
+    options: [[tk('Off'), 0], [tk('Short'), 1], [tk('Full'), 2]],
+    hint: tk('While you charge a shot, dots show where it will fly (wind included). Short shows the start of the path; Full shows all of it.'),
+  },
+  {
+    key: 'weather',
+    label: tk('Weather'),
+    options: [[tk('On'), true], [tk('Off'), false]],
+    hint: tk('Rain, snow, sunshine and fog. Very rarely, a tornado throws every tardigrade somewhere new.'),
+  },
 ];
 
 /** The game style last chosen in the menu (used by the online lobby). */
@@ -114,66 +147,74 @@ export function buildLobby(
   go: (tab: HubTab) => void,
   onTutorial: () => void,
   onPractice: () => void,
+  onChallenge: () => void,
+  onReplays: () => void,
+  onMapEditor: () => void,
 ): Lobby {
   const root = document.createElement('div');
   const saved = load();
-  const styleOptions = SCHEME_PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+  const styleOptions = SCHEME_PRESETS.map((p) => `<option value="${p.id}">${t(p.name)}</option>`).join('');
   root.className = 'page lobby';
   root.innerHTML = `
       <section class="card lobby-hero">
         <div class="hero-art">
           <div class="mascot"></div>
-          <button class="chip hero-edit">✎ Customise team</button>
+          <button class="chip hero-edit">✎ ${t('Customise team')}</button>
+          <button class="chip hero-looks" title="${t('The world you play in, your match music and sounds')}">🏞️ ${t('World: {name}', { name: '<span class="looks-now"></span>' })}</button>
         </div>
         <div class="hero-text">
           <h1 class="title">Tardi<span>Geddon</span></h1>
-          <p class="tagline">Tiny. Indestructible. Armed.</p>
+          <p class="tagline">${t('Tiny. Indestructible. Armed.')}</p>
           <p class="hero-team"></p>
+          <p class="hero-season" hidden></p>
         </div>
       </section>
       <section class="card lobby-setup">
         <div class="setup-head phone-only">
-          <button class="hud-btn setup-back">← Back</button>
-          <h2 class="card-title">Match setup</h2>
-          <button class="big-btn play setup-play">Play ▶</button>
+          <button class="hud-btn setup-back">${t('← Back')}</button>
+          <h2 class="card-title">${t('Match setup')}</h2>
+          <button class="big-btn play setup-play">${t('Play')} ▶</button>
         </div>
-        <h2 class="card-title setup-title">Match setup</h2>
+        <h2 class="card-title setup-title">${t('Match setup')}</h2>
         <div class="players-row">
-          <label>Players
+          <label>${t('Players')}
             <select name="players">${PLAYER_COUNTS.map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
           </label>
-          <label>CPU skill
-            <select name="cpuSkill">${CPU_SKILLS.map((k) => `<option value="${k.id}">${k.name}</option>`).join('')}</select>
+          <label>${t('CPU skill')}
+            <select name="cpuSkill">${CPU_SKILLS.map((k) => `<option value="${k.id}">${t(k.name)}</option>`).join('')}</select>
           </label>
         </div>
         <div class="slots"></div>
-        <p class="players-hint">Tap a team to switch Human / CPU · ✎ to edit. Humans share this device and take turns.</p>
+        <p class="players-hint">${t('Tap a team to switch Human / CPU · the colour dot to change its colour · ✎ to edit. Humans share this device and take turns.')}</p>
         <div class="style-row">
-          <label>Game style
-            <select name="style">${styleOptions}<option value="custom">Custom</option></select>
+          <label>${t('Game style')}
+            <select name="style">${styleOptions}<option value="custom">${t('Custom')}</option></select>
           </label>
-          <button class="hud-btn customise">Customise</button>
+          <button class="hud-btn customise">${t('Customise')}</button>
         </div>
         <p class="style-blurb"></p>
         <div class="custom-panel hidden"></div>
       </section>
       <section class="card lobby-play">
         <div class="menu-buttons">
-          <button class="big-btn play">Play<span class="play-sum phone-only" aria-hidden="true"></span></button>
+          <button class="big-btn play">${t('Play')}<span class="play-sum phone-only" aria-hidden="true"></span></button>
           <div class="menu-row">
-            <button class="big-btn secondary online-btn">Play online</button>
-            <button class="big-btn secondary setup-btn phone-only">Match setup</button>
+            <button class="big-btn secondary online-btn">${t('Play online')}</button>
+            <button class="big-btn secondary setup-btn phone-only">${t('Match setup')}</button>
           </div>
         </div>
         <div class="lobby-learn">
-          <button class="hud-btn learn-btn">🎓 Tutorial</button>
-          <button class="hud-btn practice-btn">🎯 Practice</button>
-          <button class="hud-btn guide-btn">📖 Guide</button>
-          <button class="hud-btn controls-btn">⚙️ Controls</button>
+          <button class="hud-btn learn-btn">🎓 ${t('Tutorial')}</button>
+          <button class="hud-btn practice-btn">🎯 ${t('Practice')}</button>
+          <button class="hud-btn challenge-btn">🏆 ${t('Daily challenge')}</button>
+          <button class="hud-btn replays-btn">🎬 ${t('Replays')}</button>
+          <button class="hud-btn mapeditor-btn">🗺️ ${t('Map editor')}</button>
+          <button class="hud-btn guide-btn">📖 ${t('Guide')}</button>
+          <button class="hud-btn controls-btn">⚙️ ${t('Controls')}</button>
         </div>
       </section>
-      <aside class="card dash hidden" aria-label="Your career"></aside>
-      <nav class="lobby-nav phone-only" aria-label="Menu"></nav>`;
+      <aside class="card dash hidden" aria-label="${t('Your career')}"></aside>
+      <nav class="lobby-nav phone-only" aria-label="${t('Menu')}"></nav>`;
   // Phones: the lobby is screens you tap through (home, match setup) instead of one long page.
   root.dataset.view = 'home';
   const show = (view: 'home' | 'setup') => {
@@ -197,30 +238,44 @@ export function buildLobby(
       const p = profiles[i];
       const slot = document.createElement('div');
       slot.className = 'slot' + (cpu ? ' cpu' : '');
-      slot.style.setProperty('--team', hex(p.color));
+      slot.style.setProperty('--team', hex(shown(p.color)));
       // Main area toggles Human/CPU; the pencil opens the team editor.
       const toggle = document.createElement('button');
       toggle.className = 'slot-main';
-      toggle.setAttribute('aria-label', `${p.name}: ${cpu ? 'CPU' : 'Human'} (tap to switch)`);
+      toggle.setAttribute('aria-label', cpu ? t('{name}: CPU (tap to switch)', { name: p.name }) : t('{name}: Human (tap to switch)', { name: p.name }));
       const pic = document.createElement('span');
       pic.className = 'slot-pic';
-      pic.innerHTML = mascotSvg(p.color, wearHat(p.hat), wearSkin(p.skin));
+      pic.innerHTML = mascotSvg(shown(p.color), wearHat(p.hat), wearSkin(p.skin));
       const name = document.createElement('span');
       name.className = 'slot-name';
-      name.textContent = p.name; // player-entered text: never innerHTML
+      name.textContent = teamSymbol(p.color) + p.name; // player-entered text: never innerHTML
       const kind = document.createElement('span');
       kind.className = 'slot-kind';
-      kind.textContent = cpu ? '🤖 CPU' : '👤 Human';
-      toggle.append(pic, name, kind);
+      kind.textContent = cpu ? `🤖 ${t('CPU')}` : `👤 ${t('Human')}`;
+      const badge = document.createElement('span');
+      badge.className = 'team-emblem';
+      badge.innerHTML = emblemSvg(p.emblem, t('{name} emblem', { name: p.name }));
+      toggle.append(pic, badge, name, kind);
       toggle.onclick = () => {
         players[i] = !players[i];
         renderSlots();
         persist();
       };
+      // Colour dot: one tap steps to the next colour (a team that had it gets this one's).
+      const colourBtn = document.createElement('button');
+      colourBtn.className = 'slot-colour';
+      colourBtn.title = t('Change colour');
+      colourBtn.setAttribute('aria-label', t("Change {name}'s colour", { name: p.name }));
+      colourBtn.onclick = () => {
+        profiles = updateProfile(profiles, i, { ...p, color: nextColor(p.color) });
+        saveProfiles(profiles);
+        renderSlots();
+        renderHero();
+      };
       const editBtn = document.createElement('button');
       editBtn.className = 'slot-edit';
       editBtn.textContent = '✎';
-      editBtn.setAttribute('aria-label', `Edit ${p.name}`);
+      editBtn.setAttribute('aria-label', t('Edit {name}', { name: p.name }));
       editBtn.onclick = () =>
         openTeamEditor(overlayHost(root), i, p, (next) => {
           profiles = updateProfile(profiles, i, next);
@@ -228,7 +283,7 @@ export function buildLobby(
           renderSlots();
           renderHero();
         });
-      slot.append(toggle, editBtn);
+      slot.append(toggle, colourBtn, editBtn);
       slots.append(slot);
     });
   };
@@ -240,8 +295,15 @@ export function buildLobby(
     save({ style: styleSel.value, custom, players, cpuSkill: skillSel.value as CpuSkill });
     // Phones: what PLAY will start, under the button.
     const humans = players.filter((cpu) => !cpu).length;
-    const style = styleSel.value === 'custom' ? 'Custom rules' : (SCHEME_PRESETS.find((p) => p.id === styleSel.value)?.name ?? '');
-    playSum.textContent = `${humans === players.length ? `${humans} players` : humans === 1 ? `vs ${players.length - 1} CPU` : `${players.length} teams`} · ${style}`;
+    const preset = SCHEME_PRESETS.find((p) => p.id === styleSel.value);
+    const style = styleSel.value === 'custom' ? t('Custom rules') : preset ? t(preset.name) : '';
+    const who =
+      humans === players.length
+        ? t('{n} players', { n: humans })
+        : humans === 1
+          ? t('vs {n} CPU', { n: players.length - 1 })
+          : t('{n} teams', { n: players.length });
+    playSum.textContent = `${who} · ${style}`;
   };
   countSel.value = String(PLAYER_COUNTS.includes(players.length) ? players.length : 2);
   if (players.length !== Number(countSel.value)) players = players.slice(0, Number(countSel.value));
@@ -259,17 +321,21 @@ export function buildLobby(
   const renderPanel = () => {
     const sc = current();
     panel.innerHTML = '';
-    for (const f of FIELDS) {
+    for (const base of FIELDS) {
       const label = document.createElement('label');
-      label.textContent = f.label;
-      if (f.hint) label.title = f.hint;
+      label.textContent = t(base.label);
+      if (base.hint) label.title = t(base.hint);
       const sel = document.createElement('select');
-      const value = sc[f.key];
+      // The Map list also has the maps made in the map editor (the map itself goes in customMap).
+      const mine = base.key === 'mapStyle' ? myMaps() : [];
+      if (sc.customMap && base.key === 'mapStyle' && !mine.some((m) => m.map === sc.customMap)) mine.push({ name: t('Your map'), map: sc.customMap, at: 0 });
+      const f: Field = mine.length ? { ...base, options: [...base.options, ...mine.map((m): [string, string] => [`🗺️ ${m.name}`, `my:${m.name}`])] } : base;
+      const value = base.key === 'mapStyle' && sc.customMap ? `my:${mine.find((m) => m.map === sc.customMap)!.name}` : sc[f.key];
       // Show the nearest option if a preset uses a value not in the list.
       let best = 0;
       f.options.forEach(([text, v], i) => {
         const o = document.createElement('option');
-        o.textContent = text;
+        o.textContent = t(text);
         o.value = String(i);
         sel.append(o);
         if (typeof v === 'number' && typeof value === 'number') {
@@ -279,7 +345,9 @@ export function buildLobby(
       sel.value = String(best);
       sel.onchange = () => {
         // Editing any field switches to Custom, starting from what was shown.
-        custom = { ...current(), [f.key]: f.options[Number(sel.value)][1] };
+        const v = f.options[Number(sel.value)][1];
+        const my = typeof v === 'string' && v.startsWith('my:') ? mine.find((m) => `my:${m.name}` === v) : undefined;
+        custom = base.key === 'mapStyle' ? { ...current(), mapStyle: my ? undefined : (v as string), customMap: my?.map } : { ...current(), [f.key]: v };
         styleSel.value = 'custom';
         refresh(false);
       };
@@ -289,7 +357,7 @@ export function buildLobby(
     if (sc.weapons) {
       const note = document.createElement('p');
       note.className = 'custom-note';
-      note.textContent = 'This style limits the weapons available.';
+      note.textContent = t('This style limits the weapons available.');
       panel.append(note);
     }
   };
@@ -298,10 +366,10 @@ export function buildLobby(
     const id = styleSel.value;
     // Friendly fire surprises new players: always say whether it's on.
     const ff = current().friendlyFire
-      ? ' Friendly fire on: your own blasts can hurt your team, and you.'
-      : ' Friendly fire off: your blasts only hurt the other teams.';
-    blurb.textContent =
-      (id === 'custom' ? 'Your own rules: change anything below.' : (SCHEME_PRESETS.find((p) => p.id === id)?.blurb ?? '')) + ff;
+      ? t('Friendly fire on: your own blasts can hurt your team, and you.')
+      : t('Friendly fire off: your blasts only hurt the other teams.');
+    const presetBlurb = SCHEME_PRESETS.find((p) => p.id === id)?.blurb;
+    blurb.textContent = (id === 'custom' ? t('Your own rules: change anything below.') : presetBlurb ? t(presetBlurb) : '') + ' ' + ff;
     if (rebuild || !panel.classList.contains('hidden')) renderPanel();
     persist();
   };
@@ -312,17 +380,27 @@ export function buildLobby(
   customiseBtn.onclick = () => {
     panel.classList.toggle('hidden');
     root.classList.toggle('rules-open', !panel.classList.contains('hidden'));
-    customiseBtn.textContent = panel.classList.contains('hidden') ? 'Customise' : 'Done';
+    customiseBtn.textContent = panel.classList.contains('hidden') ? t('Customise') : t('Done');
   };
   refresh();
 
   const mascot = root.querySelector<HTMLElement>('.mascot')!;
+  // Easter egg: the lobby tardigrade is ticklish (ten pokes and it flips).
+  let tickles = 0;
+  mascot.onclick = () => {
+    if (++tickles < 10) return;
+    tickles = 0;
+    mascot.classList.remove('flip');
+    void mascot.offsetWidth; // restart the animation
+    mascot.classList.add('flip');
+    findEgg('tickle');
+  };
   const heroTeam = root.querySelector<HTMLElement>('.hero-team')!;
   const renderHero = () => {
     const p = profiles[0];
-    mascot.innerHTML = mascotSvg(p.color, wearHat(p.hat), wearSkin(p.skin));
-    heroTeam.textContent = `Your team: ${p.name}`; // player-entered text: never innerHTML
-    heroTeam.style.setProperty('--team', hex(p.color));
+    mascot.innerHTML = mascotSvg(shown(p.color), wearHat(p.hat), wearSkin(p.skin));
+    heroTeam.textContent = t('Your team: {name}', { name: p.name }); // player-entered text: never innerHTML
+    heroTeam.style.setProperty('--team', hex(shown(p.color)));
   };
   root.querySelector<HTMLButtonElement>('.hero-edit')!.onclick = () =>
     openTeamEditor(overlayHost(root), 0, profiles[0], (next) => {
@@ -331,6 +409,19 @@ export function buildLobby(
       renderSlots();
       renderHero();
     });
+  // Looks (world, music, sounds) right on the lobby, not only in the Shop.
+  const looksNow = root.querySelector<HTMLElement>('.looks-now')!;
+  const renderLooks = () => (looksNow.textContent = arenaLabel());
+  // A seasonal event on now (render/seasons.ts): say so, with its free world.
+  const season = currentSeason();
+  if (season) {
+    const p = root.querySelector<HTMLElement>('.hero-season')!;
+    p.hidden = false;
+    // The end date in the player's language (English keeps its own short form).
+    const ends = lang() === 'en' ? seasonEnds(season) : new Date(2000, season.to[0] - 1, season.to[1]).toLocaleDateString(lang(), { day: 'numeric', month: 'short' });
+    p.textContent = `${season.emoji} ${t('{season}! The {world} world is free until {date}.', { season: t(season.name), world: t(arenaTheme(season.arena).name), date: ends })}`;
+  }
+  root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = () => openLooks(overlayHost(root), () => go('shop'), renderLooks);
   const nav = root.querySelector<HTMLElement>('.lobby-nav')!;
   const renderNav = () => {
     const { me } = account();
@@ -356,11 +447,11 @@ export function buildLobby(
       nav.append(b);
     };
     if (me) {
-      tile('stats', '📊', 'Stats');
-      tile('shop', '🛍️', 'Shop', me.user ? `🪙 ${me.wallet.coins} · 🟢 ${me.wallet.slime}` : '');
-      tile('account', '👤', me.user ? me.user.name : 'Sign in');
+      tile('stats', '📊', t('Stats'));
+      tile('shop', '🛍️', t('Shop'), me.user ? `🪙 ${me.wallet.coins} · 🟢 ${me.wallet.slime}` : '');
+      tile('account', '👤', me.user ? me.user.name : t('Sign in'));
     }
-    tile('settings', '⚙️', 'Settings');
+    tile('settings', '⚙️', t('Settings'));
   };
   const dash = root.querySelector<HTMLElement>('.dash')!;
   const refreshAccountBits = () => {
@@ -368,6 +459,7 @@ export function buildLobby(
     profiles = loadProfiles();
     renderSlots();
     renderHero();
+    renderLooks();
     renderDashboard(dash, go);
     root.classList.toggle('solo', !account().me);
     renderNav();
@@ -378,11 +470,14 @@ export function buildLobby(
   learnBtn.onclick = onTutorial;
   // Never tried the tutorial on this device: point it out.
   if (!tutorialSeen()) {
-    learnBtn.textContent = '🎓 New? Learn to play';
+    learnBtn.textContent = `🎓 ${t('New? Learn to play')}`;
     learnBtn.classList.add('learn-new');
   }
   root.querySelector<HTMLButtonElement>('.controls-btn')!.onclick = () => go('settings');
   root.querySelector<HTMLButtonElement>('.practice-btn')!.onclick = onPractice;
+  root.querySelector<HTMLButtonElement>('.challenge-btn')!.onclick = onChallenge;
+  root.querySelector<HTMLButtonElement>('.replays-btn')!.onclick = onReplays;
+  root.querySelector<HTMLButtonElement>('.mapeditor-btn')!.onclick = onMapEditor;
   root.querySelector<HTMLButtonElement>('.guide-btn')!.onclick = () => go('guide');
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;

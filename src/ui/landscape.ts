@@ -4,14 +4,16 @@
 // lock, so the overlay is what enforces it there). Installed apps get the
 // same from the manifest's "orientation": "landscape".
 
+import { t } from '../i18n/i18n';
+
 export function enforceLandscape(): void {
   document.documentElement.classList.add('touch');
   const el = document.createElement('div');
   el.id = 'rotate';
   el.innerHTML = `
     <div class="rotate-phone" aria-hidden="true"></div>
-    <h2>Turn your phone sideways</h2>
-    <p>TardiGeddon is played in landscape.</p>`;
+    <h2>${t('Turn your phone sideways')}</h2>
+    <p>${t('TardiGeddon is played in landscape.')}</p>`;
   document.body.appendChild(el);
 
   const lock = async () => {

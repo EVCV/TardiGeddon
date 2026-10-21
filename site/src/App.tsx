@@ -10,6 +10,8 @@ import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Legal } from './pages/Legal';
 import { NotFound } from './pages/NotFound';
+import { Leaderboards } from './pages/Leaderboards';
+import { Eggs } from './pages/Eggs';
 import { SITE_URL } from './config';
 
 gsap.registerPlugin(useGSAP);
@@ -43,6 +45,8 @@ function Page() {
   }, [path]);
 
   if (path === '/') return <Home />;
+  if (path === '/leaderboards') return <Leaderboards />;
+  if (path === '/eggs') return <Eggs />;
   const legal = /^\/legal\/([a-z-]+)$/.exec(path);
   if (legal) return <Legal slug={legal[1]} />;
   return <NotFound />;
