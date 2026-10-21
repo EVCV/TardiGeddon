@@ -5,10 +5,12 @@ import {
   defaultProfile,
   loadProfiles,
   matchNames,
+  nextColor,
   updateProfile,
   TEAM_NAME_MAX,
 } from '../src/ui/teams';
 import { TEAM_COLORS } from '../src/render/palette';
+import { canUse } from '../src/shop/catalog';
 import { HATS, hatSvg } from '../src/render/hats';
 import { createWorld, MAX_TEAMS } from '../src/sim/world';
 
@@ -73,5 +75,22 @@ describe('custom teams in a match', () => {
     expect(s.teams[0].hat).toBe('crown');
     expect(s.teams[1].hat).toBe('beanie');
     expect(s.tardis.filter((t) => t.team === 0).map((t) => t.name)).toEqual(['Ada', 'Bo', 'Cy', 'Di']);
+  });
+
+  it('starts the teams in different free hats, so they look apart', () => {
+    const hats = Array.from({ length: 5 }, (_, i) => defaultProfile(i).hat);
+    expect(new Set(hats).size).toBe(5);
+    for (const h of hats) expect(canUse('hat', h, [])).toBe(true);
+  });
+
+  it('steps through every colour with the colour dot, swapping with the team that had it', () => {
+    const seen = new Set<number>();
+    let c = TEAM_COLORS[0];
+    for (let i = 0; i < TEAM_COLORS.length; i++) seen.add((c = nextColor(c)));
+    expect(seen.size).toBe(TEAM_COLORS.length);
+    const list = [defaultProfile(0), defaultProfile(1)];
+    const out = updateProfile(list, 1, { ...list[1], color: nextColor(list[1].color) });
+    expect(out[1].color).toBe(TEAM_COLORS[2]);
+    expect(out[0].color).toBe(TEAM_COLORS[0]);
   });
 });

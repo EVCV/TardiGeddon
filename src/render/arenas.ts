@@ -21,11 +21,14 @@ export interface ArenaTheme {
   stars?: boolean;
   /** Snowflakes or embers drifting down/up. */
   drift?: { color: number; up?: boolean };
+  /** Everyone has it (no shop item). */
+  free?: boolean;
 }
 
 export const ARENAS: ArenaTheme[] = [
   {
     id: 'classic',
+    free: true,
     name: 'Meadow',
     skyTop: PALETTE.skyTop,
     skyBottom: PALETTE.skyBottom,
@@ -35,6 +38,61 @@ export const ARENAS: ArenaTheme[] = [
     waterLight: PALETTE.waterLight,
     grass: PALETTE.grass,
     soil: PALETTE.soil,
+  },
+  // Free looks: "Surprise me" (the default) shuffles these, plus any arenas
+  // the player owns, so maps look different without giving shop ones away.
+  // Kept plain on purpose: no stars, snow or embers (those are shop perks).
+  {
+    id: 'spring',
+    free: true,
+    name: 'Spring Green',
+    skyTop: '#8fdcf2',
+    skyBottom: '#f0fbe6',
+    hillFar: 0xb8e3a0,
+    hillNear: 0x8cc96e,
+    water: 0x3a92d0,
+    waterLight: 0x92d2ff,
+    grass: [0x3a6a1e, 0x7ac64a, 0xb4ea7a],
+    soil: [0x3e2a18, 0xa87848, 0x8a5e36, 0xc29462],
+  },
+  {
+    id: 'moor',
+    free: true,
+    name: 'Misty Moor',
+    skyTop: '#9fb0c8',
+    skyBottom: '#e3e8ee',
+    hillFar: 0xa9b8a4,
+    hillNear: 0x87997f,
+    water: 0x4a6f8f,
+    waterLight: 0x9db8cf,
+    grass: [0x3c4a2c, 0x6f8450, 0x9cb07a],
+    soil: [0x2e2722, 0x6e5c4c, 0x5a4a3c, 0x8a7864],
+  },
+  {
+    id: 'cove',
+    free: true,
+    name: 'Pebble Cove',
+    skyTop: '#76c8ee',
+    skyBottom: '#e6f6fa',
+    hillFar: 0xa8d8d0,
+    hillNear: 0x7fbfb2,
+    water: 0x2a8fb8,
+    waterLight: 0x86dcea,
+    grass: [0x6a5a3a, 0xc8b88a, 0xe8dcb4],
+    soil: [0x3a3430, 0x8f8a80, 0x76716a, 0xb4ada2],
+  },
+  {
+    id: 'bog',
+    free: true,
+    name: 'Peat Bog',
+    skyTop: '#a8c4a0',
+    skyBottom: '#eef0d8',
+    hillFar: 0x9aae78,
+    hillNear: 0x748a56,
+    water: 0x4a6a4a,
+    waterLight: 0x8aaa7a,
+    grass: [0x34401c, 0x667a30, 0x98ac54],
+    soil: [0x24180e, 0x5a3e24, 0x48301a, 0x7a5a3a],
   },
   {
     id: 'sunset',
@@ -137,6 +195,9 @@ export const ARENAS: ArenaTheme[] = [
     stars: true,
   },
 ];
+
+/** "Surprise me": a different free (or owned) arena every match. */
+export const SURPRISE_ARENA = 'random';
 
 export function arenaTheme(id: string | undefined): ArenaTheme {
   return ARENAS.find((a) => a.id === id) ?? ARENAS[0];

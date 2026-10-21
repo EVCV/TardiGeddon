@@ -28,8 +28,16 @@ export function defaultTardiNames(slot: number): string[] {
   return DEFAULT_NAMES.slice(slot * 4, slot * 4 + 4);
 }
 
+/** Free hats handed out to the slots by default, so the teams don't all look alike. */
+const DEFAULT_HATS = ['beanie', 'cap', 'tophat', 'flower', 'crown'];
+
 export function defaultProfile(slot: number): TeamProfile {
-  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', skin: 'classic', aim: 'classic', fx: 'classic', names: ['', '', '', ''] };
+  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: DEFAULT_HATS[slot % DEFAULT_HATS.length], skin: 'classic', aim: 'classic', fx: 'classic', names: ['', '', '', ''] };
+}
+
+/** The next team colour after this one (the colour dot in the lobby steps through them). */
+export function nextColor(c: number): number {
+  return TEAM_COLORS[(TEAM_COLORS.indexOf(c) + 1) % TEAM_COLORS.length];
 }
 
 /** Trim, collapse spaces, drop control and invisible characters and cap the length. */

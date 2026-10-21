@@ -6,6 +6,7 @@
 
 import { mascotSvg } from './mascot';
 import { aimSvg, arenaSvg, fxSvg, musicSvg, soundSvg } from './cosmeticArt';
+import { SURPRISE_ARENA } from '../render/arenas';
 import { previewMusic, previewingMusic } from '../audio/music';
 import { demoSoundPack } from '../audio/sfx';
 import { unlockAudio } from '../audio/mixer';
@@ -187,9 +188,9 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
       };
       action.append(use);
       if (using) {
-        const back = el('button', 'hud-btn', 'Back to the Meadow');
+        const back = el('button', 'hud-btn', 'Back to Surprise me');
         back.onclick = () => {
-          chooseArena('classic');
+          chooseArena(SURPRISE_ARENA);
           ctx.rerender();
         };
         action.append(back);

@@ -3,6 +3,7 @@
 // its session cookie. Ownership is enforced by the server for online games;
 // the copy cached here only decides what this device shows as unlocked.
 
+import { ARENAS, SURPRISE_ARENA } from '../render/arenas';
 import type { UnspentRow } from '../shop/japan';
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
@@ -168,7 +169,7 @@ function deviceChoice(key: string, fallback: string) {
   };
 }
 
-const arenaChoice = deviceChoice('tardigeddon.arena', 'classic');
+const arenaChoice = deviceChoice('tardigeddon.arena', SURPRISE_ARENA);
 const musicChoice = deviceChoice('tardigeddon.music', 'classic');
 const soundsChoice = deviceChoice('tardigeddon.sounds', 'classic');
 
@@ -176,9 +177,22 @@ const soundsChoice = deviceChoice('tardigeddon.sounds', 'classic');
 export const chosenArena = (): string => arenaChoice.get();
 export const chooseArena = (id: string): void => arenaChoice.set(id);
 
-/** The arena to actually show: one this device hasn't unlocked falls back to the meadow. */
+/** Arenas this player can use: the free ones and any they own. */
+export function usableArenas(): string[] {
+  const owned = ownedItems();
+  return ARENAS.filter((a) => canUse('arena', a.id, owned)).map((a) => a.id);
+}
+
+/**
+ * The arena to actually show: "Surprise me" picks one of the usable ones at
+ * random each match; one this device hasn't unlocked falls back to the meadow.
+ */
 export function wearArena(): string {
   const id = chosenArena();
+  if (id === SURPRISE_ARENA) {
+    const all = usableArenas();
+    return all[Math.floor(Math.random() * all.length)] ?? 'classic';
+  }
   return canUse('arena', id, ownedItems()) ? id : 'classic';
 }
 

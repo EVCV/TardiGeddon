@@ -9,8 +9,9 @@ import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
 import { MAX_TEAMS } from '../sim/world';
 import { MAP_STYLES } from '../sim/terrain/generate';
 import { hex } from '../render/palette';
-import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
+import { loadProfiles, nextColor, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
+import { arenaLabel, openLooks } from './looks';
 import { renderDashboard } from './dashboard';
 import { account, wearHat, wearSkin } from '../account/session';
 import type { HubTab } from './hub';
@@ -143,6 +144,7 @@ export function buildLobby(
         <div class="hero-art">
           <div class="mascot"></div>
           <button class="chip hero-edit">✎ Customise team</button>
+          <button class="chip hero-looks" title="The world you play in, your match music and sounds">🏞️ World: <span class="looks-now"></span></button>
         </div>
         <div class="hero-text">
           <h1 class="title">Tardi<span>Geddon</span></h1>
@@ -166,7 +168,7 @@ export function buildLobby(
           </label>
         </div>
         <div class="slots"></div>
-        <p class="players-hint">Tap a team to switch Human / CPU · ✎ to edit. Humans share this device and take turns.</p>
+        <p class="players-hint">Tap a team to switch Human / CPU · the colour dot to change its colour · ✎ to edit. Humans share this device and take turns.</p>
         <div class="style-row">
           <label>Game style
             <select name="style">${styleOptions}<option value="custom">Custom</option></select>
@@ -236,6 +238,17 @@ export function buildLobby(
         renderSlots();
         persist();
       };
+      // Colour dot: one tap steps to the next colour (a team that had it gets this one's).
+      const colourBtn = document.createElement('button');
+      colourBtn.className = 'slot-colour';
+      colourBtn.title = 'Change colour';
+      colourBtn.setAttribute('aria-label', `Change ${p.name}'s colour`);
+      colourBtn.onclick = () => {
+        profiles = updateProfile(profiles, i, { ...p, color: nextColor(p.color) });
+        saveProfiles(profiles);
+        renderSlots();
+        renderHero();
+      };
       const editBtn = document.createElement('button');
       editBtn.className = 'slot-edit';
       editBtn.textContent = '✎';
@@ -247,7 +260,7 @@ export function buildLobby(
           renderSlots();
           renderHero();
         });
-      slot.append(toggle, editBtn);
+      slot.append(toggle, colourBtn, editBtn);
       slots.append(slot);
     });
   };
@@ -350,6 +363,10 @@ export function buildLobby(
       renderSlots();
       renderHero();
     });
+  // Looks (world, music, sounds) right on the lobby, not only in the Shop.
+  const looksNow = root.querySelector<HTMLElement>('.looks-now')!;
+  const renderLooks = () => (looksNow.textContent = arenaLabel());
+  root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = () => openLooks(overlayHost(root), () => go('shop'), renderLooks);
   const nav = root.querySelector<HTMLElement>('.lobby-nav')!;
   const renderNav = () => {
     const { me } = account();
@@ -387,6 +404,7 @@ export function buildLobby(
     profiles = loadProfiles();
     renderSlots();
     renderHero();
+    renderLooks();
     renderDashboard(dash, go);
     root.classList.toggle('solo', !account().me);
     renderNav();

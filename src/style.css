@@ -448,6 +448,26 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: #9ee06a;
 }
 .slot.cpu .slot-kind { background: #d9d2c5; }
+.slot-colour {
+  flex: none;
+  width: 44px;
+  border: 0;
+  border-left: 3px solid var(--ink);
+  background: #fff;
+  position: relative;
+}
+.slot.cpu .slot-colour { background: #f1ece3; }
+.slot-colour::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--team);
+}
 .slot-edit {
   border: 0;
   border-left: 3px solid var(--ink);
@@ -755,6 +775,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .hero-art .mascot svg { width: 150px; }
 .hero-edit { font-size: 13px; min-height: 32px; padding: 2px 10px; background: var(--accent); }
+.hero-looks { font-size: 13px; min-height: 32px; padding: 2px 10px; background: #bfe8ff; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.looks-hint { margin: -4px 0 6px; font-size: 13px; opacity: .8; text-align: left; }
 .hero-text { min-width: 0; text-align: left; }
 .lobby .title { font-size: clamp(40px, 5.5vw, 64px); line-height: 1; }
 .lobby .tagline { margin: 6px 0 10px; font-size: 17px; }
@@ -1548,7 +1570,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .lobby[data-view] .title { font-size: min(4vw, 7vh, 40px); white-space: nowrap; }
   .lobby[data-view] .tagline { display: none; }
   .lobby[data-view] .hero-team { font-size: 13px; margin-top: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
-  .lobby[data-view] .hero-edit { font-size: 12px; min-height: 28px; }
+  .lobby[data-view] .hero-edit, .lobby[data-view] .hero-looks { font-size: 12px; min-height: 28px; }
   .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; padding: 10px; min-height: 0; align-self: stretch; }
   .lobby[data-view] .lobby-hero { align-self: stretch; }
   .lobby[data-view] .lobby-play .menu-buttons { gap: 8px; margin: 0; }

@@ -63,15 +63,18 @@ describe('shop catalogue', () => {
     expect(arenaTheme('nope').id).toBe('classic');
   });
 
-  it('has a full palette for every arena, and the meadow is free', () => {
+  it('has a full palette for every arena; the meadow and a few plain looks are free', () => {
     expect(new Set(ARENAS.map((a) => a.id)).size).toBe(ARENAS.length);
     expect(SHOP_ITEMS.some((i) => i.id === 'arena:classic')).toBe(false);
     for (const a of ARENAS) {
       expect(a.skyTop, a.id).toMatch(/^#[0-9a-f]{6}$/i);
       expect(a.skyBottom, a.id).toMatch(/^#[0-9a-f]{6}$/i);
       for (const c of [a.hillFar, a.hillNear, a.water, a.waterLight, ...a.grass, ...a.soil]) expect(c, a.id).toBeLessThanOrEqual(0xffffff);
-      if (a.id !== 'classic') expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
+      // Free looks stay plain, so they never undercut the shop's.
+      if (a.free) expect([shopItem(`arena:${a.id}`), a.stars, a.drift], a.id).toEqual([undefined, undefined, undefined]);
+      else expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
     }
+    expect(ARENAS.filter((a) => a.free).map((a) => a.id)).toEqual(['classic', 'spring', 'moor', 'cove', 'bog']);
   });
 });
 
