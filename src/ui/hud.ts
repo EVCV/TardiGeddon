@@ -27,6 +27,22 @@ export function usesUpDown(def: WeaponDef, onRope: boolean): boolean {
   return onRope || def.kind === 'charge' || def.kind === 'hitscan' || def.kind === 'rope' || !!def.girder;
 }
 
+/** How a weapon is used, for its tag in the weapon panel: aimed and thrown, a straight shot, a spot on the map… */
+export function weaponUse(def: WeaponDef): { icon: string; label: string } {
+  if (def.id === 'skip') return { icon: '⏭️', label: t('Skip') };
+  if (def.shower) return { icon: '🌍', label: t('Whole map') };
+  if (def.strike || def.projectile?.crusher) return { icon: '☁️', label: t('From the sky') };
+  if (def.kind === 'target') return { icon: '📍', label: t('Pick a spot') };
+  if (def.projectile?.homing) return { icon: '🎯', label: t('Homing') };
+  if (def.kind === 'hitscan') return { icon: '➖', label: t('Straight shot') };
+  if (def.kind === 'melee') return { icon: '👊', label: t('Close up') };
+  if (def.kind === 'drop') return { icon: '⬇️', label: t('Drop and run') };
+  if (def.kind === 'walker') return { icon: '🐾', label: t('Walks there') };
+  if (def.kind === 'rope' || def.kind === 'parachute') return { icon: '🧭', label: t('Getting about') };
+  if (def.projectile?.bounce !== null && def.projectile?.bounce !== undefined) return { icon: '⏱️', label: t('Bounces, fuse') };
+  return { icon: '💥', label: t('On impact') };
+}
+
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -90,6 +106,11 @@ export class Hud {
   private weaponBtn = el('button', 'hud-btn hud-weapon');
   private fuseBtn = el('button', 'hud-btn hud-fuse');
   private panel = el('div', 'weapon-panel hidden');
+  private info = el('p', 'weapon-info');
+  /** The weapon in hand (for the panel's line when nothing is pointed at). */
+  private inHand = 'bazooka';
+  /** A weapon just picked from the panel: its line shows as the hint until `until`. */
+  private picked: { id: string; at: number; until: number } | null = null;
   private gameOver = el('div', 'overlay hidden');
   private touch = el('div', 'touch-pad');
   /** The ▲▼ aim buttons: hidden for weapons that don't aim (strikes, drops...). */
@@ -146,22 +167,39 @@ export class Hud {
     for (const w of PANEL_WEAPONS) {
       const b = el('button', 'weapon-cell');
       b.dataset.id = w.id;
-      b.innerHTML = `<span class="wi">${w.icon}</span><span class="wn">${t(w.name)}</span><span class="wa"></span>`;
+      const use = weaponUse(w);
+      b.innerHTML = `<span class="wi">${w.icon}</span><span class="wn">${t(w.name)}</span><span class="wu">${use.icon} ${use.label}</span><span class="wa"></span>`;
+      if (w.blurb) b.title = t(w.blurb);
+      const show = () => this.showInfo(w);
+      b.onmouseenter = show;
+      b.onfocus = show;
       b.onclick = () => {
         this.input.command({ t: 'weapon', id: w.id });
         this.togglePanel(false);
+        // What it does, under the timer for a few seconds (on a phone the panel's line was never seen).
+        this.picked = { id: w.id, at: performance.now(), until: performance.now() + 5000 };
       };
       grid.append(b);
     }
+    grid.onmouseleave = () => this.showInfo(null);
     const close = el('button', 'hud-btn panel-close', '✕');
     close.setAttribute('aria-label', t('Close'));
     close.onclick = () => this.togglePanel(false);
-    this.panel.append(el('h2', '', t('Weapons')), close, grid);
+    this.panel.append(el('h2', '', t('Weapons')), close, grid, this.info);
+  }
+
+  /** The line under the weapons: what the one under the pointer (or the one in hand) does. */
+  private showInfo(w: WeaponDef | null): void {
+    const d = w ?? WEAPONS[this.inHand];
+    this.info.replaceChildren();
+    if (!d?.blurb) return;
+    this.info.append(el('b', '', `${d.icon} ${t(d.name)}`), ' ', t(d.blurb));
   }
 
   togglePanel(show?: boolean): void {
     const open = show ?? this.panel.classList.contains('hidden');
     if (open && !this.humanTurn) return;
+    if (open) this.showInfo(null);
     this.panel.classList.toggle('hidden', !open);
   }
 
@@ -290,9 +328,14 @@ export class Hud {
       turn.phase === 'aim' || turn.phase === 'retreat' ? Math.ceil(turn.timer / TICK_RATE) : turn.phase === 'start' ? s.scheme.turnTime : 0;
     const ammoLeft = team.ammo[turn.weapon];
     const me = activeTardi(s);
+    this.inHand = turn.weapon;
+    // (The pick reaches the world a tick or two later: give it a moment before deciding it didn't take.)
+    const now = performance.now();
+    if (this.picked && (now > this.picked.until || turn.phase !== 'aim' || (this.picked.id !== turn.weapon && now - this.picked.at > 500))) this.picked = null;
 
     // Only touch the DOM when something visible changed.
     const key = [
+      this.picked ? 1 : 0,
       secs, Math.floor(s.roundTicks / TICK_RATE), s.suddenDeath, turn.phase, team.id, turn.weapon, ammoLeft, turn.fuseSeconds, s.wind, humanTurn, turn.target ? 1 : 0, turn.charging ? 1 : 0, def.girder ? turn.aim : 0, me?.rope ? 1 : 0, me?.airborne ? 1 : 0, me?.chute ? 1 : 0, s.projectiles.some((p) => p.dir !== 0) ? 1 : 0,
       s.tardis.map((x) => x.hp).join(','),
       s.race ? s.race.best.join(',') : '',
@@ -381,7 +424,10 @@ export class Hud {
     }
 
     let hint = '';
-    if (humanTurn && turn.phase === 'aim' && me) {
+    const blurb = humanTurn && this.picked?.id === turn.weapon && def.blurb && !me?.rope ? `${def.icon} ${t(def.blurb)}` : '';
+    if (blurb) {
+      hint = blurb;
+    } else if (humanTurn && turn.phase === 'aim' && me) {
       if (me.rope) hint = t('←/→ swing · ↑/↓ climb · Jump or Fire to let go');
       else if (s.race) hint = t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds });
       else if (def.kind === 'rope') hint = t('Aim, then Fire to shoot a silk line');
@@ -400,6 +446,7 @@ export class Hud {
     }
     this.hint.textContent = hint;
     this.hint.classList.toggle('show', hint !== '');
+    this.hint.classList.toggle('long', hint === blurb && blurb !== '');
     this.touch.classList.toggle('disabled', !humanTurn);
   }
 }

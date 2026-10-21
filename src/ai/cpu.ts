@@ -6,7 +6,8 @@
 // slices of a few milliseconds per tick while the CPU "thinks", never all at
 // once: on the game server one CPU turn must not stall every other match.
 
-import { cloneWorld, launchVelocity, stepProjectile, activeTardi, tick, traceHitscan, TARDI_R, AIM_STEP, POWER_STEP } from '../sim/world';
+import { cloneWorld, launchVelocity, stepProjectile, activeTardi, tick, traceHitscan, TARDI_R, AIM_STEP, AIM_MAX, POWER_STEP, STRIKE_WIND_DRIFT } from '../sim/world';
+import { circleCollides, surfaceBelow } from '../sim/terrain/terrain';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, PRESS_JUMP, TICK_RATE, type InputFrame, type Projectile, type SimEvent, type Tardi, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
 
@@ -54,7 +55,7 @@ interface Plan {
   aim: number;
   power: number;
   fuse: number;
-  /** Map target for targeted weapons (Concrete Tun). */
+  /** Map target for targeted weapons (strikes, Concrete Tun, Teleport) and the Homing Spore. */
   target?: { x: number; y: number };
 }
 
@@ -174,6 +175,10 @@ export class CpuPlayer {
           this.step = 'done';
           return { held: BTN_FIRE, pressed: 0 };
         }
+        // The Homing Spore needs its target picked before it's launched.
+        if (WEAPONS[p.weapon].projectile?.homing && p.target && !turn.target) {
+          return { held: 0, pressed: 0, cmd: { t: 'target', x: p.target.x, y: p.target.y } };
+        }
         if (WEAPONS[p.weapon].kind === 'instant') {
           this.step = 'done';
           return { held: BTN_FIRE, pressed: 0 };
@@ -207,6 +212,13 @@ interface ShotSearch {
   bestAt: Candidate | null;
 }
 
+/** Aims across the whole range, a `step` apart, on the grid of the turn's start aim (`from`). */
+function aims(from: number, step: number): number[] {
+  const out: number[] = [];
+  for (let a = from - Math.floor((from + AIM_MAX) / step) * step; a <= AIM_MAX; a += step) out.push(a);
+  return out;
+}
+
 /**
  * Try thrown and instant-shot weapons from where the active tardi stands in
  * `s`, yielding between throws. `coarse` looks at fewer angles and powers
@@ -233,9 +245,8 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
     const spec = WEAPONS[weapon].projectile!;
     const flight = flightKey(weapon);
     for (const facing of [1, -1] as const) {
-      // Aim is reached in AIM_STEP increments from the turn's start aim.
-      for (let aim = s.turn.aim - AIM_STEP * 80; aim <= s.turn.aim + AIM_STEP * 50; aim += AIM_STEP * (coarse ? 12 : 6)) {
-        if (aim < -1024 || aim > 1024) continue;
+      // Every angle, from straight down to straight up (high lobs reach over towers and into pits).
+      for (const aim of aims(s.turn.aim, AIM_STEP * (coarse ? 12 : 6))) {
         for (let power = 300; power <= 1000; power += coarse ? 175 : 100) {
           const fuse = 3;
           const key = `${flight}|${facing}|${aim}|${power}`;
@@ -254,8 +265,7 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
   for (const weapon of ['shotgun'].filter(usable)) {
     const hs = WEAPONS[weapon].hitscan!;
     for (const facing of [1, -1] as const) {
-      for (let aim = s.turn.aim - AIM_STEP * 80; aim <= s.turn.aim + AIM_STEP * 50; aim += AIM_STEP * (coarse ? 6 : 2)) {
-        if (aim < -1024 || aim > 1024) continue;
+      for (const aim of aims(s.turn.aim, AIM_STEP * (coarse ? 6 : 2))) {
         const shot = traceHitscan(sim, me, facing, aim, hs.range);
         if (shot.hit) add({ weapon, facing, aim, power: 0, fuse: 3 }, shot.x, shot.y, hs.radius, hs.damage * WEAPONS[weapon].shots);
         yield;
@@ -310,6 +320,51 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
       bestScore = score;
       best = { weapon: 'slideslam', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3 };
     }
+  }
+  const enemies = s.tardis
+    .filter((t) => t.alive && t.team !== me.team)
+    .sort((a, b) => Math.hypot(a.x - me.x, a.y - me.y) - Math.hypot(b.x - me.x, b.y - me.y));
+  // Raindrop Strike and Acid Rain: rain on an enemy from the sky (open sky above them, or none of it lands).
+  for (const weapon of ['airstrike', 'acidrain'].filter(usable)) {
+    for (const e of enemies) {
+      const st = yield* strikeAt(sim, s, weapon, e.x, me.team);
+      yield;
+      // Kept for when they're clearly better: there's one of each.
+      if (st && st.score * 0.85 > bestScore) {
+        bestScore = st.score * 0.85;
+        best = { weapon, facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3, target: { x: st.x, y: Math.round(e.y) } };
+      }
+    }
+  }
+  // Homing Spore: picks an enemy and steers to it, round corners a throw can't take.
+  if (usable('homing')) {
+    const spec = WEAPONS.homing.projectile!;
+    for (const e of enemies.slice(0, 3)) {
+      const target = { x: Math.round(e.x), y: Math.round(e.y) };
+      for (const facing of [1, -1] as const) {
+        for (const aim of aims(s.turn.aim, AIM_STEP * 12)) {
+          for (const power of [400, 600, 800, 1000]) {
+            const hit = predict(sim, 'homing', me.x, me.y, facing, aim, power, 0, me.id, target);
+            yield;
+            if (!hit) continue;
+            const score = scoreHit(s, hit.x, hit.y, spec.radius, spec.damage, me.team) * 0.9;
+            if (score > bestScore) {
+              bestScore = score;
+              best = { weapon: 'homing', facing, aim, power, fuse: 3, target };
+            }
+          }
+        }
+      }
+    }
+  }
+  // Still nothing worth firing: teleport somewhere it has a shot from next turn.
+  if (bestScore < 10 && usable('teleport')) {
+    const tp = yield* teleportSpot(s, skill, enemies);
+    if (tp) return { weapon: 'teleport', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3, target: tp };
+  }
+  // Targets picked by a CPU that isn't perfect are a little off, like its throws.
+  if (best?.target && skill.spread > 0 && best.weapon !== 'teleport') {
+    best = { ...best, target: { x: Math.round(best.target.x + gauss() * skill.spread * 0.4), y: best.target.y } };
   }
   // Nothing in reach (walled off in a cave, or behind a spire): rather than
   // skip, lob one as close to the nearest enemy as it can, blasting a way through.
@@ -390,6 +445,78 @@ function* refine(sim: WorldState, s: WorldState, me: Tardi, c: Candidate, tx: nu
         bestD = d;
         best = { plan: { ...c.plan, aim: a, power: pw }, x: hit.x, y: hit.y, score: 0, ownGoal: false };
       }
+    }
+  }
+  return best;
+}
+
+/**
+ * A strike aimed to land on `x`: where to point it (allowing for the wind, which
+ * blows the drops sideways as they fall) and what it would do there.
+ */
+function* strikeAt(sim: WorldState, s: WorldState, weapon: string, x: number, myTeam: number): Generator<void, { x: number; score: number } | null> {
+  const st = WEAPONS[weapon].strike!;
+  const drop = WEAPONS[st.weapon].projectile!;
+  // Fire and acid splash on after the drop: count them as a bit more damage.
+  const damage = drop.damage + (drop.fire ? drop.fire.count * 3 : 0);
+  const fall = (tx: number) => {
+    const hits: { x: number; y: number }[] = [];
+    for (let i = 0; i < st.count; i++) {
+      const p: Projectile = { id: -1, weapon: st.weapon, x: tx + (i - (st.count - 1) / 2) * st.spacing, y: -30 - i * 4, vx: sim.wind * STRIKE_WIND_DRIFT, vy: 5, fuse: -1, owner: -1, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
+      const r = fly(sim, p);
+      if (r) hits.push(r);
+    }
+    return hits;
+  };
+  // Where the middle drop lands when aimed straight at it, then aim off by the drift.
+  const first = fall(x);
+  yield;
+  const mid = first[Math.floor(first.length / 2)];
+  const tx = Math.round(Math.max(20, Math.min(s.terrain.w - 20, mid ? x - (mid.x - x) : x)));
+  const hits = tx === Math.round(x) ? first : fall(tx);
+  let score = 0;
+  for (const h of hits) score += scoreHit(s, h.x, h.y, drop.radius, damage, myTeam);
+  return score > 0 ? { x: tx, score } : null;
+}
+
+/** Most places it weighs up teleporting to. */
+const TELEPORT_SPOTS = 12;
+
+/**
+ * Somewhere to teleport to with a good shot from next turn: on the ground a
+ * little way either side of the nearest enemies, not by a mine or the water.
+ */
+function* teleportSpot(s: WorldState, skill: SkillDef, enemies: Tardi[]): Generator<void, { x: number; y: number } | null> {
+  const me = activeTardi(s)!;
+  const spots: { x: number; y: number }[] = [];
+  for (const e of enemies.slice(0, 3)) {
+    for (const dx of [-220, 220, -140, 140]) {
+      const x = Math.round(e.x + dx);
+      if (x < 30 || x > s.terrain.w - 30) continue;
+      // The ground below a point above the enemy's level (a ledge beside them, not the cave roof).
+      const ground = surfaceBelow(s.terrain, x, Math.max(0, e.y - 160));
+      if (ground < 0) continue;
+      const y = ground - TARDI_R - 2;
+      if (y < TARDI_R + 4 || y > s.waterY - 40 || circleCollides(s.terrain, x, y, TARDI_R)) continue;
+      if (s.objects.some((o) => o.kind === 'mine' && Math.abs(o.x - x) < 50 && Math.abs(o.y - y) < 50)) continue;
+      if (s.tardis.some((t) => t.alive && t.id !== me.id && Math.abs(t.x - x) < 50 && Math.abs(t.y - y) < 40)) continue;
+      spots.push({ x, y });
+      if (spots.length >= TELEPORT_SPOTS) break;
+    }
+    if (spots.length >= TELEPORT_SPOTS) break;
+  }
+  let best: { x: number; y: number } | null = null;
+  let bestScore = GOOD_SHOT;
+  for (const spot of spots) {
+    const there = cloneWorld(s);
+    const t = activeTardi(there)!;
+    t.x = spot.x;
+    t.y = spot.y + 1;
+    t.airborne = false;
+    const found = yield* searchShots(there, skill, true);
+    if (found.bestScore > bestScore) {
+      bestScore = found.bestScore;
+      best = spot;
     }
   }
   return best;
@@ -504,10 +631,17 @@ function predict(
   power: number,
   fuseTicks: number,
   owner: number,
+  /** Where a homing shot steers to. */
+  target?: { x: number; y: number },
 ): { x: number; y: number } | null {
   const spec = WEAPONS[weapon].projectile!;
   const { vx, vy } = launchVelocity(spec, facing, aim, power);
-  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : (spec.fuseTicks ?? -1), owner, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
+  const p: Projectile = { id: -1, weapon, x, y, vx, vy, fuse: spec.playerFuse ? fuseTicks : (spec.fuseTicks ?? -1), owner, age: 0, tx: target?.x ?? 0, ty: target?.y ?? 0, dir: 0, hits: 0 };
+  return fly(s, p);
+}
+
+/** Where a projectile goes off, or null if it never does (in the water, off the map). */
+function fly(s: WorldState, p: Projectile): { x: number; y: number } | null {
   for (let i = 0; i < 400; i++) {
     const r = stepProjectile(s, p, null);
     if (r.k === 'gone') return null;
