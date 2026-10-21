@@ -1,5 +1,6 @@
 // Browser connection to the online game server.
 
+import { tk } from '../i18n/tk';
 import { PROTOCOL_VERSION, type ClientMsg, type LobbyTeam, type ServerMsg } from './protocol';
 import { blockedPlayers } from './blocked';
 
@@ -32,7 +33,7 @@ export class NetClient {
       const ws = new WebSocket(this.url);
       this.ws = ws;
       ws.onopen = () => resolve();
-      ws.onerror = () => reject(new Error('Could not reach the game server.'));
+      ws.onerror = () => reject(new Error(tk('Could not reach the game server.')));
       ws.onmessage = (e) => {
         let msg: ServerMsg;
         try {

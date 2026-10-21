@@ -20,6 +20,7 @@ import { arenaTheme } from '../render/arenas';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
 import { webGameUrl } from '../native';
+import { t } from '../i18n/i18n';
 
 const REJOIN_KEY = 'tardigeddon.rejoin';
 
@@ -99,7 +100,7 @@ export function showOnline(
   const listen = (c: NetClient) => {
     off?.();
     off = c.on((msg: ServerMsg) => {
-      if (msg.t === 'error') status.textContent = msg.msg;
+      if (msg.t === 'error') status.textContent = t(msg.msg);
       else if (msg.t === 'invite') showInvite(msg.from, () => void joinRoom(msg.code));
       else if (msg.t === 'queue') renderQueue(msg.waiting);
       else if (msg.t === 'room') {
@@ -118,7 +119,7 @@ export function showOnline(
       }
     });
     c.onDrop = () => {
-      status.textContent = 'Lost connection to the game server.';
+      status.textContent = t('Lost connection to the game server.');
     };
   };
 
@@ -132,12 +133,12 @@ export function showOnline(
   const connect = async (): Promise<NetClient | null> => {
     if (client?.connected) return client;
     if (!url) return null;
-    status.textContent = 'Connecting…';
+    status.textContent = t('Connecting…');
     const c = new NetClient(url);
     try {
       await c.connect();
     } catch (e) {
-      status.textContent = (e as Error).message;
+      status.textContent = t((e as Error).message);
       return null;
     }
     status.textContent = '';
@@ -161,10 +162,10 @@ export function showOnline(
     backAction = leave;
     card.innerHTML = '';
     card.dataset.screen = 'entry';
-    card.append(el('h1', 'title-small', 'Play online'));
+    card.append(el('h1', 'title-small', t('Play online')));
     if (!url) {
-      card.append(el('p', 'online-note', 'Online play isn’t switched on for this version of the game yet.'));
-      const back = el('button', 'big-btn secondary', 'Back');
+      card.append(el('p', 'online-note', t('Online play isn’t switched on for this version of the game yet.')));
+      const back = el('button', 'big-btn secondary', t('Back'));
       back.onclick = leave;
       card.append(back);
       return;
@@ -177,30 +178,30 @@ export function showOnline(
     who.append(name);
     const heading = card.firstElementChild!;
     const [colA, colB] = columns();
-    colA.append(heading, who, el('p', 'online-note', 'You play as your first team. Edit it from the main menu.'));
+    colA.append(heading, who, el('p', 'online-note', t('You play as your first team. Edit it from the main menu.')));
 
-    const quick = el('button', 'big-btn', '⚡ Quick play');
+    const quick = el('button', 'big-btn', t('⚡ Quick play'));
     quick.onclick = async () => {
       const c = await connect();
       c?.quick(myTeam());
     };
-    const or = el('p', 'online-note', 'or play with friends:');
-    const create = el('button', 'big-btn secondary', 'Create a room');
+    const or = el('p', 'online-note', t('or play with friends:'));
+    const create = el('button', 'big-btn secondary', t('Create a room'));
     create.onclick = async () => {
       const c = await connect();
       c?.create(myTeam());
     };
     const joinRow = el('div', 'join-row');
     const code = el('input', 'code-input');
-    code.placeholder = 'Room code';
+    code.placeholder = t('Room code');
     code.maxLength = 5;
     code.autocapitalize = 'characters';
     code.value = opts.code ?? '';
-    const join = el('button', 'big-btn secondary', 'Join');
+    const join = el('button', 'big-btn secondary', t('Join'));
     join.onclick = async () => {
       const v = code.value.trim().toUpperCase();
       if (v.length < 5) {
-        status.textContent = 'Enter the 5-letter room code.';
+        status.textContent = t('Enter the 5-letter room code.');
         return;
       }
       const c = await connect();
@@ -211,27 +212,27 @@ export function showOnline(
       if (e.key === 'Enter') join.click();
     };
     // Spectate: watch a room's match without playing in it.
-    const watch = el('button', 'hud-btn', '👀 Watch');
-    watch.title = 'Watch this room’s match without playing';
+    const watch = el('button', 'hud-btn', t('👀 Watch'));
+    watch.title = t('Watch this room’s match without playing');
     watch.onclick = async () => {
       const v = code.value.trim().toUpperCase();
       if (v.length < 5) {
-        status.textContent = 'Enter the 5-letter room code.';
+        status.textContent = t('Enter the 5-letter room code.');
         return;
       }
       const c = await connect();
       c?.watch(v);
     };
     joinRow.append(code, join, watch);
-    const back = el('button', 'hud-btn online-back', '← Back');
+    const back = el('button', 'hud-btn online-back', t('← Back'));
     back.onclick = leave;
-    const help = el('button', 'hud-btn', '❓ How online play works');
+    const help = el('button', 'hud-btn', t('❓ How online play works'));
     help.onclick = () => {
       const overlay = el('div', 'editor-overlay');
       const box = el('div', 'editor guide-box');
       box.setAttribute('role', 'dialog');
-      box.setAttribute('aria-label', 'How online play works');
-      const done = el('button', 'big-btn', 'Got it');
+      box.setAttribute('aria-label', t('How online play works'));
+      const done = el('button', 'big-btn', t('Got it'));
       const close = () => overlay.remove();
       done.onclick = close;
       overlay.onclick = (e) => {
@@ -271,18 +272,18 @@ export function showOnline(
     }
     card.innerHTML = '';
     card.dataset.screen = 'queue';
-    card.append(el('h1', 'title-small', 'Quick play'));
+    card.append(el('h1', 'title-small', t('Quick play')));
     const spin = el('div', 'queue-spin');
     spin.innerHTML = mascotSvg(shown(myTeam().color), myTeam().hat, myTeam().skin);
-    card.append(spin, el('p', 'online-note', waiting > 1 ? `${waiting} players waiting… starting soon!` : 'Looking for players…'), el('div', 'queue-time', '0:00'));
+    card.append(spin, el('p', 'online-note', waiting > 1 ? t('{n} players waiting… starting soon!', { n: waiting }) : t('Looking for players…')), el('div', 'queue-time', '0:00'));
     const stats = account().me?.user ? account().me?.stats : null;
     if (stats?.ratedGames) {
       const tier = tierFor(stats.rating);
-      card.append(el('p', 'online-note', `Looking for players near your rank (${tier.emoji} ${tier.name}) first.`));
+      card.append(el('p', 'online-note', t('Looking for players near your rank ({tier}) first.', { tier: `${tier.emoji} ${t(tier.name)}` })));
     }
-    const cpu = el('button', 'big-btn secondary', 'Play a CPU instead');
+    const cpu = el('button', 'big-btn secondary', t('Play a CPU instead'));
     cpu.onclick = () => client?.send({ t: 'quickCpu' });
-    const cancel = el('button', 'hud-btn', 'Cancel');
+    const cancel = el('button', 'hud-btn', t('Cancel'));
     cancel.onclick = () => {
       client?.send({ t: 'quickCancel' });
       stopQueueClock();
@@ -298,14 +299,14 @@ export function showOnline(
     card.dataset.screen = 'room';
     const isHost = room.slots[room.you]?.host === true;
     const [colA, colB] = columns();
-    colA.append(el('h1', 'title-small', 'Room'));
+    colA.append(el('h1', 'title-small', t('Room')));
     const codeBox = el('div', 'room-code', room.code);
-    const share = el('button', 'hud-btn', '🔗 Copy invite link');
+    const share = el('button', 'hud-btn', t('🔗 Copy invite link'));
     share.onclick = async () => {
       const link = `${webGameUrl()}?room=${room.code}`;
       try {
         await navigator.clipboard.writeText(link);
-        share.textContent = '✓ Link copied';
+        share.textContent = t('✓ Link copied');
       } catch {
         share.textContent = link;
       }
@@ -319,15 +320,15 @@ export function showOnline(
       const pic = el('span', 'lobby-pic');
       pic.innerHTML = mascotSvg(shown(s.team.color), s.team.hat, s.team.skin);
       const name = el('span', 'lobby-name', slotName(s)); // player text: never innerHTML
-      const tag = el('span', 'lobby-tag', s.cpu ? '🤖 CPU' : s.host ? '👑 Host' : i === room.you ? 'You' : '👤');
-      if (i === room.you && !s.cpu) tag.textContent = s.host ? '👑 You' : 'You';
+      const tag = el('span', 'lobby-tag', s.cpu ? t('🤖 CPU') : s.host ? t('👑 Host') : i === room.you ? t('You') : '👤');
+      if (i === room.you && !s.cpu) tag.textContent = s.host ? t('👑 You') : t('You');
       const badge = el('span', 'team-emblem');
-      badge.innerHTML = emblemSvg(s.team.emblem, `${slotName(s)} emblem`);
+      badge.innerHTML = emblemSvg(s.team.emblem, t('{name} emblem', { name: slotName(s) }));
       row.append(pic, badge, name, tag);
       if (otherPlayer(s, i, room.you)) row.append(playerActions(root, s, (reason) => client?.report(i, reason), () => renderLobby(client?.room ?? room)));
       if (isHost && s.cpu) {
         const rm = el('button', 'slot-edit', '✕');
-        rm.setAttribute('aria-label', 'Remove CPU');
+        rm.setAttribute('aria-label', t('Remove CPU'));
         rm.onclick = () => client?.send({ t: 'removeSlot', idx: i });
         row.append(rm);
       }
@@ -336,21 +337,21 @@ export function showOnline(
     colB.append(list);
 
     if (isHost) {
-      const add = el('button', 'hud-btn', '+ Add CPU');
+      const add = el('button', 'hud-btn', t('+ Add CPU'));
       add.disabled = room.slots.length >= MAX_TEAMS;
       add.onclick = () => client?.send({ t: 'addCpu' });
-      const styleRow = el('label', 'online-style', 'Game style ');
+      const styleRow = el('label', 'online-style', t('Game style') + ' ');
       const sel = el('select');
       const saved = savedScheme();
-      for (const p of SCHEME_PRESETS) sel.append(new Option(p.name, p.id));
-      sel.append(new Option('My custom style', 'custom'));
+      for (const p of SCHEME_PRESETS) sel.append(new Option(t(p.name), p.id));
+      sel.append(new Option(t('My custom style'), 'custom'));
       sel.value = saved.style;
       styleRow.append(sel);
       // The map and the world everyone in the room sees (a free world, or one the host owns).
-      const mapRow = el('label', 'online-style', 'Map ');
+      const mapRow = el('label', 'online-style', t('Map') + ' ');
       const mapSel = el('select');
-      mapSel.append(new Option('Surprise me', 'random'));
-      for (const m of MAP_STYLES) mapSel.append(new Option(m.name, m.id));
+      mapSel.append(new Option(t('Surprise me'), 'random'));
+      for (const m of MAP_STYLES) mapSel.append(new Option(t(m.name), m.id));
       // Maps from the host's map editor travel with the rules (the server checks them).
       const mine = myMaps();
       for (const m of mine) mapSel.append(new Option(`🗺️ ${m.name}`, `my:${m.name}`));
@@ -358,14 +359,14 @@ export function showOnline(
       mapSel.value = roomPick.map;
       mapSel.onchange = () => (roomPick.map = mapSel.value);
       mapRow.append(mapSel);
-      const worldRow = el('label', 'online-style', 'World ');
+      const worldRow = el('label', 'online-style', t('World') + ' ');
       const worldSel = el('select');
-      worldSel.append(new Option('Each player’s own', ''));
-      for (const id of usableArenas()) worldSel.append(new Option(arenaTheme(id).name, id));
+      worldSel.append(new Option(t('Each player’s own'), ''));
+      for (const id of usableArenas()) worldSel.append(new Option(t(arenaTheme(id).name), id));
       worldSel.value = usableArenas().includes(roomPick.world) ? roomPick.world : '';
       worldSel.onchange = () => (roomPick.world = worldSel.value);
       worldRow.append(worldSel);
-      const start = el('button', 'big-btn', 'Start match');
+      const start = el('button', 'big-btn', t('Start match'));
       start.disabled = room.slots.length < 2;
       start.onclick = () => {
         const base = sel.value === 'custom' ? saved.custom : SCHEME_PRESETS.find((p) => p.id === sel.value)!.scheme;
@@ -374,12 +375,12 @@ export function showOnline(
         client?.send({ t: 'start', scheme });
       };
       colB.append(add, styleRow, mapRow, worldRow, start);
-      if (room.slots.length < 2) colB.append(el('p', 'online-note', 'Share the code, or add a CPU, to start.'));
+      if (room.slots.length < 2) colB.append(el('p', 'online-note', t('Share the code, or add a CPU, to start.')));
     } else {
-      colB.append(el('p', 'online-note', room.you < 0 ? '👀 You’re watching. The match shows here when the host starts it.' : 'Waiting for the host to start the match…'));
+      colB.append(el('p', 'online-note', room.you < 0 ? t('👀 You’re watching. The match shows here when the host starts it.') : t('Waiting for the host to start the match…')));
     }
     if (room.you >= 0 && account().me?.user) colB.append(friendsPanel({ inRoom: true, onJoin: (c) => void joinRoom(c) }));
-    const back = el('button', 'hud-btn online-back', room.you < 0 ? 'Stop watching' : 'Leave room');
+    const back = el('button', 'hud-btn online-back', room.you < 0 ? t('Stop watching') : t('Leave room'));
     back.onclick = leave;
     colA.append(status, back);
   };
@@ -388,7 +389,7 @@ export function showOnline(
     // Back from a match to the same room.
     listen(client);
     if (opts.room && !opts.room.started) renderLobby(opts.room);
-    else card.append(el('p', 'online-note', 'Back to the room…'));
+    else card.append(el('p', 'online-note', t('Back to the room…')));
   } else {
     renderEntry();
   }

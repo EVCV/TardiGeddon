@@ -13,6 +13,7 @@ import { isCustomMap } from '../src/sim/terrain/custom';
 import { defaultEmblem, isEmblem } from '../src/render/emblems';
 import { ARENAS } from '../src/render/arenas';
 import { seasonArenaOpen } from '../src/render/seasons';
+import { tk } from '../src/i18n/tk';
 import { presetTeamName, safeTeamNames } from '../src/names';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
@@ -29,7 +30,7 @@ const HASH_EVERY = 100;
 const QUEUE_MAX = 50;
 /** Fire pressed this long (ticks) after a player's turn ran out gets a "too late" message. */
 const LATE_TICKS = 150;
-export const TOO_LATE = 'Too late: your turn had run out before your shot reached the game.';
+export const TOO_LATE = tk('Too late: your turn had run out before your shot reached the game.');
 
 export interface Member {
   send(msg: ServerMsg): void;
@@ -471,7 +472,9 @@ export class Room {
       this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     } catch (e) {
       // A custom map without room for everyone: tell the host, stay in the lobby.
-      this.slots[this.host]?.member?.send({ t: 'error', msg: e instanceof Error ? e.message : 'That match couldn’t start.' });
+      // (The sim's English text, marked here so the game can show it translated.)
+      tk('That map hasn’t room for everyone: draw more land above the water.');
+      this.slots[this.host]?.member?.send({ t: 'error', msg: e instanceof Error ? e.message : tk('That match couldn’t start.') });
       this.state = null;
       return;
     }

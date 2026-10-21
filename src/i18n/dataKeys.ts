@@ -15,6 +15,7 @@ import { SEASONS } from '../render/seasons';
 import { SKINS } from '../render/skins';
 import { WEATHER_NAMES } from '../render/weather';
 import { BUNDLES, GIFT_MESSAGES, SHOP_ITEMS } from '../shop/catalog';
+import { EGGS } from '../eggs';
 
 export function DATA_KEYS(): string[] {
   const named: { name: string; blurb?: string }[] = [
@@ -38,6 +39,7 @@ export function DATA_KEYS(): string[] {
     ...named.flatMap((x) => [x.name, x.blurb ?? '']),
     ...Object.values(WEATHER_NAMES),
     ...Object.values(GIFT_MESSAGES),
+    ...EGGS.flatMap((e) => [e.name, e.riddle]),
     'Custom map',
   ].filter((s) => s);
 }

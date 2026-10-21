@@ -3,6 +3,8 @@
 // (join their room, or invite them to yours). No chat. Signed in only.
 
 import { addFriend, friendsList, inviteFriend, removeFriend, type Friend, type FriendLists } from '../account/session';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -12,11 +14,11 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 }
 
 const ADD_TEXT: Record<string, string> = {
-  asked: 'Request sent: they’ll see it next time they open Play online.',
-  friends: 'You’re friends now!',
-  self: 'That’s your own code.',
-  unknown: 'No player has that code.',
-  full: 'Your friends list is full.',
+  asked: tk('Request sent: they’ll see it next time they open Play online.'),
+  friends: tk('You’re friends now!'),
+  self: tk('That’s your own code.'),
+  unknown: tk('No player has that code.'),
+  full: tk('Your friends list is full.'),
 };
 
 /**
@@ -26,43 +28,43 @@ const ADD_TEXT: Record<string, string> = {
  */
 export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => void }): HTMLElement {
   const box = el('section', 'friends');
-  box.setAttribute('aria-label', 'Friends');
+  box.setAttribute('aria-label', t('Friends'));
   const note = el('p', 'online-note');
   note.setAttribute('role', 'status');
   let lists: FriendLists | null = null;
 
   const draw = () => {
-    box.replaceChildren(el('h2', 'card-title', '👥 Friends'));
+    box.replaceChildren(el('h2', 'card-title', t('👥 Friends')));
     if (!lists) {
-      box.append(el('p', 'online-note', 'Loading…'));
+      box.append(el('p', 'online-note', t('Loading…')));
       return;
     }
     const mine = el('p', 'friend-code');
-    const copy = el('button', 'hud-btn', `Your code: ${lists.code} 📋`);
+    const copy = el('button', 'hud-btn', t('Your code: {code} 📋', { code: lists.code }));
     copy.onclick = async () => {
       try {
         await navigator.clipboard.writeText(lists!.code);
-        note.textContent = 'Code copied. Give it to a friend so they can add you.';
+        note.textContent = t('Code copied. Give it to a friend so they can add you.');
       } catch {
-        note.textContent = `Your code is ${lists!.code}.`;
+        note.textContent = t('Your code is {code}.', { code: lists!.code });
       }
     };
     mine.append(copy);
     const add = el('div', 'join-row');
     const input = el('input', 'code-input');
-    input.placeholder = 'Friend’s code';
+    input.placeholder = t('Friend’s code');
     input.maxLength = 9;
     input.autocapitalize = 'characters';
-    input.setAttribute('aria-label', 'Friend’s code');
-    const go = el('button', 'hud-btn', 'Add');
+    input.setAttribute('aria-label', t('Friend’s code'));
+    const go = el('button', 'hud-btn', t('Add'));
     go.onclick = async () => {
       try {
         const r = await addFriend(input.value);
-        note.textContent = ADD_TEXT[r.result];
+        note.textContent = t(ADD_TEXT[r.result]);
         input.value = '';
         await refresh();
       } catch (e) {
-        note.textContent = e instanceof Error ? e.message : String(e);
+        note.textContent = e instanceof Error ? t(e.message) : String(e);
       }
     };
     input.onkeydown = (e) => {
@@ -74,7 +76,7 @@ export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => 
     const row = (f: Friend, ...buttons: HTMLElement[]) => {
       const r = el('div', 'friend-row');
       const dot = el('span', 'friend-dot' + (f.online ? ' on' : ''));
-      dot.setAttribute('aria-label', f.online ? 'Online' : 'Offline');
+      dot.setAttribute('aria-label', f.online ? t('Online') : t('Offline'));
       r.append(dot, el('span', 'friend-name', f.name), ...buttons); // names: never innerHTML
       return r;
     };
@@ -86,7 +88,7 @@ export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => 
         try {
           await fn();
         } catch (e) {
-          note.textContent = e instanceof Error ? e.message : String(e);
+          note.textContent = e instanceof Error ? t(e.message) : String(e);
         }
         b.disabled = false;
       };
@@ -96,12 +98,12 @@ export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => 
       box.append(
         row(
           { ...f, online: false },
-          el('span', 'online-note', 'wants to be friends'),
-          button('✓', `Accept ${f.name}`, async () => {
+          el('span', 'online-note', t('wants to be friends')),
+          button('✓', t('Accept {name}', { name: f.name }), async () => {
             await addFriend(f.code);
             await refresh();
           }),
-          button('✕', `Decline ${f.name}`, async () => {
+          button('✕', t('Decline {name}', { name: f.name }), async () => {
             await removeFriend(f.code);
             await refresh();
           }),
@@ -110,30 +112,30 @@ export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => 
     }
     for (const f of lists.friends) {
       const buttons: HTMLElement[] = [];
-      if (f.room) buttons.push(button('Join', `Join ${f.name}’s room`, async () => opts.onJoin(f.room!)));
+      if (f.room) buttons.push(button(t('Join'), t('Join {name}’s room', { name: f.name }), async () => opts.onJoin(f.room!)));
       if (opts.inRoom && f.online) {
         buttons.push(
-          button('Invite', `Invite ${f.name}`, async () => {
+          button(t('Invite'), t('Invite {name}', { name: f.name }), async () => {
             const r = await inviteFriend(f.code);
-            note.textContent = r.result === 'sent' ? `Invite sent to ${f.name}.` : r.result === 'offline' ? `${f.name} isn’t on Play online right now.` : 'Invites work from a private room’s lobby.';
+            note.textContent = r.result === 'sent' ? t('Invite sent to {name}.', { name: f.name }) : r.result === 'offline' ? t('{name} isn’t on Play online right now.', { name: f.name }) : t('Invites work from a private room’s lobby.');
           }),
         );
       }
       buttons.push(
-        button('✕', `Remove ${f.name}`, async () => {
-          if (!confirm(`Remove ${f.name} from your friends?`)) return;
+        button('✕', t('Remove {name}', { name: f.name }), async () => {
+          if (!confirm(t('Remove {name} from your friends?', { name: f.name }))) return;
           await removeFriend(f.code);
           await refresh();
         }),
       );
       box.append(row(f, ...buttons));
     }
-    for (const f of lists.sent) box.append(row({ ...f, online: false }, el('span', 'online-note', 'asked'), button('✕', `Cancel request to ${f.name}`, async () => {
+    for (const f of lists.sent) box.append(row({ ...f, online: false }, el('span', 'online-note', t('asked')), button('✕', t('Cancel request to {name}', { name: f.name }), async () => {
       await removeFriend(f.code);
       await refresh();
     })));
     if (!lists.friends.length && !lists.requests.length && !lists.sent.length) {
-      box.append(el('p', 'online-note', 'Swap codes with a friend to play together. Only friends who both said yes see each other online.'));
+      box.append(el('p', 'online-note', t('Swap codes with a friend to play together. Only friends who both said yes see each other online.')));
     }
   };
 
@@ -159,16 +161,16 @@ export function showInvite(from: string, onJoin: () => void): void {
   // On the page itself, not inside a screen that may let clicks through.
   const host = document.body;
   host.querySelector('.invite-toast')?.remove();
-  const t = el('div', 'invite-toast');
-  t.setAttribute('role', 'alert');
-  const join = el('button', 'big-btn', 'Join');
-  const no = el('button', 'hud-btn', 'Not now');
+  const toast = el('div', 'invite-toast');
+  toast.setAttribute('role', 'alert');
+  const join = el('button', 'big-btn', t('Join'));
+  const no = el('button', 'hud-btn', t('Not now'));
   join.onclick = () => {
-    t.remove();
+    toast.remove();
     onJoin();
   };
-  no.onclick = () => t.remove();
-  t.append(el('span', '', `🎉 ${from} invites you to play!`), join, no);
-  host.append(t);
-  setTimeout(() => t.remove(), 30_000);
+  no.onclick = () => toast.remove();
+  toast.append(el('span', '', t('🎉 {name} invites you to play!', { name: from })), join, no);
+  host.append(toast);
+  setTimeout(() => toast.remove(), 30_000);
 }
