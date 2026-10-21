@@ -21,7 +21,14 @@ export const LANGS: { id: Lang; name: string }[] = [
 ];
 
 const KEY = 'tardigeddon.lang';
-const LOCALES = import.meta.glob<Record<string, string>>('./locales/*.json', { import: 'default' });
+/** The locale files (Vite fills this in; outside Vite, e.g. the server under tsx, there are none). */
+const LOCALES: Record<string, () => Promise<Record<string, string>>> = (() => {
+  try {
+    return import.meta.glob<Record<string, string>>('./locales/*.json', { import: 'default' });
+  } catch {
+    return {};
+  }
+})();
 
 let dict: Record<string, string> = {};
 let current: Lang = 'en';

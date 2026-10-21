@@ -7,8 +7,8 @@
   --cream: #fdf9ee;
   --moss: #6dbb58;
   --sky-deep: #68a8e8;
-  --title: 'Luckiest Guy', 'Arial Black', sans-serif;
-  --body: 'Nunito', system-ui, sans-serif;
+  --title: 'Luckiest Guy', 'Arial Black', 'Hiragino Maru Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif; /* Japanese: a rounded system font */
+  --body: 'Nunito', system-ui, 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif;
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
