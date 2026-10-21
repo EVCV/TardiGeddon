@@ -256,8 +256,25 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
       best = { weapon: 'slideslam', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3 };
     }
   }
+  // Nothing in reach (walled off in a cave, or behind a spire): rather than
+  // skip, lob one as close to the nearest enemy as it can, blasting a way through.
+  if (!best) {
+    let bestD = Infinity;
+    for (const c of cands) {
+      if (c.ownGoal) continue;
+      for (const e of s.tardis) {
+        if (!e.alive || e.team === me.team) continue;
+        const d = (c.x - e.x) * (c.x - e.x) + (c.y - e.y) * (c.y - e.y);
+        if (d < bestD) {
+          bestD = d;
+          best = c.plan;
+        }
+      }
+    }
+    return best;
+  }
   // Perfect play, and superweapon plans, go as chosen.
-  if (!best || skill.spread === 0 || best.target || WEAPONS[best.weapon].kind === 'instant') return best;
+  if (skill.spread === 0 || best.target || WEAPONS[best.weapon].kind === 'instant') return best;
 
   const safe = cands.filter((c) => !c.ownGoal);
   let pick: Candidate | undefined;
