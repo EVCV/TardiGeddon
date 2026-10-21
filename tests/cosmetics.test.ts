@@ -5,6 +5,7 @@ import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
 import { ARENAS, arenaTheme } from '../src/render/arenas';
 import { DANCES, GRAVES } from '../src/render/finales';
+import { SEASONS, currentSeason, seasonArenaOpen, seasonEnds } from '../src/render/seasons';
 import { defaultEmblem, emblemSvg, isEmblem, parseEmblem, randomEmblem } from '../src/render/emblems';
 import { TRACKS } from '../src/audio/music';
 import { SOUND_PACKS } from '../src/audio/sfx';
@@ -77,6 +78,8 @@ describe('shop catalogue', () => {
       for (const c of [a.hillFar, a.hillNear, a.water, a.waterLight, ...a.grass, ...a.soil]) expect(c, a.id).toBeLessThanOrEqual(0xffffff);
       // Free looks stay plain, so they never undercut the shop's.
       if (a.free) expect([shopItem(`arena:${a.id}`), a.stars, a.drift], a.id).toEqual([undefined, undefined, undefined]);
+      // Seasonal worlds are free while their event is on, never sold.
+      else if (a.season) expect([shopItem(`arena:${a.id}`), SEASONS.find((x) => x.id === a.season)?.arena], a.id).toEqual([undefined, a.id]);
       else expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
     }
     expect(ARENAS.filter((a) => a.free).map((a) => a.id)).toEqual(['classic', 'spring', 'moor', 'cove', 'bog']);
@@ -141,5 +144,38 @@ describe('emblem pictures', () => {
     const svg = emblemSvg('1-1-1-1-1', '"><img src=x onerror=alert(1)> emblem');
     expect(svg).not.toContain('<img');
     expect(svg).toContain('&#34;&#62;&#60;img');
+  });
+});
+
+describe('seasonal events', () => {
+  const on = (m: number, d: number) => currentSeason(new Date(2026, m - 1, d))?.id ?? null;
+  it('run between their dates every year, including across New Year', () => {
+    expect(on(10, 19)).toBeNull();
+    expect(on(10, 20)).toBe('halloween');
+    expect(on(11, 2)).toBe('halloween');
+    expect(on(11, 3)).toBeNull();
+    expect(on(12, 31)).toBe('newyear');
+    expect(on(1, 3)).toBe('newyear');
+    expect(on(1, 4)).toBeNull();
+    expect(on(12, 20)).toBe('winter');
+    expect(seasonEnds(SEASONS.find((s) => s.id === 'halloween')!)).toBe('2 Nov');
+  });
+  it('open their world only while on, and never overlap', () => {
+    expect(seasonArenaOpen('pumpkin', new Date(2026, 9, 25))).toBe(true);
+    expect(seasonArenaOpen('pumpkin', new Date(2026, 5, 1))).toBe(false);
+    expect(seasonArenaOpen('classic', new Date(2026, 5, 1))).toBe(true);
+    // Each season alone, on each day: never two at once.
+    const k = (m: number, d: number) => m * 32 + d;
+    for (let day = 0; day < 366; day++) {
+      const d = new Date(2028, 0, 1 + day);
+      const t = k(d.getMonth() + 1, d.getDate());
+      const hits = SEASONS.filter((s) => {
+        const a = k(...s.from);
+        const b = k(...s.to);
+        return a <= b ? t >= a && t <= b : t >= a || t <= b;
+      }).length;
+      expect(hits, d.toDateString()).toBeLessThanOrEqual(1);
+    }
+    for (const s of SEASONS) expect(ARENAS.find((a) => a.id === s.arena)?.season, s.id).toBe(s.id);
   });
 });

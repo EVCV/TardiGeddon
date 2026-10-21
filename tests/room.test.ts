@@ -12,6 +12,7 @@ class Client implements Member {
   userId?: string;
   pid?: string;
   unlocked?: string[];
+  owned?: string[];
   msgs: ServerMsg[] = [];
   ls: Lockstep | null = null;
   send(msg: ServerMsg): void {
@@ -48,6 +49,23 @@ function lobby() {
 }
 
 describe('online room', () => {
+  it('lets the host pick the map and the world everyone sees, but only a world they may use', () => {
+    const pick = (owned: string[], arena: string) => {
+      const room = new Room('WORLD', Date.now, () => 0.42);
+      const a = new Client();
+      a.owned = owned;
+      const b = new Client();
+      room.join(a, team('Alpha'));
+      room.join(b, team('Bravo'));
+      room.handle(a, { t: 'start', scheme: { mapStyle: 'canyon', arena } });
+      return b.last('start')!.scheme;
+    };
+    expect(pick([], 'moor')).toMatchObject({ mapStyle: 'canyon', arena: 'moor' });
+    expect(pick([], 'night').arena).toBeUndefined();
+    expect(pick(['arena:night'], 'night').arena).toBe('night');
+    expect(pick(['arena:night'], 'nope').arena).toBeUndefined();
+  });
+
   it('builds a lobby: host, unique colours, CPU slots, cleaned names', () => {
     const { room, a, b } = lobby();
     room.handle(b, { t: 'addCpu' }); // not host: ignored

@@ -10,6 +10,8 @@ import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { isMapStyle } from '../src/sim/terrain/generate';
 import { defaultEmblem, isEmblem } from '../src/render/emblems';
+import { ARENAS } from '../src/render/arenas';
+import { seasonArenaOpen } from '../src/render/seasons';
 import { presetTeamName, safeTeamNames } from '../src/names';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
@@ -39,6 +41,8 @@ export interface Member {
   userId?: string;
   /** Season weapons they've unlocked (switched on in matches they host). */
   unlocked?: string[];
+  /** Everything they own (the world look they pick for a room they host must be theirs). */
+  owned?: string[];
 }
 
 export type { MatchResult };
@@ -75,6 +79,7 @@ interface Slot {
   /** Account of the player who took this slot (kept if they drop out). */
   userId?: string;
   unlocked?: string[];
+  owned?: string[];
   token: string;
   queue: InputFrame[];
   held: number;
@@ -154,6 +159,7 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   if (typeof v.race === 'boolean') out.race = v.race;
   if (typeof v.weather === 'boolean') out.weather = v.weather;
   if (isMapStyle(v.mapStyle)) out.mapStyle = v.mapStyle;
+  if (typeof v.arena === 'string' && ARENAS.some((a) => a.id === v.arena) && seasonArenaOpen(v.arena)) out.arena = v.arena;
   num('raceRounds', 1, 10);
   if (out.raceRounds !== undefined) out.raceRounds = Math.round(out.raceRounds);
   if (v.weapons && typeof v.weapons === 'object') {
@@ -250,6 +256,7 @@ export class Room {
     slot.pid = member.pid;
     slot.userId = member.userId;
     slot.unlocked = member.unlocked;
+    slot.owned = member.owned;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
     this.broadcastRoom();
@@ -289,7 +296,7 @@ export class Room {
         break;
       case 'start':
         // The host's unlocked season weapons are switched on for everyone in the room.
-        if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme, slot.unlocked ?? []);
+        if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme, slot.unlocked ?? [], slot.owned ?? []);
         break;
       case 'input': {
         if (!this.state) break;
@@ -325,7 +332,7 @@ export class Room {
 
   /** Start the match now (used by quick play, which has no host: standard weapons only). */
   start(scheme: unknown): void {
-    if (!this.state && this.slots.length >= 2) this.startMatch(scheme, []);
+    if (!this.state && this.slots.length >= 2) this.startMatch(scheme, [], []);
   }
 
   /** Advance the match by one tick (call at 50 Hz). */
@@ -435,8 +442,10 @@ export class Room {
     this.host = h < 0 ? 0 : h;
   }
 
-  private startMatch(rawScheme: unknown, unlocked: string[]): void {
+  private startMatch(rawScheme: unknown, unlocked: string[], owned: string[]): void {
     this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => isWeaponId(id) && WEAPONS[id].locked) };
+    // The host picks the world everyone sees: a free one, or one they own.
+    if (this.scheme.arena && !canUse('arena', this.scheme.arena, owned)) delete this.scheme.arena;
     this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, dance: s.team.dance, grave: s.team.grave, emblem: s.team.emblem, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });

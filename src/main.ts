@@ -290,7 +290,8 @@ class Match {
     }
 
     // Chosen once: "Surprise me" must not change the world when the view is rebuilt mid-match.
-    this.theme = arenaTheme(wearArena());
+    // Online, the host may have picked the world for everyone.
+    this.theme = arenaTheme(this.state.scheme.arena ?? wearArena());
     this.renderer = new GameRenderer(app, this.state, this.theme);
     this.renderer.onSound = (name) => sfx[name]();
     // Online: names of players you've blocked are hidden from you.

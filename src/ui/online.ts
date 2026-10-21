@@ -11,7 +11,9 @@ import { MAX_TEAMS } from '../sim/world';
 import { loadProfiles, matchNames } from './teams';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
-import { wornLooks } from '../account/session';
+import { usableArenas, wornLooks } from '../account/session';
+import { MAP_STYLES } from '../sim/terrain/generate';
+import { arenaTheme } from '../render/arenas';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
 import { webGameUrl } from '../native';
@@ -29,6 +31,9 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   if (text !== undefined) e.textContent = text;
   return e;
 }
+
+/** The host's map and world picks for the room (kept while the page is open). */
+const roomPick = { map: 'random', world: '' };
 
 /** Our team (the first saved team profile), as sent to the server. */
 function myTeam(): LobbyTeam {
@@ -307,13 +312,29 @@ export function showOnline(
       sel.append(new Option('My custom style', 'custom'));
       sel.value = saved.style;
       styleRow.append(sel);
+      // The map and the world everyone in the room sees (a free world, or one the host owns).
+      const mapRow = el('label', 'online-style', 'Map ');
+      const mapSel = el('select');
+      mapSel.append(new Option('Surprise me', 'random'));
+      for (const m of MAP_STYLES) mapSel.append(new Option(m.name, m.id));
+      mapSel.value = roomPick.map;
+      mapSel.onchange = () => (roomPick.map = mapSel.value);
+      mapRow.append(mapSel);
+      const worldRow = el('label', 'online-style', 'World ');
+      const worldSel = el('select');
+      worldSel.append(new Option('Each player’s own', ''));
+      for (const id of usableArenas()) worldSel.append(new Option(arenaTheme(id).name, id));
+      worldSel.value = usableArenas().includes(roomPick.world) ? roomPick.world : '';
+      worldSel.onchange = () => (roomPick.world = worldSel.value);
+      worldRow.append(worldSel);
       const start = el('button', 'big-btn', 'Start match');
       start.disabled = room.slots.length < 2;
       start.onclick = () => {
-        const scheme = sel.value === 'custom' ? saved.custom : SCHEME_PRESETS.find((p) => p.id === sel.value)!.scheme;
+        const base = sel.value === 'custom' ? saved.custom : SCHEME_PRESETS.find((p) => p.id === sel.value)!.scheme;
+        const scheme = { ...base, mapStyle: roomPick.map === 'random' ? undefined : roomPick.map, arena: roomPick.world || undefined };
         client?.send({ t: 'start', scheme });
       };
-      colB.append(add, styleRow, start);
+      colB.append(add, styleRow, mapRow, worldRow, start);
       if (room.slots.length < 2) colB.append(el('p', 'online-note', 'Share the code, or add a CPU, to start.'));
     } else {
       colB.append(el('p', 'online-note', 'Waiting for the host to start the match…'));

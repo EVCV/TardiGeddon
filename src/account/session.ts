@@ -4,6 +4,7 @@
 // the copy cached here only decides what this device shows as unlocked.
 
 import { ARENAS, SURPRISE_ARENA } from '../render/arenas';
+import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import type { UnspentRow } from '../shop/japan';
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
@@ -180,7 +181,7 @@ export const chooseArena = (id: string): void => arenaChoice.set(id);
 /** Arenas this player can use: the free ones and any they own. */
 export function usableArenas(): string[] {
   const owned = ownedItems();
-  return ARENAS.filter((a) => canUse('arena', a.id, owned)).map((a) => a.id);
+  return ARENAS.filter((a) => canUse('arena', a.id, owned) && seasonArenaOpen(a.id)).map((a) => a.id);
 }
 
 /**
@@ -190,10 +191,13 @@ export function usableArenas(): string[] {
 export function wearArena(): string {
   const id = chosenArena();
   if (id === SURPRISE_ARENA) {
+    // During a seasonal event, its world comes up half the time.
+    const season = currentSeason();
+    if (season && Math.random() < 0.5) return season.arena;
     const all = usableArenas();
     return all[Math.floor(Math.random() * all.length)] ?? 'classic';
   }
-  return canUse('arena', id, ownedItems()) ? id : 'classic';
+  return canUse('arena', id, ownedItems()) && seasonArenaOpen(id) ? id : 'classic';
 }
 
 /** The match music this player picked (only they hear it). */

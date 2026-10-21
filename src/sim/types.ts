@@ -72,6 +72,11 @@ export interface Scheme {
   mapStyle?: string;
   /** Armour each tardigrade starts with: it soaks up this much damage before health does (0 = none). */
   armour: number;
+  /**
+   * Online rooms: the world look (render/arenas.ts) the host picked for
+   * everyone. Scenery only: the sim never reads it.
+   */
+  arena?: string;
   /** Weather: rain, snow, sunshine... and, very rarely, a tornado that throws everyone somewhere new. */
   weather: boolean;
 }

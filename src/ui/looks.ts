@@ -4,6 +4,7 @@
 // shop ones show their price and open the Shop.
 
 import { ARENAS, SURPRISE_ARENA, arenaTheme } from '../render/arenas';
+import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS } from '../audio/sfx';
 import { canUse, itemFor, type ItemKind } from '../shop/catalog';
@@ -83,7 +84,11 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
     '🏞️ World',
     'The sky, hills, water and ground. Surprise me picks a different look every match.',
     'arena',
-    [{ id: SURPRISE_ARENA, name: 'Surprise me', art: SURPRISE_ART }, ...ARENAS.map((a) => ({ id: a.id, name: a.name, art: arenaSvg(a.id) }))],
+    [
+      { id: SURPRISE_ARENA, name: 'Surprise me', art: SURPRISE_ART },
+      // Seasonal worlds show (free) only while their event is on.
+      ...ARENAS.filter((a) => seasonArenaOpen(a.id)).map((a) => ({ id: a.id, name: a.season ? `${currentSeason()?.emoji ?? ''} ${a.name}` : a.name, art: arenaSvg(a.id) })),
+    ],
     chosenArena,
     chooseArena,
   );

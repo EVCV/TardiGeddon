@@ -13,6 +13,8 @@ import { hex, shown, teamSymbol } from '../render/palette';
 import { loadProfiles, nextColor, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
 import { arenaLabel, openLooks } from './looks';
+import { currentSeason, seasonEnds } from '../render/seasons';
+import { arenaTheme } from '../render/arenas';
 import { renderDashboard } from './dashboard';
 import { account, wearHat, wearSkin } from '../account/session';
 import type { HubTab } from './hub';
@@ -151,6 +153,7 @@ export function buildLobby(
           <h1 class="title">Tardi<span>Geddon</span></h1>
           <p class="tagline">Tiny. Indestructible. Armed.</p>
           <p class="hero-team"></p>
+          <p class="hero-season" hidden></p>
         </div>
       </section>
       <section class="card lobby-setup">
@@ -370,6 +373,13 @@ export function buildLobby(
   // Looks (world, music, sounds) right on the lobby, not only in the Shop.
   const looksNow = root.querySelector<HTMLElement>('.looks-now')!;
   const renderLooks = () => (looksNow.textContent = arenaLabel());
+  // A seasonal event on now (render/seasons.ts): say so, with its free world.
+  const season = currentSeason();
+  if (season) {
+    const p = root.querySelector<HTMLElement>('.hero-season')!;
+    p.hidden = false;
+    p.textContent = `${season.emoji} ${season.name}! The ${arenaTheme(season.arena).name} world is free until ${seasonEnds(season)}.`;
+  }
   root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = () => openLooks(overlayHost(root), () => go('shop'), renderLooks);
   const nav = root.querySelector<HTMLElement>('.lobby-nav')!;
   const renderNav = () => {
