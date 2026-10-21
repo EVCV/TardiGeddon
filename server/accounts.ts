@@ -25,7 +25,7 @@ import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, typ
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
@@ -737,14 +737,17 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[] }> {
+    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[]; rating?: number }> {
       const user = await userFrom(headers);
-      return user ? { userId: user.id, owned: await ownedItems(db, user.id) } : { owned: [] };
+      if (!user) return { owned: [] };
+      const r = (await ratingsOf(db, [user.id])).get(user.id)!;
+      return { userId: user.id, owned: await ownedItems(db, user.id), rating: r.rating };
     },
     /** Add a finished online match to the players' stats. */
     async recordResults(results: MatchResult[]): Promise<void> {
       await recordResults(db, results);
       for (const r of results) await earnSlime(db, r);
+      if (results.length >= 2 && results.every((r) => r.ranked)) await rateMatch(db, results);
     },
     /** Tests only: forget the per-player rate limits. */
     resetLimits(): void {

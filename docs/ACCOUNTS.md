@@ -36,6 +36,11 @@ free without an account.
   (20 for playing, +30 for a win, +5 per pop up to 8); games against the CPU
   are reported by the game and pay less (10, +15, +2 per pop), at most 200 a
   day (`server/store.ts`).
+- **Quick-play ranks** (`src/stats/rank.ts`): `player_stats.rating` (Elo-style,
+  from 1000) moves only after quick-play matches between two or more signed-in
+  accounts (`MatchResult.ranked`; private rooms never count). The game server
+  reads it on connect (`playerFor`) and the matchmaker pairs similar ratings
+  first, widening the range the longer someone waits.
 - **Daily challenges** (`src/challenge/daily.ts`, `server/challenges.ts`):
   the game sends a finished run's input frames to `POST /api/challenge/submit`;
   the server plays them through the sim itself (the stand-in team's frames

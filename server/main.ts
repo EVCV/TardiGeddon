@@ -235,6 +235,7 @@ wss.on('connection', (ws: WebSocket, req) => {
     member.pid = playerId(member.userId);
     member.unlocked = unlockedWeapons(p.owned);
     member.owned = p.owned;
+    member.rating = 'rating' in p ? p.rating : undefined;
     return p.owned;
   });
   // Messages are handled in order, once we know what the player owns.

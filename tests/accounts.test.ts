@@ -393,7 +393,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(await sendWebhook('checkout.session.completed', paid('cs_1', id, 'hat:pirate'))).toBe(200); // retry
     expect((await me(cookie)).owned).toEqual(['hat:pirate']);
     expect((await accounts.db.query('SELECT 1 FROM purchase WHERE id = $1', ['cs_1'])).rowCount).toBe(1);
-    expect(await accounts.playerFor({ cookie })).toEqual({ userId: id, owned: ['hat:pirate'] });
+    expect(await accounts.playerFor({ cookie })).toEqual({ userId: id, owned: ['hat:pirate'], rating: 1000 });
 
     expect(await sendWebhook('charge.refunded', { id: 'ch_1', refunded: true, payment_intent: 'pi_cs_1' })).toBe(200);
     expect((await me(cookie)).owned).toEqual([]);
@@ -586,6 +586,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       onlinePlayed: 4, onlineWon: 3, cpuPlayed: 1, cpuWon: 1,
       popped: 8 + 40, damage: 450, selfDamage: 65, selfPopped: 4,
       streak: 2, bestStreak: 2,
+      // Private-room matches don't change the quick-play rating.
+      rating: 1000, ratedGames: 0,
     });
     expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
     expect((await post('/api/stats/match', { won: true })).status).toBe(401);
@@ -764,6 +766,21 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(board.me?.rank).toBe(2);
     expect((await fetch(`${base}/api/challenge/board?kind=nope`)).status).toBe(400);
   }, 120_000);
+
+  it('rates quick-play matches between accounts, and only those', async () => {
+    const a = await signUp('ranked-a@example.com');
+    const b = await signUp('ranked-b@example.com');
+    const r = (userId: string, won: boolean, ranked: boolean) => ({ userId, mode: 'online' as const, won, popped: 0, damage: 0, selfDamage: 0, selfPopped: 0, ...(ranked ? { ranked } : {}) });
+    // A private room: stats, but no rating change.
+    await accounts.recordResults([r(a.id, true, false), r(b.id, false, false)]);
+    expect((await me(a.cookie)).stats).toMatchObject({ rating: 1000, ratedGames: 0 });
+    // Quick play: the winner goes up, the loser down.
+    await accounts.recordResults([r(a.id, true, true), r(b.id, false, true)]);
+    expect((await me(a.cookie)).stats).toMatchObject({ rating: 1020, ratedGames: 1 });
+    expect((await me(b.cookie)).stats).toMatchObject({ rating: 980, ratedGames: 1 });
+    // The game server learns it when they connect (for matching).
+    expect((await accounts.playerFor({ cookie: a.cookie })).rating).toBe(1020);
+  });
 
   it('deleting an account removes what it owned', async () => {
     const { cookie, id } = await signUp('five@example.com');

@@ -2,6 +2,7 @@
 // or create an account; once signed in, your details, sign out and delete.
 // Stats: your lifetime stats and your collection.
 
+import { tierFor } from '../stats/rank';
 import { NAME_PROBLEM_TEXT, nameProblem } from '../names';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
@@ -332,6 +333,13 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   const who = el('div', 'profile-who');
   who.append(el('div', 'profile-name', me.user?.name ?? 'You'));
   if (s && s.streak > 1) who.append(el('div', 'dash-streak', `🔥 ${s.streak} wins in a row`));
+  if (s) {
+    // Quick-play rank: settles after a few rated matches.
+    const tier = tierFor(s.rating);
+    const rank = el('div', 'rank-badge', s.ratedGames > 0 ? `${tier.emoji} ${tier.name} · ${s.rating}` : `${tier.emoji} Unranked: play quick play to get a rank`);
+    rank.title = 'Your quick-play rank. Winning quick-play matches against signed-in players moves it up; quick play finds you players of a similar rank.';
+    who.append(rank);
+  }
   head.append(pic, who);
   const big = el('div', 'stats-big');
   big.append(

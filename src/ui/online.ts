@@ -11,7 +11,8 @@ import { MAX_TEAMS } from '../sim/rosters';
 import { loadProfiles, matchNames } from './teams';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
-import { usableArenas, wornLooks } from '../account/session';
+import { account, usableArenas, wornLooks } from '../account/session';
+import { tierFor } from '../stats/rank';
 import { MAP_STYLES } from '../sim/terrain/generate';
 import { arenaTheme } from '../render/arenas';
 import { Lockstep } from '../net/lockstep';
@@ -259,6 +260,11 @@ export function showOnline(
     const spin = el('div', 'queue-spin');
     spin.innerHTML = mascotSvg(shown(myTeam().color), myTeam().hat, myTeam().skin);
     card.append(spin, el('p', 'online-note', waiting > 1 ? `${waiting} players waiting… starting soon!` : 'Looking for players…'), el('div', 'queue-time', '0:00'));
+    const stats = account().me?.user ? account().me?.stats : null;
+    if (stats?.ratedGames) {
+      const tier = tierFor(stats.rating);
+      card.append(el('p', 'online-note', `Looking for players near your rank (${tier.emoji} ${tier.name}) first.`));
+    }
     const cpu = el('button', 'big-btn secondary', 'Play a CPU instead');
     cpu.onclick = () => client?.send({ t: 'quickCpu' });
     const cancel = el('button', 'hud-btn', 'Cancel');

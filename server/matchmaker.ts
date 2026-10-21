@@ -2,9 +2,11 @@
 // A full match (4) starts at once; otherwise, once someone has waited a few
 // seconds, everyone waiting (2+) goes in together. Anyone can choose to play
 // a CPU instead of waiting. Players who blocked each other are never put in
-// the same match.
+// the same match. Signed-in players are matched with others of a similar
+// rating first; the range widens the longer they wait (stats/rank.ts).
 
 import type { Member } from './room';
+import { START_RATING, ratingWindow } from '../src/stats/rank';
 
 export interface Waiting {
   member: Member;
@@ -26,6 +28,13 @@ export function cleanBlocks(raw: unknown): Set<string> {
 /** May these two play together? Not if either blocked the other. */
 function friendly(a: Waiting, b: Waiting): boolean {
   return !(b.member.pid && a.blocks.has(b.member.pid)) && !(a.member.pid && b.blocks.has(a.member.pid));
+}
+
+/** Close enough in rating, for how long the first has waited (guests count as new players). */
+function similar(first: Waiting, other: Waiting, now: number): boolean {
+  const a = first.member.rating ?? START_RATING;
+  const b = other.member.rating ?? START_RATING;
+  return Math.abs(a - b) <= ratingWindow(now - first.since);
 }
 
 /** Most players in one quick-play match. */
@@ -88,7 +97,7 @@ export class Matchmaker {
   private group(start: number): Waiting[] {
     const g = [this.queue[start]];
     for (let i = start + 1; i < this.queue.length && g.length < QUICK_MAX; i++) {
-      if (g.every((w) => friendly(w, this.queue[i]))) g.push(this.queue[i]);
+      if (g.every((w) => friendly(w, this.queue[i])) && similar(g[0], this.queue[i], this.now())) g.push(this.queue[i]);
     }
     return g;
   }

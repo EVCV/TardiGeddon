@@ -85,6 +85,9 @@ export interface PlayerStats {
   /** Own goals: damage to your own team, your own tardis popped. */
   selfDamage: number;
   selfPopped: number;
+  /** Quick-play rating (stats/rank.ts) and how many rated matches it's from. */
+  rating: number;
+  ratedGames: number;
 }
 
 const OWNED_KEY = 'tardigeddon.owned';
@@ -301,7 +304,7 @@ function previewMe(): MeResponse {
     user: null,
     owned: [],
     wallet: { coins: 0, slime: 0 },
-    stats: { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0 },
+    stats: { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0, rating: 1000, ratedGames: 0 },
     shop: true,
     providers: [],
     preview: true,

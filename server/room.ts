@@ -43,6 +43,8 @@ export interface Member {
   unlocked?: string[];
   /** Everything they own (the world look they pick for a room they host must be theirs). */
   owned?: string[];
+  /** Quick-play rating (signed in), for matching players of a similar level. */
+  rating?: number;
 }
 
 export type { MatchResult };
@@ -401,7 +403,9 @@ export class Room {
       // The online Slime rate needs two or more different accounts playing each
       // other; against the CPU or guests it pays the CPU rate, under its daily cap.
       const slime = paid.length >= 2 ? ('online' as const) : ('cpu' as const);
-      const results: MatchResult[] = paid.map(({ i, userId }) => ({ userId, mode: 'online' as const, slime, won: s.turn.winner === i, ...this.tally!.teams[i] }));
+      // Quick play between two or more accounts is ranked (private rooms never are).
+      const ranked = this.quick && paid.length >= 2;
+      const results: MatchResult[] = paid.map(({ i, userId }) => ({ userId, mode: 'online' as const, slime, won: s.turn.winner === i, ...this.tally!.teams[i], ...(ranked ? { ranked } : {}) }));
       if (results.length) this.onResult?.(results);
       // Back to the lobby for a rematch; disconnected players' slots are freed.
       this.state = null;
