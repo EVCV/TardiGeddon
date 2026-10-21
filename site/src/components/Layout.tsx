@@ -41,6 +41,17 @@ function MobileMenu() {
   // A new page closes it.
   useEffect(() => setOpen(false), [path]);
 
+  // So does a screen wide enough for the header menu (a tablet turned
+  // sideways): the panel hides there, and must not keep the page locked.
+  useEffect(() => {
+    const wide = window.matchMedia('(min-width: 980px)');
+    const onChange = () => {
+      if (wide.matches) setOpen(false);
+    };
+    wide.addEventListener('change', onChange);
+    return () => wide.removeEventListener('change', onChange);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     document.body.classList.add('menu-open');

@@ -183,6 +183,13 @@ export class Hud {
     e.stopPropagation();
     e.preventDefault();
     this.togglePanel(false);
+    // The same tap's click would still reach whatever was under it (mute, quit…): swallow it too.
+    const swallow = (c: Event) => {
+      c.stopPropagation();
+      c.preventDefault();
+    };
+    document.addEventListener('click', swallow, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 600);
   };
 
   /** The line under the weapons: what the one under the pointer (or the one in hand) does. */
