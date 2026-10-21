@@ -52,3 +52,36 @@ test('a finished match can be watched again, with working replay controls', asyn
   await page.getByRole('button', { name: 'Stop watching' }).click();
   await expect(page.locator('.title')).toBeVisible();
 });
+
+test('a map drawn in the map editor can be saved, picked in Customise and played', async ({ page }, info) => {
+  test.setTimeout(90_000);
+  await page.goto('/');
+  if (info.project.name !== 'desktop') await page.getByRole('button', { name: 'Match setup' }).waitFor();
+  await page.getByRole('button', { name: '🗺️ Map editor' }).click();
+  const canvas = page.locator('.map-editor-canvas');
+  await expect(canvas).toBeVisible();
+  // The whole editor fits the screen.
+  const box = (await canvas.boundingBox())!;
+  const view = page.viewportSize()!;
+  expect(box.y + box.height).toBeLessThanOrEqual(view.height);
+  // Draw a hill: one stroke across the middle.
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.6);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.6, { steps: 8 });
+  await page.mouse.up();
+  await page.getByLabel('Map name').fill('Hilly');
+  await page.getByRole('button', { name: 'Save on this device' }).click();
+  await expect(page.locator('.map-editor-note')).toContainText('Saved “Hilly”');
+  await page.getByRole('button', { name: 'Leave the map editor' }).click();
+  await expect(page.locator('.map-editor')).toHaveCount(0);
+  // It's in the Map list.
+  if (info.project.name === 'desktop') {
+    await page.getByRole('button', { name: 'Customise', exact: true }).click();
+    await expect(page.locator('.custom-panel select option', { hasText: '🗺️ Hilly' })).toHaveCount(1);
+  }
+  // And it plays.
+  await page.getByRole('button', { name: '🗺️ Map editor' }).click();
+  await page.getByLabel('Start from').selectOption({ label: '🗺️ Hilly' });
+  await page.getByRole('button', { name: 'Play on this map against the computer' }).click();
+  await page.waitForFunction(() => (window as unknown as { __tardi?: { world: { realm: string } } }).__tardi?.world.realm === 'custom');
+});

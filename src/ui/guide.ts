@@ -65,6 +65,7 @@ export function onlineGuide(): HTMLElement {
       '**Friends** (signed in): swap friend codes on the Play online screen. Once you’ve both said yes, you see when each other is online, can join their room, or invite them to yours. There’s no chat.',
       '**Quick play is ranked** for signed-in players: you’re matched with players near your rank first (see Stats).',
       '**Watch a match:** type the room code and press 👀 Watch to see it without playing (up to 8 people per room). Every match you play is also kept in 🎬 Replays in the lobby.',
+      '**Your own maps:** draw one in 🗺️ Map editor (in the lobby), save it, then pick it in the room’s Map list. Everyone in the room plays on it. To give a friend a map, save it as a file (⤓) and send it; they open it in the map editor.',
       '**Stats and Slime:** sign in to earn Slime and keep your stats from online games.',
       '**Staying safe:** there is no chat. Names are checked for anything rude or personal. Use ⚑ Report or 🚫 Block next to a player in the room, or the 👥 button in a match. Blocked players never join your quick-play games.',
     ],

@@ -211,7 +211,9 @@ account), purpose **App functionality** and **Account management**:
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → Other user-generated content** (team and
-tardigrade names shown to other players in online play): collected, **not**
+tardigrade names shown to other players in online play, and a map from the
+map editor when a host plays it online; the server keeps a map only for that
+match): collected, **not**
 ephemeral (a player report emails the names to support, kept up to 24
 months), not shared (showing them to other players is the player's choice,
 not "sharing" in Google's sense), optional, purposes **App functionality**

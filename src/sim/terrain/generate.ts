@@ -70,6 +70,7 @@ export function isMapStyle(id: unknown): id is MapStyle {
 }
 
 export function mapStyleName(id: string): string {
+  if (id === 'custom') return 'Custom map';
   return MAP_STYLES.find((m) => m.id === id)?.name ?? MAP_STYLES[0].name;
 }
 

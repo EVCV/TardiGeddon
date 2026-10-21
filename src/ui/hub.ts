@@ -67,6 +67,7 @@ export function showHub(
   onPractice: () => void = () => {},
   onChallenge: () => void = () => {},
   onReplays: () => void = () => {},
+  onMapEditor: () => void = () => {},
   tab: HubTab = 'lobby',
 ): Hub {
   root.innerHTML = '';
@@ -211,7 +212,7 @@ export function showHub(
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays, onMapEditor);
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;

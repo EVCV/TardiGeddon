@@ -14,6 +14,7 @@ import { NetClient, serverUrl } from '../net/client';
 import { account, usableArenas, wornLooks } from '../account/session';
 import { tierFor } from '../stats/rank';
 import { friendsPanel, showInvite } from './friends';
+import { myMaps } from './myMaps';
 import { MAP_STYLES } from '../sim/terrain/generate';
 import { arenaTheme } from '../render/arenas';
 import { Lockstep } from '../net/lockstep';
@@ -350,6 +351,10 @@ export function showOnline(
       const mapSel = el('select');
       mapSel.append(new Option('Surprise me', 'random'));
       for (const m of MAP_STYLES) mapSel.append(new Option(m.name, m.id));
+      // Maps from the host's map editor travel with the rules (the server checks them).
+      const mine = myMaps();
+      for (const m of mine) mapSel.append(new Option(`🗺️ ${m.name}`, `my:${m.name}`));
+      if (![...mapSel.options].some((o) => o.value === roomPick.map)) roomPick.map = 'random';
       mapSel.value = roomPick.map;
       mapSel.onchange = () => (roomPick.map = mapSel.value);
       mapRow.append(mapSel);
@@ -364,7 +369,8 @@ export function showOnline(
       start.disabled = room.slots.length < 2;
       start.onclick = () => {
         const base = sel.value === 'custom' ? saved.custom : SCHEME_PRESETS.find((p) => p.id === sel.value)!.scheme;
-        const scheme = { ...base, mapStyle: roomPick.map === 'random' ? undefined : roomPick.map, arena: roomPick.world || undefined };
+        const custom = roomPick.map.startsWith('my:') ? mine.find((m) => `my:${m.name}` === roomPick.map)?.map : undefined;
+        const scheme = { ...base, mapStyle: roomPick.map === 'random' || custom ? undefined : roomPick.map, customMap: custom, arena: roomPick.world || undefined };
         client?.send({ t: 'start', scheme });
       };
       colB.append(add, styleRow, mapRow, worldRow, start);

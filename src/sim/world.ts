@@ -9,6 +9,7 @@
 import { cosA, sinA, ANGLE_QUARTER } from './math/trig';
 import { createRng, rngFloat, rngInt, rngNext } from './math/prng';
 import { generateMap, isMapStyle, randomMapStyle, type MapStyle } from './terrain/generate';
+import { decodeCustomMap } from './terrain/custom';
 import { carveCircle, circleCollides, isSolid, normalAt, placeGirder, surfaceBelow, type Rect, type Terrain } from './terrain/terrain';
 import {
   BTN_DOWN,
@@ -131,8 +132,10 @@ export function createWorld(cfg: WorldConfig): WorldState {
   // Practice: one tardigrade against the targets; otherwise the same number per team.
   const needed = practice ? 1 + practice : cfg.teams.length * scheme.tardisPerTeam;
   const size = mapSizeFor(needed);
-  const w = cfg.mapW ?? size.w;
-  const h = cfg.mapH ?? size.h;
+  // A map from the map editor brings its own size.
+  const custom = scheme.customMap ? decodeCustomMap(scheme.customMap) : null;
+  const w = custom?.w ?? cfg.mapW ?? size.w;
+  const h = custom?.h ?? cfg.mapH ?? size.h;
   const waterY = h - 70;
 
   // Rope Race courses are always the classic islands under a ceiling.
@@ -142,7 +145,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
   // Retry seeds until the map has room for every tardi.
   for (let attempt = 0; attempt < 50; attempt++) {
     const seed = (cfg.seed + attempt * 7919) | 0;
-    const terrain = generateMap({ w, h, waterY, seed, ceiling: scheme.race, style });
+    const terrain = custom ? { w, h, mask: custom.mask.slice() } : generateMap({ w, h, waterY, seed, ceiling: scheme.race, style });
     const rng = createRng(seed ^ 0x5eed);
     const spots = findSpawns(terrain, waterY, needed, rng);
     if (!spots) continue;
@@ -185,7 +188,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
       scheme,
       race: null,
       practice: null,
-      realm: style,
+      realm: custom ? 'custom' : style,
       weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7) },
     };
 
@@ -258,7 +261,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
     beginTurn(s, s.turn.teamIdx, []);
     return s;
   }
-  throw new Error('Could not generate a map with enough room');
+  throw new Error(custom ? 'That map hasn’t room for everyone: draw more land above the water.' : 'Could not generate a map with enough room');
 }
 
 function newObject(s: WorldState, kind: ObjectKind, x: number, y: number): MapObject {

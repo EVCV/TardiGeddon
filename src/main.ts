@@ -63,7 +63,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge), () => openReplays(ui, watch));
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge), () => openReplays(ui, watch), () => void mapEditor());
   };
   /** Start a match, loading the game (renderer and all) the first time. */
   const play = async (mode: MatchMode, onMenu: () => void, onAgain: () => void): Promise<Match | null> => {
@@ -84,6 +84,13 @@ async function boot(): Promise<void> {
   const tutorial = () => void play({ kind: 'tutorial' }, menu, tutorial);
   const challenge = (kind: ChallengeKind) => void play({ kind: 'challenge', challenge: kind }, menu, () => challenge(kind));
   const watch = (replay: MatchReplay) => void play({ kind: 'replay', replay }, menu, () => watch(replay));
+  const mapEditor = async () => {
+    const { openMapEditor } = await import('./ui/editor');
+    openMapEditor(ui, {
+      onPlay: (map) => start({ players: [false, true], teams: loadProfiles().slice(0, 2), scheme: { ...presetScheme('standard'), customMap: map }, seed: (Math.random() * 1e9) | 0, cpuSkill: 'normal' }),
+      onClose: menu, // the Map list in Customise picks up new maps
+    });
+  };
   const practice = (endless: boolean) => void play({ kind: 'practice', endless }, menu, () => practice(endless));
   const online = async (opts: Parameters<OnlineModule['showOnline']>[2] = {}) => {
     const mine = ++screen;

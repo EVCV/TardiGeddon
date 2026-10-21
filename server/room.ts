@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { isMapStyle } from '../src/sim/terrain/generate';
+import { isCustomMap } from '../src/sim/terrain/custom';
 import { defaultEmblem, isEmblem } from '../src/render/emblems';
 import { ARENAS } from '../src/render/arenas';
 import { seasonArenaOpen } from '../src/render/seasons';
@@ -163,6 +164,8 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   if (typeof v.race === 'boolean') out.race = v.race;
   if (typeof v.weather === 'boolean') out.weather = v.weather;
   if (isMapStyle(v.mapStyle)) out.mapStyle = v.mapStyle;
+  // A map from the host's map editor: checked to be a sane map before anyone builds it.
+  if (isCustomMap(v.customMap)) out.customMap = v.customMap;
   if (typeof v.arena === 'string' && ARENAS.some((a) => a.id === v.arena) && seasonArenaOpen(v.arena)) out.arena = v.arena;
   num('raceRounds', 1, 10);
   if (out.raceRounds !== undefined) out.raceRounds = Math.round(out.raceRounds);
@@ -464,7 +467,14 @@ export class Room {
     if (this.scheme.arena && !canUse('arena', this.scheme.arena, owned)) delete this.scheme.arena;
     this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, dance: s.team.dance, grave: s.team.grave, emblem: s.team.emblem, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
-    this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
+    try {
+      this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
+    } catch (e) {
+      // A custom map without room for everyone: tell the host, stay in the lobby.
+      this.slots[this.host]?.member?.send({ t: 'error', msg: e instanceof Error ? e.message : 'That match couldn’t start.' });
+      this.state = null;
+      return;
+    }
     this.cpus.clear();
     this.tally = new MatchTally(this.teams.length);
     for (const sl of this.slots) {

@@ -49,7 +49,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.0 Information Stored Only on Your Device
 
-2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; whether you have started the tutorial; your text size, sound settings, match music and sound pack; the players you have blocked in online play (the id our server gave them and the team name you saw); and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
+2.0.1 The game saves the following in your browser's local storage on your own device, so that it remembers your choices: your team names, team colours, hats, and tardigrade names; the arena theme you chose; your chosen game style and custom rules; how many players you set up and whether each is a human or the computer; the computer's skill level; whether you have started the tutorial; your text size, sound settings, match music and sound pack; the players you have blocked in online play (the id our server gave them and the team name you saw); replays of the last few matches you played; the maps you saved in the map editor; and, if you have signed in, a list of the shop items your account owns, so they stay unlocked when you play offline.
 
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. If you change your controls on the Settings page (which keys, mouse buttons and touch buttons do what), the game keeps them there too. This is deleted when you close the tab.
 
@@ -59,7 +59,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.1 Information Used When You Play Online
 
-2.1.1 When you play online, your device connects to our game server and sends: your team name, team colour, hat, and tardigrade names; the room code you create or join; and your game inputs (such as moving, aiming, and firing) during your turns.
+2.1.1 When you play online, your device connects to our game server and sends: your team name, team colour, hat, and tardigrade names; the room code you create or join; if you host a room on a map you made in the map editor, that map (it is shown to the other players in the room); and your game inputs (such as moving, aiming, and firing) during your turns.
 
 2.1.2 Your Team Details are shown to the other players in your match. Please do not use your real name or other personal information in them. The game and our server refuse names with rude words, phone numbers, email or website addresses or social media. In quick play, where you are matched with people you don't know, other players see a made-up team name and standard tardigrade names instead of the names you chose.
 

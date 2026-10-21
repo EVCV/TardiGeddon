@@ -70,6 +70,8 @@ export interface Scheme {
   unlocked?: string[];
   /** Map style (terrain/generate.ts MAP_STYLES); unset or 'random' = a different one each match. */
   mapStyle?: string;
+  /** A map made in the map editor (terrain/custom.ts); used instead of a generated one. */
+  customMap?: string;
   /** Armour each tardigrade starts with: it soaks up this much damage before health does (0 = none). */
   armour: number;
   /**

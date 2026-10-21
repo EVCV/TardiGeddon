@@ -208,7 +208,8 @@ const http = createServer(async (req, res) => {
   res.end(req.url === '/rooms' ? String(rooms.size) : req.url === '/queue' ? String(matchmaker.waiting) : 'TardiGeddon server ok');
 });
 
-const wss = new WebSocketServer({ server: http, maxPayload: 16 * 1024 });
+// Room for a custom map in the host's rules (CUSTOM_MAX_LENGTH, terrain/custom.ts).
+const wss = new WebSocketServer({ server: http, maxPayload: 96 * 1024 });
 
 /** Open connections, and recent room creations, per client address. */
 const connsByIp = new Map<string, number>();

@@ -20,6 +20,7 @@ import { renderDashboard } from './dashboard';
 import { account, wearHat, wearSkin } from '../account/session';
 import type { HubTab } from './hub';
 import { tutorialSeen } from './learn';
+import { myMaps } from './myMaps';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -146,6 +147,7 @@ export function buildLobby(
   onPractice: () => void,
   onChallenge: () => void,
   onReplays: () => void,
+  onMapEditor: () => void,
 ): Lobby {
   const root = document.createElement('div');
   const saved = load();
@@ -204,6 +206,7 @@ export function buildLobby(
           <button class="hud-btn practice-btn">🎯 Practice</button>
           <button class="hud-btn challenge-btn">🏆 Daily challenge</button>
           <button class="hud-btn replays-btn">🎬 Replays</button>
+          <button class="hud-btn mapeditor-btn">🗺️ Map editor</button>
           <button class="hud-btn guide-btn">📖 Guide</button>
           <button class="hud-btn controls-btn">⚙️ Controls</button>
         </div>
@@ -309,12 +312,16 @@ export function buildLobby(
   const renderPanel = () => {
     const sc = current();
     panel.innerHTML = '';
-    for (const f of FIELDS) {
+    for (const base of FIELDS) {
       const label = document.createElement('label');
-      label.textContent = f.label;
-      if (f.hint) label.title = f.hint;
+      label.textContent = base.label;
+      if (base.hint) label.title = base.hint;
       const sel = document.createElement('select');
-      const value = sc[f.key];
+      // The Map list also has the maps made in the map editor (the map itself goes in customMap).
+      const mine = base.key === 'mapStyle' ? myMaps() : [];
+      if (sc.customMap && base.key === 'mapStyle' && !mine.some((m) => m.map === sc.customMap)) mine.push({ name: 'Your map', map: sc.customMap, at: 0 });
+      const f: Field = mine.length ? { ...base, options: [...base.options, ...mine.map((m): [string, string] => [`🗺️ ${m.name}`, `my:${m.name}`])] } : base;
+      const value = base.key === 'mapStyle' && sc.customMap ? `my:${mine.find((m) => m.map === sc.customMap)!.name}` : sc[f.key];
       // Show the nearest option if a preset uses a value not in the list.
       let best = 0;
       f.options.forEach(([text, v], i) => {
@@ -329,7 +336,9 @@ export function buildLobby(
       sel.value = String(best);
       sel.onchange = () => {
         // Editing any field switches to Custom, starting from what was shown.
-        custom = { ...current(), [f.key]: f.options[Number(sel.value)][1] };
+        const v = f.options[Number(sel.value)][1];
+        const my = typeof v === 'string' && v.startsWith('my:') ? mine.find((m) => `my:${m.name}` === v) : undefined;
+        custom = base.key === 'mapStyle' ? { ...current(), mapStyle: my ? undefined : (v as string), customMap: my?.map } : { ...current(), [f.key]: v };
         styleSel.value = 'custom';
         refresh(false);
       };
@@ -457,6 +466,7 @@ export function buildLobby(
   root.querySelector<HTMLButtonElement>('.practice-btn')!.onclick = onPractice;
   root.querySelector<HTMLButtonElement>('.challenge-btn')!.onclick = onChallenge;
   root.querySelector<HTMLButtonElement>('.replays-btn')!.onclick = onReplays;
+  root.querySelector<HTMLButtonElement>('.mapeditor-btn')!.onclick = onMapEditor;
   root.querySelector<HTMLButtonElement>('.guide-btn')!.onclick = () => go('guide');
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;
