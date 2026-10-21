@@ -4,6 +4,8 @@ import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
+import { applyAccess } from './ui/access';
+import { shown } from './render/palette';
 import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearArena, wearMusic, wearSounds, wornLooks } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
@@ -41,7 +43,8 @@ import { ANGLE_FULL } from './sim/math/trig';
 
 const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
-
+  void initTextSize();
+  applyAccess();
 async function boot(): Promise<void> {
   void initTextSize();
   if (touchMode) enforceLandscape();
@@ -511,7 +514,7 @@ class Match {
         case 'finish': {
           sfx.collect();
           const tm = this.state.teams[e.team];
-          this.hud.showBanner(`${teamLabel(tm)}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, tm.color, 2.5);
+          this.hud.showBanner(`${teamLabel(tm)}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, shown(tm.color), 2.5);
           break;
         }
         case 'turnStart':
@@ -558,7 +561,7 @@ class Match {
     const s = this.state;
     const team = s.teams[s.turn.teamIdx];
     const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, team.color);
+    if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, shown(team.color));
     this.renderer.camera.manualUntil = 0;
   }
 

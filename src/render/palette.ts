@@ -31,3 +31,42 @@ export const TEAM_NAMES = [
 export function hex(c: number): string {
   return '#' + c.toString(16).padStart(6, '0');
 }
+
+/**
+ * How this player wants things drawn (Settings → Accessibility, ui/access.ts).
+ * Only changes what this device shows, never the match.
+ */
+export const VIEW = {
+  /** Team colours from a palette colour-blind players can tell apart, plus a symbol per team. */
+  colourBlind: false,
+  /** Bigger, bolder name tags and solid panels. */
+  highContrast: false,
+  /** Fewer flashes and less movement (lightning, the tornado's sweep, shaking). */
+  calm: false,
+};
+
+/**
+ * Okabe & Ito's colour-blind-safe colours, one per team colour above (same
+ * order). Beyond eight, colour alone can't stay distinct for everyone, so
+ * each team also gets a symbol (TEAM_SYMBOLS).
+ */
+export const CB_COLORS = [
+  0xd55e00, 0x0072b2, 0x009e73, 0xf0e442, 0xcc79a7,
+  0xe69f00, 0x56b4e9, 0xf5f5f5, 0x8c6d46, 0x6e6e6e,
+];
+
+export const TEAM_SYMBOLS = ['●', '▲', '■', '◆', '★', '✚', '⬟', '♥', '✖', '⬢'];
+
+/** A team colour as this player sees it. */
+export function shown(c: number): number {
+  if (!VIEW.colourBlind) return c;
+  const i = TEAM_COLORS.indexOf(c);
+  return i < 0 ? c : CB_COLORS[i];
+}
+
+/** The symbol in front of a team's name when colour-blind mode is on ('' otherwise). */
+export function teamSymbol(c: number): string {
+  if (!VIEW.colourBlind) return '';
+  const i = TEAM_COLORS.indexOf(c);
+  return i < 0 ? '' : TEAM_SYMBOLS[i] + ' ';
+}

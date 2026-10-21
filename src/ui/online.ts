@@ -5,7 +5,7 @@ import { onlineGuide } from './guide';
 import { otherPlayer, playerActions, slotName } from './safety';
 import { mascotSvg } from './mascot';
 import { emblemSvg } from '../render/emblems';
-import { hex } from '../render/palette';
+import { hex, shown } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
 import { MAX_TEAMS } from '../sim/world';
 import { loadProfiles, matchNames } from './teams';
@@ -154,7 +154,7 @@ export function showOnline(
     }
     const team = myTeam();
     const who = el('div', 'online-me');
-    who.innerHTML = mascotSvg(team.color, team.hat, team.skin);
+    who.innerHTML = mascotSvg(shown(team.color), team.hat, team.skin);
     const name = el('span', 'online-me-name', team.name);
     name.style.color = hex(team.color);
     who.append(name);
@@ -239,7 +239,7 @@ export function showOnline(
     card.dataset.screen = 'queue';
     card.append(el('h1', 'title-small', 'Quick play'));
     const spin = el('div', 'queue-spin');
-    spin.innerHTML = mascotSvg(myTeam().color, myTeam().hat, myTeam().skin);
+    spin.innerHTML = mascotSvg(shown(myTeam().color), myTeam().hat, myTeam().skin);
     card.append(spin, el('p', 'online-note', waiting > 1 ? `${waiting} players waiting… starting soon!` : 'Looking for players…'), el('div', 'queue-time', '0:00'));
     const cpu = el('button', 'big-btn secondary', 'Play a CPU instead');
     cpu.onclick = () => client?.send({ t: 'quickCpu' });
@@ -276,9 +276,9 @@ export function showOnline(
     const list = el('div', 'lobby-slots');
     room.slots.forEach((s, i) => {
       const row = el('div', 'lobby-slot' + (s.connected ? '' : ' gone'));
-      row.style.setProperty('--team', hex(s.team.color));
+      row.style.setProperty('--team', hex(shown(s.team.color)));
       const pic = el('span', 'lobby-pic');
-      pic.innerHTML = mascotSvg(s.team.color, s.team.hat, s.team.skin);
+      pic.innerHTML = mascotSvg(shown(s.team.color), s.team.hat, s.team.skin);
       const name = el('span', 'lobby-name', slotName(s)); // player text: never innerHTML
       const tag = el('span', 'lobby-tag', s.cpu ? '🤖 CPU' : s.host ? '👑 Host' : i === room.you ? 'You' : '👤');
       if (i === room.you && !s.cpu) tag.textContent = s.host ? '👑 You' : 'You';

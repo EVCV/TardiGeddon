@@ -5,7 +5,7 @@
 
 import { Graphics } from 'pixi.js';
 import type { WeatherKind } from '../sim/types';
-import { PALETTE } from './palette';
+import { PALETTE, VIEW } from './palette';
 
 const O = PALETTE.outline;
 
@@ -141,7 +141,8 @@ export class WeatherView {
       // Gloom, and lightning every few seconds.
       f.rect(0, 0, width, height).fill({ color: 0x1a2040, alpha: 0.14 });
       this.nextFlash -= dt;
-      if (this.nextFlash < 0) {
+      // Calm effects (Settings): no lightning flashes.
+      if (this.nextFlash < 0 && !VIEW.calm) {
         this.flash = 0.35;
         this.nextFlash = 5 + Math.random() * 9;
       }

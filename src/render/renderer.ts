@@ -8,7 +8,7 @@ import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
 import { TardiView, type Mood } from './tardiView';
 import { ObjectView } from './objectView';
-import { PALETTE, hex } from './palette';
+import { PALETTE, hex, shown, teamSymbol } from './palette';
 import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 import { arenaTheme, type ArenaTheme } from './arenas';
 import { WeatherView } from './weather';
@@ -122,7 +122,7 @@ export class GameRenderer {
     );
     app.stage.addChild(this.world, this.weather.front);
     for (const t of state.tardis) {
-      const v = new TardiView(t, state.teams[t.team].color, state.teams[t.team].hat, state.teams[t.team].skin, state.teams[t.team].dance);
+      const v = new TardiView(t, shown(state.teams[t.team].color), state.teams[t.team].hat, state.teams[t.team].skin, state.teams[t.team].dance, teamSymbol(state.teams[t.team].color));
       this.tardiViews.set(t.id, v);
       this.entities.addChild(v.root);
     }
@@ -222,7 +222,7 @@ export class GameRenderer {
         }
         case 'damage': {
           const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.floatText(`-${e.amount}`, t.x, t.y - 34, this.state.teams[t.team].color);
+          if (t) this.floatText(`-${e.amount}`, t.x, t.y - 34, shown(this.state.teams[t.team].color));
           break;
         }
         case 'drown': {
@@ -351,7 +351,7 @@ export class GameRenderer {
 
   /** Confetti in the winners' colour. */
   private confetti(s: WorldState): void {
-    const color = s.turn.winner >= 0 ? s.teams[s.turn.winner].color : 0xffffff;
+    const color = s.turn.winner >= 0 ? shown(s.teams[s.turn.winner].color) : 0xffffff;
     const { width, height } = this.app.screen;
     const z = this.camera.zoom;
     for (let i = 0; i < 140; i++) {
@@ -461,7 +461,7 @@ export class GameRenderer {
       let v = this.tardiViews.get(t.id);
       if (!v && t.alive && !this.dying.has(t.id)) {
         // Back again (endless practice targets): a fresh view.
-        v = new TardiView(t, s.teams[t.team].color, s.teams[t.team].hat, s.teams[t.team].skin, s.teams[t.team].dance);
+        v = new TardiView(t, shown(s.teams[t.team].color), s.teams[t.team].hat, s.teams[t.team].skin, s.teams[t.team].dance, teamSymbol(s.teams[t.team].color));
         this.tardiViews.set(t.id, v);
         this.entities.addChild(v.root);
       }
@@ -479,7 +479,7 @@ export class GameRenderer {
       const ghost = s.race !== null && t.id !== active?.id && s.turn.phase !== 'gameover';
       v.root.alpha = ghost ? 0.35 : 1;
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
-      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color, this.state.teams[t.team].grave);
+      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, shown(this.state.teams[t.team].color), this.state.teams[t.team].grave);
     }
     // Tardigrades taken out of the world (endless practice clears popped targets).
     if (this.tardiViews.size > s.tardis.length) {
@@ -620,7 +620,7 @@ export class GameRenderer {
     const canAimNow = active && !active.rope && (!active.airborne || def.kind === 'rope' || def.kind === 'parachute');
     if (active && showAim && s.turn.phase === 'aim' && canAimNow) {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
-      const teamColor = s.teams[active.team].color;
+      const teamColor = shown(s.teams[active.team].color);
       const style = aimStyle(s.teams[active.team].aim);
       const color = style.marker === 'team' ? teamColor : style.marker === 'rainbow' ? rainbowAt(this.time * 0.5) : style.marker;
       if (def.girder && s.turn.target) {
@@ -702,7 +702,7 @@ export class GameRenderer {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
       const b = Math.abs(Math.sin(this.time * 5)) * 6;
       const ay = ap.y - 52 - b - (active.chute ? 34 : 0);
-      ov.poly([ap.x - 7, ay - 8, ap.x + 7, ay - 8, ap.x, ay]).fill(s.teams[active.team].color).stroke({ width: 2, color: PALETTE.outline });
+      ov.poly([ap.x - 7, ay - 8, ap.x + 7, ay - 8, ap.x, ay]).fill(shown(s.teams[active.team].color)).stroke({ width: 2, color: PALETTE.outline });
     }
 
     this.updateFx(dt);

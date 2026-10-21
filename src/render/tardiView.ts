@@ -4,7 +4,7 @@
 import { tardiLabel } from '../net/blocked';
 import { Container, Graphics, Text } from 'pixi.js';
 import type { Tardi } from '../sim/types';
-import { PALETTE, hex } from './palette';
+import { PALETTE, VIEW, hex } from './palette';
 import { drawHatPixi } from './hats';
 import { dancePose } from './finales';
 import { patternMarks, skinById, type SkinDef } from './skins';
@@ -93,6 +93,8 @@ export class TardiView {
     skin = 'classic',
     /** Victory dance (render/finales.ts). */
     private dance = 'classic',
+    /** Colour-blind mode: the team's symbol before its name ('' otherwise). */
+    private symbol = '',
   ) {
     this.skin = skinById(skin);
     const g = new Graphics();
@@ -107,12 +109,13 @@ export class TardiView {
     this.root.addChild(this.chute);
     const style = {
       fontFamily: 'Luckiest Guy, Arial Black, sans-serif',
-      fontSize: 12,
+      // High contrast: bigger letters on a thicker black edge.
+      fontSize: VIEW.highContrast ? 14 : 12,
       fill: hex(teamColor),
-      stroke: { color: '#1b1016', width: 3, join: 'round' as const },
+      stroke: { color: VIEW.highContrast ? '#000000' : '#1b1016', width: VIEW.highContrast ? 5 : 3, join: 'round' as const },
       letterSpacing: 0.5,
     };
-    this.label = new Text({ text: tardiLabel(t), style });
+    this.label = new Text({ text: this.symbol + tardiLabel(t), style });
     this.label.anchor.set(0.5, 1);
     this.label.position.set(0, -30);
     this.label.resolution = 3;

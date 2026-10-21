@@ -9,7 +9,7 @@ import {
   updateProfile,
   TEAM_NAME_MAX,
 } from '../src/ui/teams';
-import { TEAM_COLORS } from '../src/render/palette';
+import { CB_COLORS, TEAM_COLORS, TEAM_SYMBOLS, VIEW, shown, teamSymbol } from '../src/render/palette';
 import { canUse } from '../src/shop/catalog';
 import { HATS, hatSvg } from '../src/render/hats';
 import { createWorld, MAX_TEAMS } from '../src/sim/world';
@@ -92,5 +92,25 @@ describe('custom teams in a match', () => {
     const out = updateProfile(list, 1, { ...list[1], color: nextColor(list[1].color) });
     expect(out[1].color).toBe(TEAM_COLORS[2]);
     expect(out[0].color).toBe(TEAM_COLORS[0]);
+  });
+});
+
+describe('colour-blind mode', () => {
+  it('swaps each team colour for its own safe colour and symbol, and leaves the rest alone', () => {
+    expect(CB_COLORS).toHaveLength(TEAM_COLORS.length);
+    expect(new Set(CB_COLORS).size).toBe(CB_COLORS.length);
+    expect(new Set(TEAM_SYMBOLS).size).toBe(TEAM_COLORS.length);
+    expect(shown(TEAM_COLORS[2])).toBe(TEAM_COLORS[2]);
+    expect(teamSymbol(TEAM_COLORS[2])).toBe('');
+    VIEW.colourBlind = true;
+    try {
+      TEAM_COLORS.forEach((c, i) => {
+        expect(shown(c)).toBe(CB_COLORS[i]);
+        expect(teamSymbol(c)).toBe(TEAM_SYMBOLS[i] + ' ');
+      });
+      expect(shown(0x123456)).toBe(0x123456);
+    } finally {
+      VIEW.colourBlind = false;
+    }
   });
 });

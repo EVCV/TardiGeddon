@@ -15,6 +15,8 @@ import { TEXT_SIZES, deviceTextScale, maxScaleHere, setTextSize, textSize, uiSca
 import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
+import { accessSettings, saveAccessSettings, type AccessSettings } from './access';
+import { TEAM_SYMBOLS } from '../render/palette';
 
 declare const __APP_VERSION__: string;
 
@@ -37,12 +39,13 @@ export interface SettingsState {
   section: Section | null;
 }
 
-type Section = 'text' | 'sound' | 'touch' | 'keys' | 'blocked' | 'about';
+type Section = 'text' | 'access' | 'sound' | 'touch' | 'keys' | 'blocked' | 'about';
 const SECTIONS: [Section, string][] = [
   ['keys', '⌨️ Keyboard & mouse'],
   ['touch', '👆 Touch controls'],
   ['sound', '🔊 Sound'],
   ['text', '🔤 Text size'],
+  ['access', '👁️ Accessibility'],
   ['blocked', '🚫 Blocked players'],
   // Phones only: on bigger screens the hub's footer has these links.
   ['about', 'ℹ️ About & legal'],
@@ -165,7 +168,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
     status.append(' ', link);
   }
 
-  root.append(status, keysCard, touchCard, soundCard, textSettings(ctx), blockedSettings(ctx));
+  root.append(status, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx), blockedSettings(ctx));
 
   // One section at a time, beside the list of them (on a touch screen, touch controls first).
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -236,6 +239,41 @@ function textSettings(ctx: HubContext): HTMLElement {
       `Makes all the writing bigger, with the buttons around it, in the menus and in matches. Auto follows your device${dev > 1 ? ` (${Math.round(dev * 100)}% now)` : ''}. Now: ${Math.round(uiScale() * 100)}%${maxScaleHere() < 1.5 ? ` (this screen has room for up to ${Math.round(maxScaleHere() * 100)}%; more on a bigger screen)` : ''}. Kept on this device.`,
     ),
   );
+  return card;
+}
+
+/** Colour-blind friendly colours, high contrast and calmer effects (ui/access.ts). */
+function accessCard(ctx: HubContext): HTMLElement {
+  const card = el('section', 'card settings-access');
+  card.dataset.section = 'access';
+  card.append(el('h2', 'card-title', '👁️ Accessibility'));
+  const a = accessSettings();
+  const toggle = (key: keyof AccessSettings, title: string, help: string) => {
+    const row = el('div', 'access-row');
+    const b = el('button', 'seg-btn' + (a[key] ? ' on' : ''), a[key] ? 'On' : 'Off');
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-checked', String(a[key]));
+    const label = el('div', 'access-text');
+    const id = `access-${key}`;
+    const name = el('b', '', title);
+    name.id = id;
+    b.setAttribute('aria-labelledby', id);
+    label.append(name, el('span', 'account-note', help));
+    b.onclick = () => {
+      saveAccessSettings({ ...accessSettings(), [key]: !a[key] });
+      ctx.rerender();
+    };
+    row.append(label, b);
+    card.append(row);
+  };
+  toggle(
+    'colourBlind',
+    'Colour-blind friendly colours',
+    `Team colours from a palette people with any kind of colour blindness can tell apart, and a symbol for each team (${TEAM_SYMBOLS.slice(0, 5).join(' ')} …) beside its name and health bar.`,
+  );
+  toggle('highContrast', 'High contrast', 'Black and white panels, stronger outlines and bigger name tags in matches.');
+  toggle('calm', 'Calmer effects', 'No lightning flashes or other sudden flashes, and less movement in the menus. On by itself if your device asks for reduced motion.');
+  card.append(el('p', 'account-note', 'Only changes what you see on this device, never the match. Kept on this device.'));
   return card;
 }
 

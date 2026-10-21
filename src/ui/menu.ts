@@ -9,7 +9,7 @@ import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
 import { MAX_TEAMS } from '../sim/world';
 import { MAP_STYLES } from '../sim/terrain/generate';
-import { hex } from '../render/palette';
+import { hex, shown, teamSymbol } from '../render/palette';
 import { loadProfiles, nextColor, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
 import { arenaLabel, openLooks } from './looks';
@@ -219,17 +219,17 @@ export function buildLobby(
       const p = profiles[i];
       const slot = document.createElement('div');
       slot.className = 'slot' + (cpu ? ' cpu' : '');
-      slot.style.setProperty('--team', hex(p.color));
+      slot.style.setProperty('--team', hex(shown(p.color)));
       // Main area toggles Human/CPU; the pencil opens the team editor.
       const toggle = document.createElement('button');
       toggle.className = 'slot-main';
       toggle.setAttribute('aria-label', `${p.name}: ${cpu ? 'CPU' : 'Human'} (tap to switch)`);
       const pic = document.createElement('span');
       pic.className = 'slot-pic';
-      pic.innerHTML = mascotSvg(p.color, wearHat(p.hat), wearSkin(p.skin));
+      pic.innerHTML = mascotSvg(shown(p.color), wearHat(p.hat), wearSkin(p.skin));
       const name = document.createElement('span');
       name.className = 'slot-name';
-      name.textContent = p.name; // player-entered text: never innerHTML
+      name.textContent = teamSymbol(p.color) + p.name; // player-entered text: never innerHTML
       const kind = document.createElement('span');
       kind.className = 'slot-kind';
       kind.textContent = cpu ? '🤖 CPU' : '👤 Human';
@@ -356,9 +356,9 @@ export function buildLobby(
   const heroTeam = root.querySelector<HTMLElement>('.hero-team')!;
   const renderHero = () => {
     const p = profiles[0];
-    mascot.innerHTML = mascotSvg(p.color, wearHat(p.hat), wearSkin(p.skin));
+    mascot.innerHTML = mascotSvg(shown(p.color), wearHat(p.hat), wearSkin(p.skin));
     heroTeam.textContent = `Your team: ${p.name}`; // player-entered text: never innerHTML
-    heroTeam.style.setProperty('--team', hex(p.color));
+    heroTeam.style.setProperty('--team', hex(shown(p.color)));
   };
   root.querySelector<HTMLButtonElement>('.hero-edit')!.onclick = () =>
     openTeamEditor(overlayHost(root), 0, profiles[0], (next) => {

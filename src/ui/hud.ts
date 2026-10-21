@@ -8,7 +8,7 @@ import { PANEL_WEAPONS, WEAPONS, type WeaponDef } from '../sim/weapons';
 import { activeTardi, activeTeam, girderFits } from '../sim/world';
 import type { InputCollector } from '../input/input';
 import { controls } from '../input/controls';
-import { hex } from '../render/palette';
+import { hex, shown, teamSymbol } from '../render/palette';
 
 export interface HudHooks {
   onQuit: () => void;
@@ -222,7 +222,7 @@ export class Hud {
       this.round.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
       this.round.classList.remove('sd');
     }
-    this.timer.style.background = hex(team.color);
+    this.timer.style.background = hex(shown(team.color));
     this.timer.classList.toggle('retreat', turn.phase === 'retreat');
     this.timer.classList.toggle('urgent', turn.phase === 'aim' && secs <= 5);
 
@@ -243,10 +243,10 @@ export class Hud {
     for (const tm of s.teams) {
       const hp = s.tardis.filter((x) => x.team === tm.id && x.alive).reduce((a, x) => a + x.hp, 0);
       const row = el('div', 'team-row');
-      const name = el('span', 'team-name', teamLabel(tm));
+      const name = el('span', 'team-name', teamSymbol(tm.color) + teamLabel(tm));
       const bar = el('div', 'team-bar');
       bar.style.width = `${Math.max(2, Math.min(100, (hp / maxHpOf(tm.id)) * 100))}%`;
-      bar.style.background = hex(tm.color);
+      bar.style.background = hex(shown(tm.color));
       if (tm.emblem) {
         const badge = el('span', 'team-emblem');
         badge.innerHTML = emblemSvg(tm.emblem, `${teamLabel(tm)} emblem`);

@@ -1458,6 +1458,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .settings-menu-btn.on { background: var(--accent); }
 .page-settings > .card { grid-area: content; display: none; min-width: 0; }
 .page-settings[data-section=text] > [data-section=text],
+.page-settings[data-section=access] > [data-section=access],
 .page-settings[data-section=sound] > [data-section=sound],
 .page-settings[data-section=blocked] > [data-section=blocked],
 .page-settings[data-section=touch] > [data-section=touch],
@@ -1873,3 +1874,41 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Five sizes in one row (equal widths); at big text sizes they wrap into rows, so the outline is rounded, not a pill. */
 .text-size-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); border-radius: 18px; }
 .text-size-seg .seg-btn { justify-content: center; padding: 6px 2px; font-size: 14px; }
+
+/* ---------- Accessibility (Settings → Accessibility, ui/access.ts) ---------- */
+.access-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 2px dashed #e4dccb; }
+.access-text { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.access-row .seg-btn { flex: none; min-width: 64px; min-height: 40px; border: 3px solid var(--ink); border-radius: 999px; }
+
+/* Keyboard focus is always plain to see (WCAG 2.4.7, 2.4.13): a thick ring with a white halo. */
+:focus-visible { outline: 3px solid #1450c8; outline-offset: 2px; box-shadow: 0 0 0 6px #fff; }
+
+/* Colour-blind mode: health bars get a pattern too, so they never rely on colour alone (WCAG 1.4.1). */
+.cb .team-bar { background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, .28) 0 3px, transparent 3px 8px); }
+
+/* High contrast: black on white panels, white on black over the game, solid edges (WCAG 1.4.3/1.4.6/1.4.11). */
+.hc {
+  --ink: #000;
+  --paper: #fff;
+  --cream: #fff;
+  --accent: #ffe14d;
+}
+.hc body, .hc .card, .hc .page, .hc .editor { color: #000; }
+.hc .card, .hc .editor, .hc .slot, .hc .hat-btn, .hc .emblem-part, .hc .hud-btn, .hc .big-btn, .hc .seg-btn, .hc select, .hc input { border-color: #000 !important; }
+.hc .card, .hc .editor { background: #fff; }
+.hc .account-note, .hc .looks-hint, .hc .players-hint, .hc .style-blurb { opacity: 1; color: #000; }
+.hc .slot.cpu, .hc .slot.cpu .slot-colour { background: #fff; }
+.hc .hat-btn.locked svg { opacity: .8; }
+.hc .seg-btn.on, .hc .settings-menu-btn.on, .hc .hat-btn.on, .hc .emblem-part.on { background: #000; color: #fff; }
+.hc a { color: #0a3cb4; text-decoration: underline; }
+.hc .slot { border-left-color: var(--team) !important; }
+.hc .hud-banner { background: none !important; -webkit-text-stroke: 7px #000; paint-order: stroke fill; }
+.hc .hud-hint, .hc .team-name, .hc .hud-wind-label, .hc .hud-round {
+  background: #000; color: #fff !important; text-shadow: none; -webkit-text-stroke: 0; padding: 1px 6px; border-radius: 6px;
+}
+.hc .team-bar { outline: 2px solid #fff; }
+.hc .hud-wind-bar { border-color: #000; background: #fff; }
+.hc :focus-visible { outline: 4px solid #000; box-shadow: 0 0 0 7px #ffe14d; }
+
+/* Calmer effects: nothing slides, pulses or bounces in the menus (WCAG 2.3.3). */
+.calm *, .calm *::before, .calm *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition: none !important; scroll-behavior: auto !important; }
