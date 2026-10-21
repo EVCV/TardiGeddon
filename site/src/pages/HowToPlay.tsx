@@ -233,7 +233,7 @@ export function HowToPlay() {
         <figure className="screen guide-shot">
           <Shot
             name="shot-weapons"
-            alt="The weapon panel: each weapon with a tag such as From the sky or Bounces, fuse, and a line saying what the one under the pointer does."
+            alt="The weapon panel: each weapon with a tag saying how it’s used, such as On impact, Bounces, fuse or From the sky."
             width={1280}
             height={720}
           />
