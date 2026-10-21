@@ -113,40 +113,50 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .hud-top > * { pointer-events: auto; }
 .hud-wind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(300px, 56vw);
+}
+.hud-wind-bar {
   position: relative;
-  width: min(260px, 50vw);
-  height: 16px;
+  flex: 1;
+  height: 14px;
   border: 3px solid var(--ink);
   border-radius: 8px;
   background: var(--paper);
   overflow: hidden;
 }
-.hud-wind::after {
+.hud-wind-bar::after {
   content: '';
   position: absolute;
   left: 50%;
   top: 0;
   bottom: 0;
   width: 2px;
+  margin-left: -1px;
   background: var(--ink);
 }
 .hud-wind-fill { position: absolute; top: 0; bottom: 0; transition: all .3s; }
+/* The label sits beside the bar on a pill of its own, so the bar stays clean. */
 .hud-wind-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: none;
+  min-width: 64px;
+  padding: 2px 7px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--title);
   font-size: 11px;
   letter-spacing: 1px;
-  line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 3px var(--ink);
-  paint-order: stroke fill;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
   pointer-events: none;
-  z-index: 1;
 }
+.hud-wind-label.left { color: #2a5fb8; }
+.hud-wind-label.right { color: #c03030; }
 .hud-wind-fill.left { background: repeating-linear-gradient(90deg, #3a7be0 0 8px, #6ea3ff 8px 12px); }
 .hud-wind-fill.right { background: repeating-linear-gradient(270deg, #e04848 0 8px, #ff8a7a 8px 12px); }
 

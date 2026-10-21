@@ -270,6 +270,8 @@ export type SimEvent =
   | { t: 'teleport'; id: number; x: number; y: number }
   | { t: 'bounce'; x: number; y: number }
   | { t: 'rope'; id: number; x: number; y: number }
+  /** The Silk Rope caught nothing: it reached (x, y); the nearest rock that way is `beyond` further (-1 = none). */
+  | { t: 'ropeMiss'; id: number; x: number; y: number; beyond: number }
   | { t: 'punch'; id: number; x: number; y: number }
   | { t: 'chute'; id: number }
   | { t: 'terrain'; rect: Rect }

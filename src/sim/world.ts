@@ -582,26 +582,51 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
   }
 }
 
-function castRope(s: WorldState, t: Tardi, events: SimEvent[]): void {
-  const { dx, dy } = aimVector(t.facing, s.turn.aim);
-  let x = t.x;
-  let y = t.y;
-  for (let i = 0; i < ROPE_MAX; i++) {
+/**
+ * Where a Silk Rope cast from (x, y) along the aim catches. `beyond` is how
+ * much further than the rope reaches the first rock on that line is (0 when
+ * it catches, -1 when there's no rock on the map that way): the "missed by"
+ * the view shows. Also used by the view to show where the rope will land.
+ */
+export function ropeTrace(
+  terrain: Terrain,
+  x: number,
+  y: number,
+  facing: number,
+  aim: number,
+): { hit: boolean; x: number; y: number; len: number; beyond: number } {
+  const { dx, dy } = aimVector(facing, aim);
+  let endX = x;
+  let endY = y;
+  for (let i = 0; i < ROPE_MAX * 4; i++) {
     const nx = x + dx;
     const ny = y + dy;
-    if (nx < 0 || nx >= s.terrain.w || ny < 0 || ny >= s.terrain.h) return;
-    if (isSolid(s.terrain, nx, ny)) {
-      const len = Math.max(ROPE_MIN, i);
-      t.rope = { x, y, len, bends: [] };
-      t.airborne = true;
-      t.knocked = false;
-      t.chute = false;
-      events.push({ t: 'rope', id: t.id, x, y });
-      return;
+    if (nx < 0 || nx >= terrain.w || ny < 0 || ny >= terrain.h) break;
+    if (isSolid(terrain, nx, ny)) {
+      if (i < ROPE_MAX) return { hit: true, x, y, len: Math.max(ROPE_MIN, i), beyond: 0 };
+      return { hit: false, x: endX, y: endY, len: ROPE_MAX, beyond: i - ROPE_MAX };
     }
     x = nx;
     y = ny;
+    if (i < ROPE_MAX) {
+      endX = x;
+      endY = y;
+    }
   }
+  return { hit: false, x: endX, y: endY, len: ROPE_MAX, beyond: -1 };
+}
+
+function castRope(s: WorldState, t: Tardi, events: SimEvent[]): void {
+  const r = ropeTrace(s.terrain, t.x, t.y, t.facing, s.turn.aim);
+  if (!r.hit) {
+    events.push({ t: 'ropeMiss', id: t.id, x: r.x, y: r.y, beyond: r.beyond });
+    return;
+  }
+  t.rope = { x: r.x, y: r.y, len: r.len, bends: [] };
+  t.airborne = true;
+  t.knocked = false;
+  t.chute = false;
+  events.push({ t: 'rope', id: t.id, x: r.x, y: r.y });
 }
 
 function releaseRope(t: Tardi): void {

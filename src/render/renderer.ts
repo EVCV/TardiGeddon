@@ -2,7 +2,7 @@
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import type { SimEvent, Tardi, WorldState } from '../sim/types';
-import { aimVector, activeTardi, girderFits, TARDI_R } from '../sim/world';
+import { aimVector, activeTardi, girderFits, ropeTrace, TARDI_R } from '../sim/world';
 import { isSolid } from '../sim/terrain/terrain';
 import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
@@ -71,6 +71,8 @@ export class GameRenderer {
   private particles: Particle[] = [];
   private floats: FloatText[] = [];
   private tracers: { x0: number; y0: number; x1: number; y1: number; life: number }[] = [];
+  /** Silk Ropes that caught nothing: how far they reached, and the rock they fell short of (if any). */
+  private ropeMisses: { x0: number; y0: number; x1: number; y1: number; rx: number; ry: number; rock: boolean; life: number }[] = [];
   private prev = new Map<number, { x: number; y: number }>();
   private fuseTexts = new Map<number, Text>();
   private bubbles = new Map<number, { root: Container; until: number; x: number; y: number }>();
@@ -180,6 +182,20 @@ export class GameRenderer {
             });
           }
           break;
+        case 'ropeMiss': {
+          const t = this.state.tardis.find((x) => x.id === e.id);
+          if (!t) break;
+          const dx = e.x - t.x;
+          const dy = e.y - t.y;
+          const d = Math.hypot(dx, dy) || 1;
+          const rx = e.x + (dx / d) * e.beyond;
+          const ry = e.y + (dy / d) * e.beyond;
+          this.ropeMisses.push({ x0: t.x, y0: t.y, x1: e.x, y1: e.y, rx, ry, rock: e.beyond > 0, life: 1.6 });
+          // Say how close it was, where the rope ran out.
+          const msg = e.beyond < 0 ? 'Nothing to grab!' : e.beyond <= 25 ? `So close! ${Math.round(e.beyond)} short` : `Too far: ${Math.round(e.beyond)} short`;
+          this.floatText(msg, e.x, e.y - 14, e.beyond >= 0 && e.beyond <= 25 ? 0xffd84a : 0xff8a7a);
+          break;
+        }
         case 'dud': {
           const o = this.state.objects.find((x) => x.id === e.id);
           if (o) this.floatText('Dud', o.x, o.y - 16, 0xcccccc);
@@ -577,6 +593,19 @@ export class GameRenderer {
       ov.circle(a.x, a.y, 3).fill(0xf4f1ff).stroke({ width: 1.2, color: PALETTE.outline });
     }
 
+    // Ropes that missed: a fading dashed line to where the silk ran out, then red dots on to the rock it fell short of.
+    for (const m of this.ropeMisses) {
+      m.life -= dt;
+      const a = Math.min(1, m.life);
+      dots(ov, m.x0, m.y0, m.x1, m.y1, 9, 1.6, 0xf4f1ff, a);
+      if (m.rock) {
+        dots(ov, m.x1, m.y1, m.rx, m.ry, 7, 1.8, 0xff5a5a, a);
+        ov.circle(m.rx, m.ry, 4).stroke({ width: 2, color: 0xff5a5a, alpha: a });
+      }
+      drawCross(ov, m.x1, m.y1, 5, 0xff5a5a, a);
+    }
+    this.ropeMisses = this.ropeMisses.filter((m) => m.life > 0);
+
     // Aim overlay
     const def = WEAPONS[s.turn.weapon];
     const canAimNow = active && !active.rope && (!active.airborne || def.kind === 'rope' || def.kind === 'parachute');
@@ -597,6 +626,15 @@ export class GameRenderer {
           x + dx * hl + dy * ht, y + dy * hl - dx * ht,
           x - dx * hl + dy * ht, y - dy * hl - dx * ht,
         ]).fill({ color: girderFits(s) ? 0xc08a4a : 0xe04848, alpha: 0.55 }).stroke({ width: 2, color: PALETTE.outline, alpha: 0.8 });
+      }
+      if (def.kind === 'rope') {
+        // Where the rope would catch: a dotted line to it and a ring, or red to its reach and a cross when nothing's in range.
+        const r = ropeTrace(s.terrain, active.x, active.y, active.facing, s.turn.aim);
+        const ox = ap.x - active.x;
+        const oy = ap.y - active.y;
+        dots(ov, ap.x, ap.y, r.x + ox, r.y + oy, 10, 1.3, r.hit ? 0xffffff : 0xff8a7a, 0.55);
+        if (r.hit) ov.circle(r.x + ox, r.y + oy, 4.5).stroke({ width: 2, color: 0x7dff8a, alpha: 0.9 });
+        else drawCross(ov, r.x + ox, r.y + oy, 4, 0xff8a7a, 0.8);
       }
       if (def.kind === 'charge' || def.kind === 'hitscan' || def.kind === 'rope' || def.girder) {
         const { dx, dy } = aimVector(active.facing, s.turn.aim);
@@ -1082,4 +1120,19 @@ function makeSkyTexture(theme: ArenaTheme): Texture {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 4, 256);
   return Texture.from(c);
+}
+
+/** A dotted line from (x0, y0) to (x1, y1). */
+function dots(g: Graphics, x0: number, y0: number, x1: number, y1: number, gap: number, r: number, color: number, alpha: number): void {
+  const d = Math.hypot(x1 - x0, y1 - y0);
+  const n = Math.floor(d / gap);
+  for (let i = 1; i <= n; i++) {
+    const f = (i * gap) / d;
+    g.circle(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, r);
+  }
+  if (n > 0) g.fill({ color, alpha });
+}
+
+function drawCross(g: Graphics, x: number, y: number, r: number, color: number, alpha: number): void {
+  g.moveTo(x - r, y - r).lineTo(x + r, y + r).moveTo(x + r, y - r).lineTo(x - r, y + r).stroke({ width: 2.5, color, alpha, cap: 'round' });
 }

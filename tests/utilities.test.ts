@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeTardi, tick, TARDI_R, AIM_MAX } from '../src/sim/world';
+import { activeTardi, tick, TARDI_R, AIM_MAX, ROPE_MAX } from '../src/sim/world';
 import { BTN_FIRE, BTN_RIGHT, BTN_UP, PRESS_JUMP, type WorldState } from '../src/sim/types';
 import { makeWorld, run, runUntilPhase } from './helpers';
 
@@ -79,6 +79,30 @@ describe('Silk Rope', () => {
     }
     expect(wrapped).toBeGreaterThan(0);
     expect(unwrapped).toBe(true);
+  });
+
+  it('says how far short a rope that catches nothing fell', () => {
+    const s = arena();
+    const me = activeTardi(s)!;
+    // Lift the slab out of reach: its underside is now 471 above the tardi's middle.
+    const t = s.terrain;
+    for (let y = 300; y < 320; y++) for (let x = 900; x < 1100; x++) t.mask[y * t.w + x] = 0;
+    for (let y = 100; y < 120; y++) for (let x = 900; x < 1100; x++) t.mask[y * t.w + x] = 1;
+    select(s, 'rope');
+    s.turn.aim = AIM_MAX;
+    const ev = run(s, 1, { held: BTN_FIRE, pressed: 0 });
+    const miss = ev.find((e) => e.t === 'ropeMiss');
+    expect(me.rope).toBeNull();
+    expect(miss).toBeDefined();
+    if (miss?.t !== 'ropeMiss') return;
+    expect(miss.beyond).toBeGreaterThan(140);
+    expect(miss.beyond).toBeLessThan(160);
+    expect(Math.round(me.y - miss.y)).toBe(ROPE_MAX);
+    // Nothing at all that way: no rock to fall short of.
+    s.turn.aim = 0;
+    const ev2 = run(s, 2, { held: 0, pressed: 0 }).concat(run(s, 1, { held: BTN_FIRE, pressed: 0 }));
+    const miss2 = ev2.find((e) => e.t === 'ropeMiss');
+    expect(miss2?.t === 'ropeMiss' && miss2.beyond).toBe(-1);
   });
 
   it('attaches to a ceiling, reels in, swings and lets go', () => {

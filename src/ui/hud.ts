@@ -36,8 +36,9 @@ export class Hud {
   private timer = el('div', 'hud-timer');
   private round = el('div', 'hud-round');
   private wind = el('div', 'hud-wind');
+  private windBar = el('div', 'hud-wind-bar');
   private windFill = el('div', 'hud-wind-fill');
-  /** "WIND ▶▶": says what the bar is, which way it blows, and how hard. */
+  /** "WIND" beside the bar (not on it, where it was hard to read), with arrows for how hard it blows. */
   private windLabel = el('span', 'hud-wind-label');
   private teams = el('div', 'hud-teams');
   private banner = el('div', 'hud-banner');
@@ -58,7 +59,8 @@ export class Hud {
     hooks: HudHooks,
     private touchMode: boolean,
   ) {
-    this.wind.append(this.windFill, this.windLabel);
+    this.windBar.append(this.windFill);
+    this.wind.append(this.windLabel, this.windBar);
     this.wind.title = 'Wind: it pushes shots, rain and falling things this way. A longer bar is a stronger wind.';
     const top = el('div', 'hud-top');
     const menuBtn = el('button', 'hud-btn', '☰');
@@ -229,6 +231,8 @@ export class Hud {
     this.windFill.className = 'hud-wind-fill ' + (w < 0 ? 'left' : 'right');
     const arrows = Math.max(1, Math.round(Math.abs(w) * 3));
     this.windLabel.textContent = w === 0 ? 'NO WIND' : w < 0 ? `${'◀'.repeat(arrows)} WIND` : `WIND ${'▶'.repeat(arrows)}`;
+    this.windLabel.classList.toggle('left', w < 0);
+    this.windLabel.classList.toggle('right', w > 0);
     this.wind.setAttribute('aria-label', w === 0 ? 'No wind' : `Wind blowing ${w < 0 ? 'left' : 'right'}, ${['light', 'medium', 'strong'][arrows - 1]}`);
 
     this.teams.innerHTML = '';
