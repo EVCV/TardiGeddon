@@ -7,6 +7,7 @@ import { CPU_SKILLS, type CpuSkill } from '../ai/cpu';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
 import { MAX_TEAMS } from '../sim/world';
+import { MAP_STYLES } from '../sim/terrain/generate';
 import { hex } from '../render/palette';
 import { loadProfiles, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
@@ -66,7 +67,7 @@ function save(v: Saved): void {
 interface Field {
   key: keyof Scheme;
   label: string;
-  options: [string, number | boolean][];
+  options: [string, number | boolean | string][];
   /** What it means, on hover. */
   hint?: string;
 }
@@ -89,6 +90,24 @@ const FIELDS: Field[] = [
     hint: 'On: your own weapons can hurt your own team, and you. Off: they only hurt the other teams.',
   },
   { key: 'movement', label: 'Walking', options: [['On', true], ['Off (Artillery)', false]] },
+  {
+    key: 'mapStyle',
+    label: 'Map',
+    options: [['Surprise me', 'random'], ...MAP_STYLES.map((m): [string, string] => [m.name, m.id])],
+    hint: 'What kind of land you fight on. Surprise me picks a different one every match.',
+  },
+  {
+    key: 'armour',
+    label: 'Armour',
+    options: [['None', 0], ['Light', 25], ['Heavy', 50]],
+    hint: 'Armour plates soak up half of each hit until they are used up.',
+  },
+  {
+    key: 'weather',
+    label: 'Weather',
+    options: [['On', true], ['Off', false]],
+    hint: 'Rain, snow, sunshine and fog. Very rarely, a tornado throws every tardigrade somewhere new.',
+  },
 ];
 
 /** The game style last chosen in the menu (used by the online lobby). */

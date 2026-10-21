@@ -47,6 +47,9 @@ export function tutorialWorld(player: TeamConfig): WorldConfig {
       roundTime: 60,
       supers: 0,
       weapons: undefined,
+      // The lessons are written for this map: always the classic islands, and no weather.
+      mapStyle: 'islands',
+      weather: false,
     },
   };
 }

@@ -8,6 +8,7 @@ import { BTN_FIRE, DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, ty
 import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
+import { isMapStyle } from '../src/sim/terrain/generate';
 import { presetTeamName, safeTeamNames } from '../src/names';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
@@ -137,13 +138,16 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   num('roundTime', 1, 60);
   num('waterRise', 0, 100);
   num('supers', 0, 5);
-  for (const k of ['turnTime', 'retreatTime', 'startHp', 'tardisPerTeam', 'mines', 'mineFuse', 'drums', 'roundTime', 'waterRise', 'supers'] as const) {
+  num('armour', 0, 100);
+  for (const k of ['turnTime', 'retreatTime', 'startHp', 'tardisPerTeam', 'mines', 'mineFuse', 'drums', 'roundTime', 'waterRise', 'supers', 'armour'] as const) {
     if (out[k] !== undefined) out[k] = Math.round(out[k]);
   }
   if (typeof v.fallDamage === 'boolean') out.fallDamage = v.fallDamage;
   if (typeof v.friendlyFire === 'boolean') out.friendlyFire = v.friendlyFire;
   if (typeof v.movement === 'boolean') out.movement = v.movement;
   if (typeof v.race === 'boolean') out.race = v.race;
+  if (typeof v.weather === 'boolean') out.weather = v.weather;
+  if (isMapStyle(v.mapStyle)) out.mapStyle = v.mapStyle;
   num('raceRounds', 1, 10);
   if (out.raceRounds !== undefined) out.raceRounds = Math.round(out.raceRounds);
   if (v.weapons && typeof v.weapons === 'object') {

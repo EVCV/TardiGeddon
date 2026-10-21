@@ -36,6 +36,12 @@ export const SCHEME_PRESETS: SchemePreset[] = [
     scheme: { mines: 16, drums: 8, crateChance: 1, startHp: 150, roundTime: 10, supers: 1 },
   },
   {
+    id: 'armoured',
+    name: 'Armoured',
+    blurb: 'Every tardigrade wears armour plates that soak up half of each hit until they crack. Long, tough battles.',
+    scheme: { armour: 50 },
+  },
+  {
     id: 'bng',
     name: 'Bazookas & Grenades',
     blurb: 'Only the Spore Bazooka and Pebble Grenade. Pure aiming skill.',

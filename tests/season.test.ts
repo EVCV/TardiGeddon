@@ -14,7 +14,7 @@ function world(unlocked?: string[]): WorldState {
       { name: 'Red', color: 0xe04848, cpu: false },
       { name: 'Blue', color: 0x3a7be0, cpu: false },
     ],
-    scheme: unlocked ? { unlocked } : undefined,
+    scheme: { mapStyle: 'islands', ...(unlocked ? { unlocked } : {}) },
   });
 }
 

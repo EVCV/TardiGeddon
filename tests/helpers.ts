@@ -1,9 +1,11 @@
 import { createWorld, tick } from '../src/sim/world';
 import { EMPTY_INPUT, type InputFrame, type SimEvent, type WorldState } from '../src/sim/types';
 
+/** A two-team world on the classic islands (tests that need another map style say so). */
 export function makeWorld(seed = 1234): WorldState {
   return createWorld({
     seed,
+    scheme: { mapStyle: 'islands' },
     teams: [
       { name: 'Red', color: 0xe04848, cpu: false },
       { name: 'Blue', color: 0x3a7be0, cpu: false },

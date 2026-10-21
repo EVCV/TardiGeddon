@@ -7,8 +7,8 @@
 //  - All state lives in WorldState so it can be cloned, hashed and replayed.
 
 import { cosA, sinA, ANGLE_QUARTER } from './math/trig';
-import { createRng, rngFloat, rngInt } from './math/prng';
-import { generateMap } from './terrain/generate';
+import { createRng, rngFloat, rngInt, rngNext } from './math/prng';
+import { generateMap, isMapStyle, randomMapStyle, type MapStyle } from './terrain/generate';
 import { carveCircle, circleCollides, isSolid, normalAt, placeGirder, surfaceBelow, type Rect, type Terrain } from './terrain/terrain';
 import {
   BTN_DOWN,
@@ -24,6 +24,7 @@ import {
   type ObjectKind,
   type Projectile,
   type Scheme,
+  type WeatherKind,
   type SimEvent,
   type Tardi,
   type Team,
@@ -139,10 +140,14 @@ export function createWorld(cfg: WorldConfig): WorldState {
   const h = cfg.mapH ?? size.h;
   const waterY = h - 70;
 
+  // Rope Race courses are always the classic islands under a ceiling.
+  const style: MapStyle = scheme.race ? 'islands' : isMapStyle(scheme.mapStyle) ? scheme.mapStyle : randomMapStyle(cfg.seed);
+  const weather = pickWeather(cfg.seed, scheme);
+
   // Retry seeds until the map has room for every tardi.
   for (let attempt = 0; attempt < 50; attempt++) {
     const seed = (cfg.seed + attempt * 7919) | 0;
-    const terrain = generateMap({ w, h, waterY, seed, ceiling: scheme.race });
+    const terrain = generateMap({ w, h, waterY, seed, ceiling: scheme.race, style });
     const rng = createRng(seed ^ 0x5eed);
     const spots = findSpawns(terrain, waterY, needed, rng);
     if (!spots) continue;
@@ -185,6 +190,8 @@ export function createWorld(cfg: WorldConfig): WorldState {
       scheme,
       race: null,
       practice: null,
+      realm: style,
+      weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7) },
     };
 
     cfg.teams.forEach((tc, ti) => {
@@ -227,6 +234,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
           rope: null,
           chute: false,
           poison: false,
+          armour: scheme.armour,
         };
         s.tardis.push(t);
         team.tardiIds.push(t.id);
@@ -1284,6 +1292,7 @@ function refillTargets(s: WorldState, events: SimEvent[]): void {
         rope: null,
         chute: false,
         poison: false,
+        armour: s.scheme.armour,
       };
       s.tardis.push(t);
       team.tardiIds.push(t.id);
@@ -1715,6 +1724,13 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   const hurt = s.tardis.filter((t) => t.alive && t.pendingDmg > 0);
   if (hurt.length > 0) {
     for (const t of hurt) {
+      // Armour takes half of each hit (rounded down) until it's used up.
+      const soak = Math.min(t.armour, Math.floor(t.pendingDmg / 2));
+      if (soak > 0) {
+        t.armour -= soak;
+        t.pendingDmg -= soak;
+        events.push({ t: 'armour', id: t.id, amount: soak });
+      }
       t.hp = Math.max(0, t.hp - t.pendingDmg);
       events.push({ t: 'damage', id: t.id, amount: t.pendingDmg });
       t.pendingDmg = 0;
@@ -1805,13 +1821,67 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
 
   if (!s.suddenDeath && !s.practice && s.roundTicks >= s.scheme.roundTime * 60 * TICK_RATE) {
     s.suddenDeath = true;
-    for (const t of s.tardis) if (t.alive) t.hp = 1;
+    for (const t of s.tardis) {
+      if (!t.alive) continue;
+      t.hp = 1;
+      t.armour = 0;
+    }
     events.push({ t: 'suddenDeath' });
   } else if (s.suddenDeath) {
     s.waterY = Math.max(60, s.waterY - s.scheme.waterRise);
     events.push({ t: 'waterRise', y: s.waterY });
   }
   if (turn.turnNumber > 1 && rngFloat(s.rng) < s.scheme.crateChance) dropCrate(s, events);
+  if (turn.turnNumber > 1 && s.scheme.weather && !s.race && !s.practice) {
+    const odds = s.weather.kind === 'storm' ? TORNADO_ODDS_STORM : TORNADO_ODDS;
+    if (rngNext(s.weather.rng) % odds === 0) tornado(s, events);
+  }
+}
+
+/** One turn in this many brings a tornado (a rare surprise)... */
+export const TORNADO_ODDS = 5000;
+/** ...or one in this many when the weather is stormy. */
+export const TORNADO_ODDS_STORM = 60;
+
+/** How often each kind of weather comes up, out of 100 matches. */
+const WEATHER_ODDS: [WeatherKind, number][] = [
+  ['clear', 40],
+  ['sunny', 18],
+  ['rain', 18],
+  ['snow', 10],
+  ['fog', 9],
+  ['storm', 5],
+];
+
+export function pickWeather(seed: number, scheme: Scheme): WeatherKind {
+  if (!scheme.weather || scheme.race || scheme.practiceTargets) return 'clear';
+  let roll = rngInt(createRng(seed ^ 0x77e1), 0, 99);
+  for (const [kind, n] of WEATHER_ODDS) {
+    if (roll < n) return kind;
+    roll -= n;
+  }
+  return 'clear';
+}
+
+/** A tornado: every tardigrade still in the game is picked up and set down somewhere new. */
+function tornado(s: WorldState, events: SimEvent[]): void {
+  const alive = s.tardis.filter((t) => t.alive);
+  const spots = findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng);
+  if (!spots) return;
+  events.push({ t: 'tornado' });
+  alive.forEach((t, i) => {
+    const p = spots[i];
+    t.x = p.x;
+    t.y = p.y;
+    t.vx = 0;
+    t.vy = 0;
+    t.airborne = false;
+    t.knocked = false;
+    t.fallStartY = p.y;
+    t.rope = null;
+    t.chute = false;
+    events.push({ t: 'teleport', id: t.id, x: p.x, y: p.y });
+  });
 }
 
 // ---------------------------------------------------------------- hashing
@@ -1836,11 +1906,12 @@ export function hashWorld(s: WorldState): number {
   };
   mix(s.tick);
   mixInt(s.rng.a);
+  mixInt(s.weather.rng.a);
   mix(s.wind);
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
-    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0);
+    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
     if (t.rope) {
       mix(t.rope.x); mix(t.rope.y); mix(t.rope.len);
       for (const b of t.rope.bends) { mix(b.x); mix(b.y); mix(b.side); }

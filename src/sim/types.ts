@@ -68,6 +68,12 @@ export interface Scheme {
   weapons?: Record<string, number>;
   /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
   unlocked?: string[];
+  /** Map style (terrain/generate.ts MAP_STYLES); unset or 'random' = a different one each match. */
+  mapStyle?: string;
+  /** Armour each tardigrade starts with: it soaks up this much damage before health does (0 = none). */
+  armour: number;
+  /** Weather: rain, snow, sunshine... and, very rarely, a tornado that throws everyone somewhere new. */
+  weather: boolean;
 }
 
 export const DEFAULT_SCHEME: Scheme = {
@@ -88,6 +94,8 @@ export const DEFAULT_SCHEME: Scheme = {
   race: false,
   raceRounds: 3,
   friendlyFire: true,
+  armour: 0,
+  weather: true,
 };
 
 export interface Tardi {
@@ -113,6 +121,8 @@ export interface Tardi {
   chute: boolean;
   /** Poisoned by a Cyanobloom Cloud: loses health each turn until cured. */
   poison: boolean;
+  /** Armour plates left: damage comes off these before health (Scheme.armour). */
+  armour: number;
 }
 
 export type ObjectKind = 'mine' | 'drum' | 'crate';
@@ -232,6 +242,15 @@ export interface Team {
   ammo: Record<string, number>;
 }
 
+/** What the sky is doing. Only the tornado changes play; the rest is scenery. */
+export type WeatherKind = 'clear' | 'sunny' | 'rain' | 'snow' | 'fog' | 'storm';
+
+export interface WeatherState {
+  kind: WeatherKind;
+  /** Its own random numbers, so weather never changes the wind, crates or anything else. */
+  rng: RngState;
+}
+
 export interface WorldState {
   tick: number;
   rng: RngState;
@@ -252,6 +271,9 @@ export interface WorldState {
   scheme: Scheme;
   /** Set in Rope Race games. */
   race: RaceState | null;
+  /** The map style this match got (MAP_STYLES id). */
+  realm: string;
+  weather: WeatherState;
   /** Practice: where the immortal tardigrade (team 0) climbs back out after a dunking. */
   practice: { x: number; y: number; /** Targets popped so far. */ popped: number } | null;
 }
@@ -281,6 +303,10 @@ export type SimEvent =
   | { t: 'crateDrop'; id: number }
   | { t: 'collect'; id: number; tardi: number; contents: string; amount: number }
   | { t: 'suddenDeath' }
+  /** A tornado swept through and set every tardigrade down somewhere new. */
+  | { t: 'tornado' }
+  /** Damage the armour soaked up. */
+  | { t: 'armour'; id: number; amount: number }
   | { t: 'gas'; x: number; y: number; r: number }
   | { t: 'burn'; x: number; y: number; rect: Rect }
   | { t: 'waterRise'; y: number }
