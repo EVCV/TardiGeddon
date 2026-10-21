@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
 import { isMapStyle } from '../src/sim/terrain/generate';
+import { defaultEmblem, isEmblem } from '../src/render/emblems';
 import { presetTeamName, safeTeamNames } from '../src/names';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
@@ -99,6 +100,9 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
     skin: typeof v.skin === 'string' && /^[a-z]{1,16}$/.test(v.skin) ? v.skin : 'classic',
     aim: typeof v.aim === 'string' && /^[a-z]{1,16}$/.test(v.aim) ? v.aim : 'classic',
     fx: typeof v.fx === 'string' && /^[a-z]{1,16}$/.test(v.fx) ? v.fx : 'classic',
+    dance: typeof v.dance === 'string' && /^[a-z]{1,16}$/.test(v.dance) ? v.dance : 'classic',
+    grave: typeof v.grave === 'string' && /^[a-z]{1,16}$/.test(v.grave) ? v.grave : 'classic',
+    emblem: isEmblem(v.emblem) ? v.emblem : defaultEmblem(slot),
     names,
   };
 }
@@ -109,12 +113,14 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
  */
 export function wearableTeam<T>(t: T, owned: readonly string[]): T {
   if (!t || typeof t !== 'object') return t;
-  const { hat, skin, aim, fx } = t as { hat?: unknown; skin?: unknown; aim?: unknown; fx?: unknown };
+  const { hat, skin, aim, fx, dance, grave } = t as { hat?: unknown; skin?: unknown; aim?: unknown; fx?: unknown; dance?: unknown; grave?: unknown };
   let out = t;
   if (typeof hat === 'string' && !canUse('hat', hat, owned)) out = { ...out, hat: 'beanie' };
   if (typeof skin === 'string' && !canUse('skin', skin, owned)) out = { ...out, skin: 'classic' };
   if (typeof aim === 'string' && !canUse('aim', aim, owned)) out = { ...out, aim: 'classic' };
   if (typeof fx === 'string' && !canUse('fx', fx, owned)) out = { ...out, fx: 'classic' };
+  if (typeof dance === 'string' && !canUse('dance', dance, owned)) out = { ...out, dance: 'classic' };
+  if (typeof grave === 'string' && !canUse('grave', grave, owned)) out = { ...out, grave: 'classic' };
   return out;
 }
 
@@ -431,7 +437,7 @@ export class Room {
 
   private startMatch(rawScheme: unknown, unlocked: string[]): void {
     this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => isWeaponId(id) && WEAPONS[id].locked) };
-    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, names: s.team.names, cpu: s.cpu }));
+    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, dance: s.team.dance, grave: s.team.grave, emblem: s.team.emblem, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
     this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
     this.cpus.clear();

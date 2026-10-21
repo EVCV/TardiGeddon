@@ -19,6 +19,10 @@ export interface LobbyTeam {
   /** Aim marker style and explosion effect. */
   aim?: string;
   fx?: string;
+  /** Victory dance, gravestone (shop cosmetics) and team badge (free). */
+  dance?: string;
+  grave?: string;
+  emblem?: string;
   /** Tardi names (cleaned up by the server). */
   names: string[];
 }

@@ -4,6 +4,8 @@ import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
 import { ARENAS, arenaTheme } from '../src/render/arenas';
+import { DANCES, GRAVES } from '../src/render/finales';
+import { defaultEmblem, emblemSvg, isEmblem, parseEmblem, randomEmblem } from '../src/render/emblems';
 import { TRACKS } from '../src/audio/music';
 import { SOUND_PACKS } from '../src/audio/sfx';
 import { cleanTeam, wearableTeam } from '../server/room';
@@ -18,6 +20,9 @@ describe('shop catalogue', () => {
       skin: SKINS.map((s) => s.id),
       aim: AIM_STYLES.map((a) => a.id),
       fx: FX_STYLES.map((f) => f.id),
+      // The first two dances and the husk and headstone are free.
+      dance: DANCES.map((d) => d.id).filter((id) => id !== 'classic' && id !== 'wiggle'),
+      grave: GRAVES.map((g) => g.id).filter((id) => id !== 'classic' && id !== 'stone'),
       arena: ARENAS.map((a) => a.id),
       // The menu theme and the standard tracks are free.
       music: TRACKS.map((t) => t.id).filter((id) => id !== 'menu' && id !== 'classic'),
@@ -28,7 +33,7 @@ describe('shop catalogue', () => {
       if (item.kind !== 'weapon') expect(known[item.kind], item.id).toContain(item.ref);
       // Exactly one price; aim styles and effects are coins only.
       expect((item.coins === undefined) !== (item.slime === undefined), item.id).toBe(true);
-      if (['aim', 'fx', 'arena', 'music', 'sound'].includes(item.kind)) expect(item.coins, item.id).toBeGreaterThan(0);
+      if (['aim', 'fx', 'dance', 'grave', 'arena', 'music', 'sound'].includes(item.kind)) expect(item.coins, item.id).toBeGreaterThan(0);
       // Money never buys weapons.
       if (item.kind === 'weapon') expect(item.coins, item.id).toBeUndefined();
     }
@@ -105,5 +110,36 @@ describe('explosion effects', () => {
     w.turn.teamIdx = 0;
     explode(w, 600, 300, 20, 0, ev);
     expect(ev.map((e) => (e.t === 'explosion' ? e.team : -1))).toEqual([1, 0]);
+  });
+});
+
+describe('victory dances, gravestones and emblems', () => {
+  it('sells every dance and gravestone except the free ones, for coins', () => {
+    for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id));
+    for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id));
+  });
+
+  it('go online with the team, but only if the player owns them; emblems are free but must be real', () => {
+    const t = cleanTeam({ name: 'A', dance: 'worm', grave: 'rocket', emblem: '3-10-2-11-4' }, 0);
+    expect(t).toMatchObject({ dance: 'worm', grave: 'rocket', emblem: '3-10-2-11-4' });
+    expect(cleanTeam({ name: 'A', dance: '<b>', grave: 7, emblem: '99-0-0-0-0' }, 2)).toMatchObject({ dance: 'classic', grave: 'classic', emblem: defaultEmblem(2) });
+    expect(wearableTeam({ dance: 'worm', grave: 'rocket', emblem: '1-1-1-1-1' }, [])).toEqual({ dance: 'classic', grave: 'classic', emblem: '1-1-1-1-1' });
+    expect(wearableTeam({ dance: 'worm', grave: 'stone' }, ['dance:worm'])).toEqual({ dance: 'worm', grave: 'stone' });
+  });
+
+  it('builds emblems from parts, and rejects anything else', () => {
+    for (let i = 0; i < 50; i++) expect(isEmblem(randomEmblem())).toBe(true);
+    for (let slot = 0; slot < 10; slot++) expect(isEmblem(defaultEmblem(slot))).toBe(true);
+    for (const bad of ['', '1-2-3-4', '1-2-3-4-5-6', 'a-b-c-d-e', '0-66-0-0-0', '0-0-14-0-0', '0-0-0-0-8', '<svg>', '1-1-1-1-1 ']) expect(isEmblem(bad), bad).toBe(false);
+    expect(parseEmblem('9-65-13-13-7')).toEqual({ shape: 9, icon: 65, bg: 13, fg: 13, pattern: 7 });
+    expect(new Set(Array.from({ length: 10 }, (_, i) => defaultEmblem(i))).size).toBe(10);
+  });
+});
+
+describe('emblem pictures', () => {
+  it('never lets a team name out of its label', () => {
+    const svg = emblemSvg('1-1-1-1-1', '"><img src=x onerror=alert(1)> emblem');
+    expect(svg).not.toContain('<img');
+    expect(svg).toContain('&#34;&#62;&#60;img');
   });
 });

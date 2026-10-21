@@ -6,7 +6,9 @@ import { HATS } from '../render/hats';
 import { canUse, itemFor } from '../shop/catalog';
 import { SKINS } from '../render/skins';
 import { AIM_STYLES, FX_STYLES } from '../render/cosmetics';
-import { aimSvg, fxSvg } from './cosmeticArt';
+import { aimSvg, danceSvg, fxSvg, graveSvg } from './cosmeticArt';
+import { DANCES, GRAVES } from '../render/finales';
+import { renderEmblemBuilder } from './emblemBuilder';
 import { priceLabel } from './shop';
 import { account, ownedItems } from '../account/session';
 import { TEAM_COLORS, hex } from '../render/palette';
@@ -36,6 +38,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   if (!canUse('skin', draft.skin, ownedItems())) draft.skin = 'classic';
   if (!canUse('aim', draft.aim, ownedItems())) draft.aim = 'classic';
   if (!canUse('fx', draft.fx, ownedItems())) draft.fx = 'classic';
+  if (!canUse('dance', draft.dance, ownedItems())) draft.dance = 'classic';
+  if (!canUse('grave', draft.grave, ownedItems())) draft.grave = 'classic';
 
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor');
@@ -55,6 +59,9 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   const skins = el('div', 'editor-hats');
   const aims = el('div', 'editor-hats');
   const effects = el('div', 'editor-hats');
+  const dances = el('div', 'editor-hats');
+  const graves = el('div', 'editor-hats');
+  const emblem = el('div', 'emblem-builder');
   const hatHint = el('p', 'account-note');
   const names = el('div', 'editor-tardis');
   const defaults = defaultTardiNames(slot);
@@ -85,7 +92,7 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     const owned = ownedItems();
     // Shop items are only advertised when accounts are on.
     const shopOn = account().me !== null;
-    const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
+    const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
       box.innerHTML = '';
       for (const it of list) {
         const locked = !canUse(kind, it.id, owned);
@@ -96,6 +103,10 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
             ? mascotSvg(draft.color, it.id, draft.skin)
             : kind === 'skin'
               ? mascotSvg(draft.color, draft.hat, it.id)
+              : kind === 'dance'
+                ? danceSvg(it.id, draft.color, draft.hat, draft.skin)
+              : kind === 'grave'
+                ? graveSvg(it.id, draft.color)
               : kind === 'aim'
                 ? aimSvg(it.id, draft.color)
                 : fxSvg(it.id);
@@ -117,6 +128,12 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     pick(skins, 'skin', SKINS, draft.skin, (id) => (draft.skin = id));
     pick(aims, 'aim', AIM_STYLES, draft.aim, (id) => (draft.aim = id));
     pick(effects, 'fx', FX_STYLES, draft.fx, (id) => (draft.fx = id));
+    pick(dances, 'dance', DANCES, draft.dance, (id) => (draft.dance = id));
+    pick(graves, 'grave', GRAVES, draft.grave, (id) => (draft.grave = id));
+    renderEmblemBuilder(emblem, draft.emblem, (e) => {
+      draft.emblem = e;
+      refresh();
+    });
   };
 
   const close = () => overlay.remove();
@@ -160,6 +177,9 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       skin: draft.skin,
       aim: draft.aim,
       fx: draft.fx,
+      dance: draft.dance,
+      grave: draft.grave,
+      emblem: draft.emblem,
       names: draft.names.map((n) => cleanName(n, TARDI_NAME_MAX)),
     });
     close();
@@ -188,6 +208,12 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     aims,
     el('h3', '', 'Explosion effect'),
     effects,
+    el('h3', '', 'Victory dance'),
+    dances,
+    el('h3', '', 'Gravestone'),
+    graves,
+    el('h3', '', 'Team emblem (free)'),
+    emblem,
     hatHint,
     el('h3', '', 'Tardigrade names'),
     names,

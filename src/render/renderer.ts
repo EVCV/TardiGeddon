@@ -122,7 +122,7 @@ export class GameRenderer {
     );
     app.stage.addChild(this.world, this.weather.front);
     for (const t of state.tardis) {
-      const v = new TardiView(t, state.teams[t.team].color, state.teams[t.team].hat, state.teams[t.team].skin);
+      const v = new TardiView(t, state.teams[t.team].color, state.teams[t.team].hat, state.teams[t.team].skin, state.teams[t.team].dance);
       this.tardiViews.set(t.id, v);
       this.entities.addChild(v.root);
     }
@@ -335,7 +335,7 @@ export class GameRenderer {
   }
 
   /** End of a comedy death: pop, leave a husk. */
-  private pop(id: number, x: number, y: number, color: number): void {
+  private pop(id: number, x: number, y: number, color: number, grave = 'classic'): void {
     this.dying.delete(id);
     this.tardiViews.get(id)?.root.destroy({ children: true });
     this.tardiViews.delete(id);
@@ -345,7 +345,7 @@ export class GameRenderer {
       this.particles.push({ x, y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5 - 1.5, life: 0.9, max: 0.9, r: 2 + Math.random() * 2, color, kind: 'debris' });
     }
     this.floatText('POP!', x, y - 20, 0xffffff);
-    this.markers.addChild(makeHusk(x, y, color));
+    this.markers.addChild(grave === 'classic' ? makeHusk(x, y, color) : makeGrave(x, y, color, grave));
     this.onSound?.('pop');
   }
 
@@ -461,7 +461,7 @@ export class GameRenderer {
       let v = this.tardiViews.get(t.id);
       if (!v && t.alive && !this.dying.has(t.id)) {
         // Back again (endless practice targets): a fresh view.
-        v = new TardiView(t, s.teams[t.team].color, s.teams[t.team].hat, s.teams[t.team].skin);
+        v = new TardiView(t, s.teams[t.team].color, s.teams[t.team].hat, s.teams[t.team].skin, s.teams[t.team].dance);
         this.tardiViews.set(t.id, v);
         this.entities.addChild(v.root);
       }
@@ -479,7 +479,7 @@ export class GameRenderer {
       const ghost = s.race !== null && t.id !== active?.id && s.turn.phase !== 'gameover';
       v.root.alpha = ghost ? 0.35 : 1;
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
-      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color);
+      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color, this.state.teams[t.team].grave);
     }
     // Tardigrades taken out of the world (endless practice clears popped targets).
     if (this.tardiViews.size > s.tardis.length) {
@@ -1116,6 +1116,54 @@ function makeHusk(x: number, y: number, color: number): Graphics {
   g.moveTo(2, -2).lineTo(5, 1).moveTo(5, -2).lineTo(2, 1).stroke({ width: 1.3, color: O });
   g.circle(0, -7, 2).fill(color).stroke({ width: 1, color: O });
   g.position.set(x, y + 1);
+  return g;
+}
+
+/** A gravestone (team cosmetic, render/finales.ts), standing where the tardi popped. Drawn like ui/cosmeticArt graveSvg, at about a third of the size. */
+function makeGrave(x: number, y: number, color: number, id: string): Graphics {
+  const g = new Graphics();
+  const O = PALETTE.outline;
+  const s = 0.45;
+  switch (id) {
+    case 'stone':
+      g.moveTo(-14, 20).lineTo(-14, -6).quadraticCurveTo(-14, -20, 0, -20).quadraticCurveTo(14, -20, 14, -6).lineTo(14, 20).closePath().fill(0xa9b3bf).stroke({ width: 2.5, color: O });
+      g.moveTo(-6, -8).lineTo(6, -8).moveTo(-6, -2).lineTo(6, -2).stroke({ width: 2, color: O, alpha: 0.6 });
+      g.roundRect(-8, 6, 16, 4, 2).fill(color);
+      break;
+    case 'cross':
+      g.moveTo(-2, 20).lineTo(-2, -20).moveTo(-12, -8).lineTo(10, -8).stroke({ width: 6, color: 0x8f5f2e, cap: 'round' });
+      g.circle(-2, -8, 3).fill(color);
+      break;
+    case 'flowers':
+      g.poly([-12, 20, -9, 4, 9, 4, 12, 20]).fill(0xc8693a).stroke({ width: 2, color: O });
+      g.moveTo(0, 4).lineTo(0, -10).moveTo(-6, 4).lineTo(-10, -8).moveTo(6, 4).lineTo(10, -8).stroke({ width: 2, color: 0x3a8a28 });
+      for (const [fx, fy] of [[-10, -10], [0, -14], [10, -10]]) g.circle(fx, fy, 5).fill(color).stroke({ width: 1.5, color: O }).circle(fx, fy, 1.8).fill(0xffd84a);
+      break;
+    case 'ghost':
+      g.moveTo(-12, 14).lineTo(-12, -6).quadraticCurveTo(-12, -20, 0, -20).quadraticCurveTo(12, -20, 12, -6).lineTo(12, 14)
+        .lineTo(8, 10).lineTo(4, 14).lineTo(0, 10).lineTo(-4, 14).lineTo(-8, 10).closePath().fill({ color: 0xf4f6fb, alpha: 0.85 }).stroke({ width: 2, color: O });
+      g.circle(-4, -6, 2).fill(O).circle(4, -6, 2).fill(O);
+      g.ellipse(0, 18, 10, 2).fill({ color, alpha: 0.5 });
+      break;
+    case 'trophy':
+      g.moveTo(-10, -18).lineTo(10, -18).lineTo(10, -6).quadraticCurveTo(10, 6, 0, 6).quadraticCurveTo(-10, 6, -10, -6).closePath().fill(0xffd84a).stroke({ width: 2, color: O });
+      g.rect(-3, 6, 6, 8).fill(0xe0a920).stroke({ width: 1.5, color: O });
+      g.rect(-10, 14, 20, 6).fill(color).stroke({ width: 1.5, color: O });
+      break;
+    case 'rocket':
+      g.moveTo(0, -24).quadraticCurveTo(10, -12, 8, 10).lineTo(-8, 10).quadraticCurveTo(-10, -12, 0, -24).closePath().fill(0xe8ecf2).stroke({ width: 2, color: O });
+      g.circle(0, -8, 4).fill(color).stroke({ width: 1.5, color: O });
+      g.poly([-8, 4, -14, 16, -7, 12]).fill(color).stroke({ width: 1.5, color: O });
+      g.poly([8, 4, 14, 16, 7, 12]).fill(color).stroke({ width: 1.5, color: O });
+      break;
+    case 'crystal':
+      g.poly([0, -24, 10, -4, 6, 20, -6, 20, -10, -4]).fill(0xbff3ff).stroke({ width: 2, color: O });
+      g.moveTo(0, -24).lineTo(-3, 20).moveTo(0, -24).lineTo(3, 20).moveTo(-10, -4).lineTo(10, -4).stroke({ width: 1.2, color: 0x6ab0d8 });
+      g.circle(0, -4, 3).fill({ color, alpha: 0.8 });
+      break;
+  }
+  g.scale.set(s);
+  g.position.set(x, y + 9 - 20 * s);
   return g;
 }
 

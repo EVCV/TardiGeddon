@@ -3,6 +3,7 @@
 // Play buttons and the career panel.
 
 import { mascotSvg } from './mascot';
+import { emblemSvg } from '../render/emblems';
 import { CPU_SKILLS, type CpuSkill } from '../ai/cpu';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
@@ -232,7 +233,10 @@ export function buildLobby(
       const kind = document.createElement('span');
       kind.className = 'slot-kind';
       kind.textContent = cpu ? '🤖 CPU' : '👤 Human';
-      toggle.append(pic, name, kind);
+      const badge = document.createElement('span');
+      badge.className = 'team-emblem';
+      badge.innerHTML = emblemSvg(p.emblem, `${p.name} emblem`);
+      toggle.append(pic, badge, name, kind);
       toggle.onclick = () => {
         players[i] = !players[i];
         renderSlots();

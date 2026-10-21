@@ -4,13 +4,14 @@
 import { onlineGuide } from './guide';
 import { otherPlayer, playerActions, slotName } from './safety';
 import { mascotSvg } from './mascot';
+import { emblemSvg } from '../render/emblems';
 import { hex } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
 import { MAX_TEAMS } from '../sim/world';
 import { loadProfiles, matchNames } from './teams';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
-import { wearAim, wearFx, wearHat, wearSkin } from '../account/session';
+import { wornLooks } from '../account/session';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
 import { webGameUrl } from '../native';
@@ -32,7 +33,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 /** Our team (the first saved team profile), as sent to the server. */
 function myTeam(): LobbyTeam {
   const p = loadProfiles()[0];
-  return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0) };
+  return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0) };
 }
 
 /** Remember the room so a dropped connection (or reload) can rejoin our slot. */
@@ -281,7 +282,9 @@ export function showOnline(
       const name = el('span', 'lobby-name', slotName(s)); // player text: never innerHTML
       const tag = el('span', 'lobby-tag', s.cpu ? '🤖 CPU' : s.host ? '👑 Host' : i === room.you ? 'You' : '👤');
       if (i === room.you && !s.cpu) tag.textContent = s.host ? '👑 You' : 'You';
-      row.append(pic, name, tag);
+      const badge = el('span', 'team-emblem');
+      badge.innerHTML = emblemSvg(s.team.emblem, `${slotName(s)} emblem`);
+      row.append(pic, badge, name, tag);
       if (otherPlayer(s, i, room.you)) row.append(playerActions(root, s, (reason) => client?.report(i, reason), () => renderLobby(client?.room ?? room)));
       if (isHost && s.cpu) {
         const rm = el('button', 'slot-edit', '✕');

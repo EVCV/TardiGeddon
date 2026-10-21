@@ -5,7 +5,7 @@
 // stage, which is where it's unlocked (no pop-ups).
 
 import { mascotSvg } from './mascot';
-import { aimSvg, arenaSvg, fxSvg, musicSvg, soundSvg } from './cosmeticArt';
+import { aimSvg, arenaSvg, danceSvg, fxSvg, graveSvg, musicSvg, soundSvg } from './cosmeticArt';
 import { SURPRISE_ARENA } from '../render/arenas';
 import { previewMusic, previewingMusic } from '../audio/music';
 import { demoSoundPack } from '../audio/sfx';
@@ -23,7 +23,7 @@ import { buyCoins, buyCoinsInApp, chooseArena, chooseMusic, chooseSounds, chosen
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
 
-type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
+type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
 
 export interface ShopState {
   category: Category;
@@ -58,6 +58,8 @@ export function itemArt(item: ShopItem | null): string {
   if (item.kind === 'skin') return mascotSvg(team.color, wearHat(team.hat), item.ref);
   if (item.kind === 'aim') return aimSvg(item.ref, team.color);
   if (item.kind === 'fx') return fxSvg(item.ref);
+  if (item.kind === 'dance') return danceSvg(item.ref, team.color, wearHat(team.hat), wearSkin(team.skin));
+  if (item.kind === 'grave') return graveSvg(item.ref, team.color);
   if (item.kind === 'arena') return arenaSvg(item.ref);
   if (item.kind === 'music') return musicSvg(item.ref);
   if (item.kind === 'sound') return soundSvg(item.ref);
@@ -70,6 +72,8 @@ const CATEGORIES: [Category, string][] = [
   ['skin', '🎨 Skins'],
   ['aim', '🎯 Aim'],
   ['fx', '✨ Effects'],
+  ['dance', '💃 Dances'],
+  ['grave', '🪦 Gravestones'],
   ['arena', '🏞️ Arenas'],
   ['music', '🎵 Music'],
   ['sound', '🔊 Sounds'],
@@ -383,7 +387,7 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
     const team = loadProfiles()[0];
     const looks = b.items.map(shopItem).filter((i): i is ShopItem => !!i && i.kind !== 'weapon');
     const using = (i: ShopItem) =>
-      i.kind === 'arena' ? chosenArena() : i.kind === 'music' ? chosenMusic() : i.kind === 'sound' ? chosenSounds() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx'];
+      i.kind === 'arena' ? chosenArena() : i.kind === 'music' ? chosenMusic() : i.kind === 'sound' ? chosenSounds() : team[i.kind as 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave'];
     const wearing = looks.every((i) => using(i) === i.ref);
     const wear = el('button', 'hud-btn', wearing ? 'Wearing the set ✓' : `Wear the set on ${team.name}`);
     wear.disabled = wearing;

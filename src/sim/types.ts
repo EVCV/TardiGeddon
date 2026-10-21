@@ -239,6 +239,10 @@ export interface Team {
   /** Aim marker style and explosion effect (cosmetic only). */
   aim: string;
   fx: string;
+  /** Victory dance, gravestone and team badge (cosmetic only). */
+  dance: string;
+  grave: string;
+  emblem: string;
   ammo: Record<string, number>;
 }
 

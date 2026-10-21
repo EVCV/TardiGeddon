@@ -4,7 +4,7 @@ import '@fontsource/nunito/800.css';
 import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
-import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearAim, wearArena, wearFx, wearHat, wearMusic, wearSkin, wearSounds } from './account/session';
+import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearArena, wearMusic, wearSounds, wornLooks } from './account/session';
 import { MatchTally } from './stats/tally';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
@@ -252,7 +252,7 @@ class Match {
       const setup = mode.setup;
       const teams: TeamConfig[] = setup.players.map((cpu, i) => {
         const p = setup.teams[i];
-        return { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, i), cpu };
+        return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, i), cpu };
       });
       // Season weapons this player has unlocked are switched on for everyone in the match.
       this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
@@ -261,14 +261,14 @@ class Match {
       for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
     } else if (mode.kind === 'tutorial') {
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
       this.local = createWorld(tutorialWorld(you));
       this.cpu.set(1, dummyPlayer);
       this.coach = new Coach(touchMode, { onMenu, onAgain });
     } else if (mode.kind === 'practice') {
       // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
       this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
       this.cpu.set(1, dummyPlayer);
     } else {

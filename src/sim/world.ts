@@ -96,6 +96,9 @@ export interface TeamConfig {
   skin?: string;
   aim?: string;
   fx?: string;
+  dance?: string;
+  grave?: string;
+  emblem?: string;
 }
 
 export interface WorldConfig {
@@ -205,7 +208,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         if (practice && ti === 0 && !def.hidden) ammo[def.id] = -1;
         if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', dance: tc.dance ?? 'classic', grave: tc.grave ?? 'classic', emblem: tc.emblem ?? '', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map (practice: you, then the targets).

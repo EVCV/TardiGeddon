@@ -6,6 +6,7 @@ import { Container, Graphics, Text } from 'pixi.js';
 import type { Tardi } from '../sim/types';
 import { PALETTE, hex } from './palette';
 import { drawHatPixi } from './hats';
+import { dancePose } from './finales';
 import { patternMarks, skinById, type SkinDef } from './skins';
 
 const O = PALETTE.outline;
@@ -90,6 +91,8 @@ export class TardiView {
     teamColor: number,
     hat = 'beanie',
     skin = 'classic',
+    /** Victory dance (render/finales.ts). */
+    private dance = 'classic',
   ) {
     this.skin = skinById(skin);
     const g = new Graphics();
@@ -149,10 +152,15 @@ export class TardiView {
 
     // Moods (cosmetic): victory dance, teetering on a cliff edge.
     this.body.y = -2;
+    this.body.x = 0;
     if (this.mood === 'dance') {
-      this.body.y = -2 - Math.abs(Math.sin(time * 8 + t.id)) * 7;
-      this.body.rotation = Math.sin(time * 6 + t.id) * 0.3;
-      this.body.scale.x = Math.sin(time * 3 + t.id) > 0 ? 1 : -1;
+      // The team's victory dance (a cosmetic everyone sees).
+      const pose = dancePose(this.dance, time, t.id);
+      this.body.y = -2 - pose.lift;
+      this.body.x = pose.slide;
+      this.body.rotation = pose.rot;
+      if (pose.face !== 0) this.body.scale.x = pose.face;
+      this.body.scale.y *= pose.squash;
     } else if (this.mood === 'teeter') {
       this.body.rotation = this.teeterDir * (0.15 + Math.abs(Math.sin(time * 9 + t.id)) * 0.35);
     }

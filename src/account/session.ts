@@ -235,6 +235,19 @@ export function wearFx(fx: string): string {
   return canUse('fx', fx, ownedItems()) ? fx : 'classic';
 }
 
+export function wearDance(dance: string): string {
+  return canUse('dance', dance, ownedItems()) ? dance : 'classic';
+}
+
+export function wearGrave(grave: string): string {
+  return canUse('grave', grave, ownedItems()) ? grave : 'classic';
+}
+
+/** A saved team's looks as worn in a match: anything this device hasn't unlocked swapped for the free one. */
+export function wornLooks(p: { hat: string; skin: string; aim: string; fx: string; dance: string; grave: string; emblem: string }) {
+  return { hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), dance: wearDance(p.dance), grave: wearGrave(p.grave), emblem: p.emblem };
+}
+
 /** Season weapons the signed-in player has unlocked (switched on in the matches they start). */
 export function myUnlockedWeapons(): string[] {
   return unlockedWeapons(ownedItems());

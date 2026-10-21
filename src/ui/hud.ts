@@ -1,6 +1,7 @@
 // In-game HUD (DOM overlay): turn timer, wind, team health, weapon panel,
 // banners and touch controls.
 
+import { emblemSvg } from '../render/emblems';
 import { teamLabel } from '../net/blocked';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE, type WorldState } from '../sim/types';
 import { PANEL_WEAPONS, WEAPONS, type WeaponDef } from '../sim/weapons';
@@ -246,6 +247,11 @@ export class Hud {
       const bar = el('div', 'team-bar');
       bar.style.width = `${Math.max(2, Math.min(100, (hp / maxHpOf(tm.id)) * 100))}%`;
       bar.style.background = hex(tm.color);
+      if (tm.emblem) {
+        const badge = el('span', 'team-emblem');
+        badge.innerHTML = emblemSvg(tm.emblem, `${teamLabel(tm)} emblem`);
+        row.append(badge);
+      }
       row.append(name, bar);
       if (s.race) {
         // Rope Race: best time after the bar.
