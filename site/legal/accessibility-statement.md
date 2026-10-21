@@ -1,7 +1,7 @@
 # Accessibility Statement
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 9 October 2026
+**Last Modified:** 21 October 2026
 **Document Version:** v1.0
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -57,7 +57,7 @@ We want as many people as possible to be able to enjoy TardiGeddon. This stateme
 
 2.0.2 The game can be played with a keyboard, a mouse, or touch controls, and turn-based play means there is no need for fast reactions: each turn has a timer, and game styles with longer turn times can be chosen in the menu.
 
-2.0.3 Teams are identified by name as well as by colour, and speech-bubble reactions in the game are shown as text.
+2.0.3 Teams are identified by name as well as by colour, and speech-bubble reactions in the game are shown as text. The game's Settings have an Accessibility section with: colour-blind friendly team colours (a palette designed to be told apart with any common colour blindness), with a symbol for each team beside its name and a pattern on its health bar; a high contrast mode (black-on-white menus, white-on-black text over the game, bigger name tags); and calmer effects (no lightning flashes or menu animations), which is switched on automatically if your device asks for reduced motion. Every control shows a clear focus ring when used with a keyboard, and text size can be changed in Settings.
 
 2.0.4 Including accessibility considerations at the design and development stage of new features, so far as reasonably practicable given the BETA status, and conducting periodic internal reviews using automated testing tools and manual review.
 
@@ -82,7 +82,7 @@ We want as many people as possible to be able to enjoy TardiGeddon. This stateme
 4.0.1 As the Website and game are in active BETA development, known limitations may exist from time to time. These currently include:
 
 - The game is drawn on a canvas, so the playing field (the landscape, tardigrades, and weapons) is not available to screen readers. The menus are standard web pages.
-- The game has explosions, camera movement, and flashing effects, and does not yet have a reduced-motion or reduced-flashing option.
+- The game has explosions and camera movement. The calmer effects setting removes the flashes from storms and menu animations, but explosions still move and flash briefly.
 - Sound effects do not have captions, although the game does not rely on sound to play.
 - Aiming and charging a shot require holding a button or key, which may be difficult for some players.
 
