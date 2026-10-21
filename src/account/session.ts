@@ -514,3 +514,26 @@ export function saveControls(c: Controls): Promise<'account' | 'visit'> {
     }, 500);
   });
 }
+
+/** A leaderboard row (server/challenges.ts). */
+export interface BoardRow {
+  rank: number;
+  name: string;
+  value: number;
+  ticks: number;
+  you?: boolean;
+}
+
+/** Today's (or a day's) leaderboard for a daily challenge; null if the server can't be reached. */
+export async function challengeBoard(kind: string, day: string): Promise<{ rows: BoardRow[]; me: BoardRow | null } | null> {
+  try {
+    return await call<{ rows: BoardRow[]; me: BoardRow | null }>(`/api/challenge/board?kind=${encodeURIComponent(kind)}&day=${encodeURIComponent(day)}`);
+  } catch {
+    return null;
+  }
+}
+
+/** Send a finished run; the server plays it back and keeps the player's best. */
+export function submitChallenge(kind: string, day: string, frames: unknown): Promise<{ me: BoardRow | null }> {
+  return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames });
+}

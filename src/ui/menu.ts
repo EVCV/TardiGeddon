@@ -137,6 +137,7 @@ export function buildLobby(
   go: (tab: HubTab) => void,
   onTutorial: () => void,
   onPractice: () => void,
+  onChallenge: () => void,
 ): Lobby {
   const root = document.createElement('div');
   const saved = load();
@@ -193,6 +194,7 @@ export function buildLobby(
         <div class="lobby-learn">
           <button class="hud-btn learn-btn">🎓 Tutorial</button>
           <button class="hud-btn practice-btn">🎯 Practice</button>
+          <button class="hud-btn challenge-btn">🏆 Daily challenge</button>
           <button class="hud-btn guide-btn">📖 Guide</button>
           <button class="hud-btn controls-btn">⚙️ Controls</button>
         </div>
@@ -434,6 +436,7 @@ export function buildLobby(
   }
   root.querySelector<HTMLButtonElement>('.controls-btn')!.onclick = () => go('settings');
   root.querySelector<HTMLButtonElement>('.practice-btn')!.onclick = onPractice;
+  root.querySelector<HTMLButtonElement>('.challenge-btn')!.onclick = onChallenge;
   root.querySelector<HTMLButtonElement>('.guide-btn')!.onclick = () => go('guide');
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;

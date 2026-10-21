@@ -65,6 +65,7 @@ export function showHub(
   onOnline?: () => void,
   onTutorial: () => void = () => {},
   onPractice: () => void = () => {},
+  onChallenge: () => void = () => {},
   tab: HubTab = 'lobby',
 ): Hub {
   root.innerHTML = '';
@@ -209,7 +210,7 @@ export function showHub(
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge);
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;

@@ -8,6 +8,8 @@
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
 // See docs/ACCOUNTS.md for setup.
 
+import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
@@ -190,6 +192,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const { runMigrations } = await getMigrations(options);
   await runMigrations();
   await migrate(db);
+  await migrateChallenges(db);
   const auth = betterAuth(options);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
@@ -394,6 +397,24 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   /** Spend coins or Slime on a shop item. */
+  const lastRun = new Map<string, number>();
+  /** A daily challenge run: played through the sim here, never taken on trust. */
+  async function challengeSubmit(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Sign in to put your score on the leaderboard.' });
+    const body = await readJson(req);
+    if (!body || !isChallengeKind(body.kind) || !acceptableDay(body.day)) return json(res, 400, { error: 'Bad request.' });
+    // Playing a run back costs real work: one every few seconds each.
+    const now = Date.now();
+    if (now - (lastRun.get(user.id) ?? 0) < 5_000) return json(res, 429, { error: 'Too many runs. Try again in a moment.' });
+    lastRun.set(user.id, now);
+    const result = checkRun(body.kind, body.day, body.frames);
+    if (!result || !result.done) return json(res, 400, { error: 'That run didn’t finish.' });
+    const best = await saveRun(db, user.id, body.kind, body.day, result);
+    const b = await board(db, body.kind, body.day, user.id);
+    json(res, 200, { result, best, me: b.me });
+  }
+
   async function unlock(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
@@ -682,6 +703,18 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
+        } else if (path === '/api/challenge/submit' && req.method === 'POST') {
+          await challengeSubmit(req, res);
+        } else if (path === '/api/challenge/board' && req.method === 'GET') {
+          // Public: the website's leaderboards read this too.
+          const q = new URL(req.url ?? '', 'http://x').searchParams;
+          const kind = q.get('kind');
+          const day = q.get('day') ?? challengeDay();
+          if (!isChallengeKind(kind) || !/^\d{4}-\d{2}-\d{2}$/.test(day)) json(res, 400, { error: 'Bad request.' });
+          else {
+            const user = await userFrom(req.headers);
+            json(res, 200, { kind, day, ...(await board(db, kind, day, user?.id)) });
+          }
         } else if (path === '/api/shop/unlock' && req.method === 'POST') {
           await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
@@ -716,6 +749,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Tests only: forget the per-player rate limits. */
     resetLimits(): void {
       lastReport.clear();
+      lastRun.clear();
       redeemTries.clear();
     },
     async close(): Promise<void> {

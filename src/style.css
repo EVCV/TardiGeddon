@@ -1934,3 +1934,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .gameover-stats table { font-size: 12px; }
   .gameover-box .title-small { font-size: 26px; margin: 0; }
 }
+
+/* ---------- Daily challenge ---------- */
+.challenge-result { margin: 0; font-family: var(--title); font-size: 28px; text-align: center; }
+.board-top { font-size: 13px; font-weight: 800; color: #6b4a00; }
+.board { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+.board li { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 3px 8px; border-radius: 8px; background: #fff; border: 2px solid #e4dccb; }
+.board li.you { background: #fff1b8; border-color: var(--ink); }
+.board-rank { font-weight: 900; text-align: right; }
+.board-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-value { font-weight: 800; white-space: nowrap; }
+.board-empty { display: block !important; text-align: center; }

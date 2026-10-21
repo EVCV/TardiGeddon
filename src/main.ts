@@ -21,6 +21,8 @@ import { WEATHER_NAMES } from './render/weather';
 import { mapStyleName } from './sim/terrain/generate';
 import { arenaTheme, type ArenaTheme } from './render/arenas';
 import { shareMatch } from './ui/share';
+import { ChallengeRun, TARGET_TURNS, challengeDay, challengeWorld, type ChallengeKind } from './challenge/daily';
+import { chooseChallenge, showChallengeResult } from './ui/challenge';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard, doAction, type KeyboardHooks } from './input/input';
@@ -87,7 +89,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice));
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge));
   };
   const start = (setup: MatchSetup) => {
     current?.destroy();
@@ -102,6 +104,13 @@ async function boot(): Promise<void> {
     ui.innerHTML = '';
     unlockAudio();
     current = new Match(app, ui, { kind: 'tutorial' }, menu, tutorial);
+  };
+  const challenge = (kind: ChallengeKind) => {
+    current?.destroy();
+    hub = onlineScreen = null;
+    ui.innerHTML = '';
+    unlockAudio();
+    current = new Match(app, ui, { kind: 'challenge', challenge: kind }, menu, () => challenge(kind));
   };
   const practice = (endless: boolean) => {
     current?.destroy();
@@ -155,6 +164,7 @@ async function boot(): Promise<void> {
   const room = params.get('room');
   if (auto === 'tutorial') tutorial();
   else if (auto === 'practice') practice(params.get('endless') !== null);
+  else if (auto === 'targets' || auto === 'rope') challenge(auto);
   else if (auto) {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU),
     // &style=PRESET (game style), &map=STYLE (map style) and &seed=N.
@@ -203,7 +213,7 @@ async function boot(): Promise<void> {
   }
 }
 
-type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'online'; client: NetClient; ls: Lockstep };
+type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'challenge'; challenge: ChallengeKind } | { kind: 'online'; client: NetClient; ls: Lockstep };
 
 class Match {
   private local: WorldState | null = null;
@@ -218,6 +228,8 @@ class Match {
   private events: SimEvent[] = [];
   /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
   private tally: MatchTally | null = null;
+  /** A daily challenge run: records its frames for the leaderboard and says when it's over. */
+  private challenge: ChallengeRun | null = null;
   /** Everyone's numbers for the end-of-match screen (every kind of match). */
   private stats: MatchTally | null = null;
   /** Each turn's start and inputs, to show the winning shot again. */
@@ -278,6 +290,13 @@ class Match {
       this.local = createWorld(tutorialWorld(you));
       this.cpu.set(1, dummyPlayer);
       this.coach = new Coach(touchMode, { onMenu, onAgain });
+    } else if (mode.kind === 'challenge') {
+      // Today's challenge: the same world for everyone; our team's looks are our own.
+      const p = loadProfiles()[0];
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const day = challengeDay();
+      this.challenge = new ChallengeRun(mode.challenge, day);
+      this.local = createWorld(challengeWorld(mode.challenge, day, you));
     } else if (mode.kind === 'practice') {
       // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
       const p = loadProfiles()[0];
@@ -403,6 +422,17 @@ class Match {
     return !team.cpu && this.state.turn.phase !== 'gameover';
   }
 
+  /** The challenge run is over: show the result and send it to the leaderboard. */
+  private finishChallenge(s: WorldState): void {
+    const run = this.challenge!;
+    const result = run.result(s);
+    const packed = run.packed();
+    sfx.fanfare();
+    setTimeout(() => {
+      if (!this.destroyed) showChallengeResult(this.ui, run.kind, run.day, result, packed, this.onAgain, this.onMenu);
+    }, 1800);
+  }
+
   /** The end-of-match box: numbers, the winning shot again, share, next. */
   private showResults(labels: readonly [string, string]): void {
     if (this.destroyed) return;
@@ -471,10 +501,17 @@ class Match {
       const s = this.local!;
       while (this.acc >= TICK_MS) {
         this.acc -= TICK_MS;
+        // A finished challenge run stops where it ended.
+        if (this.challenge?.over) {
+          this.acc = 0;
+          break;
+        }
         const team = s.teams[s.turn.teamIdx];
         const human = this.isHumanTurn();
         const humanInput = this.input.frame(); // always drain
-        const input = team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
+        const input = this.challenge
+          ? this.challenge.frameFor(s, human ? humanInput : EMPTY_INPUT)
+          : team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
         this.renderer.capturePrev(s);
         const from = this.events.length;
         this.recorder.before(s, input);
@@ -483,6 +520,7 @@ class Match {
         this.recorder.after(fresh);
         this.tally?.add(s, fresh);
         this.statsFor(s).add(s, fresh);
+        if (this.challenge && this.challenge.played(s, input, fresh)) this.finishChallenge(s);
       }
     }
     this.coach?.update({
@@ -622,7 +660,7 @@ class Match {
                 if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);
               });
             }
-            if (this.coach) break; // the coach shows how the practice went
+            if (this.coach || this.challenge) break; // the coach, or the challenge result, says how it went
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
             setTimeout(() => this.showResults(labels), 4200); // after the victory dance
           }
@@ -649,7 +687,9 @@ class Match {
     const s = this.state;
     const team = s.teams[s.turn.teamIdx];
     const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, shown(team.color));
+    const c = this.challenge;
+    if (c?.kind === 'targets' && team.id === 0) this.hud.showBanner(`Turn ${Math.min(TARGET_TURNS, c.turns + 1)} of ${TARGET_TURNS}`, 0xffffff);
+    else if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, shown(team.color));
     this.renderer.camera.manualUntil = 0;
   }
 

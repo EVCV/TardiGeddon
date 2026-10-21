@@ -6,6 +6,10 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
+import { ChallengeRun, challengeDay, challengeWorld } from '../src/challenge/daily';
+import { createWorld, tick } from '../src/sim/world';
+import { CpuPlayer } from '../src/ai/cpu';
+import type { SimEvent } from '../src/sim/types';
 import type { GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat } from '../src/shop/catalog';
@@ -718,6 +722,48 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     for (let i = 0; i < 10; i++) expect((await redeem(`AAAA-AAAA-AAA${'ABCDEFGHJK'[i]}`, other.cookie)).status).toBe(404);
     expect((await redeem('AAAA-AAAA-AAAA', other.cookie)).status).toBe(429);
   });
+
+  it('puts daily challenge runs on the leaderboard only after playing them back itself', async () => {
+    const day = challengeDay();
+    const run = (popEverything: boolean) => {
+      // A run made by the CPU's brain, recorded the way the game does.
+      const s = createWorld(challengeWorld('targets', day, { name: 'x', color: 0, cpu: false }));
+      const r = new ChallengeRun('targets', day);
+      const brain = new CpuPlayer('perfect');
+      const ev: SimEvent[] = [];
+      while (!r.over) {
+        const f = r.frameFor(s, s.turn.teamIdx === 0 && popEverything ? brain.next(s) : { held: 0, pressed: 0 });
+        tick(s, f, ev);
+        r.played(s, f, ev);
+        ev.length = 0;
+      }
+      return { packed: r.packed(), result: r.result(s) };
+    };
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: [] })).status).toBe(401);
+    const a = await signUp('champ@example.com');
+    const b = await signUp('lazy@example.com');
+    const good = run(true);
+    const idle = run(false);
+    // Unfinished runs, other days and made-up kinds are refused.
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: [-10] }, a.cookie)).status).toBe(400);
+    accounts.resetLimits();
+    expect((await post('/api/challenge/submit', { kind: 'targets', day: '2001-01-01', frames: good.packed }, a.cookie)).status).toBe(400);
+    expect((await post('/api/challenge/submit', { kind: 'chess', day, frames: good.packed }, a.cookie)).status).toBe(400);
+    // A real run: the server's own playback gives the same result.
+    const r = await post('/api/challenge/submit', { kind: 'targets', day, frames: good.packed }, a.cookie);
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { result: unknown }).result).toEqual(good.result);
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: good.packed }, a.cookie)).status).toBe(429);
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: idle.packed }, b.cookie)).status).toBe(200);
+    // A worse run later doesn't replace the best.
+    accounts.resetLimits();
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: idle.packed }, a.cookie)).status).toBe(200);
+    const board = (await (await fetch(`${base}/api/challenge/board?kind=targets&day=${day}`, { headers: { cookie: b.cookie } })).json()) as { rows: { rank: number; name: string; value: number; you?: boolean }[]; me: { rank: number } | null };
+    expect(board.rows.map((x) => [x.rank, x.value])).toEqual([[1, good.result.value], [2, 0]]);
+    expect(board.rows[1].you).toBe(true);
+    expect(board.me?.rank).toBe(2);
+    expect((await fetch(`${base}/api/challenge/board?kind=nope`)).status).toBe(400);
+  }, 120_000);
 
   it('deleting an account removes what it owned', async () => {
     const { cookie, id } = await signUp('five@example.com');
