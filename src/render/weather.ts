@@ -42,6 +42,12 @@ export class WeatherView {
   /** Seconds left of the tornado sweeping across the screen. */
   private twister = 0;
   private ufoAt = 20 + Math.random() * 40;
+  /** Where the duck and the saucer were last drawn (world / screen), for taps. */
+  private duckPos: { x: number; y: number } | null = null;
+  private ufoPos: { x: number; y: number } | null = null;
+  /** An easter egg came into view (the rainbow). */
+  onEgg: ((id: string) => void) | null = null;
+  private rainbowSeen = false;
 
   constructor(
     private kind: WeatherKind,
@@ -83,6 +89,10 @@ export class WeatherView {
       b.circle(sx, sy, 32).fill(0xffe27a).stroke({ width: 3, color: 0xf0a020 });
     }
     if (this.eggs.rainbow) {
+      if (!this.rainbowSeen) {
+        this.rainbowSeen = true;
+        this.onEgg?.('rainbow');
+      }
       const cols = [0xff5a5a, 0xffa040, 0xffe060, 0x7ad860, 0x5aa8ff, 0x9a6ae0];
       cols.forEach((c, i) => {
         b.arc(width * 0.3, height * 0.75, width * 0.32 - i * 9, Math.PI, Math.PI * 2).stroke({ width: 9, color: c, alpha: 0.28 });
@@ -93,10 +103,12 @@ export class WeatherView {
       if (this.ufoAt < 0) {
         // Crosses in 8 seconds, then waits a minute or two.
         const k = -this.ufoAt / 8;
+        this.ufoPos = null;
         if (k > 1) this.ufoAt = 60 + Math.random() * 60;
         else {
           const x = -40 + k * (width + 80);
           const y = height * 0.18 + Math.sin(k * 12) * 14;
+          this.ufoPos = { x, y };
           b.ellipse(x, y - 5, 9, 7).fill({ color: 0xbff7ff, alpha: 0.85 }).stroke({ width: 1.5, color: O });
           b.ellipse(x, y, 22, 6).fill(0xc3cad6).stroke({ width: 2, color: O });
           for (let i = -1; i <= 1; i++) b.circle(x + i * 10, y + 1, 1.8).fill(Math.sin(t * 10 + i) > 0 ? 0xffd84a : 0x5aff7a);
@@ -170,11 +182,19 @@ export class WeatherView {
     if (this.eggs.duck !== null) {
       const x = this.eggs.duck + Math.sin(t * 0.2) * 40;
       const y = waterY - 6 + Math.sin(t * 2) * 2;
+      this.duckPos = { x, y };
       w.ellipse(x, y, 12, 7).fill(0xffd84a).stroke({ width: 1.5, color: O });
       w.circle(x + 8, y - 9, 6).fill(0xffd84a).stroke({ width: 1.5, color: O });
       w.poly([x + 13, y - 10, x + 19, y - 8, x + 13, y - 6]).fill(0xf08a2a).stroke({ width: 1, color: O });
       w.circle(x + 10, y - 11, 1.2).fill(O);
     }
+  }
+
+  /** Which egg, if any, is under a tap: the saucer (screen point) or the duck (world point). */
+  eggAt(sx: number, sy: number, wx: number, wy: number): string | null {
+    if (this.ufoPos && Math.abs(sx - this.ufoPos.x) < 34 && Math.abs(sy - this.ufoPos.y) < 22) return 'ufo';
+    if (this.duckPos && Math.abs(wx - this.duckPos.x) < 24 && Math.abs(wy - (this.duckPos.y - 6)) < 22) return 'duck';
+    return null;
   }
 
   /** `world` goes with the world container it sits in. */

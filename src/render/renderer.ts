@@ -161,6 +161,17 @@ export class GameRenderer {
     return { x: p.x + (x - p.x) * a, y: p.y + (y - p.y) * a };
   }
 
+  /** An easter egg under a tap on the screen, if any. */
+  tapEgg(sx: number, sy: number): string | null {
+    const w = this.screenToWorld(sx, sy);
+    return this.weather.eggAt(sx, sy, w.x, w.y);
+  }
+
+  /** Easter eggs that show up by themselves (the rainbow). */
+  set onEgg(fn: ((id: string) => void) | null) {
+    this.weather.onEgg = fn;
+  }
+
   screenToWorld(sx: number, sy: number): { x: number; y: number } {
     const { width, height } = this.app.screen;
     return {

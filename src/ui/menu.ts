@@ -13,6 +13,7 @@ import { hex, shown, teamSymbol } from '../render/palette';
 import { loadProfiles, nextColor, saveProfiles, updateProfile, type TeamProfile } from './teams';
 import { openTeamEditor } from './teamEditor';
 import { arenaLabel, openLooks } from './looks';
+import { findEgg } from './eggs';
 import { currentSeason, seasonEnds } from '../render/seasons';
 import { arenaTheme } from '../render/arenas';
 import { renderDashboard } from './dashboard';
@@ -358,6 +359,16 @@ export function buildLobby(
   refresh();
 
   const mascot = root.querySelector<HTMLElement>('.mascot')!;
+  // Easter egg: the lobby tardigrade is ticklish (ten pokes and it flips).
+  let tickles = 0;
+  mascot.onclick = () => {
+    if (++tickles < 10) return;
+    tickles = 0;
+    mascot.classList.remove('flip');
+    void mascot.offsetWidth; // restart the animation
+    mascot.classList.add('flip');
+    findEgg('tickle');
+  };
   const heroTeam = root.querySelector<HTMLElement>('.hero-team')!;
   const renderHero = () => {
     const p = profiles[0];

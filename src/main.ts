@@ -21,6 +21,7 @@ import { WEATHER_NAMES } from './render/weather';
 import { mapStyleName } from './sim/terrain/generate';
 import { arenaTheme, type ArenaTheme } from './render/arenas';
 import { shareMatch } from './ui/share';
+import { findEgg, onEggFound } from './ui/eggs';
 import { ChallengeRun, TARGET_TURNS, challengeDay, challengeWorld, type ChallengeKind } from './challenge/daily';
 import { chooseChallenge, showChallengeResult } from './ui/challenge';
 import { Banter } from './render/banter';
@@ -313,6 +314,7 @@ class Match {
     this.theme = arenaTheme(this.state.scheme.arena ?? wearArena());
     this.renderer = new GameRenderer(app, this.state, this.theme);
     this.renderer.onSound = (name) => sfx[name]();
+    this.renderer.onEgg = (id) => findEgg(id);
     // Online: names of players you've blocked are hidden from you.
     this.hideBlocked();
     const onPlayers = this.net ? () => this.showPlayers() : undefined;
@@ -328,6 +330,10 @@ class Match {
     }
     this.detachKeys = attachKeyboard(this.input, this.keyHooks);
     this.attachPointer();
+    // Easter eggs found in a match get a banner.
+    onEggFound((text) => this.hud.showBanner(text, 0xffd84a, 3));
+    // Named after the tardigrade that went to space?
+    if (this.state.tardis.some((t) => !this.state.teams[t.team].cpu && /^milnesium$/i.test(t.name.trim()))) findEgg('milnesium');
     this.announceMap();
     app.ticker.add(this.tickerFn);
     (window as unknown as { __tardi: unknown }).__tardi = this; // for e2e tests
@@ -448,6 +454,7 @@ class Match {
     this.renderer.destroy();
     this.renderer = new GameRenderer(this.app, s, this.theme);
     this.renderer.onSound = (name) => sfx[name]();
+    this.renderer.onEgg = (id) => findEgg(id);
   }
 
   /** Play the turn that decided the match again, on its own copy of the world. */
@@ -625,6 +632,7 @@ class Match {
           break;
         case 'waterRise': sfx.splash(); break;
         case 'tornado':
+          findEgg('tornado');
           sfx.suddenDeath();
           this.hud.showBanner('🌪️ TORNADO!', 0xffffff, 2.5);
           break;
@@ -707,6 +715,9 @@ class Match {
     };
     c.onpointerdown = (e) => {
       unlockAudio();
+      // Poked an easter egg (the duck, the saucer)?
+      const egg = this.renderer.tapEgg(e.clientX, e.clientY);
+      if (egg && findEgg(egg)) return;
       if (e.pointerType === 'mouse' && this.mouseAction(e, true)) return;
       c.setPointerCapture(e.pointerId);
       // A drag that starts on your own tardi aims instead of moving the camera.
@@ -829,6 +840,7 @@ class Match {
 
   destroy(): void {
     this.destroyed = true;
+    onEggFound(null);
     this.offNet?.();
     if (this.net) this.net.client.onDrop = null;
     this.net = null;

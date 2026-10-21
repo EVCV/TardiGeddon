@@ -5,6 +5,8 @@
 // part also shows on the online screen.
 
 import { MAP_STYLES } from '../sim/terrain/generate';
+import { EGGS } from '../eggs';
+import { foundEggs } from './eggs';
 import { WEAPONS } from '../sim/weapons';
 import { DEFAULT_SCHEME } from '../sim/types';
 import type { HubContext } from './hub';
@@ -124,6 +126,12 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       '**Change how the world looks** with 🏞️ World on the lobby: Surprise me picks a different look every match.',
     ]),
     onlineGuide(),
+    card(
+      'eggs',
+      `🥚 Easter eggs (${foundEggs().length}/${EGGS.length} found)`,
+      EGGS.map((e) => (foundEggs().includes(e.id) ? `**✅ ${e.name}:** found!` : `**❓** ${e.riddle}`)),
+      'Just for fun: no prizes, just bragging rights. Kept on this device.',
+    ),
   );
   return root;
 }

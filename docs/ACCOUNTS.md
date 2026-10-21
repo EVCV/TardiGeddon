@@ -13,7 +13,8 @@ free without an account.
   plus `inventory` (who owns what), `wallet` (coins and Slime),
   `player_stats`, `player_settings` (control settings from the Settings page),
   `stripe_customer`, `purchase` (every payment), `gift`,
-  `spend` (the Sales page's log, not linked to players) and `done_once`.
+  `spend` (the Sales page's log, not linked to players), `done_once` and
+  `challenge_score` (each player's best daily challenge run per day).
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -35,6 +36,12 @@ free without an account.
   (20 for playing, +30 for a win, +5 per pop up to 8); games against the CPU
   are reported by the game and pay less (10, +15, +2 per pop), at most 200 a
   day (`server/store.ts`).
+- **Daily challenges** (`src/challenge/daily.ts`, `server/challenges.ts`):
+  the game sends a finished run's input frames to `POST /api/challenge/submit`;
+  the server plays them through the sim itself (the stand-in team's frames
+  replaced by skips) and keeps the player's best for the day. Nothing the
+  game says about its score is trusted. `GET /api/challenge/board?kind=&day=`
+  is public; the website's /leaderboards page reads it.
 - **Unlocking:** `POST /api/shop/unlock` spends coins or Slime and adds the
   item to the `inventory`, all or nothing.
 - **Gifts** (Terms 5.8): `POST /api/gift/buy` spends the sender's coins on a

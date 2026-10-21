@@ -51,6 +51,12 @@ export function Layout({ children }: { children: ReactNode }) {
                 <a href={PLAY_URL}>Play now</a>
               </li>
               <li>
+                <Link to="/leaderboards">Leaderboards</Link>
+              </li>
+              <li>
+                <Link to="/eggs">Easter eggs</Link>
+              </li>
+              <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>
             </ul>

@@ -13,23 +13,11 @@ import { presetScheme } from '../sim/schemes';
 import { MAP_STYLES } from '../sim/terrain/generate';
 import { fromWire, toWire, type WireFrame } from '../net/protocol';
 
-export type ChallengeKind = 'targets' | 'rope';
-export const CHALLENGE_KINDS: ChallengeKind[] = ['targets', 'rope'];
+export { CHALLENGE_KINDS, TARGET_COUNT, TARGET_TURNS, challengeDay, isChallengeKind, type ChallengeKind } from './meta';
+import { TARGET_COUNT, TARGET_TURNS, type ChallengeKind } from './meta';
 
-export function isChallengeKind(v: unknown): v is ChallengeKind {
-  return v === 'targets' || v === 'rope';
-}
-
-/** Your turns in the Targets challenge. */
-export const TARGET_TURNS = 8;
-export const TARGET_COUNT = 8;
 /** Longest run the server will play through (15 minutes of game time). */
 export const MAX_FRAMES = TICK_RATE * 60 * 15;
-
-/** Today's challenge day, "YYYY-MM-DD" in UTC, so it's the same day for everyone. */
-export function challengeDay(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10);
-}
 
 /** A seed from the day and the kind (FNV-1a), so each day is new but the same for everyone. */
 export function challengeSeed(day: string, kind: ChallengeKind): number {

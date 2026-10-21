@@ -1945,3 +1945,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .board-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-value { font-weight: 800; white-space: nowrap; }
 .board-empty { display: block !important; text-align: center; }
+
+/* ---------- Easter eggs ---------- */
+.egg-toast {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 50;
+  padding: 8px 16px; border: 3px solid var(--ink); border-radius: 999px; background: #ffe9b8;
+  font-weight: 900; box-shadow: 0 4px 0 var(--ink);
+}
+.mascot.flip svg { animation: mascot-flip .9s ease-in-out; }
+@keyframes mascot-flip { 0% { transform: none; } 40% { transform: translateY(-30px) rotate(-180deg); } 100% { transform: rotate(-360deg); } }
+.egg-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.egg-list li { display: flex; gap: 8px; align-items: baseline; text-align: left; }
+.egg-list li.found b { color: #3a8a28; }
