@@ -109,16 +109,8 @@ export interface WorldConfig {
   mapH?: number;
 }
 
-export const DEFAULT_NAMES = [
-  'Waddles', 'Tun', 'Mossy', 'Pudge', 'Cuticle', 'Stylet', 'Bubbles', 'Nibs',
-  'Squish', 'Clawdia', 'Dewdrop', 'Gristle', 'Puddles', 'Lichen', 'Bramble', 'Pip',
-  'Sprout', 'Gloop', 'Pebble', 'Fuzz', 'Dumpling', 'Biscuit', 'Wiggles', 'Plop',
-  'Nugget', 'Snoot', 'Tater', 'Bean', 'Mochi', 'Crumb', 'Sludge', 'Zippy',
-  'Barnacle', 'Muffin', 'Scoot', 'Gumdrop', 'Toggle', 'Blip', 'Ripple', 'Puff',
-];
-
-/** Most teams a match supports. */
-export const MAX_TEAMS = 10;
+export { DEFAULT_NAMES, MAX_TEAMS } from './rosters';
+import { DEFAULT_NAMES, MAX_TEAMS } from './rosters';
 
 /**
  * Map size for a match: 2000x1000 for the classic 2 teams of 4, growing with

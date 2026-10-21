@@ -7,7 +7,7 @@ import { mascotSvg } from './mascot';
 import { emblemSvg } from '../render/emblems';
 import { hex, shown } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
-import { MAX_TEAMS } from '../sim/world';
+import { MAX_TEAMS } from '../sim/rosters';
 import { loadProfiles, matchNames } from './teams';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';

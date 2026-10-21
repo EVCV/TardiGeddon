@@ -1,7 +1,7 @@
 // Saved team profiles (name, colour, hat, tardi names), one per player slot.
 // Stored per device; storage may be missing or blocked, so every access is guarded.
 
-import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/world';
+import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/rosters';
 import { safeName, tidyName } from '../names';
 import { TEAM_COLORS, TEAM_NAMES } from '../render/palette';
 import { HATS } from '../render/hats';

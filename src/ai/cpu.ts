@@ -10,7 +10,8 @@ import { cloneWorld, launchVelocity, stepProjectile, activeTardi, tick, traceHit
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, PRESS_JUMP, TICK_RATE, type InputFrame, type Projectile, type SimEvent, type Tardi, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
 
-export type CpuSkill = 'easy' | 'normal' | 'hard' | 'perfect';
+export { CPU_SKILLS, type CpuSkill } from './skills';
+import type { CpuSkill } from './skills';
 
 /**
  * How a CPU of each skill gets it wrong, like a person would. It picks a
@@ -38,14 +39,6 @@ const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
   hard: { spread: 25, windSense: 0.95, powerErr: 0, aimErr: 0, wild: 0, moves: 1 },
   perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0, moves: 1 },
 };
-
-/** The skill levels offered in the menu. */
-export const CPU_SKILLS: { id: CpuSkill; name: string }[] = [
-  { id: 'easy', name: 'Easy' },
-  { id: 'normal', name: 'Normal' },
-  { id: 'hard', name: 'Hard' },
-  { id: 'perfect', name: 'Expert' },
-];
 
 /** Bell-curve noise with a standard deviation of 1. */
 function gauss(): number {

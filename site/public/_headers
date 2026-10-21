@@ -4,6 +4,11 @@
 /legal/*
   X-Robots-Tag: noindex, follow
 
+# The game's service worker (offline play) must always be checked for a new
+# version, or players could be stuck on an old game.
+/play/sw.js
+  Cache-Control: no-cache
+
 # Security headers for every page, the game at /play/ included.
 # - CSP: only our own scripts (plus Cloudflare's analytics beacon), no inline
 #   scripts or eval, connections only to us and the game server, and nobody may

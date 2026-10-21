@@ -4,10 +4,10 @@
 
 import { mascotSvg } from './mascot';
 import { emblemSvg } from '../render/emblems';
-import { CPU_SKILLS, type CpuSkill } from '../ai/cpu';
+import { CPU_SKILLS, type CpuSkill } from '../ai/skills';
 import { SCHEME_PRESETS, presetScheme } from '../sim/schemes';
 import { DEFAULT_SCHEME, type Scheme } from '../sim/types';
-import { MAX_TEAMS } from '../sim/world';
+import { MAX_TEAMS } from '../sim/rosters';
 import { MAP_STYLES } from '../sim/terrain/generate';
 import { hex, shown, teamSymbol } from '../render/palette';
 import { loadProfiles, nextColor, saveProfiles, updateProfile, type TeamProfile } from './teams';
@@ -19,7 +19,7 @@ import { arenaTheme } from '../render/arenas';
 import { renderDashboard } from './dashboard';
 import { account, wearHat, wearSkin } from '../account/session';
 import type { HubTab } from './hub';
-import { tutorialSeen } from './tutorial';
+import { tutorialSeen } from './learn';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */

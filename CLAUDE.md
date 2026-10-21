@@ -24,6 +24,10 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
   The sim is driven only by `InputFrame`s, one per tick at 50 Hz. This is what makes
   replays, the CPU's look-ahead and online lockstep play possible.
 - `src/render/` — PixiJS view of the state; reads state, never writes it. Interpolates between ticks.
+- Loading: `src/main.ts` boots the menu only; `src/match.ts` (a match: Pixi, renderer, HUD, CPU) is its own
+  download, fetched right after the first screen shows. Keep the menu's imports free of the sim and Pixi
+  (plain constants live in `sim/rosters.ts`, `ai/skills.ts`, `ui/learn.ts`, `challenge/meta.ts`).
+  Offline play: `scripts/offline.ts` writes `sw.js` at build time (not in the phone apps).
 - `src/ui/` — DOM menus/HUD/touch controls. The menu is one hub (`ui/hub.ts`) of pages, not pop-ups: Lobby, Stats, Shop, Account, Settings. `ui/tutorial.ts` is the guided practice match. On phones (landscape, ≤500px tall) the hub is a tap-through game menu instead (home screen + Match setup in the lobby, every page full screen with Back): see the "Phones" blocks at the end of `style.css`, and keep every page fitting the screen (`e2e/phone-menu.spec.ts`). `src/input/` — keyboard/mouse/touch → `InputFrame`; keys and mouse buttons come from the player's bindings (`input/controls.ts`, saved on the account when signed in, else for the visit).
 - `server/` + `src/net/` — online play: the server runs the sim and streams lockstep input frames; clients replay them.
 - Security: `docs/SECURITY.md` (what is protected and how; the CSP in `site/public/_headers`). Online input is untrusted: validate ids with `isWeaponId`, never `WEAPONS[id]` alone.

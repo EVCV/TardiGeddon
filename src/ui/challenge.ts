@@ -2,7 +2,8 @@
 // or Rope Race, and afterwards see your result, send it to the leaderboard
 // (signed in) and see where you placed. The website shows the same boards.
 
-import { CHALLENGE_KINDS, TARGET_COUNT, TARGET_TURNS, challengeDay, type ChallengeKind, type ChallengeResult } from '../challenge/daily';
+import { CHALLENGE_KINDS, TARGET_COUNT, TARGET_TURNS, challengeDay, type ChallengeKind } from '../challenge/meta';
+import type { ChallengeResult } from '../challenge/daily';
 import { TICK_RATE } from '../sim/types';
 import { account, challengeBoard, submitChallenge, type BoardRow } from '../account/session';
 
