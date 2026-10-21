@@ -11,6 +11,7 @@ import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
+import { t } from '../i18n/i18n';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
@@ -262,7 +263,7 @@ export function myUnlockedWeapons(): string[] {
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
   const base = apiBase();
-  if (!base) throw new Error('Accounts are not available here.');
+  if (!base) throw new Error(t('Accounts are not available here.'));
   let r: Response;
   try {
     r = await fetch(base + path, {
@@ -272,10 +273,16 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new Error("Can't reach the server. Check your connection and try again.");
+    throw new Error(t("Can't reach the server. Check your connection and try again."));
   }
   const data = (await r.json().catch(() => ({}))) as T & { message?: string; error?: string };
-  if (!r.ok) throw new Error(data.message || data.error || `Something went wrong (error ${r.status}). Please try again.`);
+  if (!r.ok) {
+    // The server's messages are in English (marked with tk() there): shown in the player's language.
+    const raw = data.message || data.error;
+    const err: Error & { raw?: string } = new Error(raw ? t(raw) : t('Something went wrong (error {status}). Please try again.', { status: r.status }));
+    err.raw = raw;
+    throw err;
+  }
   return data;
 }
 
@@ -332,7 +339,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
     await call('/api/auth/reset-password', { token, newPassword });
   } catch (e) {
     // Better Auth says "Invalid token" for expired and used links alike.
-    if (e instanceof Error && /token/i.test(e.message)) throw new Error('That reset link has expired or was already used. Ask for a new one below.');
+    if (e instanceof Error && /token/i.test((e as Error & { raw?: string }).raw ?? e.message)) throw new Error(t('That reset link has expired or was already used. Ask for a new one below.'));
     throw e;
   }
 }
@@ -342,7 +349,7 @@ export async function confirmEmail(token: string): Promise<void> {
   try {
     await call(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
   } catch {
-    throw new Error('That confirmation link has expired or was already used. Sign in and ask for a new one on your Account page.');
+    throw new Error(t('That confirmation link has expired or was already used. Sign in and ask for a new one on your Account page.'));
   }
   await refreshAccount();
 }
@@ -437,7 +444,7 @@ export async function signInWith(provider: string): Promise<void> {
  * checks the purchase with Google and adds the coins.
  */
 export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; coins: number } | { result: 'pending' | 'cancelled' }> {
-  if (!me?.user) throw new Error('Please sign in first.');
+  if (!me?.user) throw new Error(t('Please sign in first.'));
   const r = await playBuy(packId, me.user.id);
   if (r.status === 'cancelled') return { result: 'cancelled' };
   if (r.status === 'pending') return { result: 'pending' };

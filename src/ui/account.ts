@@ -11,6 +11,8 @@ import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
 import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
 import type { HubContext } from './hub';
 import { itemArt } from './shop';
+import { lang, t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -21,6 +23,14 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 
 const PROVIDER_NAMES: Record<string, string> = { google: 'Google', apple: 'Apple' };
 export const LEGAL = 'https://tardigeddon.com/legal/';
+
+/** A translated sentence with {placeholders} filled by nodes (e.g. links) or text. */
+export function withNodes(text: string, parts: Record<string, Node | string>): (Node | string)[] {
+  return text.split(/(\{\w+\})/).filter((s) => s).map((s) => {
+    const m = /^\{(\w+)\}$/.exec(s);
+    return m && m[1] in parts ? parts[m[1]] : s;
+  });
+}
 
 /** A link to one of the legal pages, opening in a new tab. */
 export function legalLink(slug: string, text: string): HTMLAnchorElement {
@@ -54,7 +64,7 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   // A reset link works whoever is signed in on this device.
   if (form.mode === 'reset' && form.token) {
     const card = el('section', 'card account-reset');
-    card.append(el('h2', 'card-title', 'Choose a new password'), resetForm(ctx, form));
+    card.append(el('h2', 'card-title', t('Choose a new password')), resetForm(ctx, form));
     page.append(card);
     return page;
   }
@@ -65,17 +75,17 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
     const art = el('div', 'account-art');
     art.innerHTML = myTardi();
     const list = el('ul', 'dash-perks');
-    for (const t of [
-      '📊 Your stats: wins, streaks, pops and own goals',
-      '🟢 Earn Slime by playing, and unlock season weapons',
-      '🎩 Hats, skins, aim styles and effects on every device',
-      '🆓 Free: everything in the game stays playable without one',
+    for (const perk of [
+      t('📊 Your stats: wins, streaks, pops and own goals'),
+      t('🟢 Earn Slime by playing, and unlock season weapons'),
+      t('🎩 Hats, skins, aim styles and effects on every device'),
+      t('🆓 Free: everything in the game stays playable without one'),
     ])
-      list.append(el('li', '', t));
-    pitch.append(art, el('h2', 'card-title', 'Why sign in?'), list);
+      list.append(el('li', '', perk));
+    pitch.append(art, el('h2', 'card-title', t('Why sign in?')), list);
     const formBox = el('div', 'account-form-box');
-    if (form.mode === 'forgot') formBox.append(el('h2', 'card-title', 'Forgot your password?'), forgotForm(ctx, form));
-    else formBox.append(el('h2', 'card-title', form.mode === 'signup' ? 'Create your account' : 'Welcome back'), signInForm(me, ctx, form));
+    if (form.mode === 'forgot') formBox.append(el('h2', 'card-title', t('Forgot your password?')), forgotForm(ctx, form));
+    else formBox.append(el('h2', 'card-title', form.mode === 'signup' ? t('Create your account') : t('Welcome back')), signInForm(me, ctx, form));
     card.append(pitch, formBox);
     page.append(card);
     return page;
@@ -90,49 +100,49 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   who.append(el('div', 'profile-name', user.name), el('div', 'profile-email', user.email));
   const since = new Date(user.createdAt);
   if (!Number.isNaN(since.getTime())) {
-    who.append(el('div', 'profile-since', `Playing since ${since.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`));
+    who.append(el('div', 'profile-since', t('Playing since {date}', { date: since.toLocaleDateString(lang() === 'en' ? undefined : lang(), { month: 'long', year: 'numeric' }) })));
   }
   head.append(pic, who);
   const wallet = el('div', 'account-wallet');
-  wallet.append(statTile(`🪙 ${formatNumber(me.wallet.coins)}`, 'Coins'), statTile(`🟢 ${formatNumber(me.wallet.slime)}`, 'Slime'));
-  card.append(head, wallet, el('p', 'account-note', 'Change your team name, colours, hat and skin with ✎ in the lobby.'));
+  wallet.append(statTile(`🪙 ${formatNumber(me.wallet.coins)}`, t('Coins')), statTile(`🟢 ${formatNumber(me.wallet.slime)}`, t('Slime')));
+  card.append(head, wallet, el('p', 'account-note', t('Change your team name, colours, hat and skin with ✎ in the lobby.')));
   if (me.mail && user.emailVerified === false) {
     const box = el('div', 'account-verify');
-    box.append(el('p', '', `📧 Please confirm your email: we sent a link to ${user.email}. It's how you get back in if you ever forget your password.`));
-    const again = el('button', 'hud-btn', 'Send the link again');
+    box.append(el('p', '', t("📧 Please confirm your email: we sent a link to {email}. It's how you get back in if you ever forget your password.", { email: user.email })));
+    const again = el('button', 'hud-btn', t('Send the link again'));
     again.disabled = ctx.busy;
     again.onclick = () =>
       ctx.run(async () => {
         await resendConfirmation(user.email);
-        ctx.notify('Sent! It can take a minute; check your spam folder too.');
+        ctx.notify(t('Sent! It can take a minute; check your spam folder too.'));
       });
     box.append(again);
     card.append(box);
   }
 
   const manage = el('section', 'card account-manage');
-  manage.append(el('h2', 'card-title', 'Manage'));
+  manage.append(el('h2', 'card-title', t('Manage')));
   if (me.shop && me.receipts !== false) {
-    const receipts = el('button', 'hud-btn', '🧾 Purchases & receipts');
+    const receipts = el('button', 'hud-btn', t('🧾 Purchases & receipts'));
     receipts.disabled = ctx.busy;
     receipts.onclick = () => ctx.run(managePurchases);
     manage.append(receipts);
   }
-  const out = el('button', 'hud-btn', 'Sign out');
+  const out = el('button', 'hud-btn', t('Sign out'));
   out.disabled = ctx.busy;
   out.onclick = () => ctx.run(signOut);
-  const del = el('button', 'link-btn account-delete', 'Delete account');
+  const del = el('button', 'link-btn account-delete', t('Delete account'));
   del.disabled = ctx.busy;
   del.onclick = () => {
-    const pw = prompt('This permanently deletes your account, your stats and everything you own in the shop. Type your password to confirm (leave empty if you sign in with Google or Apple).');
+    const pw = prompt(t('This permanently deletes your account, your stats and everything you own in the shop. Type your password to confirm (leave empty if you sign in with Google or Apple).'));
     if (pw === null) return;
     ctx.run(async () => {
       await deleteAccount(pw);
-      ctx.notify('Your account has been deleted.');
+      ctx.notify(t('Your account has been deleted.'));
     });
   };
   const legal = el('p', 'account-note');
-  legal.append(legalLink('terms-of-service', 'Terms'), ' · ', legalLink('privacy-policy', 'Privacy'), ' · ', legalLink('childrens-privacy', "Children's privacy"));
+  legal.append(legalLink('terms-of-service', t('Terms')), ' · ', legalLink('privacy-policy', t('Privacy')), ' · ', legalLink('childrens-privacy', t("Children's privacy")));
   manage.append(out, del, legal);
   page.append(card, manage);
   return page;
@@ -143,8 +153,8 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
   const { draft } = state;
   const form = el('form', 'account-form');
   const tabs = el('div', 'seg');
-  for (const [m, label] of [['signin', 'Sign in'], ['signup', 'Create account']] as const) {
-    const b = el('button', 'seg-btn' + (state.mode === m ? ' on' : ''), label);
+  for (const [m, label] of [['signin', tk('Sign in')], ['signup', tk('Create account')]] as const) {
+    const b = el('button', 'seg-btn' + (state.mode === m ? ' on' : ''), t(label));
     b.type = 'button';
     b.onclick = () => {
       state.mode = m;
@@ -167,13 +177,13 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     return inp;
   };
   const signup = state.mode === 'signup';
-  const name = signup ? field('name', 'text', 'Player name', 'nickname') : null;
+  const name = signup ? field('name', 'text', t('Player name'), 'nickname') : null;
   if (name) {
     name.maxLength = 30;
-    name.title = 'Letters and spaces. No real full name, contact details or social media.';
+    name.title = t('Letters and spaces. No real full name, contact details or social media.');
   }
-  const email = field('email', 'email', 'Email', 'email');
-  const pw = field('password', 'password', signup ? 'Password (8+ characters)' : 'Password', signup ? 'new-password' : 'current-password');
+  const email = field('email', 'email', t('Email'), 'email');
+  const pw = field('password', 'password', signup ? t('Password (8+ characters)') : t('Password'), signup ? 'new-password' : 'current-password');
   if (signup) {
     pw.minLength = 8;
     // Age self-declaration (Children's Privacy Policy §1.1) and acceptance of the Terms.
@@ -185,16 +195,21 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     box.checked = draft.agree === '1';
     box.onchange = () => (draft.agree = box.checked ? '1' : '');
     const text = el('span');
-    text.append("I'm 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '. See how we use your data in the ', legalLink('privacy-policy', 'Privacy Policy'), '.');
+    text.append(
+      ...withNodes(t("I'm 13 or older and agree to the {terms}. See how we use your data in the {privacy}."), {
+        terms: legalLink('terms-of-service', t('Terms')),
+        privacy: legalLink('privacy-policy', t('Privacy Policy')),
+      }),
+    );
     agree.append(box, text);
     form.append(agree);
   }
-  const submit = el('button', 'big-btn', signup ? 'Create account' : 'Sign in');
+  const submit = el('button', 'big-btn', signup ? t('Create account') : t('Sign in'));
   submit.type = 'submit';
   submit.disabled = ctx.busy;
   form.append(submit);
   if (!signup && me.mail) {
-    const forgot = el('button', 'link-btn account-forgot', 'Forgot password?');
+    const forgot = el('button', 'link-btn account-forgot', t('Forgot password?'));
     forgot.type = 'button';
     forgot.onclick = () => {
       state.mode = 'forgot';
@@ -205,13 +220,13 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
   form.onsubmit = (e) => {
     e.preventDefault();
     if (signup && draft.agree !== '1') {
-      ctx.notify("Please tick the box to confirm you're 13 or older and agree to the Terms.");
+      ctx.notify(t("Please tick the box to confirm you're 13 or older and agree to the Terms."));
       return;
     }
     // Other players may see the player name: the same rules as the server, told straight away.
     const problem = signup ? nameProblem(name!.value) : null;
     if (problem) {
-      ctx.notify(`Player name: ${NAME_PROBLEM_TEXT[problem]}`);
+      ctx.notify(t('Player name: {problem}', { problem: t(NAME_PROBLEM_TEXT[problem]) }));
       return;
     }
     ctx.run(async () => {
@@ -222,7 +237,7 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     });
   };
   for (const p of providers) {
-    const b = el('button', 'hud-btn account-provider', `Continue with ${PROVIDER_NAMES[p] ?? p}`);
+    const b = el('button', 'hud-btn account-provider', t('Continue with {provider}', { provider: PROVIDER_NAMES[p] ?? p }));
     b.type = 'button';
     b.disabled = ctx.busy;
     b.onclick = () => ctx.run(() => signInWith(p));
@@ -230,7 +245,11 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
   }
   if (providers.length) {
     const note = el('p', 'account-note');
-    note.append("Continuing with Google or Apple means you're 13 or older and agree to the ", legalLink('terms-of-service', 'Terms'), '.');
+    note.append(
+      ...withNodes(t("Continuing with Google or Apple means you're 13 or older and agree to the {terms}."), {
+        terms: legalLink('terms-of-service', t('Terms')),
+      }),
+    );
     form.append(note);
   }
   return form;
@@ -249,7 +268,7 @@ function input(type: string, label: string, auto: string, value = ''): HTMLInput
 }
 
 function backToSignIn(ctx: HubContext, state: SignInState): HTMLButtonElement {
-  const b = el('button', 'link-btn', 'Back to sign in');
+  const b = el('button', 'link-btn', t('Back to sign in'));
   b.type = 'button';
   b.onclick = () => {
     state.mode = 'signin';
@@ -262,10 +281,10 @@ function backToSignIn(ctx: HubContext, state: SignInState): HTMLButtonElement {
 /** Forgot password: ask for a reset link by email. */
 function forgotForm(ctx: HubContext, state: SignInState): HTMLElement {
   const form = el('form', 'account-form');
-  form.append(el('p', 'account-note', "Type the email you signed up with and we'll send you a link to choose a new password."));
-  const email = input('email', 'Email', 'email', state.draft.email);
+  form.append(el('p', 'account-note', t("Type the email you signed up with and we'll send you a link to choose a new password.")));
+  const email = input('email', t('Email'), 'email', state.draft.email);
   email.oninput = () => (state.draft.email = email.value);
-  const submit = el('button', 'big-btn', 'Email me a link');
+  const submit = el('button', 'big-btn', t('Email me a link'));
   submit.type = 'submit';
   submit.disabled = ctx.busy;
   form.append(email, submit, backToSignIn(ctx, state));
@@ -275,7 +294,7 @@ function forgotForm(ctx: HubContext, state: SignInState): HTMLElement {
       await requestPasswordReset(email.value.trim());
       state.mode = 'signin';
       // The same answer whether or not there's an account, so this can't be used to check emails.
-      ctx.notify("If there's an account for that email, we've sent a link. It can take a minute; check your spam folder too.");
+      ctx.notify(t("If there's an account for that email, we've sent a link. It can take a minute; check your spam folder too."));
     });
   };
   return form;
@@ -284,14 +303,14 @@ function forgotForm(ctx: HubContext, state: SignInState): HTMLElement {
 /** From the emailed link: choose a new password. */
 function resetForm(ctx: HubContext, state: SignInState): HTMLElement {
   const form = el('form', 'account-form');
-  const pw = input('password', 'New password (8+ characters)', 'new-password');
-  const again = input('password', 'Type it again', 'new-password');
+  const pw = input('password', t('New password (8+ characters)'), 'new-password');
+  const again = input('password', t('Type it again'), 'new-password');
   pw.minLength = 8;
   again.minLength = 8;
-  const submit = el('button', 'big-btn', 'Save new password');
+  const submit = el('button', 'big-btn', t('Save new password'));
   submit.type = 'submit';
   submit.disabled = ctx.busy;
-  const newLink = el('button', 'link-btn', 'Ask for a new link');
+  const newLink = el('button', 'link-btn', t('Ask for a new link'));
   newLink.type = 'button';
   newLink.onclick = () => {
     state.mode = 'forgot';
@@ -302,7 +321,7 @@ function resetForm(ctx: HubContext, state: SignInState): HTMLElement {
   form.onsubmit = (e) => {
     e.preventDefault();
     if (pw.value !== again.value) {
-      ctx.notify("The two passwords don't match. Please type them again.");
+      ctx.notify(t("The two passwords don't match. Please type them again."));
       return;
     }
     ctx.run(async () => {
@@ -312,7 +331,7 @@ function resetForm(ctx: HubContext, state: SignInState): HTMLElement {
       state.draft.password = '';
       // Every device was signed out, this one included.
       await refreshAccount();
-      ctx.notify('Password changed! Sign in with your new password.');
+      ctx.notify(t('Password changed! Sign in with your new password.'));
     });
   };
   return form;
@@ -325,70 +344,70 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   const s = me.user ? me.stats : null;
   /** A number, or a dash while signed out. */
   const v = (f: (s: PlayerStats) => string) => (s ? f(s) : '–');
-  const t = s ? totals(s) : null;
+  const tot = s ? totals(s) : null;
 
   const head = el('section', 'card stats-head');
   const pic = el('div', 'profile-pic');
   pic.innerHTML = myTardi();
   const who = el('div', 'profile-who');
-  who.append(el('div', 'profile-name', me.user?.name ?? 'You'));
-  if (s && s.streak > 1) who.append(el('div', 'dash-streak', `🔥 ${s.streak} wins in a row`));
+  who.append(el('div', 'profile-name', me.user?.name ?? t('You')));
+  if (s && s.streak > 1) who.append(el('div', 'dash-streak', t('🔥 {n} wins in a row', { n: s.streak })));
   if (s) {
     // Quick-play rank: settles after a few rated matches.
     const tier = tierFor(s.rating);
-    const rank = el('div', 'rank-badge', s.ratedGames > 0 ? `${tier.emoji} ${tier.name} · ${s.rating}` : `${tier.emoji} Unranked: play quick play to get a rank`);
-    rank.title = 'Your quick-play rank. Winning quick-play matches against signed-in players moves it up; quick play finds you players of a similar rank.';
+    const rank = el('div', 'rank-badge', s.ratedGames > 0 ? `${tier.emoji} ${t(tier.name)} · ${s.rating}` : `${tier.emoji} ${t('Unranked: play quick play to get a rank')}`);
+    rank.title = t('Your quick-play rank. Winning quick-play matches against signed-in players moves it up; quick play finds you players of a similar rank.');
     who.append(rank);
   }
   head.append(pic, who);
   const big = el('div', 'stats-big');
   big.append(
-    statTile(t ? compact(t.won) : '–', 'Wins', 'gold'),
-    statTile(t ? t.rate : '–', 'Win rate', 'gold'),
-    statTile(t ? compact(t.played) : '–', 'Games'),
-    statTile(v((s) => compact(s.bestStreak)), 'Best streak'),
+    statTile(tot ? compact(tot.won) : '–', t('Wins'), 'gold'),
+    statTile(tot ? tot.rate : '–', t('Win rate'), 'gold'),
+    statTile(tot ? compact(tot.played) : '–', t('Games')),
+    statTile(v((s) => compact(s.bestStreak)), t('Best streak')),
   );
   head.append(big);
 
   const fight = el('section', 'card');
-  fight.append(el('h2', 'card-title', 'Combat'));
+  fight.append(el('h2', 'card-title', t('Combat')));
   const g1 = el('div', 'stats-grid');
   g1.append(
-    statTile(v((s) => compact(s.popped)), '💥 Tardigrades popped'),
-    statTile(v((s) => compact(s.damage)), 'Damage dealt'),
-    statTile(v((s) => compact(s.selfPopped)), '🤦 Own goals'),
-    statTile(v((s) => compact(s.selfDamage)), 'Hurt yourself'),
+    statTile(v((s) => compact(s.popped)), t('💥 Tardigrades popped')),
+    statTile(v((s) => compact(s.damage)), t('Damage dealt')),
+    statTile(v((s) => compact(s.selfPopped)), t('🤦 Own goals')),
+    statTile(v((s) => compact(s.selfDamage)), t('Hurt yourself')),
   );
   fight.append(g1);
 
   const modes = el('section', 'card');
-  modes.append(el('h2', 'card-title', 'Where you play'));
+  modes.append(el('h2', 'card-title', t('Where you play')));
   const g2 = el('div', 'stats-grid');
   const rate = (w: number, p: number) => (p ? `${Math.round((w / p) * 100)}%` : '–');
   g2.append(
-    statTile(v((s) => `${compact(s.onlineWon)}/${compact(s.onlinePlayed)}`), '🌍 Online won'),
-    statTile(v((s) => rate(s.onlineWon, s.onlinePlayed)), 'Online win rate'),
-    statTile(v((s) => `${compact(s.cpuWon)}/${compact(s.cpuPlayed)}`), '🤖 vs CPU won'),
-    statTile(v((s) => rate(s.cpuWon, s.cpuPlayed)), 'CPU win rate'),
+    statTile(v((s) => `${compact(s.onlineWon)}/${compact(s.onlinePlayed)}`), t('🌍 Online won')),
+    statTile(v((s) => rate(s.onlineWon, s.onlinePlayed)), t('Online win rate')),
+    statTile(v((s) => `${compact(s.cpuWon)}/${compact(s.cpuPlayed)}`), t('🤖 vs CPU won')),
+    statTile(v((s) => rate(s.cpuWon, s.cpuPlayed)), t('CPU win rate')),
   );
   modes.append(g2);
-  if (t && !t.played) modes.append(el('p', 'account-note', 'Stats count online games, and one-on-one games against the CPU, played while signed in.'));
+  if (tot && !tot.played) modes.append(el('p', 'account-note', t('Stats count online games, and one-on-one games against the CPU, played while signed in.')));
 
   const coll = el('section', 'card stats-collection');
   const mine = SHOP_ITEMS.filter((i) => me.owned.includes(i.id));
-  coll.append(el('h2', 'card-title', `Collection · ${me.user ? mine.length : 0}/${SHOP_ITEMS.length}`));
+  coll.append(el('h2', 'card-title', t('Collection · {n}/{total}', { n: me.user ? mine.length : 0, total: SHOP_ITEMS.length })));
   if (me.user && mine.length) {
     const grid = el('div', 'collection-grid');
     for (const item of mine) {
       const c = el('div', 'hat-btn');
       c.innerHTML = itemArt(item);
-      c.append(el('span', '', item.name));
+      c.append(el('span', '', t(item.name)));
       grid.append(c);
     }
-    coll.append(grid, el('p', 'account-note', 'Pick hats, skins, aim styles and effects in the ✎ team editor in the lobby; unlocked weapons appear in the matches you start.'));
+    coll.append(grid, el('p', 'account-note', t('Pick hats, skins, aim styles and effects in the ✎ team editor in the lobby; unlocked weapons appear in the matches you start.')));
   } else {
-    const p = el('p', 'account-note', me.user ? 'Nothing unlocked yet. ' : 'Hats, skins, aim styles, effects and weapons you unlock show up here. ');
-    const go = el('button', 'link-btn', 'Have a look in the shop');
+    const p = el('p', 'account-note', me.user ? t('Nothing unlocked yet.') + ' ' : t('Hats, skins, aim styles, effects and weapons you unlock show up here.') + ' ');
+    const go = el('button', 'link-btn', t('Have a look in the shop'));
     go.onclick = () => ctx.go('shop');
     p.append(go);
     coll.append(p);
@@ -402,9 +421,9 @@ export function renderStatsPage(me: MeResponse, ctx: HubContext): HTMLElement {
   page.inert = true;
   const wrap = el('div', 'page stats-locked');
   const card = el('section', 'card stats-teaser');
-  const go = el('button', 'big-btn', 'Sign in');
+  const go = el('button', 'big-btn', t('Sign in'));
   go.onclick = () => ctx.go('account');
-  card.append(el('h2', 'card-title', 'Track your stats'), el('p', '', 'Sign in to count your wins, streaks, pops and own goals, online and against the CPU.'), go);
+  card.append(el('h2', 'card-title', t('Track your stats')), el('p', '', t('Sign in to count your wins, streaks, pops and own goals, online and against the CPU.')), go);
   wrap.append(page, card);
   return wrap;
 }

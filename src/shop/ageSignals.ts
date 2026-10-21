@@ -10,6 +10,7 @@
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { tk } from '../i18n/tk';
 
 /** What Google Play said. Ages are inclusive; no `upper` means "and over" (18+). */
 export type AgeSignal =
@@ -35,18 +36,18 @@ export interface CoinRules {
 export function coinRules(signal: AgeSignal | null): CoinRules {
   if (!signal) return {};
   if (signal.status === 'verification_required') {
-    return { blocked: 'Google Play needs to confirm your age before you can buy coins. Open the Play Store app and follow its steps, then come back.' };
+    return { blocked: tk('Google Play needs to confirm your age before you can buy coins. Open the Play Store app and follow its steps, then come back.') };
   }
   if (signal.status !== 'shared') return {};
   // A parent manages this account (Family Link) and hasn't approved this version of the game yet.
   if (signal.change === 'declined') {
-    return { blocked: 'Buying coins is switched off: a parent or carer hasn’t approved the latest version of TardiGeddon in Family Link.' };
+    return { blocked: tk('Buying coins is switched off: a parent or carer hasn’t approved the latest version of TardiGeddon in Family Link.') };
   }
   if (signal.change === 'pending') {
-    return { blocked: 'Buying coins is switched off until a parent or carer approves the latest version of TardiGeddon in Family Link.' };
+    return { blocked: tk('Buying coins is switched off until a parent or carer approves the latest version of TardiGeddon in Family Link.') };
   }
   if (signal.upper !== undefined && signal.upper < 18) {
-    return { note: '👪 A parent or carer may need to approve purchases. Google Play will ask them.' };
+    return { note: tk('👪 A parent or carer may need to approve purchases. Google Play will ask them.') };
   }
   return {};
 }
