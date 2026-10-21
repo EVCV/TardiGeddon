@@ -44,6 +44,7 @@ import { openPlayers } from './ui/safety';
 import { Lockstep, SeenInput, connectionState } from './net/lockstep';
 import { toWire, type ServerMsg } from './net/protocol';
 import { ANGLE_FULL } from './sim/math/trig';
+import { t } from './i18n/i18n';
 
 const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
@@ -143,7 +144,7 @@ export class Match {
       this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
       // Only one human (the player's own team, slot 0) against the CPU counts for their stats.
       if (!setup.players[0] && setup.players.slice(1).every(Boolean) && !this.local.race) this.tally = new MatchTally(teams.length);
-      for (const t of this.local.teams) if (t.cpu) this.cpu.set(t.id, new CpuPlayer(setup.cpuSkill));
+      for (const tm of this.local.teams) if (tm.cpu) this.cpu.set(tm.id, new CpuPlayer(setup.cpuSkill));
     } else if (mode.kind === 'tutorial') {
       const p = loadProfiles()[0];
       const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
@@ -178,7 +179,7 @@ export class Match {
     this.renderer = new GameRenderer(app, this.state, this.theme);
     this.renderer.onSound = (name) => {
       sfx[name]();
-      this.captions.say(name === 'pop' ? '💨 Pop!' : '😱 Whoa!');
+      this.captions.say(name === 'pop' ? t('💨 Pop!') : t('😱 Whoa!'));
     };
     this.renderer.onEgg = (id) => findEgg(id);
     // Online: names of players you've blocked are hidden from you.
@@ -195,7 +196,7 @@ export class Match {
       // Spectating: say so.
       const badge = document.createElement('div');
       badge.className = 'watching-badge';
-      badge.textContent = '👀 Watching';
+      badge.textContent = t('👀 Watching');
       ui.append(badge);
     }
     // Record everything but the tutorial (and replays themselves) for Replays.
@@ -209,7 +210,7 @@ export class Match {
     // Easter eggs found in a match get a banner.
     onEggFound((text) => this.hud.showBanner(text, 0xffd84a, 3));
     // Named after the tardigrade that went to space?
-    if (this.state.tardis.some((t) => !this.state.teams[t.team].cpu && /^milnesium$/i.test(t.name.trim()))) findEgg('milnesium');
+    if (this.state.tardis.some((x) => !this.state.teams[x.team].cpu && /^milnesium$/i.test(x.name.trim()))) findEgg('milnesium');
     this.announceMap();
     app.ticker.add(this.tickerFn);
     (window as unknown as { __tardi: unknown }).__tardi = this; // for e2e tests
@@ -249,7 +250,7 @@ export class Match {
           // The host started a rematch while we were still on the results screen.
           this.onNetStart?.(Lockstep.start(msg.seed, msg.scheme, msg.teams, msg.you));
           break;
-        case 'error': this.hud.showBanner(msg.msg, 0xe04848, 3); break;
+        case 'error': this.hud.showBanner(t(msg.msg), 0xe04848, 3); break;
       }
     });
     net.client.onDrop = () => void this.reconnect();
@@ -261,7 +262,7 @@ export class Match {
     this.reconnecting = true;
     const re = loadRejoin();
     for (let i = 0; i < 15 && this.net && re; i++) {
-      this.hud.showBanner('Reconnecting…', 0x7d8a99, 2.2);
+      this.hud.showBanner(t('Reconnecting…'), 0x7d8a99, 2.2);
       try {
         await this.net.client.connect();
         this.net.client.join(re.code, { name: '', color: 0, hat: '', names: [] }, re.token);
@@ -273,7 +274,7 @@ export class Match {
       }
     }
     this.reconnecting = false;
-    if (this.net) this.hud.showBanner('Disconnected', 0xe04848, 5);
+    if (this.net) this.hud.showBanner(t('Disconnected'), 0xe04848, 5);
   }
 
   /** Hide the names of teams whose players this player has blocked (online only). */
@@ -297,7 +298,7 @@ export class Match {
   /** The phone's back button: close the weapon panel, else offer to quit. */
   back(): void {
     if (this.hud.panelOpen) this.hud.togglePanel(false);
-    else if (this.over || confirm('Quit this match?')) this.onMenu();
+    else if (this.over || confirm(t('Quit this match?'))) this.onMenu();
   }
 
   private isHumanTurn(): boolean {
@@ -334,7 +335,7 @@ export class Match {
     this.renderer = new GameRenderer(this.app, s, this.theme);
     this.renderer.onSound = (name) => {
       sfx[name]();
-      this.captions.say(name === 'pop' ? '💨 Pop!' : '😱 Whoa!');
+      this.captions.say(name === 'pop' ? t('💨 Pop!') : t('😱 Whoa!'));
     };
     this.renderer.onEgg = (id) => findEgg(id);
   }
@@ -348,7 +349,7 @@ export class Match {
     this.hud.hideGameOver();
     this.ui.classList.add('replaying');
     this.newRenderer(state);
-    this.hud.showBanner('🎬 The winning shot', 0xffffff, 2);
+    this.hud.showBanner(t('🎬 The winning shot'), 0xffffff, 2);
   }
 
   private stopReplay(): void {
@@ -454,7 +455,7 @@ export class Match {
     const bar = pb.bar;
     bar.className = 'replay-bar';
     bar.setAttribute('role', 'toolbar');
-    bar.setAttribute('aria-label', 'Replay controls');
+    bar.setAttribute('aria-label', t('Replay controls'));
     const btn = (text: string, label: string, fn: () => void) => {
       const b = document.createElement('button');
       b.className = 'hud-btn';
@@ -464,13 +465,14 @@ export class Match {
       b.onclick = fn;
       return b;
     };
-    const pause = btn('⏸', 'Pause', () => {
+    const pause = btn('⏸', t('Pause'), () => {
       pb.paused = !pb.paused;
       pause.textContent = pb.paused ? '▶' : '⏸';
-      pause.setAttribute('aria-label', pb.paused ? 'Play' : 'Pause');
+      pause.setAttribute('aria-label', pb.paused ? t('Play') : t('Pause'));
+      pause.title = pb.paused ? t('Play') : t('Pause');
     });
     const speeds = [1, 2, 4].map((n) => {
-      const b = btn(`${n}×`, `Speed ${n}×`, () => {
+      const b = btn(`${n}×`, t('Speed {n}×', { n }), () => {
         pb.speed = n;
         for (const x of speeds) x.classList.toggle('on', x === b);
       });
@@ -481,8 +483,8 @@ export class Match {
       document.createTextNode('🎬'),
       pause,
       ...speeds,
-      btn('⏭', 'Skip to the next turn', () => (pb.skipTurn = this.state.turn.turnNumber)),
-      btn('✕', 'Stop watching', this.onMenu),
+      btn('⏭', t('Skip to the next turn'), () => (pb.skipTurn = this.state.turn.turnNumber)),
+      btn('✕', t('Stop watching'), this.onMenu),
     );
     return bar;
   }
@@ -490,7 +492,7 @@ export class Match {
   /** The recording has played out. */
   private replayOver(): void {
     if (this.destroyed) return;
-    this.hud.showGameOver(this.state, this.onAgain, this.onMenu, ['Watch again', 'Main menu'], { stats: this.stats?.teams });
+    this.hud.showGameOver(this.state, this.onAgain, this.onMenu, [t('Watch again'), t('Main menu')], { stats: this.stats?.teams });
   }
 
   /** The end-of-match numbers, started on first use (a rejoined online match starts counting then). */
@@ -553,8 +555,8 @@ export class Match {
       if (health === 'lost' && this.quietDrops < 3) {
         this.quietDrops++;
         client.drop();
-      } else if (health === 'lost') this.hud.showBanner('Disconnected', 0xe04848, 1);
-      else if (health === 'slow') this.hud.showBanner('⚠️ Slow connection…', 0xe0a030, 1);
+      } else if (health === 'lost') this.hud.showBanner(t('Disconnected'), 0xe04848, 1);
+      else if (health === 'slow') this.hud.showBanner(t('⚠️ Slow connection…'), 0xe0a030, 1);
     }
   }
 
@@ -584,13 +586,13 @@ export class Match {
         case 'dud': sfx.bounce(); break;
         case 'suddenDeath':
           sfx.suddenDeath();
-          setTimeout(() => this.hud.showBanner('SUDDEN DEATH!', 0xe04848, 2.5), 2100);
+          setTimeout(() => this.hud.showBanner(t('SUDDEN DEATH!'), 0xe04848, 2.5), 2100);
           break;
         case 'waterRise': sfx.splash(); break;
         case 'tornado':
           findEgg('tornado');
           sfx.suddenDeath();
-          this.hud.showBanner('🌪️ TORNADO!', 0xffffff, 2.5);
+          this.hud.showBanner(t('🌪️ TORNADO!'), 0xffffff, 2.5);
           break;
         case 'gas': sfx.chute(); break;
         case 'damage':
@@ -604,7 +606,8 @@ export class Match {
         case 'finish': {
           sfx.collect();
           const tm = this.state.teams[e.team];
-          this.hud.showBanner(`${teamLabel(tm)}: ${(e.ticks / TICK_RATE).toFixed(1)}s${e.best ? ' — best!' : ''}`, shown(tm.color), 2.5);
+          const secs = (e.ticks / TICK_RATE).toFixed(1);
+          this.hud.showBanner(e.best ? t('{team}: {s}s — best!', { team: teamLabel(tm), s: secs }) : t('{team}: {s}s', { team: teamLabel(tm), s: secs }), shown(tm.color), 2.5);
           break;
         }
         case 'turnStart':
@@ -621,7 +624,7 @@ export class Match {
             if (youLost && !(this.net && this.net.ls.you < 0)) sfx.wahwah();
             if (this.tally) {
               void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] }).then((slime) => {
-                if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);
+                if (slime > 0 && !this.destroyed) this.hud.showBanner(t('+{n} Slime 🟢', { n: slime }), 0x5aa83a, 3);
               });
             }
             if (this.playback) {
@@ -632,7 +635,7 @@ export class Match {
             const rec = this.matchRec.finish(this.state, (id) => teamLabel(this.state.teams[id]));
             if (rec) keepReplay(rec);
             if (this.coach || this.challenge) break; // the coach, or the challenge result, says how it went
-            const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
+            const labels: [string, string] = this.net ? [t('Back to room'), t('Leave')] : [t('Play again'), t('Main menu')];
             setTimeout(() => this.showResults(labels), 4200); // after the victory dance
           }
           break;
@@ -648,7 +651,7 @@ export class Match {
       return;
     }
     const sky = WEATHER_NAMES[s.weather.kind];
-    this.hud.showBanner(`${mapStyleName(s.realm)}${sky ? ` · ${sky}` : ''}`, 0xffffff, 1.6);
+    this.hud.showBanner(sky ? t('{map} · {weather}', { map: t(mapStyleName(s.realm)), weather: t(sky) }) : t(mapStyleName(s.realm)), 0xffffff, 1.6);
     setTimeout(() => {
       if (!this.destroyed) this.announceTurn();
     }, 1700);
@@ -657,10 +660,10 @@ export class Match {
   private announceTurn(): void {
     const s = this.state;
     const team = s.teams[s.turn.teamIdx];
-    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
+    const who = s.tardis.find((x) => x.id === s.turn.activeTardi);
     const c = this.challenge;
-    if (c?.kind === 'targets' && team.id === 0) this.hud.showBanner(`Turn ${Math.min(TARGET_TURNS, c.turns + 1)} of ${TARGET_TURNS}`, 0xffffff);
-    else if (t) this.hud.showBanner(`${tardiLabel(t) || teamLabel(team)}'s turn!`, shown(team.color));
+    if (c?.kind === 'targets' && team.id === 0) this.hud.showBanner(t('Turn {n} of {total}', { n: Math.min(TARGET_TURNS, c.turns + 1), total: TARGET_TURNS }), 0xffffff);
+    else if (who) this.hud.showBanner(t("{name}'s turn!", { name: tardiLabel(who) || teamLabel(team) }), shown(team.color));
     this.renderer.camera.manualUntil = 0;
   }
 
@@ -776,22 +779,22 @@ export class Match {
   /** Is this screen point on (or close to) the tardi whose turn it is? */
   private nearActiveTardi(sx: number, sy: number): boolean {
     const s = this.state;
-    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (!t || !this.isHumanTurn() || s.turn.phase !== 'aim' || t.rope) return false;
+    const me = s.tardis.find((x) => x.id === s.turn.activeTardi);
+    if (!me || !this.isHumanTurn() || s.turn.phase !== 'aim' || me.rope) return false;
     const w = this.renderer.screenToWorld(sx, sy);
-    return Math.hypot(w.x - t.x, w.y - t.y) * this.renderer.camera.zoom < 48;
+    return Math.hypot(w.x - me.x, w.y - me.y) * this.renderer.camera.zoom < 48;
   }
 
   /** Point the crosshair from the active tardi towards a screen point. */
   private dragAim(sx: number, sy: number): void {
     const s = this.state;
-    const t = s.tardis.find((x) => x.id === s.turn.activeTardi);
-    if (!t || !this.isHumanTurn()) return;
+    const me = s.tardis.find((x) => x.id === s.turn.activeTardi);
+    if (!me || !this.isHumanTurn()) return;
     const w = this.renderer.screenToWorld(sx, sy);
-    const dx = w.x - t.x;
-    const dy = w.y - t.y;
+    const dx = w.x - me.x;
+    const dy = w.y - me.y;
     if (Math.hypot(dx, dy) < 6) return;
-    const facing = Math.abs(dx) < 2 ? t.facing : dx > 0 ? 1 : -1;
+    const facing = Math.abs(dx) < 2 ? me.facing : dx > 0 ? 1 : -1;
     const aim = (Math.atan2(-dy, Math.abs(dx)) * ANGLE_FULL) / (2 * Math.PI);
     this.input.command({ t: 'aim', facing, aim: Math.round(aim) });
   }

@@ -3,6 +3,7 @@
 import { hatSvg } from '../render/hats';
 import { patternMarks, skinById, type SkinDef } from '../render/skins';
 import { hex } from '../render/palette';
+import { t } from '../i18n/i18n';
 
 /** Pattern marks, scaled from the in-game body (12 x 7.5 at (0,-1)) to this one (27 x 16 at (0,-2)). */
 function patternSvg(skin: SkinDef): string {
@@ -24,7 +25,7 @@ export function mascotSvg(teamColor = 0xe04848, hat = 'beanie', skinId = 'classi
   const body = hex(k.body);
   const shade = hex(k.shade);
   return `
-<svg viewBox="-40 -40 80 60" xmlns="http://www.w3.org/2000/svg" aria-label="Tardigrade mascot">
+<svg viewBox="-40 -40 80 60" xmlns="http://www.w3.org/2000/svg" aria-label="${t('Tardigrade mascot')}">
   <g stroke="#2b1b24" stroke-linejoin="round" stroke-linecap="round">
     <rect x="-17" y="2" width="7" height="15" rx="3.5" fill="${shade}" stroke-width="2"/>
     <rect x="9" y="2" width="7" height="15" rx="3.5" fill="${shade}" stroke-width="2"/>
@@ -49,4 +50,3 @@ export function mascotSvg(teamColor = 0xe04848, hat = 'beanie', skinId = 'classi
 </svg>`;
 }
 
-export const MASCOT_SVG = mascotSvg();

@@ -10,6 +10,7 @@ import { CUSTOM_MAX_LENGTH, decodeCustomMap, encodeCustomMap } from '../sim/terr
 import { nameProblem, NAME_PROBLEM_TEXT } from '../names';
 import { cleanName } from './teams';
 import { deleteMyMap, looksLikeMyMap, myMaps, saveMyMap, type MyMap } from './myMaps';
+import { t } from '../i18n/i18n';
 
 const W = 2000;
 const H = 1000;
@@ -29,16 +30,16 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 
 /** A plain shore to start from: flat land just above the water, with sloping ends. */
 function blankShore(): Terrain {
-  const t = createTerrain(W, H);
+  const shore = createTerrain(W, H);
   for (let x = 160; x < W - 160; x++) {
     const top = WATER - 120;
-    for (let y = top; y < H; y++) t.mask[y * W + x] = 1;
+    for (let y = top; y < H; y++) shore.mask[y * W + x] = 1;
   }
-  return t;
+  return shore;
 }
 
 export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: (map: string) => void; onClose: () => void }): void {
-  let t: Terrain = (opts.start && decodeCustomMap(opts.start.map)) || blankShore();
+  let terrain: Terrain = (opts.start && decodeCustomMap(opts.start.map)) || blankShore();
   let name = opts.start?.name ?? '';
   let erase = false;
   let size = 18;
@@ -46,12 +47,12 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
 
   const overlay = el('div', 'map-editor');
   overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-label', 'Map editor');
+  overlay.setAttribute('aria-label', t('Map editor'));
   const bar = el('div', 'map-editor-bar');
   const canvas = el('canvas', 'map-editor-canvas');
   canvas.width = W;
   canvas.height = H;
-  canvas.setAttribute('aria-label', 'The map: drag to paint land, or rub it out');
+  canvas.setAttribute('aria-label', t('The map: drag to paint land, or rub it out'));
   const ctx = canvas.getContext('2d')!;
   const img = ctx.createImageData(W, H);
   const note = el('p', 'map-editor-note');
@@ -66,9 +67,9 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     for (let y = y0; y < y1; y++) {
       for (let x = x0; x < x1; x++) {
         const i = y * W + x;
-        const land = t.mask[i] === 1;
+        const land = terrain.mask[i] === 1;
         // A grass edge where land meets air above.
-        const top = land && (y === 0 || t.mask[i - W] === 0 || (y > 2 && t.mask[i - 3 * W] === 0));
+        const top = land && (y === 0 || terrain.mask[i - W] === 0 || (y > 2 && terrain.mask[i - 3 * W] === 0));
         const c = land ? (top ? GRASS : LAND) : y >= WATER ? SEA : SKY;
         const k = i * 4;
         img.data[k] = c[0];
@@ -84,7 +85,7 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     const r = size;
     for (let y = Math.max(0, Math.floor(cy - r)); y < Math.min(H, cy + r); y++) {
       for (let x = Math.max(0, Math.floor(cx - r)); x < Math.min(W, cx + r); x++) {
-        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) t.mask[y * W + x] = erase ? 0 : 1;
+        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) terrain.mask[y * W + x] = erase ? 0 : 1;
       }
     }
     paint(cx - r - 4, cy - r - 4, cx + r + 4, cy + r + 4);
@@ -98,7 +99,7 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
   };
   canvas.onpointerdown = (e) => {
     canvas.setPointerCapture(e.pointerId);
-    undo.push(t.mask.slice());
+    undo.push(terrain.mask.slice());
     if (undo.length > 15) undo.shift();
     last = at(e);
     brush(last.x, last.y);
@@ -133,14 +134,14 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     return g;
   };
 
-  const tools = toggleGroup<boolean>([['✏️ Land', 'Paint land', false], ['🧽 Rub out', 'Rub out land', true]], () => erase, (v) => (erase = v));
-  const sizes = toggleGroup<number>([['S', 'Small brush', 8], ['M', 'Medium brush', 18], ['L', 'Large brush', 40]], () => size, (v) => (size = v));
+  const tools = toggleGroup<boolean>([[t('✏️ Land'), t('Paint land'), false], [t('🧽 Rub out'), t('Rub out land'), true]], () => erase, (v) => (erase = v));
+  const sizes = toggleGroup<number>([[t('S'), t('Small brush'), 8], [t('M'), t('Medium brush'), 18], [t('L'), t('Large brush'), 40]], () => size, (v) => (size = v));
   const startFrom = el('select');
-  startFrom.setAttribute('aria-label', 'Start from');
+  startFrom.setAttribute('aria-label', t('Start from'));
   const fillStartFrom = () => {
-    startFrom.replaceChildren(new Option('Start from…', ''), new Option('A blank shore', 'blank'), ...MAP_STYLES.map((m) => new Option(`${m.name} (new each time)`, m.id)));
+    startFrom.replaceChildren(new Option(t('Start from…'), ''), new Option(t('A blank shore'), 'blank'), ...MAP_STYLES.map((m) => new Option(t('{map} (new each time)', { map: t(m.name) }), m.id)));
     for (const m of myMaps()) startFrom.append(new Option(`🗺️ ${m.name}`, `my:${m.name}`));
-    startFrom.append(new Option('📂 A map file…', 'file'));
+    startFrom.append(new Option(t('📂 A map file…'), 'file'));
   };
   fillStartFrom();
   const file = el('input');
@@ -149,7 +150,7 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
   file.hidden = true;
   /** Swap in another map (undoable). */
   const load = (next: Terrain, newName?: string) => {
-    undo.push(t.mask.slice());
+    undo.push(terrain.mask.slice());
     if (next.w !== W || next.h !== H) {
       // Maps from elsewhere may be another size: copy what fits, from the bottom.
       const fit = createTerrain(W, H);
@@ -158,7 +159,7 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
       }
       next = fit;
     }
-    t.mask.set(next.mask);
+    terrain.mask.set(next.mask);
     if (newName !== undefined) name = nameInput.value = newName;
     paint();
   };
@@ -172,9 +173,9 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
       const land = looksLikeMyMap(m) && decodeCustomMap(m.map);
       if (!land) throw new Error('not a map');
       load(land, (m as MyMap).name);
-      note.textContent = `Opened “${(m as MyMap).name}”. Save it to keep it on this device.`;
+      note.textContent = t('Opened “{name}”. Save it to keep it on this device.', { name: (m as MyMap).name });
     } catch {
-      note.textContent = 'That file isn’t a TardiGeddon map.';
+      note.textContent = t('That file isn’t a TardiGeddon map.');
     }
   };
   startFrom.onchange = () => {
@@ -191,18 +192,18 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     load(v === 'blank' ? blankShore() : generateMap({ w: W, h: H, waterY: WATER, seed: (Math.random() * 1e9) | 0, style: v as MapStyle }));
   };
   const nameInput = el('input', 'map-editor-name');
-  nameInput.placeholder = 'Map name';
+  nameInput.placeholder = t('Map name');
   nameInput.maxLength = 24;
   nameInput.value = name;
-  nameInput.setAttribute('aria-label', 'Map name');
+  nameInput.setAttribute('aria-label', t('Map name'));
   nameInput.oninput = () => (name = nameInput.value);
 
   /** The map's name, checked like team names; null (with a note) if it won't do. */
   const checkedName = (): string | null => {
-    const n = cleanName(name, 24) || 'My map';
+    const n = cleanName(name, 24) || t('My map');
     const problem = nameProblem(n);
     if (problem) {
-      note.textContent = `“${n}”: ${NAME_PROBLEM_TEXT[problem]}`;
+      note.textContent = t('“{name}”: {problem}', { name: n, problem: t(NAME_PROBLEM_TEXT[problem]) });
       return null;
     }
     return n;
@@ -212,18 +213,18 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     let land = 0;
     for (let x = 0; x < W; x += 10) {
       for (let y = 0; y < WATER - 30; y++) {
-        if (t.mask[y * W + x]) {
+        if (terrain.mask[y * W + x]) {
           land++;
           break;
         }
       }
     }
     if (land < 20) {
-      note.textContent = 'Draw more land above the water first: tardigrades need somewhere to stand.';
+      note.textContent = t('Draw more land above the water first: tardigrades need somewhere to stand.');
       return false;
     }
-    if (encodeCustomMap(t).length > CUSTOM_MAX_LENGTH) {
-      note.textContent = 'This map is too detailed to share: smooth out some of the little bits (a big brush helps).';
+    if (encodeCustomMap(terrain).length > CUSTOM_MAX_LENGTH) {
+      note.textContent = t('This map is too detailed to share: smooth out some of the little bits (a big brush helps).');
       return false;
     }
     return true;
@@ -234,55 +235,55 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     opts.onClose();
   };
   bar.append(
-    button('← Back', 'Leave the map editor', close),
+    button(t('← Back'), t('Leave the map editor'), close),
     tools,
     sizes,
-    button('↩', 'Undo', () => {
+    button('↩', t('Undo'), () => {
       const m = undo.pop();
       if (!m) return;
-      t.mask.set(m);
+      terrain.mask.set(m);
       paint();
     }),
     startFrom,
     nameInput,
-    button('💾 Save', 'Save on this device', () => {
+    button(t('💾 Save'), t('Save on this device'), () => {
       const n = checkedName();
       if (!n || !playable()) return;
-      if (!saveMyMap({ name: n, map: encodeCustomMap(t), at: Date.now() })) {
-        note.textContent = 'This device is out of room: delete a map you don’t need, or save this one as a file.';
+      if (!saveMyMap({ name: n, map: encodeCustomMap(terrain), at: Date.now() })) {
+        note.textContent = t('This device is out of room: delete a map you don’t need, or save this one as a file.');
         return;
       }
       fillStartFrom();
-      note.textContent = `Saved “${n}”. Pick it in Match setup → Customise → Map, or host it in an online room.`;
+      note.textContent = t('Saved “{name}”. Pick it in Match setup → Customise → Map, or host it in an online room.', { name: n });
     }),
-    button('🗑', 'Delete this map from this device', () => {
+    button('🗑', t('Delete this map from this device'), () => {
       const n = cleanName(name, 24);
       if (!myMaps().some((m) => m.name === n)) {
-        note.textContent = 'This map isn’t saved on this device.';
+        note.textContent = t('This map isn’t saved on this device.');
         return;
       }
-      if (!confirm(`Delete “${n}” from this device?`)) return;
+      if (!confirm(t('Delete “{name}” from this device?', { name: n }))) return;
       deleteMyMap(n);
       fillStartFrom();
-      note.textContent = `Deleted “${n}”.`;
+      note.textContent = t('Deleted “{name}”.', { name: n });
     }),
-    button('⤓', 'Save as a file (to send to a friend)', () => {
+    button('⤓', t('Save as a file (to send to a friend)'), () => {
       const n = checkedName();
       if (!n || !playable()) return;
-      const blob = new Blob([JSON.stringify({ name: n, map: encodeCustomMap(t), at: Date.now() })], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify({ name: n, map: encodeCustomMap(terrain), at: Date.now() })], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `tardigeddon-map-${n.replace(/[^A-Za-z0-9]+/g, '-')}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }),
-    button('▶ Play', 'Play on this map against the computer', () => {
+    button(t('▶ Play'), t('Play on this map against the computer'), () => {
       if (!playable()) return;
       // Keep the work: a map you played is saved too (if it has a good name).
       const n = name.trim() ? checkedName() : null;
-      if (n) saveMyMap({ name: n, map: encodeCustomMap(t), at: Date.now() });
+      if (n) saveMyMap({ name: n, map: encodeCustomMap(terrain), at: Date.now() });
       overlay.remove();
-      opts.onPlay(encodeCustomMap(t));
+      opts.onPlay(encodeCustomMap(terrain));
     }, 'big-btn'),
   );
   const stage = el('div', 'map-editor-stage');
@@ -290,5 +291,5 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
   overlay.append(bar, stage, note, file);
   host.append(overlay);
   paint();
-  note.textContent = 'Drag to paint land (or rub it out). The blue at the bottom is water.';
+  note.textContent = t('Drag to paint land (or rub it out). The blue at the bottom is water.');
 }

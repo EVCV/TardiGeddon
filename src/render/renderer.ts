@@ -12,6 +12,11 @@ import { PALETTE, hex, shown, teamSymbol } from './palette';
 import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 import { arenaTheme, type ArenaTheme } from './arenas';
 import { WeatherView } from './weather';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
+
+/** Text in the player's language (`t` is a tardigrade in most of this file). */
+const tr = (text: string, vars?: Record<string, string | number>): string => t(text, vars);
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
@@ -211,18 +216,18 @@ export class GameRenderer {
           const ry = e.y + (dy / d) * e.beyond;
           this.ropeMisses.push({ x0: t.x, y0: t.y, x1: e.x, y1: e.y, rx, ry, rock: e.beyond > 0, life: 1.6 });
           // Say how close it was, where the rope ran out.
-          const msg = e.beyond < 0 ? 'Nothing to grab!' : e.beyond <= 25 ? `So close! ${Math.round(e.beyond)} short` : `Too far: ${Math.round(e.beyond)} short`;
+          const msg = e.beyond < 0 ? tr(tk('Nothing to grab!')) : e.beyond <= 25 ? tr(tk('So close! {n} short'), { n: Math.round(e.beyond) }) : tr(tk('Too far: {n} short'), { n: Math.round(e.beyond) });
           this.floatText(msg, e.x, e.y - 14, e.beyond >= 0 && e.beyond <= 25 ? 0xffd84a : 0xff8a7a);
           break;
         }
         case 'dud': {
           const o = this.state.objects.find((x) => x.id === e.id);
-          if (o) this.floatText('Dud', o.x, o.y - 16, 0xcccccc);
+          if (o) this.floatText(tr(tk('Dud')), o.x, o.y - 16, 0xcccccc);
           break;
         }
         case 'collect': {
           const t = this.state.tardis.find((x) => x.id === e.tardi);
-          const label = e.contents === 'health' ? `+${e.amount}` : (WEAPONS[e.contents]?.name ?? e.contents);
+          const label = e.contents === 'health' ? `+${e.amount}` : (WEAPONS[e.contents] ? tr(WEAPONS[e.contents].name) : e.contents);
           if (t) this.floatText(label, t.x, t.y - 40, e.contents === 'health' ? 0x5cff7a : 0xffd84a);
           break;
         }
@@ -238,7 +243,7 @@ export class GameRenderer {
         }
         case 'drown': {
           const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.floatText('Bye-bye!', t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
+          if (t) this.floatText(tr(tk('Bye-bye!')), t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
           break;
         }
         case 'death':
@@ -259,7 +264,7 @@ export class GameRenderer {
               life: 2.5 + Math.random(), max: 3.5, r: 6 + Math.random() * 8, color: 0x7fd06a, kind: 'smoke',
             });
           }
-          this.floatText('Pee-yew!', e.x, e.y - e.r * 0.6, 0x9be06a);
+          this.floatText(tr(tk('Pee-yew!')), e.x, e.y - e.r * 0.6, 0x9be06a);
           break;
         case 'terrain':
           this.terrainView.repaint(e.rect);
@@ -273,7 +278,7 @@ export class GameRenderer {
               life: 0.5, max: 0.5, r: 1.5, color: 0xff9a3b, kind: 'spark',
             });
           }
-          this.floatText('POW!', e.x, e.y - 24, 0xff9a3b);
+          this.floatText(tr(tk('POW!')), e.x, e.y - 24, 0xff9a3b);
           break;
         case 'teleport':
           for (let i = 0; i < 20; i++) {
@@ -306,7 +311,7 @@ export class GameRenderer {
         if (this.time - last > 10) {
           this.teeterSaid.set(t.id, this.time);
           if (Math.random() < 0.6) {
-            this.say(t.id, Math.random() < 0.5 ? 'Whoa!' : 'Whoa whoa WHOA!', 1.6);
+            this.say(t.id, Math.random() < 0.5 ? tr(tk('Whoa!')) : tr(tk('Whoa whoa WHOA!')), 1.6);
             this.onSound?.('whoa');
           }
         }
@@ -355,7 +360,7 @@ export class GameRenderer {
       const a = Math.random() * Math.PI * 2;
       this.particles.push({ x, y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5 - 1.5, life: 0.9, max: 0.9, r: 2 + Math.random() * 2, color, kind: 'debris' });
     }
-    this.floatText('POP!', x, y - 20, 0xffffff);
+    this.floatText(tr(tk('POP!')), x, y - 20, 0xffffff);
     this.markers.addChild(grave === 'classic' ? makeHusk(x, y, color) : makeGrave(x, y, color, grave));
     this.onSound?.('pop');
   }
@@ -455,7 +460,7 @@ export class GameRenderer {
         });
       }
     }
-    if (r >= 20) this.floatText(r >= 30 ? 'POW!' : 'BIFF!', x, y - r - 10, 0xffd84a);
+    if (r >= 20) this.floatText(r >= 30 ? tr(tk('POW!')) : tr(tk('BIFF!')), x, y - r - 10, 0xffd84a);
   }
 
   render(s: WorldState, alpha: number, dt: number, showAim: boolean): void {

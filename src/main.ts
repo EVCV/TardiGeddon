@@ -5,7 +5,7 @@ import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
-import { loadLang } from './i18n/i18n';
+import { loadLang, t } from './i18n/i18n';
 import { confirmEmail, finishPlayPurchases, refreshAccount } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
@@ -75,7 +75,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     hub = onlineScreen = null;
-    ui.innerHTML = '<p class="loading-game" role="status">Loading…</p>';
+    ui.innerHTML = `<p class="loading-game" role="status">${t('Loading…')}</p>`;
     unlockAudio();
     const { Match, gameApp } = await loadGame();
     const app = await gameApp();
@@ -181,7 +181,7 @@ async function boot(): Promise<void> {
   if (verify) {
     try {
       await confirmEmail(verify);
-      hub?.go('account', 'Thanks! Your email is confirmed.');
+      hub?.go('account', t('Thanks! Your email is confirmed.'));
     } catch (e) {
       hub?.go('account', e instanceof Error ? e.message : String(e));
     }
@@ -191,13 +191,13 @@ async function boot(): Promise<void> {
   if (shop) {
     history.replaceState(null, '', location.pathname);
     if (shop === 'done') {
-      hub?.go('shop', 'Thanks! Your coins will appear in your wallet in a moment.');
+      hub?.go('shop', t('Thanks! Your coins will appear in your wallet in a moment.'));
       // Stripe tells the server a few seconds after paying, so check back a few times.
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 2000));
         if (((await refreshAccount())?.wallet.coins ?? 0) > before) break;
       }
-    } else hub?.go('shop', 'Payment cancelled: nothing was charged.');
+    } else hub?.go('shop', t('Payment cancelled: nothing was charged.'));
   }
 }
 

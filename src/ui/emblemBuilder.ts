@@ -3,6 +3,8 @@
 
 import { EMBLEM_COLORS, EMBLEM_ICONS, EMBLEM_PATTERNS, EMBLEM_SHAPES, emblemString, emblemSvg, parseEmblem, randomEmblem, type Emblem } from '../render/emblems';
 import { hex } from '../render/palette';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -12,7 +14,13 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 }
 
 const PATTERN_NAMES: Record<(typeof EMBLEM_PATTERNS)[number], string> = {
-  plain: 'Plain', stripes: 'Stripes', dots: 'Dots', split: 'Half and half', chevron: 'Chevron', rays: 'Rays', checks: 'Checks', ring: 'Ring',
+  plain: tk('Plain'), stripes: tk('Stripes'), dots: tk('Dots'), split: tk('Half and half'), chevron: tk('Chevron'), rays: tk('Rays'), checks: tk('Checks'), ring: tk('Ring'),
+};
+
+/** The shapes' names (English: shown with t()). */
+const SHAPE_NAMES: Record<(typeof EMBLEM_SHAPES)[number], string> = {
+  circle: tk('circle'), shield: tk('shield'), square: tk('square'), hexagon: tk('hexagon'), diamond: tk('diamond'),
+  star: tk('star'), heart: tk('heart'), pennant: tk('pennant'), cloud: tk('cloud'), burst: tk('burst'),
 };
 
 /** Draw the builder into `box`; `onChange` gets the new emblem string. */
@@ -23,8 +31,8 @@ export function renderEmblemBuilder(box: HTMLElement, current: string, onChange:
 
   const top = el('div', 'emblem-top');
   const preview = el('div', 'emblem-preview');
-  preview.innerHTML = emblemSvg(current, 'Your team emblem');
-  const dice = el('button', 'hud-btn', '🎲 Surprise me');
+  preview.innerHTML = emblemSvg(current, t('Your team emblem'));
+  const dice = el('button', 'hud-btn', `🎲 ${t('Surprise me')}`);
   dice.onclick = () => onChange(randomEmblem());
   top.append(preview, dice);
   box.append(top);
@@ -45,18 +53,21 @@ export function renderEmblemBuilder(box: HTMLElement, current: string, onChange:
     b.onclick = click;
     return b;
   };
-  row('Shape', EMBLEM_SHAPES.map((name, i) => choice(i === e.shape, name, emblemSvg(emblemString({ ...e, shape: i }), name), () => set('shape', i))));
-  row('Picture', EMBLEM_ICONS.map((icon, i) => {
-    const b = choice(i === e.icon, `Picture ${i + 1}`, null, () => set('icon', i), ' emblem-icon');
+  row(t('Shape'), EMBLEM_SHAPES.map((shape, i) => {
+    const name = t(SHAPE_NAMES[shape]);
+    return choice(i === e.shape, name, emblemSvg(emblemString({ ...e, shape: i }), name), () => set('shape', i));
+  }));
+  row(t('Picture'), EMBLEM_ICONS.map((icon, i) => {
+    const b = choice(i === e.icon, t('Picture {n}', { n: i + 1 }), null, () => set('icon', i), ' emblem-icon');
     b.textContent = icon;
     return b;
   }));
   const swatches = (k: 'bg' | 'fg') => EMBLEM_COLORS.map((c, i) => {
-    const b = choice(i === e[k], `Colour ${hex(c)}`, '', () => set(k, i), ' swatch');
+    const b = choice(i === e[k], t('Colour {code}', { code: hex(c) }), '', () => set(k, i), ' swatch');
     b.style.background = hex(c);
     return b;
   });
-  row('Colour', swatches('bg'));
-  row('Pattern colour', swatches('fg'));
-  row('Pattern', EMBLEM_PATTERNS.map((p, i) => choice(i === e.pattern, PATTERN_NAMES[p], emblemSvg(emblemString({ ...e, pattern: i }), PATTERN_NAMES[p]), () => set('pattern', i))));
+  row(t('Colour'), swatches('bg'));
+  row(t('Pattern colour'), swatches('fg'));
+  row(t('Pattern'), EMBLEM_PATTERNS.map((p, i) => choice(i === e.pattern, t(PATTERN_NAMES[p]), emblemSvg(emblemString({ ...e, pattern: i }), t(PATTERN_NAMES[p])), () => set('pattern', i))));
 }

@@ -5,30 +5,31 @@
 import type { SimEvent } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
 import { accessSettings } from './access';
+import { t } from '../i18n/i18n';
 
 /** The caption for an event's sound, if it has one worth showing. */
 export function captionFor(e: SimEvent): string | null {
   switch (e.t) {
-    case 'explosion': return e.r >= 30 ? '💥 Big boom' : '💥 Boom';
-    case 'fire': return `🚀 ${WEAPONS[e.weapon]?.name ?? 'Shot'} fired`;
-    case 'shot': return '🔫 Bang';
-    case 'splash': return '🌊 Splash';
-    case 'teleport': return '✨ Zap';
-    case 'mineArmed': return '⚠️ Mine ticking';
-    case 'dud': return '🙄 Dud mine';
-    case 'crateDrop': return '📦 Crate on its way down';
-    case 'collect': return '🎁 Crate picked up';
-    case 'heal': return '💚 Health back';
-    case 'drown': return '🫧 Glug glug';
-    case 'suddenDeath': return '⏰ Sudden death!';
-    case 'waterRise': return '🌊 The water rises';
-    case 'gas': return '🤢 Poison gas';
-    case 'punch': return '👊 Pow';
-    case 'rope': return '🕸️ Rope caught';
-    case 'ropeMiss': return '🕸️ Rope missed';
-    case 'tornado': return '🌪️ Tornado!';
-    case 'turnStart': return '🔔 Next turn';
-    case 'gameover': return '🎺 Match over';
+    case 'explosion': return e.r >= 30 ? t('💥 Big boom') : t('💥 Boom');
+    case 'fire': return t('🚀 {weapon} fired', { weapon: WEAPONS[e.weapon] ? t(WEAPONS[e.weapon].name) : t('Shot') });
+    case 'shot': return t('🔫 Bang');
+    case 'splash': return t('🌊 Splash');
+    case 'teleport': return t('✨ Zap');
+    case 'mineArmed': return t('⚠️ Mine ticking');
+    case 'dud': return t('🙄 Dud mine');
+    case 'crateDrop': return t('📦 Crate on its way down');
+    case 'collect': return t('🎁 Crate picked up');
+    case 'heal': return t('💚 Health back');
+    case 'drown': return t('🫧 Glug glug');
+    case 'suddenDeath': return t('⏰ Sudden death!');
+    case 'waterRise': return t('🌊 The water rises');
+    case 'gas': return t('🤢 Poison gas');
+    case 'punch': return t('👊 Pow');
+    case 'rope': return t('🕸️ Rope caught');
+    case 'ropeMiss': return t('🕸️ Rope missed');
+    case 'tornado': return t('🌪️ Tornado!');
+    case 'turnStart': return t('🔔 Next turn');
+    case 'gameover': return t('🎺 Match over');
     default: return null;
   }
 }
@@ -40,7 +41,7 @@ export class Captions {
   constructor() {
     this.root.className = 'captions';
     this.root.setAttribute('aria-live', 'polite');
-    this.root.setAttribute('aria-label', 'Sound captions');
+    this.root.setAttribute('aria-label', t('Sound captions'));
   }
 
   /** Show a caption (if captions are on); the same words twice in a row just stay a little longer. */

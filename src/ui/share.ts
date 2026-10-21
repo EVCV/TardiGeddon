@@ -8,18 +8,19 @@ import { mapStyleName } from '../sim/terrain/generate';
 import { hex, shown } from '../render/palette';
 import { EMBLEM_ICONS, parseEmblem } from '../render/emblems';
 import { teamLabel } from '../net/blocked';
+import { t } from '../i18n/i18n';
 
 const SITE = 'https://tardigeddon.com';
 
 /** The message: who won, where, and the winner's best numbers. */
 export function shareText(s: WorldState, stats: readonly TeamTally[]): string {
   const w = s.turn.winner;
-  const where = mapStyleName(s.realm);
-  if (w < 0) return `A draw on ${where} in TardiGeddon! Tiny. Indestructible. Armed. ${SITE}`;
-  const t = stats[w];
-  const bits = [`${t.damage} damage`, `${t.popped} popped`];
-  if (t.bestTurn > 0) bits.push(`best turn ${t.bestTurn}`);
-  return `${teamLabel(s.teams[w])} won on ${where} in TardiGeddon! ${bits.join(' · ')}. ${SITE}`;
+  const where = t(mapStyleName(s.realm));
+  if (w < 0) return t('A draw on {map} in TardiGeddon! Tiny. Indestructible. Armed. {site}', { map: where, site: SITE });
+  const tally = stats[w];
+  const bits = [t('{n} damage', { n: tally.damage }), t('{n} popped', { n: tally.popped })];
+  if (tally.bestTurn > 0) bits.push(t('best turn {n}', { n: tally.bestTurn }));
+  return t('{team} won on {map} in TardiGeddon! {numbers}. {site}', { team: teamLabel(s.teams[w]), map: where, numbers: bits.join(' · '), site: SITE });
 }
 
 /** A 1200x630 picture of the results (the size link previews use). */
@@ -47,34 +48,34 @@ export function shareCard(s: WorldState, stats: readonly TeamTally[]): HTMLCanva
   g.font = '64px "Luckiest Guy", "Arial Black", sans-serif';
   g.lineWidth = 10;
   g.strokeStyle = '#2b1b24';
-  const title = w >= 0 ? `${teamLabel(s.teams[w])} wins!` : 'Draw!';
+  const title = w >= 0 ? t('{team} wins!', { team: teamLabel(s.teams[w]) }) : t('Draw!');
   g.strokeText(title, 600, 130, 1040);
   g.fillText(title, 600, 130, 1040);
   g.fillStyle = '#2b1b24';
   g.font = '800 28px Nunito, system-ui, sans-serif';
-  g.fillText(`${mapStyleName(s.realm)} · ${Math.max(1, s.turn.turnNumber)} turns`, 600, 175);
+  g.fillText(t('{map} · {n} turns', { map: t(mapStyleName(s.realm)), n: Math.max(1, s.turn.turnNumber) }), 600, 175);
 
   // A row per team (up to six), winner first.
-  const order = s.teams.map((t) => t.id).sort((a, b) => (a === w ? -1 : b === w ? 1 : stats[b].damage - stats[a].damage)).slice(0, 6);
+  const order = s.teams.map((team) => team.id).sort((a, b) => (a === w ? -1 : b === w ? 1 : stats[b].damage - stats[a].damage)).slice(0, 6);
   const top = 220;
   const rowH = Math.min(58, 330 / order.length);
   g.font = '800 22px Nunito, system-ui, sans-serif';
   g.textAlign = 'right';
-  const cols: [string, number][] = [['Damage', 760], ['Popped', 880], ['Best turn', 1010], ['Shots', 1110]];
+  const cols: [string, number][] = [[t('Damage'), 760], [t('Popped'), 880], [t('Best turn'), 1010], [t('Shots'), 1110]];
   for (const [label, x] of cols) g.fillText(label, x, top);
   order.forEach((id, i) => {
-    const t = s.teams[id];
+    const team = s.teams[id];
     const st = stats[id];
     const y = top + 20 + (i + 1) * rowH - rowH / 3;
     g.textAlign = 'left';
-    g.fillStyle = hex(shown(t.color));
+    g.fillStyle = hex(shown(team.color));
     g.fillRect(80, y - rowH / 2, 14, rowH * 0.8);
-    const e = parseEmblem(t.emblem);
+    const e = parseEmblem(team.emblem);
     g.font = `${Math.round(rowH * 0.55)}px sans-serif`;
     g.fillStyle = '#2b1b24';
     if (e) g.fillText(EMBLEM_ICONS[e.icon], 106, y + rowH * 0.18);
     g.font = `800 ${Math.round(rowH * 0.48)}px Nunito, system-ui, sans-serif`;
-    g.fillText(teamLabel(t) + (id === w ? '  🏆' : ''), 150, y + rowH * 0.15, 460);
+    g.fillText(teamLabel(team) + (id === w ? '  🏆' : ''), 150, y + rowH * 0.15, 460);
     g.textAlign = 'right';
     [st.damage, st.popped, st.bestTurn, st.shots].forEach((v, k) => g.fillText(String(v), cols[k][1], y + rowH * 0.15));
   });

@@ -3,6 +3,7 @@
 // one a friend sent.
 
 import type { MatchReplay } from '../stats/matchReplay';
+import { lang, t } from '../i18n/i18n';
 
 const KEY = 'tardigeddon.replays';
 /** How many recent matches are kept. */
@@ -65,7 +66,7 @@ export function openReplays(host: HTMLElement, onWatch: (r: MatchReplay) => void
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor practice-choice replays');
   box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-label', 'Replays');
+  box.setAttribute('aria-label', t('Replays'));
   const close = () => overlay.remove();
   overlay.onclick = (e) => {
     if (e.target === overlay) close();
@@ -76,23 +77,23 @@ export function openReplays(host: HTMLElement, onWatch: (r: MatchReplay) => void
   const draw = () => {
     list.innerHTML = '';
     const all = savedReplays();
-    if (!all.length) list.append(el('p', 'account-note', 'No replays yet: finish a match and it appears here.'));
+    if (!all.length) list.append(el('p', 'account-note', t('No replays yet: finish a match and it appears here.')));
     for (const r of all) {
       const row = el('div', 'replay-row');
       const info = el('div', 'replay-info');
-      info.append(el('b', '', r.title), el('span', '', `${r.summary} · ${new Date(r.at).toLocaleString()} · ${Math.round(r.ticks / 50 / 60)} min`));
-      const watch = el('button', 'hud-btn', '▶ Watch');
+      info.append(el('b', '', r.title), el('span', '', t('{summary} · {date} · {n} min', { summary: r.summary, date: new Date(r.at).toLocaleString(lang()), n: Math.round(r.ticks / 50 / 60) })));
+      const watch = el('button', 'hud-btn', t('▶ Watch'));
       watch.onclick = () => {
         close();
         onWatch(r);
       };
       const save = el('button', 'hud-btn', '💾');
-      save.title = 'Save as a file';
-      save.setAttribute('aria-label', `Save ${r.title} as a file`);
+      save.title = t('Save as a file');
+      save.setAttribute('aria-label', t('Save {title} as a file', { title: r.title }));
       save.onclick = () => download(r);
       const del = el('button', 'hud-btn', '🗑');
-      del.title = 'Delete';
-      del.setAttribute('aria-label', `Delete ${r.title}`);
+      del.title = t('Delete');
+      del.setAttribute('aria-label', t('Delete {title}', { title: r.title }));
       del.onclick = () => {
         forget(r.at);
         draw();
@@ -101,7 +102,7 @@ export function openReplays(host: HTMLElement, onWatch: (r: MatchReplay) => void
       list.append(row);
     }
   };
-  const open = el('button', 'hud-btn', '📂 Open a replay file');
+  const open = el('button', 'hud-btn', t('📂 Open a replay file'));
   const file = el('input');
   file.type = 'file';
   file.accept = '.json,application/json';
@@ -117,12 +118,12 @@ export function openReplays(host: HTMLElement, onWatch: (r: MatchReplay) => void
       close();
       onWatch(r);
     } catch {
-      note.textContent = 'That file isn’t a TardiGeddon replay.';
+      note.textContent = t('That file isn’t a TardiGeddon replay.');
     }
   };
-  const cancel = el('button', 'hud-btn', 'Close');
+  const cancel = el('button', 'hud-btn', t('Close'));
   cancel.onclick = close;
-  box.append(el('h2', 'editor-title', '🎬 Replays'), el('p', 'account-note', `Your last ${KEEP} matches, kept on this device. Save one as a file to send to a friend.`), list, note, open, file, cancel);
+  box.append(el('h2', 'editor-title', t('🎬 Replays')), el('p', 'account-note', t('Your last {n} matches, kept on this device. Save one as a file to send to a friend.', { n: KEEP })), list, note, open, file, cancel);
   overlay.append(box);
   host.append(overlay);
   draw();

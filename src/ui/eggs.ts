@@ -3,6 +3,7 @@
 // riddles for the rest.
 
 import { EGGS, isEgg } from '../eggs';
+import { t } from '../i18n/i18n';
 
 const KEY = 'tardigeddon.eggs';
 let thisPage: string[] | null = null;
@@ -35,7 +36,7 @@ export function findEgg(id: string): boolean {
     /* kept for this visit */
   }
   const egg = EGGS.find((e) => e.id === id)!;
-  const text = `🥚 Easter egg: ${egg.name}! (${thisPage.length}/${EGGS.length})`;
+  const text = t('🥚 Easter egg: {name}! ({n}/{total})', { name: t(egg.name), n: thisPage.length, total: EGGS.length });
   if (announce) announce(text);
   else toast(text);
   return true;
@@ -43,10 +44,10 @@ export function findEgg(id: string): boolean {
 
 /** A note at the top of the screen for a few seconds (outside matches). */
 function toast(text: string): void {
-  const t = document.createElement('div');
-  t.className = 'egg-toast';
-  t.setAttribute('role', 'status');
-  t.textContent = text;
-  document.body.append(t);
-  setTimeout(() => t.remove(), 3500);
+  const note = document.createElement('div');
+  note.className = 'egg-toast';
+  note.setAttribute('role', 'status');
+  note.textContent = text;
+  document.body.append(note);
+  setTimeout(() => note.remove(), 3500);
 }

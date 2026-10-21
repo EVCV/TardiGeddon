@@ -11,6 +11,8 @@ import { canUse, itemFor, type ItemKind } from '../shop/catalog';
 import { account, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, ownedItems } from '../account/session';
 import { arenaSvg, musicSvg, soundSvg } from './cosmeticArt';
 import { priceLabel } from './shop';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -35,7 +37,7 @@ const SURPRISE_ART = `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000
 /** What the lobby button says: the arena now chosen. */
 export function arenaLabel(): string {
   const id = chosenArena();
-  return id === SURPRISE_ARENA ? 'Surprise me' : arenaTheme(id).name;
+  return id === SURPRISE_ARENA ? t('Surprise me') : t(arenaTheme(id).name);
 }
 
 /** Open the picker. `onShop` leaves for the Shop; `onChange` redraws the lobby. */
@@ -43,7 +45,7 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor looks');
   box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-label', 'World, music and sounds');
+  box.setAttribute('aria-label', t('World, music and sounds'));
   const note = el('p', 'account-note');
   const options = el('div', 'editor-options');
 
@@ -61,7 +63,7 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
         const b = el('button', 'hat-btn' + (o.id === current() ? ' on' : '') + (locked ? ' locked' : ''));
         b.innerHTML = o.art;
         b.append(el('span', '', locked && item ? `🔒 ${priceLabel(item)}` : o.name));
-        b.setAttribute('aria-label', locked ? `${o.name} (in the shop)` : o.name);
+        b.setAttribute('aria-label', locked ? t('{name} (in the shop)', { name: o.name }) : o.name);
         b.setAttribute('aria-pressed', String(o.id === current()));
         b.onclick = () => {
           if (locked) {
@@ -81,54 +83,54 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
   };
 
   section(
-    '🏞️ World',
-    'The sky, hills, water and ground. Surprise me picks a different look every match.',
+    `🏞️ ${t('World')}`,
+    t('The sky, hills, water and ground. Surprise me picks a different look every match.'),
     'arena',
     [
-      { id: SURPRISE_ARENA, name: 'Surprise me', art: SURPRISE_ART },
+      { id: SURPRISE_ARENA, name: t('Surprise me'), art: SURPRISE_ART },
       // Seasonal worlds show (free) only while their event is on.
-      ...ARENAS.filter((a) => seasonArenaOpen(a.id)).map((a) => ({ id: a.id, name: a.season ? `${currentSeason()?.emoji ?? ''} ${a.name}` : a.name, art: arenaSvg(a.id) })),
+      ...ARENAS.filter((a) => seasonArenaOpen(a.id)).map((a) => ({ id: a.id, name: a.season ? `${currentSeason()?.emoji ?? ''} ${t(a.name)}` : t(a.name), art: arenaSvg(a.id) })),
     ],
     chosenArena,
     chooseArena,
   );
   section(
-    '🎵 Match music',
-    'What plays during your matches.',
+    `🎵 ${t('Match music')}`,
+    t('What plays during your matches.'),
     'music',
-    TRACKS.filter((t) => t.id !== 'menu').map((t) => ({ id: t.id, name: t.name, art: musicSvg(t.id) })),
+    TRACKS.filter((tr) => tr.id !== 'menu').map((tr) => ({ id: tr.id, name: t(tr.name), art: musicSvg(tr.id) })),
     chosenMusic,
     chooseMusic,
   );
   section(
-    '🔊 Sounds',
-    'How your blasts, shots and squeaks sound.',
+    `🔊 ${t('Sounds')}`,
+    t('How your blasts, shots and squeaks sound.'),
     'sound',
-    SOUND_PACKS.map((p) => ({ id: p.id, name: itemFor('sound', p.id)?.name ?? 'Standard', art: soundSvg(p.id) })),
+    SOUND_PACKS.map((p) => ({ id: p.id, name: t(itemFor('sound', p.id)?.name ?? tk('Standard')), art: soundSvg(p.id) })),
     chosenSounds,
     chooseSounds,
   );
-  note.textContent = 'Only you see and hear these, online too. More in the 🛍️ Shop.';
+  note.textContent = t('Only you see and hear these, online too. More in the 🛍️ Shop.');
   options.append(note);
 
   const close = () => overlay.remove();
   const actions = el('div', 'editor-actions');
   if (account().me) {
-    const shop = el('button', 'hud-btn', '🛍️ Shop');
+    const shop = el('button', 'hud-btn', `🛍️ ${t('Shop')}`);
     shop.onclick = () => {
       close();
       onShop();
     };
     actions.append(shop);
   }
-  const done = el('button', 'big-btn', 'Done');
+  const done = el('button', 'big-btn', t('Done'));
   done.onclick = close;
   actions.append(done);
   overlay.onclick = (e) => {
     if (e.target === overlay) close();
   };
   const side = el('div', 'editor-side');
-  side.append(el('h2', 'editor-title', 'Looks'));
+  side.append(el('h2', 'editor-title', t('Looks')));
   box.append(side, options, actions);
   overlay.append(box);
   host.append(overlay);
