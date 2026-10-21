@@ -64,8 +64,9 @@ function statsTable(s: WorldState, stats: readonly TeamTally[]): HTMLElement {
       cell(st.popped, st.popped === best('popped')),
       cell(st.bestTurn, st.bestTurn === best('bestTurn')),
       cell(st.shots),
-      cell(st.selfDamage),
     );
+    // Own goals: damage to your own team, and any of your own you popped.
+    row.append(el('td', '', st.selfDamage || st.selfPopped ? `${st.selfDamage}${st.selfPopped ? ` · ${st.selfPopped} popped` : ''}` : '0'));
     body.append(row);
   }
   table.append(body);

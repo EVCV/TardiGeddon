@@ -148,7 +148,7 @@ describe('emblem pictures', () => {
 });
 
 describe('seasonal events', () => {
-  const on = (m: number, d: number) => currentSeason(new Date(2026, m - 1, d))?.id ?? null;
+  const on = (m: number, d: number) => currentSeason(new Date(Date.UTC(2026, m - 1, d, 12)))?.id ?? null;
   it('run between their dates every year, including across New Year', () => {
     expect(on(10, 19)).toBeNull();
     expect(on(10, 20)).toBe('halloween');
@@ -160,15 +160,21 @@ describe('seasonal events', () => {
     expect(on(12, 20)).toBe('winter');
     expect(seasonEnds(SEASONS.find((s) => s.id === 'halloween')!)).toBe('2 Nov');
   });
+  it('go by the UTC date, the same on the server and on every device', () => {
+    // Already 30 Dec in Kiribati (UTC+14), still 29 Dec in UTC: not New Year yet anywhere.
+    expect(currentSeason(new Date('2026-12-29T11:00:00Z'))?.id).toBe('winter');
+    expect(currentSeason(new Date('2026-12-30T00:00:00Z'))?.id).toBe('newyear');
+  });
+
   it('open their world only while on, and never overlap', () => {
-    expect(seasonArenaOpen('pumpkin', new Date(2026, 9, 25))).toBe(true);
-    expect(seasonArenaOpen('pumpkin', new Date(2026, 5, 1))).toBe(false);
-    expect(seasonArenaOpen('classic', new Date(2026, 5, 1))).toBe(true);
+    expect(seasonArenaOpen('pumpkin', new Date(Date.UTC(2026, 9, 25)))).toBe(true);
+    expect(seasonArenaOpen('pumpkin', new Date(Date.UTC(2026, 5, 1)))).toBe(false);
+    expect(seasonArenaOpen('classic', new Date(Date.UTC(2026, 5, 1)))).toBe(true);
     // Each season alone, on each day: never two at once.
     const k = (m: number, d: number) => m * 32 + d;
     for (let day = 0; day < 366; day++) {
-      const d = new Date(2028, 0, 1 + day);
-      const t = k(d.getMonth() + 1, d.getDate());
+      const d = new Date(Date.UTC(2028, 0, 1 + day));
+      const t = k(d.getUTCMonth() + 1, d.getUTCDate());
       const hits = SEASONS.filter((s) => {
         const a = k(...s.from);
         const b = k(...s.to);

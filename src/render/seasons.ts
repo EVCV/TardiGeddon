@@ -25,9 +25,12 @@ export const SEASONS: Season[] = [
 
 const dayOfYear = (m: number, d: number) => m * 32 + d;
 
-/** The event on now, if any. */
+/**
+ * The event on now, if any. By the UTC date, like the server, so the game
+ * never offers a seasonal world the server would then refuse.
+ */
 export function currentSeason(now: Date = new Date()): Season | null {
-  const today = dayOfYear(now.getMonth() + 1, now.getDate());
+  const today = dayOfYear(now.getUTCMonth() + 1, now.getUTCDate());
   for (const s of SEASONS) {
     const a = dayOfYear(...s.from);
     const b = dayOfYear(...s.to);
