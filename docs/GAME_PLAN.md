@@ -409,7 +409,7 @@ TardiGeddon/
   **simulate on a cloned world** (cheap thanks to the deterministic sim),
   score by enemy damage − self/friendly damage − risk of drowning.
 - Difficulty = search breadth + random aim error.
-- Later: movement before firing, rope/teleport use, crate seeking.
+- Movement before firing: with no good shot where it stands, it tries walking (hopping steps) each way on a copy of the world and goes where the best shot (or a crate) is (`planMove` in `src/ai/cpu.ts`). Later: rope/teleport use.
 
 ### 7.7 Controls
 
