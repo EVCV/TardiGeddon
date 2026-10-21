@@ -1,6 +1,7 @@
 // In-game HUD (DOM overlay): turn timer, wind, team health, weapon panel,
 // banners and touch controls.
 
+import type { TeamTally } from '../stats/tally';
 import { emblemSvg } from '../render/emblems';
 import { teamLabel } from '../net/blocked';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE, type WorldState } from '../sim/types';
@@ -30,6 +31,46 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text;
   return e;
+}
+
+/** Everyone's numbers, winner first. */
+function statsTable(s: WorldState, stats: readonly TeamTally[]): HTMLElement {
+  const w = s.turn.winner;
+  const wrap = el('div', 'gameover-stats');
+  const table = el('table');
+  table.innerHTML = '<caption class="sr-only">Match statistics</caption><thead><tr><th scope="col">Team</th><th scope="col">Damage</th><th scope="col">Popped</th><th scope="col">Best turn</th><th scope="col">Shots</th><th scope="col">Own goals</th></tr></thead>';
+  const body = el('tbody');
+  const order = s.teams.map((t) => t.id).sort((a, b) => (a === w ? -1 : b === w ? 1 : stats[b].damage - stats[a].damage));
+  // A star for the best in each column.
+  const best = (k: 'damage' | 'popped' | 'bestTurn') => Math.max(1, ...stats.map((x) => x[k]));
+  for (const id of order) {
+    const t = s.teams[id];
+    const st = stats[id];
+    const row = el('tr');
+    if (id === w) row.className = 'winner';
+    const name = el('th');
+    name.scope = 'row';
+    name.style.setProperty('--team', hex(shown(t.color)));
+    if (t.emblem) {
+      const badge = el('span', 'team-emblem');
+      badge.innerHTML = emblemSvg(t.emblem, `${teamLabel(t)} emblem`);
+      name.append(badge);
+    }
+    name.append(document.createTextNode(` ${teamSymbol(t.color)}${teamLabel(t)}`));
+    const cell = (v: number, top = false) => el('td', top && v > 0 ? 'top' : '', `${v}${top && v > 0 ? ' ★' : ''}`);
+    row.append(
+      name,
+      cell(st.damage, st.damage === best('damage')),
+      cell(st.popped, st.popped === best('popped')),
+      cell(st.bestTurn, st.bestTurn === best('bestTurn')),
+      cell(st.shots),
+      cell(st.selfDamage),
+    );
+    body.append(row);
+  }
+  table.append(body);
+  wrap.append(table);
+  return wrap;
 }
 
 export class Hud {
@@ -168,18 +209,64 @@ export class Hud {
     this.bannerUntil = performance.now() + seconds * 1000;
   }
 
-  showGameOver(s: WorldState, onAgain: () => void, onMenu: () => void, labels: readonly [string, string] = ['Play again', 'Main menu']): void {
+  /**
+   * The end of the match: who won, everyone's numbers, then the winning shot
+   * again, sharing, and on to the next game or the menu.
+   */
+  showGameOver(
+    s: WorldState,
+    onAgain: () => void,
+    onMenu: () => void,
+    labels: readonly [string, string] = ['Play again', 'Main menu'],
+    extra: { stats?: readonly TeamTally[]; onReplay?: () => void; onShare?: () => Promise<string> } = {},
+  ): void {
     const w = s.turn.winner;
     this.gameOver.innerHTML = '';
-    const box = el('div', 'overlay-box');
-    const title = el('h1', 'title-small', w >= 0 ? `${teamLabel(s.teams[w])} wins!` : 'Draw!');
-    if (w >= 0) title.style.color = hex(s.teams[w].color);
+    const box = el('div', 'overlay-box gameover-box');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Match over');
+    const title = el('h1', 'title-small', w >= 0 ? `${teamSymbol(s.teams[w].color)}${teamLabel(s.teams[w])} wins!` : 'Draw!');
+    if (w >= 0) title.style.color = hex(shown(s.teams[w].color));
+    box.append(title);
+    if (extra.stats && !s.race) box.append(statsTable(s, extra.stats));
+    const tools = el('div', 'gameover-tools');
+    if (extra.onReplay) {
+      const replay = el('button', 'hud-btn', '🎬 Winning shot');
+      replay.onclick = extra.onReplay;
+      tools.append(replay);
+    }
+    if (extra.onShare) {
+      const share = el('button', 'hud-btn', '📤 Share');
+      const note = el('span', 'gameover-note');
+      note.setAttribute('role', 'status');
+      share.onclick = async () => {
+        share.disabled = true;
+        const what = await extra.onShare!();
+        share.disabled = false;
+        note.textContent = what === 'saved' ? 'Picture saved, message copied.' : what === 'copied' ? 'Message copied.' : '';
+      };
+      tools.append(share, note);
+    }
+    if (tools.childElementCount) box.append(tools);
     const again = el('button', 'big-btn', labels[0]);
     again.onclick = onAgain;
     const menu = el('button', 'big-btn secondary', labels[1]);
     menu.onclick = onMenu;
-    box.append(title, again, menu);
+    const go = el('div', 'gameover-go');
+    go.append(again, menu);
+    box.append(go);
     this.gameOver.append(box);
+    this.gameOver.classList.remove('hidden');
+    again.focus();
+  }
+
+  /** Hide the end-of-match box (while the winning shot plays again). */
+  hideGameOver(): void {
+    this.gameOver.classList.add('hidden');
+  }
+
+  /** Show it again afterwards. */
+  unhideGameOver(): void {
     this.gameOver.classList.remove('hidden');
   }
 

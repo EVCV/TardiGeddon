@@ -1912,3 +1912,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* Calmer effects: nothing slides, pulses or bounces in the menus (WCAG 2.3.3). */
 .calm *, .calm *::before, .calm *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition: none !important; scroll-behavior: auto !important; }
+
+/* ---------- End of match ---------- */
+.gameover-box { max-width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
+.gameover-stats { overflow-x: auto; }
+.gameover-stats table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gameover-stats th, .gameover-stats td { padding: 4px 8px; border-bottom: 2px solid #e4dccb; text-align: right; white-space: nowrap; }
+.gameover-stats thead th { font-size: 12px; }
+.gameover-stats tbody th { text-align: left; border-left: 8px solid var(--team); }
+.gameover-stats tr.winner { background: #fff1b8; }
+.gameover-stats td.top { font-weight: 900; }
+.gameover-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+.gameover-note { font-size: 13px; }
+.gameover-go { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.gameover-go .big-btn { flex: 1 1 180px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.replaying .hud > :not(.hud-banner) { visibility: hidden; }
+@media (max-height: 450px) {
+  .gameover-box { padding: 10px 14px; gap: 8px; }
+  .gameover-stats table { font-size: 12px; }
+  .gameover-box .title-small { font-size: 26px; margin: 0; }
+}

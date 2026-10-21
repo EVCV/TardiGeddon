@@ -8,17 +8,19 @@ import { applyAccess } from './ui/access';
 import { shown } from './render/palette';
 import { confirmEmail, finishPlayPurchases, myUnlockedWeapons, refreshAccount, reportCpuMatch, wearArena, wearMusic, wearSounds, wornLooks } from './account/session';
 import { MatchTally } from './stats/tally';
+import { TurnRecorder } from './stats/replay';
 import { showHub, type Hub } from './ui/hub';
 // Pixi without eval(), so the site's Content-Security-Policy can forbid it (site/public/_headers).
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
-import { createWorld, tick, type TeamConfig } from './sim/world';
+import { cloneWorld, createWorld, tick, type TeamConfig } from './sim/world';
 import { Coach, choosePractice, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
 import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
 import { WEATHER_NAMES } from './render/weather';
 import { mapStyleName } from './sim/terrain/generate';
-import { arenaTheme } from './render/arenas';
+import { arenaTheme, type ArenaTheme } from './render/arenas';
+import { shareMatch } from './ui/share';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard, doAction, type KeyboardHooks } from './input/input';
@@ -216,6 +218,14 @@ class Match {
   private events: SimEvent[] = [];
   /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
   private tally: MatchTally | null = null;
+  /** Everyone's numbers for the end-of-match screen (every kind of match). */
+  private stats: MatchTally | null = null;
+  /** Each turn's start and inputs, to show the winning shot again. */
+  private recorder = new TurnRecorder();
+  /** Showing the winning shot again: its own copy of the world, and how far through its frames. */
+  private replay: { state: WorldState; frames: InputFrame[]; i: number; acc: number; endAt: number } | null = null;
+  /** This player's world look for the whole match. */
+  private theme: ArenaTheme;
   private acc = 0;
   private last = performance.now();
   private detachKeys: () => void;
@@ -279,7 +289,9 @@ class Match {
       this.listenNet();
     }
 
-    this.renderer = new GameRenderer(app, this.state, arenaTheme(wearArena()));
+    // Chosen once: "Surprise me" must not change the world when the view is rebuilt mid-match.
+    this.theme = arenaTheme(wearArena());
+    this.renderer = new GameRenderer(app, this.state, this.theme);
     this.renderer.onSound = (name) => sfx[name]();
     // Online: names of players you've blocked are hidden from you.
     this.hideBlocked();
@@ -324,9 +336,9 @@ class Match {
           this.heardAt = performance.now();
           this.resyncAsked = false;
           // The world was replaced wholesale: redraw it from scratch.
-          this.renderer.destroy();
-          this.renderer = new GameRenderer(this.app, this.state, arenaTheme(wearArena()));
-          this.renderer.onSound = (name) => sfx[name]();
+          this.replay = null;
+          this.ui.classList.remove('replaying');
+          this.newRenderer(this.state);
           break;
         case 'room': this.lastRoom = msg; break;
         case 'start':
@@ -374,9 +386,7 @@ class Match {
     openPlayers(this.ui, room.slots, net.ls.you, (idx, reason) => net.client.report(idx, reason), () => {
       // Blocking changes the names on screen: redraw the world.
       this.hideBlocked();
-      this.renderer.destroy();
-      this.renderer = new GameRenderer(this.app, this.state, arenaTheme(wearArena()));
-      this.renderer.onSound = (name) => sfx[name]();
+      this.newRenderer(this.replay?.state ?? this.state);
     });
   }
 
@@ -392,10 +402,68 @@ class Match {
     return !team.cpu && this.state.turn.phase !== 'gameover';
   }
 
+  /** The end-of-match box: numbers, the winning shot again, share, next. */
+  private showResults(labels: readonly [string, string]): void {
+    if (this.destroyed) return;
+    const stats = this.stats?.teams;
+    this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels, {
+      stats,
+      onReplay: this.recorder.winningShot() ? () => this.startReplay() : undefined,
+      onShare: stats ? () => shareMatch(this.state, stats) : undefined,
+    });
+  }
+
+  private newRenderer(s: WorldState): void {
+    this.renderer.destroy();
+    this.renderer = new GameRenderer(this.app, s, this.theme);
+    this.renderer.onSound = (name) => sfx[name]();
+  }
+
+  /** Play the turn that decided the match again, on its own copy of the world. */
+  private startReplay(): void {
+    const rec = this.recorder.winningShot();
+    if (!rec || this.replay) return;
+    const state = cloneWorld(rec.start);
+    this.replay = { state, frames: rec.frames, i: 0, acc: 0, endAt: 0 };
+    this.hud.hideGameOver();
+    this.ui.classList.add('replaying');
+    this.newRenderer(state);
+    this.hud.showBanner('🎬 The winning shot', 0xffffff, 2);
+  }
+
+  private stopReplay(): void {
+    this.replay = null;
+    this.ui.classList.remove('replaying');
+    this.newRenderer(this.state);
+    this.hud.unhideGameOver();
+  }
+
+  /** One frame of the replay, at three quarters speed so the shot can be followed. */
+  private replayFrame(dt: number): void {
+    const r = this.replay!;
+    r.acc += dt * 0.75;
+    while (r.acc >= TICK_MS && r.i < r.frames.length) {
+      r.acc -= TICK_MS;
+      this.renderer.capturePrev(r.state);
+      tick(r.state, r.frames[r.i++], this.events);
+    }
+    if (r.i >= r.frames.length && !r.endAt) r.endAt = performance.now() + 2500;
+    this.renderer.handleEvents(this.events);
+    this.playSounds(this.events.filter((e) => e.t !== 'gameover'));
+    this.events.length = 0;
+    this.renderer.render(r.state, Math.min(1, r.acc / TICK_MS), dt / 1000, false);
+    this.hud.update(this.state, false);
+    if (r.endAt && performance.now() > r.endAt) this.stopReplay();
+  }
+
   private frame(): void {
     const now = performance.now();
     const dt = Math.min(250, now - this.last);
     this.last = now;
+    if (this.replay) {
+      this.replayFrame(dt);
+      return;
+    }
     this.acc += dt;
     if (this.net) this.netFrame();
     else {
@@ -408,8 +476,12 @@ class Match {
         const input = team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
         this.renderer.capturePrev(s);
         const from = this.events.length;
+        this.recorder.before(s, input);
         tick(s, input, this.events);
-        this.tally?.add(s, this.events.slice(from));
+        const fresh = this.events.slice(from);
+        this.recorder.after(fresh);
+        this.tally?.add(s, fresh);
+        this.statsFor(s).add(s, fresh);
       }
     }
     this.coach?.update({
@@ -425,6 +497,21 @@ class Match {
     this.events.length = 0;
     this.renderer.render(this.state, Math.min(1, this.acc / TICK_MS), dt / 1000, true);
     this.hud.update(this.state, this.isHumanTurn());
+  }
+
+  /** The end-of-match numbers, started on first use (a rejoined online match starts counting then). */
+  private statsFor(s: WorldState): MatchTally {
+    return (this.stats ??= new MatchTally(s.teams.length));
+  }
+
+  /** Online: play one frame from the server, recording it and counting its events. */
+  private netStep(ls: Lockstep): void {
+    const from = this.events.length;
+    ls.onFrame = (st, f) => this.recorder.before(st, f);
+    ls.step(this.events);
+    const fresh = this.events.slice(from);
+    this.recorder.after(fresh);
+    this.statsFor(ls.state).add(ls.state, fresh);
   }
 
   /** Online: send our inputs on our turn, and play the frames the server sends. */
@@ -446,7 +533,7 @@ class Match {
       }
       if (ls.buffered > 0) {
         this.renderer.capturePrev(ls.state);
-        ls.step(this.events);
+        this.netStep(ls);
       } else {
         // Waiting on the server: don't bank time we'd then rush through.
         this.acc = Math.min(this.acc, TICK_MS);
@@ -455,7 +542,7 @@ class Match {
     // Fell behind (slow device or a burst of frames): catch up quickly.
     while (ls.buffered > 6) {
       this.renderer.capturePrev(ls.state);
-      ls.step(this.events);
+      this.netStep(ls);
     }
     if (ls.desynced && !this.resyncAsked) {
       this.resyncAsked = true;
@@ -536,7 +623,7 @@ class Match {
             }
             if (this.coach) break; // the coach shows how the practice went
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
-            setTimeout(() => this.hud.showGameOver(this.state, this.onAgain, this.onMenu, labels), 4200); // after the victory dance
+            setTimeout(() => this.showResults(labels), 4200); // after the victory dance
           }
           break;
       }
