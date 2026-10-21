@@ -17,6 +17,11 @@ import { WEATHER_NAMES } from './render/weather';
 import { mapStyleName } from './sim/terrain/generate';
 import { arenaTheme, type ArenaTheme } from './render/arenas';
 import { shareMatch } from './ui/share';
+import { MatchRecorder, type MatchReplay } from './stats/matchReplay';
+import { keepReplay } from './ui/replays';
+import { decodeWorld } from './net/snapshot';
+import { cleanFrame } from './net/protocol';
+import { unpackFrames } from './challenge/daily';
 import { findEgg, onEggFound } from './ui/eggs';
 import { Captions, captionFor } from './ui/captions';
 import { ChallengeRun, TARGET_TURNS, challengeDay, challengeWorld, type ChallengeKind } from './challenge/daily';
@@ -62,7 +67,7 @@ export function gameApp(): Promise<Application> {
   })());
 }
 
-export type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'challenge'; challenge: ChallengeKind } | { kind: 'online'; client: NetClient; ls: Lockstep };
+export type MatchMode = { kind: 'local'; setup: MatchSetup } | { kind: 'tutorial' } | { kind: 'practice'; endless: boolean } | { kind: 'challenge'; challenge: ChallengeKind } | { kind: 'replay'; replay: MatchReplay } | { kind: 'online'; client: NetClient; ls: Lockstep };
 
 export class Match {
   private local: WorldState | null = null;
@@ -77,6 +82,10 @@ export class Match {
   private events: SimEvent[] = [];
   /** Counts pops and damage in a vs-CPU match, for the signed-in player's stats (team 0). */
   private tally: MatchTally | null = null;
+  /** The whole match, for watching again (Replays in the lobby). */
+  private matchRec = new MatchRecorder();
+  /** Watching a replay: its frames, how far through, and the controls' state. */
+  private playback: { frames: InputFrame[]; i: number; speed: number; paused: boolean; skipTurn: number; bar: HTMLElement } | null = null;
   /** Words on screen for the sounds (Settings → Accessibility). */
   private captions = new Captions();
   /** A daily challenge run: records its frames for the leaderboard and says when it's over. */
@@ -148,6 +157,10 @@ export class Match {
       const day = challengeDay();
       this.challenge = new ChallengeRun(mode.challenge, day);
       this.local = createWorld(challengeWorld(mode.challenge, day, you));
+    } else if (mode.kind === 'replay') {
+      // Watching a replay: the world as it began, and the frames played on it (checked, as they may come from a file).
+      this.local = decodeWorld(mode.replay.start);
+      this.playback = { frames: unpackFrames(mode.replay.frames, cleanFrame) ?? [], i: 0, speed: 1, paused: false, skipTurn: -1, bar: document.createElement('div') };
     } else if (mode.kind === 'practice') {
       // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
       const p = loadProfiles()[0];
@@ -177,6 +190,9 @@ export class Match {
     previewMusic(null);
     playMusic(wearMusic());
     ui.append(this.hud.root, this.captions.root);
+    if (this.playback) ui.append(this.replayBar());
+    // Record everything but the tutorial (and replays themselves) for Replays.
+    else if (!this.coach) this.matchRec.begin(this.state);
     if (this.coach) {
       this.hud.root.classList.add('has-coach');
       ui.append(this.coach.root);
@@ -218,6 +234,8 @@ export class Match {
           this.replay = null;
           this.ui.classList.remove('replaying');
           this.newRenderer(this.state);
+          // The recording carries on from the new copy of the world.
+          this.matchRec.begin(this.state);
           break;
         case 'room': this.lastRoom = msg; break;
         case 'start':
@@ -276,6 +294,7 @@ export class Match {
   }
 
   private isHumanTurn(): boolean {
+    if (this.playback) return false;
     if (this.net) return this.net.ls.myTurn;
     const team = this.state.teams[this.state.turn.teamIdx];
     return !team.cpu && this.state.turn.phase !== 'gameover';
@@ -358,7 +377,12 @@ export class Match {
       this.replayFrame(dt);
       return;
     }
-    this.acc += dt;
+    // Replays: paused, or played fast.
+    this.acc += this.playback ? (this.playback.paused ? 0 : dt * this.playback.speed) : dt;
+    if (this.playback?.skipTurn === this.state.turn.turnNumber) {
+      // ⏭: play on (at most a minute's worth per frame) until the next turn starts.
+      this.acc += TICK_MS * Math.min(3000, this.playback.frames.length - this.playback.i);
+    }
     if (this.net) this.netFrame();
     else {
       const s = this.local!;
@@ -374,9 +398,22 @@ export class Match {
         // Tap-to-fire (Settings) only applies to weapons you charge.
         this.input.chargeWeapon = WEAPONS[s.turn.weapon]?.kind === 'charge' && human;
         const humanInput = this.input.frame(); // always drain
-        const input = this.challenge
-          ? this.challenge.frameFor(s, human ? humanInput : EMPTY_INPUT)
-          : team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
+        const pb = this.playback;
+        if (pb && pb.i >= pb.frames.length) {
+          // The end of the recording.
+          this.acc = 0;
+          break;
+        }
+        if (pb && pb.skipTurn >= 0 && pb.skipTurn !== s.turn.turnNumber) {
+          pb.skipTurn = -1;
+          this.acc = Math.min(this.acc, TICK_MS);
+        }
+        const input = pb
+          ? pb.frames[pb.i++]
+          : this.challenge
+            ? this.challenge.frameFor(s, human ? humanInput : EMPTY_INPUT)
+            : team.cpu ? this.cpu.get(team.id)!.next(s) : human ? humanInput : EMPTY_INPUT;
+        this.matchRec.frame(input);
         this.renderer.capturePrev(s);
         const from = this.events.length;
         this.recorder.before(s, input);
@@ -404,6 +441,51 @@ export class Match {
     this.captions.update();
   }
 
+  /** The replay controls: pause, speed, next turn, leave. */
+  private replayBar(): HTMLElement {
+    const pb = this.playback!;
+    const bar = pb.bar;
+    bar.className = 'replay-bar';
+    bar.setAttribute('role', 'toolbar');
+    bar.setAttribute('aria-label', 'Replay controls');
+    const btn = (text: string, label: string, fn: () => void) => {
+      const b = document.createElement('button');
+      b.className = 'hud-btn';
+      b.textContent = text;
+      b.setAttribute('aria-label', label);
+      b.title = label;
+      b.onclick = fn;
+      return b;
+    };
+    const pause = btn('⏸', 'Pause', () => {
+      pb.paused = !pb.paused;
+      pause.textContent = pb.paused ? '▶' : '⏸';
+      pause.setAttribute('aria-label', pb.paused ? 'Play' : 'Pause');
+    });
+    const speeds = [1, 2, 4].map((n) => {
+      const b = btn(`${n}×`, `Speed ${n}×`, () => {
+        pb.speed = n;
+        for (const x of speeds) x.classList.toggle('on', x === b);
+      });
+      if (n === 1) b.classList.add('on');
+      return b;
+    });
+    bar.append(
+      document.createTextNode('🎬'),
+      pause,
+      ...speeds,
+      btn('⏭', 'Skip to the next turn', () => (pb.skipTurn = this.state.turn.turnNumber)),
+      btn('✕', 'Stop watching', this.onMenu),
+    );
+    return bar;
+  }
+
+  /** The recording has played out. */
+  private replayOver(): void {
+    if (this.destroyed) return;
+    this.hud.showGameOver(this.state, this.onAgain, this.onMenu, ['Watch again', 'Main menu'], { stats: this.stats?.teams });
+  }
+
   /** The end-of-match numbers, started on first use (a rejoined online match starts counting then). */
   private statsFor(s: WorldState): MatchTally {
     return (this.stats ??= new MatchTally(s.teams.length));
@@ -412,7 +494,10 @@ export class Match {
   /** Online: play one frame from the server, recording it and counting its events. */
   private netStep(ls: Lockstep): void {
     const from = this.events.length;
-    ls.onFrame = (st, f) => this.recorder.before(st, f);
+    ls.onFrame = (st, f) => {
+      this.recorder.before(st, f);
+      this.matchRec.frame(f);
+    };
     ls.step(this.events);
     const fresh = this.events.slice(from);
     this.recorder.after(fresh);
@@ -532,6 +617,13 @@ export class Match {
                 if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);
               });
             }
+            if (this.playback) {
+              setTimeout(() => this.replayOver(), 3000);
+              break;
+            }
+            // Kept for Replays (the last few matches, on this device).
+            const rec = this.matchRec.finish(this.state, (id) => teamLabel(this.state.teams[id]));
+            if (rec) keepReplay(rec);
             if (this.coach || this.challenge) break; // the coach, or the challenge result, says how it went
             const labels = this.net ? (['Back to room', 'Leave'] as const) : (['Play again', 'Main menu'] as const);
             setTimeout(() => this.showResults(labels), 4200); // after the victory dance

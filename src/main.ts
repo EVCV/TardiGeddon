@@ -11,6 +11,8 @@ import type { Match, MatchMode } from './match';
 import { choosePractice } from './ui/learn';
 import type { ChallengeKind } from './challenge/meta';
 import { chooseChallenge } from './ui/challenge';
+import { openReplays } from './ui/replays';
+import type { MatchReplay } from './stats/matchReplay';
 import { loadProfiles } from './ui/teams';
 import type { CpuSkill } from './ai/skills';
 import { audioRunning, pauseAudio, unlockAudio } from './audio/mixer';
@@ -61,7 +63,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
-    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge));
+    hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge), () => openReplays(ui, watch));
   };
   /** Start a match, loading the game (renderer and all) the first time. */
   const play = async (mode: MatchMode, onMenu: () => void, onAgain: () => void): Promise<Match | null> => {
@@ -81,6 +83,7 @@ async function boot(): Promise<void> {
   const start = (setup: MatchSetup) => void play({ kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
   const tutorial = () => void play({ kind: 'tutorial' }, menu, tutorial);
   const challenge = (kind: ChallengeKind) => void play({ kind: 'challenge', challenge: kind }, menu, () => challenge(kind));
+  const watch = (replay: MatchReplay) => void play({ kind: 'replay', replay }, menu, () => watch(replay));
   const practice = (endless: boolean) => void play({ kind: 'practice', endless }, menu, () => practice(endless));
   const online = async (opts: Parameters<OnlineModule['showOnline']>[2] = {}) => {
     const mine = ++screen;

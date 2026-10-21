@@ -1962,3 +1962,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .captions { position: fixed; left: calc(10px + var(--safe-l)); bottom: calc(110px + var(--safe-b)); z-index: 5; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
 .caption { padding: 3px 10px; border-radius: 8px; background: rgba(0, 0, 0, .78); color: #fff; font-weight: 800; font-size: 15px; width: fit-content; }
 @media (max-height: 450px) { .captions { bottom: calc(150px + var(--safe-b)); } .caption { font-size: 13px; } }
+
+/* ---------- Replays ---------- */
+.replay-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }
+.replay-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; }
+.replay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
+.replay-info span { font-size: 12px; opacity: .8; }
+.replay-bar {
+  position: fixed; top: calc(56px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6;
+  display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper);
+}
+.replay-bar .hud-btn.on { background: var(--accent); }

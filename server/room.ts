@@ -18,7 +18,7 @@ import { canUse } from '../src/shop/catalog';
 import { MatchTally } from '../src/stats/tally';
 import type { MatchResult } from './store';
 import { encodeWorld, syncHash } from '../src/net/snapshot';
-import { fromWire, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
+import { cleanFrame, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
 
 /** Frames are sent in small batches to cut message count. */
 const FLUSH_EVERY = 2;
@@ -46,6 +46,7 @@ export interface Member {
 }
 
 export type { MatchResult };
+export { cleanFrame };
 
 /** Why a player can be reported (the game offers these; anything else is "other"). */
 export const REPORT_REASONS = ['name', 'contact', 'cheating', 'other'] as const;
@@ -171,22 +172,6 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
     out.weapons = w;
   }
   return out;
-}
-
-/** Rebuild an input frame from untrusted data: known button bits and command shapes only. */
-export function cleanFrame(raw: unknown): InputFrame {
-  if (!Array.isArray(raw)) return { held: 0, pressed: 0 };
-  const f = fromWire([Number(raw[0]) & 0xff, Number(raw[1]) & 0xff]);
-  const c = raw[2] as Record<string, unknown> | undefined;
-  if (!c || typeof c !== 'object') return f;
-  const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
-  if (c.t === 'weapon' && typeof c.id === 'string' && isWeaponId(c.id)) f.cmd = { t: 'weapon', id: c.id };
-  else if (c.t === 'fuse' && finite(c.s)) f.cmd = { t: 'fuse', s: c.s as number };
-  else if (c.t === 'target' && finite(c.x) && finite(c.y)) f.cmd = { t: 'target', x: Math.round(c.x as number), y: Math.round(c.y as number) };
-  else if (c.t === 'aim' && finite(c.aim) && (c.facing === 1 || c.facing === -1)) f.cmd = { t: 'aim', facing: c.facing, aim: c.aim as number };
-  else if (c.t === 'power' && finite(c.p)) f.cmd = { t: 'power', p: c.p as number };
-  else if (c.t === 'skip') f.cmd = { t: 'skip' };
-  return f;
 }
 
 /** A rejoin token: secret, so nobody can take over a dropped player's slot. */
