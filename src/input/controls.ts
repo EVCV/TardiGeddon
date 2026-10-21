@@ -37,6 +37,8 @@ export interface Controls {
   touchSize: TouchSize;
   /** Walk buttons on the right, aim/jump/fire on the left. */
   touchSwap: boolean;
+  /** Charging a shot: tap Fire to start and tap again to let go, instead of holding it. */
+  tapFire: boolean;
 }
 
 export function defaultControls(): Controls {
@@ -57,6 +59,7 @@ export function defaultControls(): Controls {
     },
     touchSize: 'm',
     touchSwap: false,
+    tapFire: false,
   };
 }
 
@@ -95,6 +98,7 @@ export function sanitiseControls(v: unknown): Controls | null {
   }
   out.touchSize = o.touchSize === 's' || o.touchSize === 'l' ? o.touchSize : 'm';
   out.touchSwap = o.touchSwap === true;
+  out.tapFire = o.tapFire === true;
   return out;
 }
 

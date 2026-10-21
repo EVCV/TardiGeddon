@@ -77,6 +77,11 @@ export interface Scheme {
    * everyone. Scenery only: the sim never reads it.
    */
   arena?: string;
+  /**
+   * Shot-path guide while charging: 0 off, 1 the start of the path, 2 all of
+   * it. A match rule (everyone gets the same); the view draws it, the sim never reads it.
+   */
+  aimGuide: number;
   /** Weather: rain, snow, sunshine... and, very rarely, a tornado that throws everyone somewhere new. */
   weather: boolean;
 }
@@ -101,6 +106,7 @@ export const DEFAULT_SCHEME: Scheme = {
   friendlyFire: true,
   armour: 0,
   weather: true,
+  aimGuide: 1,
 };
 
 export interface Tardi {

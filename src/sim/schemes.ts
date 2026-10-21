@@ -27,7 +27,7 @@ export const SCHEME_PRESETS: SchemePreset[] = [
     id: 'pro',
     name: 'Pro',
     blurb: 'Tight 30-second turns, fewer mines and crates. Skill over luck.',
-    scheme: { turnTime: 30, mines: 4, drums: 2, crateChance: 0.3, roundTime: 15 },
+    scheme: { turnTime: 30, mines: 4, drums: 2, crateChance: 0.3, roundTime: 15, aimGuide: 0 },
   },
   {
     id: 'chaos',

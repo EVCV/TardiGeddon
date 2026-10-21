@@ -106,7 +106,7 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       ],
     ),
     card('weapons', '🎯 Kinds of weapon', [
-      '**Hold Fire, let go:** most weapons. Aim with ▲▼ (or drag from your tardigrade), hold Fire to charge, let go to shoot.',
+      '**Hold Fire, let go:** most weapons. Aim with ▲▼ (or drag from your tardigrade), hold Fire to charge, let go to shoot. Yellow dots show where the shot will fly (Match setup → Customise → Shot path guide). Rather not hold? Settings → Accessibility → Tap to fire.',
       '**Grenades and bombs** have a fuse: set it with the ⏱ button or keys 1–5.',
       '**Pick a spot:** strikes, Teleport and the Twig Girder. Tap or click the map to choose where, then press Fire. There’s no aiming, so ▲▼ disappear.',
       '**Twig Girder:** tap where to build, turn it with ▲▼, then Fire. It can rest on the ground or bridge a gap, but not be buried in it, or go through a tardigrade.',

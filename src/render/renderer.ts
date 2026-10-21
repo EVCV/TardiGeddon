@@ -2,7 +2,7 @@
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import type { SimEvent, Tardi, WorldState } from '../sim/types';
-import { aimVector, activeTardi, girderFits, ropeTrace, TARDI_R } from '../sim/world';
+import { aimVector, activeTardi, girderFits, predictPath, ropeTrace, TARDI_R } from '../sim/world';
 import { isSolid } from '../sim/terrain/terrain';
 import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
@@ -665,6 +665,17 @@ export class GameRenderer {
           ov.moveTo(ap.x + dx * 12, ap.y + dy * 12).lineTo(cx, cy).stroke({ width: 1.3, color: style.laser, alpha: 0.9 });
         }
         this.drawMarker(ov, cx, cy, 7, color, style);
+        if (s.turn.charging && def.kind === 'charge' && s.scheme.aimGuide > 0) {
+          // Shot-path guide (a match rule): dots along where it would fly at this power.
+          const path = predictPath(s, def.id, active, s.turn.aim, s.turn.power, s.turn.fuseSeconds * 50, s.scheme.aimGuide >= 2 ? 300 : 30);
+          const ox = ap.x - active.x;
+          const oy = ap.y - active.y;
+          path.forEach((q, i) => {
+            // Bold enough to tell from stars and snow; the short guide fades out along the way.
+            const a = s.scheme.aimGuide >= 2 ? 1 : 1 - (0.6 * i) / path.length;
+            ov.circle(q.x + ox, q.y + oy, 3.2).fill({ color: 0xffd84a, alpha: a }).stroke({ width: 1.6, color: PALETTE.outline, alpha: a });
+          });
+        }
         if (s.turn.charging) {
           // Power wedge: grows with charge, in the aim style's colours.
           const f = s.turn.power / 1000;

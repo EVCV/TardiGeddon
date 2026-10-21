@@ -736,6 +736,38 @@ function spawnProjectile(
   return p;
 }
 
+/**
+ * Where a charged shot would fly, without firing it: points along its path
+ * (every `every` ticks) until it goes off, splashes or leaves the map, at
+ * most `maxTicks`. Reads the world only (the shot is a throwaway copy), so
+ * the view can draw the shot-path guide (Scheme.aimGuide).
+ */
+export function predictPath(
+  s: WorldState,
+  weapon: string,
+  t: Tardi,
+  aim: number,
+  power: number,
+  fuseTicks: number,
+  maxTicks: number,
+  every = 3,
+): { x: number; y: number }[] {
+  const spec = WEAPONS[weapon]?.projectile;
+  if (!spec) return [];
+  const { vx, vy } = launchVelocity(spec, t.facing, aim, power);
+  const p: Projectile = { id: -1, weapon, x: t.x, y: t.y, vx, vy, fuse: spec.playerFuse ? fuseTicks : (spec.fuseTicks ?? -1), owner: t.id, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < maxTicks; i++) {
+    const r = stepProjectile(s, p, null);
+    if (r.k !== 'alive') {
+      if (r.k === 'explode') out.push({ x: r.x, y: r.y });
+      break;
+    }
+    if (i % every === 0) out.push({ x: p.x, y: p.y });
+  }
+  return out;
+}
+
 export function launchVelocity(
   spec: ProjectileSpec,
   facing: number,

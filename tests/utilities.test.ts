@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activeTardi, tick, TARDI_R, AIM_MAX, ROPE_MAX } from '../src/sim/world';
-import { BTN_FIRE, BTN_RIGHT, BTN_UP, PRESS_JUMP, type WorldState } from '../src/sim/types';
+import { activeTardi, predictPath, tick, TARDI_R, AIM_MAX, ROPE_MAX } from '../src/sim/world';
+import { BTN_FIRE, BTN_RIGHT, BTN_UP, PRESS_JUMP, type SimEvent, type WorldState } from '../src/sim/types';
 import { makeWorld, run, runUntilPhase } from './helpers';
 
 /**
@@ -79,6 +79,29 @@ describe('Silk Rope', () => {
     }
     expect(wrapped).toBeGreaterThan(0);
     expect(unwrapped).toBe(true);
+  });
+
+  it('the shot-path guide shows exactly where a charged shot will land', () => {
+    const s = arena();
+    const me = activeTardi(s)!;
+    select(s, 'bazooka');
+    s.turn.aim = 200;
+    s.wind = 0.6;
+    // Charge, see what the guide shows at that power, then let go.
+    for (let i = 0; i < 200 && s.turn.power < 600; i++) tick(s, { held: BTN_FIRE, pressed: 0 }, []);
+    const path = predictPath(s, 'bazooka', me, s.turn.aim, s.turn.power, 150, 400);
+    const landing = path[path.length - 1];
+    tick(s, { held: 0, pressed: 0 }, []);
+    let boom: { x: number; y: number } | null = null;
+    for (let i = 0; i < 400 && !boom; i++) {
+      const ev: SimEvent[] = [];
+      tick(s, { held: 0, pressed: 0 }, ev);
+      const e = ev.find((x) => x.t === 'explosion');
+      if (e && e.t === 'explosion') boom = { x: e.x, y: e.y };
+    }
+    expect(boom).not.toBeNull();
+    expect(Math.abs(boom!.x - landing.x)).toBeLessThan(1);
+    expect(Math.abs(boom!.y - landing.y)).toBeLessThan(1);
   });
 
   it('says how far short a rope that catches nothing fell', () => {

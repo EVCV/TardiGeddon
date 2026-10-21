@@ -108,6 +108,12 @@ const FIELDS: Field[] = [
     hint: 'Armour plates soak up half of each hit until they are used up.',
   },
   {
+    key: 'aimGuide',
+    label: 'Shot path guide',
+    options: [['Off', 0], ['Short', 1], ['Full', 2]],
+    hint: 'While you charge a shot, dots show where it will fly (wind included). Short shows the start of the path; Full shows all of it.',
+  },
+  {
     key: 'weather',
     label: 'Weather',
     options: [['On', true], ['Off', false]],

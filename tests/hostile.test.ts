@@ -44,6 +44,8 @@ describe('hostile input', () => {
     expect(cleanScheme({ armour: 12.7 }).armour).toBe(13);
     expect(cleanScheme({ weather: 'yes' }).weather).toBeUndefined();
     expect(cleanScheme({ weather: false }).weather).toBe(false);
+    expect(cleanScheme({ aimGuide: 9 }).aimGuide).toBe(2);
+    expect(cleanScheme({ aimGuide: 0.4 }).aimGuide).toBe(0);
   });
 
   it('has no inherited names in the weapon list', () => {

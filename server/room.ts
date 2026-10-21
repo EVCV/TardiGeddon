@@ -150,7 +150,8 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   num('waterRise', 0, 100);
   num('supers', 0, 5);
   num('armour', 0, 100);
-  for (const k of ['turnTime', 'retreatTime', 'startHp', 'tardisPerTeam', 'mines', 'mineFuse', 'drums', 'roundTime', 'waterRise', 'supers', 'armour'] as const) {
+  num('aimGuide', 0, 2);
+  for (const k of ['turnTime', 'retreatTime', 'startHp', 'tardisPerTeam', 'mines', 'mineFuse', 'drums', 'roundTime', 'waterRise', 'supers', 'armour', 'aimGuide'] as const) {
     if (out[k] !== undefined) out[k] = Math.round(out[k]);
   }
   if (typeof v.fallDamage === 'boolean') out.fallDamage = v.fallDamage;

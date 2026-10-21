@@ -168,7 +168,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
     status.append(' ', link);
   }
 
-  root.append(status, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx), blockedSettings(ctx));
+  root.append(status, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx, save), blockedSettings(ctx));
 
   // One section at a time, beside the list of them (on a touch screen, touch controls first).
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -243,7 +243,7 @@ function textSettings(ctx: HubContext): HTMLElement {
 }
 
 /** Colour-blind friendly colours, high contrast and calmer effects (ui/access.ts). */
-function accessCard(ctx: HubContext): HTMLElement {
+function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => void): HTMLElement {
   const card = el('section', 'card settings-access');
   card.dataset.section = 'access';
   card.append(el('h2', 'card-title', '👁️ Accessibility'));
@@ -272,6 +272,22 @@ function accessCard(ctx: HubContext): HTMLElement {
     `Team colours from a palette people with any kind of colour blindness can tell apart, and a symbol for each team (${TEAM_SYMBOLS.slice(0, 5).join(' ')} …) beside its name and health bar.`,
   );
   toggle('highContrast', 'High contrast', 'Black and white panels, stronger outlines and bigger name tags in matches.');
+  // Tap to fire: kept with the controls (on the account when signed in).
+  {
+    const on = controls().tapFire;
+    const row = el('div', 'access-row');
+    const b = el('button', 'seg-btn' + (on ? ' on' : ''), on ? 'On' : 'Off');
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-checked', String(on));
+    const name = el('b', '', 'Tap to fire');
+    name.id = 'access-tapfire';
+    b.setAttribute('aria-labelledby', name.id);
+    const label = el('div', 'access-text');
+    label.append(name, el('span', 'account-note', 'No holding: tap Fire once to start charging a shot and again to let go. Works with keys, mouse and touch.'));
+    b.onclick = () => save({ ...controls(), tapFire: !on });
+    row.append(label, b);
+    card.append(row);
+  }
   toggle('calm', 'Calmer effects', 'No lightning flashes or other sudden flashes, and less movement in the menus. On by itself if your device asks for reduced motion.');
   card.append(el('p', 'account-note', 'Only changes what you see on this device, never the match. Kept on this device.'));
   return card;

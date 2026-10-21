@@ -515,6 +515,8 @@ class Match {
         }
         const team = s.teams[s.turn.teamIdx];
         const human = this.isHumanTurn();
+        // Tap-to-fire (Settings) only applies to weapons you charge.
+        this.input.chargeWeapon = WEAPONS[s.turn.weapon]?.kind === 'charge' && human;
         const humanInput = this.input.frame(); // always drain
         const input = this.challenge
           ? this.challenge.frameFor(s, human ? humanInput : EMPTY_INPUT)
@@ -565,6 +567,7 @@ class Match {
     const { client, ls } = this.net!;
     while (this.acc >= TICK_MS) {
       this.acc -= TICK_MS;
+      this.input.chargeWeapon = ls.myTurn && WEAPONS[ls.state.turn.weapon]?.kind === 'charge';
       const f = this.input.frame();
       if (ls.myTurn) {
         // The server forgets held buttons when a turn starts.
@@ -611,7 +614,10 @@ class Match {
     for (const e of events) {
       switch (e.t) {
         case 'explosion': sfx.explosion(e.r); break;
-        case 'fire': sfx.fire(); break;
+        case 'fire':
+          sfx.fire();
+          this.input.stopCharging();
+          break;
         case 'shot': sfx.shot(); break;
         case 'jump': sfx.jump(); break;
         case 'splash': sfx.splash(); break;

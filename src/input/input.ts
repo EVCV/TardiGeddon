@@ -11,8 +11,23 @@ export class InputCollector {
   // still registers as held for a tick.
   private latched = 0;
   private cmds: Command[] = [];
+  /** Tap-to-fire (Settings): Fire is "held" from one tap until the next. */
+  private fireOn = false;
+  /** Set by the game each frame: the weapon in hand charges (so tap-to-fire applies). */
+  chargeWeapon = false;
 
   hold(source: string, bit: number, down: boolean): void {
+    if (bit === BTN_FIRE && this.chargeWeapon && controls().tapFire) {
+      // Tap to start charging, tap again to let go.
+      if (down && !this.sources.has(source)) {
+        this.fireOn = !this.fireOn;
+        if (this.fireOn) this.latched |= BTN_FIRE;
+      }
+      if (down) this.sources.set(source, 0);
+      else this.sources.delete(source);
+      return;
+    }
+    if (bit === BTN_FIRE && !this.chargeWeapon) this.fireOn = false;
     if (down) {
       this.sources.set(source, bit);
       this.latched |= bit;
@@ -34,12 +49,19 @@ export class InputCollector {
   releaseAll(): void {
     this.sources.clear();
     this.latched = 0;
+    this.fireOn = false;
+  }
+
+  /** The shot went off (or the turn moved on): a tapped-on charge is over. */
+  stopCharging(): void {
+    this.fireOn = false;
   }
 
   /** Build the frame for the next tick and clear one-shot inputs. */
   frame(): InputFrame {
     let held = this.latched;
     for (const bit of this.sources.values()) held |= bit;
+    if (this.fireOn) held |= BTN_FIRE;
     this.latched = 0;
     const f: InputFrame = { held, pressed: this.pressed };
     const cmd = this.cmds.shift();
