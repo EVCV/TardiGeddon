@@ -172,6 +172,9 @@ export class Hud {
   private buildTouch(): void {
     const mk = (label: string, cls: string, bit: number, id: string) => {
       const b = el('button', 'touch-btn ' + cls, label);
+      // Longer words (some languages): smaller letters, so they stay inside the round button.
+      // (Japanese and Chinese characters count double: they're about twice as wide.)
+      if ([...label].reduce((n, c) => n + (c.codePointAt(0)! >= 0x2e80 ? 2 : 1), 0) > 4) b.classList.add('long');
       const on = (e: PointerEvent) => {
         e.preventDefault();
         b.setPointerCapture(e.pointerId);

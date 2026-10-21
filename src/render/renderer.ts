@@ -389,7 +389,7 @@ export class GameRenderer {
     const root = new Container();
     const label = new Text({
       text,
-      style: { fontFamily: 'Nunito, Arial, sans-serif', fontWeight: '800', fontSize: 13, fill: '#2b1b24', wordWrap: true, wordWrapWidth: 150, align: 'center' },
+      style: { fontFamily: 'Nunito, Arial, Hiragino Sans, Yu Gothic, Noto Sans JP, sans-serif', fontWeight: '800', fontSize: 13, fill: '#2b1b24', wordWrap: true, wordWrapWidth: 150, align: 'center' },
     });
     label.resolution = 3;
     label.anchor.set(0.5, 1);
@@ -409,7 +409,7 @@ export class GameRenderer {
     const text = new Text({
       text: s,
       style: {
-        fontFamily: 'Luckiest Guy, Arial Black, sans-serif',
+        fontFamily: 'Luckiest Guy, Arial Black, Hiragino Maru Gothic ProN, Yu Gothic, Noto Sans JP, sans-serif',
         fontSize: 18,
         fill: hex(color),
         stroke: { color: '#1b1016', width: 4, join: 'round' },
@@ -564,7 +564,7 @@ export class GameRenderer {
       if (!ft) {
         ft = new Text({
           text: '',
-          style: { fontFamily: 'Luckiest Guy, Arial Black, sans-serif', fontSize: 12, fill: '#ffffff', stroke: { color: '#1b1016', width: 3, join: 'round' } },
+          style: { fontFamily: 'Luckiest Guy, Arial Black, Hiragino Maru Gothic ProN, Yu Gothic, Noto Sans JP, sans-serif', fontSize: 12, fill: '#ffffff', stroke: { color: '#1b1016', width: 3, join: 'round' } },
         });
         ft.resolution = 3;
         ft.anchor.set(0.5);

@@ -323,6 +323,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .touch-btn.aim { width: 56px; height: 48px; font-size: 18px; }
 .touch-btn.jump { background: rgba(158, 224, 106, .9); font-size: 16px; }
 .touch-btn.fire { width: 84px; height: 84px; border-radius: 50%; background: rgba(224, 72, 72, .92); color: #fff; -webkit-text-stroke: 1px var(--ink); }
+.touch-btn.long { font-size: 11px; letter-spacing: -0.5px; padding: 0; white-space: nowrap; }
 .touch-btn.down { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); filter: brightness(.9); }
 .touch-mode .hud-tools { position: absolute; right: 0; bottom: 0; }
 /* Settings: left-handed swaps the two sides; three button sizes. */
@@ -1451,9 +1452,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font: inherit;
   font-weight: 800;
   font-size: 15px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
+  overflow-wrap: anywhere; /* long names in some languages wrap rather than spill */
   cursor: pointer;
 }
 .settings-menu-btn:hover { background: #f4eedf; }

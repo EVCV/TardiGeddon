@@ -108,7 +108,7 @@ export class TardiView {
     this.chute.visible = false;
     this.root.addChild(this.chute);
     const style = {
-      fontFamily: 'Luckiest Guy, Arial Black, sans-serif',
+      fontFamily: 'Luckiest Guy, Arial Black, Hiragino Maru Gothic ProN, Yu Gothic, Noto Sans JP, sans-serif',
       // High contrast: bigger letters on a thicker black edge.
       fontSize: VIEW.highContrast ? 14 : 12,
       fill: hex(teamColor),

@@ -66,6 +66,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.tutorial` | Local storage | TardiGeddon (first party) | That you have started the tutorial, so the menu stops suggesting it | Strictly necessary | Until you clear site data |
 | `tardigeddon.controls` | Session storage | TardiGeddon (first party) | Your control settings (keys, mouse buttons and touch buttons) for this visit. If you are signed in, they are also kept on your account | Strictly necessary | Until you close the tab |
 | `tardigeddon.rejoin` | Session storage | TardiGeddon (first party) | Room code and rejoin token, so you can get back into an online match | Strictly necessary | Until you close the tab |
+| `tardigeddon.lang` | Local storage | TardiGeddon (first party) | The language you chose in Settings (only set if you pick one rather than your device's) | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.replays` | Local storage | TardiGeddon (first party) | Your last few matches (the rules, team looks and moves), so you can watch them again in Replays | Strictly necessary | Until you delete them or clear site data |
 | `tardigeddon.maps` | Local storage | TardiGeddon (first party) | The maps you saved in the map editor | Strictly necessary | Until you delete them or clear site data |
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |

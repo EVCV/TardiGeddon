@@ -2,7 +2,8 @@
 // service worker that keeps every file of the build on the device. The
 // game then opens without a connection (everything but online play, the
 // shop and accounts works offline). Each build gets its own cache name, so
-// a new version replaces the old files as soon as it's been fetched.
+// a new version replaces the old files as soon as it's been fetched. The
+// translations are the exception: only the language in use is kept.
 // The phone apps don't need it (their files are already on the phone).
 
 import type { Plugin } from 'vite';
@@ -39,7 +40,20 @@ self.addEventListener('fetch', (e) => {
   }
   // Built files never change (their names carry a hash): the kept copy first.
   // (ignoreVary: module scripts send an Origin header the kept copies were fetched without.)
-  e.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req)));
+  // Files not kept up front (the languages: only the one you use) are kept once fetched.
+  e.respondWith(
+    caches.match(req, { ignoreVary: true }).then(
+      (hit) =>
+        hit ||
+        fetch(req).then((res) => {
+          if (res.ok && url.pathname.includes('/assets/')) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        }),
+    ),
+  );
 });
 `;
 }
@@ -57,7 +71,12 @@ export function offline(): Plugin {
       if (mode === 'app') return;
       // Every built file (but source maps, and the older .woff fonts every browser that has
       // service workers can do without), plus the icon and manifest from public/.
-      const files = [...Object.keys(bundle).filter((f) => !f.endsWith('.map') && !f.endsWith('.woff')), 'icon.svg', 'manifest.webmanifest'].sort();
+      // The languages aren't kept up front: each player's own is kept when the game first loads it.
+      const isLocale = (f: string) => {
+        const c = bundle[f];
+        return c.type === 'chunk' && !!c.facadeModuleId?.includes('/i18n/locales/');
+      };
+      const files = [...Object.keys(bundle).filter((f) => !f.endsWith('.map') && !f.endsWith('.woff') && !isLocale(f)), 'icon.svg', 'manifest.webmanifest'].sort();
       const version = createHash('sha256').update(files.join('\n')).digest('hex').slice(0, 12);
       this.emitFile({ type: 'asset', fileName: 'sw.js', source: serviceWorker(files, version) });
     },
