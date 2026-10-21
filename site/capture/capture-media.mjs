@@ -37,10 +37,13 @@ const browser = await chromium.launch({
 /** Each page's device pixel ratio, for screenshots. */
 const scale = new WeakMap();
 
-/** Open the game in a fresh page with the virtual clock installed. */
-async function open(url, ctxOptions = { viewport: { width: 1280, height: 720 } }, seed) {
+/** Open the game in a fresh page with the virtual clock installed, in one of
+ *  the free worlds (`arena`; the default "Surprise me" would pick at random,
+ *  seasonal worlds included). */
+async function open(url, ctxOptions = { viewport: { width: 1280, height: 720 } }, seed, arena = 'classic') {
   const ctx = await browser.newContext(ctxOptions);
   if (seed !== undefined) await ctx.addInitScript(`window.__seed = ${seed};`);
+  await ctx.addInitScript(`try { localStorage.setItem('tardigeddon.arena', ${JSON.stringify(arena)}); } catch {}`);
   await ctx.addInitScript(CLOCK);
   const page = await ctx.newPage();
   scale.set(page, ctxOptions.deviceScaleFactor ?? 1);
@@ -119,16 +122,22 @@ function still(name, png, width = 1600) {
 }
 
 /** Screenshot the page, or just the element matching `selector` (with a
- *  margin of sky round it), and save it as WebP. Uses DevTools directly, as
+ *  margin of sky round it; `onScreen`: only what's in the window), and save it as WebP. Uses DevTools directly, as
  *  Playwright's screenshot waits for a frame that a frozen clock never gives. */
-async function screenshot(page, name, width, selector) {
+async function screenshot(page, name, width, selector, onScreen = false) {
   const png = join(TMP, `${name}.png`);
   const dpr = scale.get(page) ?? 1;
   const pad = 24;
   const b = selector ? await page.locator(selector).boundingBox() : null;
-  const clip = b
+  let clip = b
     ? { x: b.x - pad, y: b.y - pad, width: b.width + pad * 2, height: b.height + pad * 2 }
     : { x: 0, y: 0, ...page.viewportSize() };
+  if (onScreen) {
+    // Only the part of it inside the window (for things that scroll).
+    const v = page.viewportSize();
+    const y0 = Math.max(0, clip.y);
+    clip = { ...clip, y: y0, height: Math.min(v.height, clip.y + clip.height) - y0 };
+  }
   const cdp = await page.context().newCDPSession(page);
   const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', clip: { ...clip, scale: dpr } });
   await cdp.detach();
@@ -272,13 +281,26 @@ const SCENES = {
     await ctx.close();
   },
 
-  /** The menus: main menu, online, a room lobby and quick play. */
+  /** The menus: the lobby, online, a room and quick play, and the team editor. */
   async menus() {
+    const WIDE = { viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1.5 };
+    const home = await open('', WIDE);
+    await home.page.locator('.lobby-play').waitFor();
+    await home.page.waitForTimeout(800);
+    await screenshot(home.page, 'shot-home', 1600);
+    // The team editor: colours, hats, the emblem builder.
+    await home.page.locator('.hero-edit').click();
+    await home.page.locator('.editor').waitFor();
+    await home.page.waitForTimeout(500);
+    // It scrolls: take what's on screen of it, at the emblem builder.
+    await home.page.locator('.emblem-builder').evaluate((e) => e.scrollIntoView({ block: 'start' }));
+    await home.page.getByRole('button', { name: /Surprise me/ }).last().click();
+    await home.page.waitForTimeout(300);
+    await screenshot(home.page, 'shot-emblem', 1200, '.editor', true);
+    await home.ctx.close();
+
     const TALL = { viewport: { width: 1000, height: 1100 }, deviceScaleFactor: 2 };
     const { ctx, page } = await open('', TALL);
-    await page.locator('.title').waitFor();
-    await page.waitForTimeout(800);
-    await screenshot(page, 'shot-menu', 900, '.menu-card');
     await page.getByRole('button', { name: 'Play online' }).click();
     await page.getByRole('button', { name: /Quick play/ }).waitFor();
     await screenshot(page, 'shot-online', 900, '.menu-card');
@@ -297,6 +319,41 @@ const SCENES = {
     await quick.page.waitForTimeout(500);
     await screenshot(quick.page, 'shot-quickplay', 900, '.menu-card');
     await quick.ctx.close();
+  },
+
+  /** A few of the map styles, each in its own weather. */
+  async realms() {
+    const LOOKS = [
+      ['sky', 'sunny', 7, 'spring'],
+      ['spires', 'snow', 3, 'moor'],
+      ['canyon', 'rain', 5, 'cove'],
+      ['caverns', 'clear', 2, 'classic'],
+    ];
+    for (const [map, weather, seed, arena] of LOOKS) {
+      const { ctx, page } = await open(`?autostart=cpu&players=3&map=${map}&seed=${seed}`, DESKTOP, seed, arena);
+      await freezeMatch(page);
+      await until(page, humanAiming);
+      // The weather comes from the seed: set the one we want, then redraw.
+      await page.evaluate((weather) => {
+        const m = window.__tardi;
+        m.world.weather.kind = weather;
+        m.newRenderer(m.world);
+      }, weather);
+      // Long enough for the turn banner to go.
+      await run(page, 210);
+      await screenshot(page, `shot-realm-${map}`, 1200);
+      await ctx.close();
+    }
+  },
+
+  /** Today's Target Smash daily challenge. */
+  async challenge() {
+    const { ctx, page } = await open('?autostart=targets', DESKTOP);
+    await freezeMatch(page);
+    await until(page, humanAiming);
+    await run(page, 30);
+    await screenshot(page, 'shot-challenge', 1600);
+    await ctx.close();
   },
 
   /** In a match: aiming with the power bar filling, and the weapon panel. */
@@ -322,6 +379,8 @@ const SCENES = {
     await until(page, humanAiming);
     await page.keyboard.press('Tab');
     await run(page, 10);
+    await page.locator('.weapon-cell[data-id=airstrike]').dispatchEvent('mouseenter');
+    await run(page, 4);
     await screenshot(page, 'shot-weapons');
     await ctx.close();
   },
