@@ -4,6 +4,7 @@
 // A page of the menu hub (reached from the lobby and Settings); the online
 // part also shows on the online screen.
 
+import { MAP_STYLES } from '../sim/terrain/generate';
 import { WEAPONS } from '../sim/weapons';
 import { DEFAULT_SCHEME } from '../sim/types';
 import type { HubContext } from './hub';
@@ -107,13 +108,20 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       '**Grenades and bombs** have a fuse: set it with the ⏱ button or keys 1–5.',
       '**Pick a spot:** strikes, Teleport and the Twig Girder. Tap or click the map to choose where, then press Fire. There’s no aiming, so ▲▼ disappear.',
       '**Twig Girder:** tap where to build, turn it with ▲▼, then Fire. It can rest on the ground or bridge a gap, but not be buried in it, or go through a tardigrade.',
-      '**Silk Rope:** aim and Fire to swing; ▲▼ climb, Jump lets go. **Leaf Parachute:** jump off something, then Fire.',
+      '**Silk Rope:** aim and Fire to swing; ▲▼ climb, Jump lets go. While you aim, dots show where it will catch (a green ring) or that nothing is in reach (a red ✕). Miss, and it says how far short you were. **Leaf Parachute:** jump off something, then Fire.',
     ]),
     card('map', '🛢️ Things on the map', [
       `**Mines:** they arm when a tardigrade comes close and go off ${DEFAULT_SCHEME.mineFuse} seconds later. Some are duds. A blast nearby sets them off at once.`,
       '**Brine drums:** barrels of salty water. Hit one hard enough (one good blast) and it bursts: a big bang, then a spray of brine blobs that pop wherever they land. Keep your own team away from them, and use them to hurt anyone standing close.',
       '**Crates:** float down on parachutes. Walk into one to take it: weapon crates give you extra ammo, health crates heal and cure poison. A blast breaks crates open.',
       '**Poison** (the Cyanobloom Cloud) takes a little health at the start of every turn, but never pops a tardigrade on its own.',
+      '**Armour** (the Armoured game style, or Customise → Armour): the grey +number by a tardigrade’s health. It takes half of each hit until it’s used up, and is gone in sudden death.',
+    ]),
+    card('realms', '🌍 Maps and weather', [
+      `**Every match is a different kind of map:** ${MAP_STYLES.map((m) => m.name).join(', ')}. Pick one in Match setup → Customise → Map, or leave it on Surprise me.`,
+      '**Weather** (rain, snow, sunshine, fog, storms) is just for looks: it never moves your shots. The rain and snow do lean with the wind, though.',
+      '**Tornadoes** are very rare. One picks up every tardigrade and drops them somewhere new. Storms bring them more often. Turn weather off in Customise if you’d rather not.',
+      '**Change how the world looks** with 🏞️ World on the lobby: Surprise me picks a different look every match.',
     ]),
     onlineGuide(),
   );
