@@ -325,6 +325,16 @@ wss.on('connection', (ws: WebSocket, req) => {
       }
       return;
     }
+    if (msg.t === 'watch') {
+      if (msg.v !== PROTOCOL_VERSION) return fail('Please reload the page: the game has been updated.');
+      leaveRoom(member);
+      matchmaker.remove(member);
+      const r = rooms.get(String(msg.code).toUpperCase().trim());
+      if (!r) return fail('No room with that code.');
+      if (!r.watch(member)) return fail('That room already has as many people watching as it can take.');
+      roomOf.set(member, r);
+      return;
+    }
     if (msg.t === 'quickCancel') return matchmaker.remove(member);
     if (msg.t === 'quickCpu') return mayCreate() ? matchmaker.vsCpu(member) : undefined;
     if (msg.t === 'leave') {

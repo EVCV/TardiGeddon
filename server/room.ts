@@ -179,8 +179,13 @@ function randomToken(): string {
   return randomBytes(16).toString('base64url');
 }
 
+/** Most people watching one room. */
+export const MAX_WATCHERS = 8;
+
 export class Room {
   private slots: Slot[] = [];
+  /** Spectators: they get everything the players get, but have no slot and no say. */
+  private watchers = new Set<Member>();
   private host = 0;
   private state: WorldState | null = null;
   private teams: TeamConfig[] = [];
@@ -213,9 +218,24 @@ export class Room {
     return this.state;
   }
 
-  /** Everyone connected to this room. */
+  /** Everyone connected to this room, watchers included. */
   get members(): Member[] {
-    return this.slots.flatMap((s) => (s.member ? [s.member] : []));
+    return [...this.slots.flatMap((s) => (s.member ? [s.member] : [])), ...this.watchers];
+  }
+
+  /**
+   * Watch the room (spectate): see the lobby and the match, with no team and
+   * no say. Returns false if it already has as many watchers as it takes.
+   */
+  watch(member: Member): boolean {
+    if (this.watchers.size >= MAX_WATCHERS) return false;
+    this.watchers.add(member);
+    member.send({ t: 'room', code: this.code, slots: this.lobbySlots(), you: -1, token: '', started: this.started });
+    if (this.state) {
+      this.flush();
+      member.send({ t: 'snapshot', state: encodeWorld(this.state), teams: this.teams, you: -1 });
+    }
+    return true;
   }
 
   get humansConnected(): number {
@@ -250,6 +270,7 @@ export class Room {
   }
 
   leave(member: Member): void {
+    if (this.watchers.delete(member)) return;
     const slot = this.slots.find((s) => s.member === member);
     if (!slot) return;
     slot.member = null;
@@ -446,6 +467,7 @@ export class Room {
     this.lastTeam = -1;
     this.broadcastRoom();
     this.slots.forEach((s, i) => s.member?.send({ t: 'start', seed, scheme: this.scheme, teams: this.teams, you: i }));
+    for (const w of this.watchers) w.send({ t: 'start', seed, scheme: this.scheme, teams: this.teams, you: -1 });
   }
 
   /** Tell a player their Fire came after their turn had run out (once per turn). */
@@ -467,12 +489,18 @@ export class Room {
     slot.member.send({ t: 'snapshot', state: encodeWorld(this.state), teams: this.teams, you: this.slots.indexOf(slot) });
   }
 
+  private lobbySlots(): LobbySlot[] {
+    return this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}) }));
+  }
+
   private broadcastRoom(): void {
-    const slots: LobbySlot[] = this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}) }));
+    const slots = this.lobbySlots();
     this.slots.forEach((s, i) => s.member?.send({ t: 'room', code: this.code, slots, you: i, token: s.token, started: this.started }));
+    for (const w of this.watchers) w.send({ t: 'room', code: this.code, slots, you: -1, token: '', started: this.started });
   }
 
   private broadcast(msg: ServerMsg): void {
     for (const s of this.slots) s.member?.send(msg);
+    for (const w of this.watchers) w.send(msg);
   }
 }

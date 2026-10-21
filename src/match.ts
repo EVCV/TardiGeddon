@@ -191,6 +191,13 @@ export class Match {
     playMusic(wearMusic());
     ui.append(this.hud.root, this.captions.root);
     if (this.playback) ui.append(this.replayBar());
+    if (this.net && this.net.ls.you < 0) {
+      // Spectating: say so.
+      const badge = document.createElement('div');
+      badge.className = 'watching-badge';
+      badge.textContent = '👀 Watching';
+      ui.append(badge);
+    }
     // Record everything but the tutorial (and replays themselves) for Replays.
     else if (!this.coach) this.matchRec.begin(this.state);
     if (this.coach) {
@@ -611,7 +618,7 @@ export class Match {
             sfx.fanfare();
             // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
             const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
-            if (youLost) sfx.wahwah();
+            if (youLost && !(this.net && this.net.ls.you < 0)) sfx.wahwah();
             if (this.tally) {
               void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] }).then((slime) => {
                 if (slime > 0 && !this.destroyed) this.hud.showBanner(`+${slime} Slime 🟢`, 0x5aa83a, 3);

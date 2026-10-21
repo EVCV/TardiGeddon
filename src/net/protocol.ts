@@ -45,6 +45,8 @@ export type ClientMsg =
   | { t: 'join'; v: number; code: string; team: LobbyTeam; token?: string }
   /** Quick play: wait in the queue to be matched with other players (never with anyone in `blocks`, player ids). */
   | { t: 'quick'; v: number; team: LobbyTeam; blocks?: string[] }
+  /** Watch a room (spectate): no team, no say. */
+  | { t: 'watch'; v: number; code: string }
   | { t: 'quickCancel' }
   /** Tired of waiting: play a CPU straight away. */
   | { t: 'quickCpu' }

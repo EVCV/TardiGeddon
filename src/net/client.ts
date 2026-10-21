@@ -72,6 +72,11 @@ export class NetClient {
     this.send({ t: 'quick', v: PROTOCOL_VERSION, team, blocks: blockedPlayers().map((b) => b.pid) });
   }
 
+  /** Spectate a room by its code. */
+  watch(code: string): void {
+    this.send({ t: 'watch', v: PROTOCOL_VERSION, code });
+  }
+
   join(code: string, team: LobbyTeam, token?: string): void {
     this.send({ t: 'join', v: PROTOCOL_VERSION, code, team, token });
   }

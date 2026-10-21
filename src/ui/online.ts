@@ -100,7 +100,8 @@ export function showOnline(
       else if (msg.t === 'queue') renderQueue(msg.waiting);
       else if (msg.t === 'room') {
         stopQueueClock();
-        saveRejoin(msg.code, msg.token);
+        // Watchers have no slot to come back to.
+        if (msg.you >= 0) saveRejoin(msg.code, msg.token);
         if (!msg.started) renderLobby(msg);
       } else if (msg.t === 'start') {
         stopQueueClock();
@@ -198,7 +199,19 @@ export function showOnline(
     code.onkeydown = (e) => {
       if (e.key === 'Enter') join.click();
     };
-    joinRow.append(code, join);
+    // Spectate: watch a room's match without playing in it.
+    const watch = el('button', 'hud-btn', '👀 Watch');
+    watch.title = 'Watch this room’s match without playing';
+    watch.onclick = async () => {
+      const v = code.value.trim().toUpperCase();
+      if (v.length < 5) {
+        status.textContent = 'Enter the 5-letter room code.';
+        return;
+      }
+      const c = await connect();
+      c?.watch(v);
+    };
+    joinRow.append(code, join, watch);
     const back = el('button', 'hud-btn online-back', '← Back');
     back.onclick = leave;
     const help = el('button', 'hud-btn', '❓ How online play works');
@@ -337,9 +350,9 @@ export function showOnline(
       colB.append(add, styleRow, mapRow, worldRow, start);
       if (room.slots.length < 2) colB.append(el('p', 'online-note', 'Share the code, or add a CPU, to start.'));
     } else {
-      colB.append(el('p', 'online-note', 'Waiting for the host to start the match…'));
+      colB.append(el('p', 'online-note', room.you < 0 ? '👀 You’re watching. The match shows here when the host starts it.' : 'Waiting for the host to start the match…'));
     }
-    const back = el('button', 'hud-btn online-back', 'Leave room');
+    const back = el('button', 'hud-btn online-back', room.you < 0 ? 'Stop watching' : 'Leave room');
     back.onclick = leave;
     colA.append(status, back);
   };

@@ -80,3 +80,11 @@ setup is in `docs/DEPLOY.md` (step 6). To ship server changes, run
 
 Any Node host with WebSockets works the same way (Render, Railway, a VPS):
 run `npm ci && npm run server` with `PORT` set, and point `VITE_SERVER_URL` at it.
+
+## Watching (spectators)
+
+`{ t: 'watch', code }` joins a room as a watcher: no slot, no inputs (the
+room ignores anything they send), up to `MAX_WATCHERS` (8) per room. They
+get the lobby (`you: -1`), the `start`, every `frames`/`hash`, and a
+`snapshot` if the match is already under way, exactly like a player, so the
+same lockstep client shows the match. Leaving touches nobody's slot.
