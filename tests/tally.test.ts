@@ -17,8 +17,8 @@ describe('match tally', () => {
       { t: 'drown', id: mine.id },
     ];
     tally.add(s, ev);
-    expect(tally.teams[me]).toEqual({ popped: 1, damage: 30, selfDamage: 12, selfPopped: 1 });
-    expect(tally.teams[enemy.team]).toEqual({ popped: 0, damage: 0, selfDamage: 0, selfPopped: 0 });
+    expect(tally.teams[me]).toEqual({ popped: 1, damage: 30, selfDamage: 12, selfPopped: 1, shots: 0, bestTurn: 30 });
+    expect(tally.teams[enemy.team]).toEqual({ popped: 0, damage: 0, selfDamage: 0, selfPopped: 0, shots: 0, bestTurn: 0 });
   });
 
   it('ignores poison at the start of a turn', () => {
