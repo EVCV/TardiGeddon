@@ -52,7 +52,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - **Email:** support@tardigeddon.com forwards to the owner, so owner alerts go there (e.g. the Japan
   coins alert; `ADMIN_EMAILS` is only who can open the Sales page).
 - **Countries:** everywhere except Vietnam (online games need a licence there). The EU is all or
-  nothing (geo-blocking rules). Brazil needs the in-app age check (`src/shop/ageSignals.ts`); Japan
+  nothing (geo-blocking rules). The in-app age check (`src/shop/ageSignals.ts`) runs everywhere; Brazil and Texas require it; Japan
   needs the unspent-coin record (`coin_lot`, `src/shop/japan.ts`). See `docs/GOOGLE_PLAY.md`.
 - **Coins are never refunded just because a player stops playing.** The only exceptions are the law's:
   faulty items, and in Japan, unspent bought coins if we stop selling coins there (Terms 5.5.4).

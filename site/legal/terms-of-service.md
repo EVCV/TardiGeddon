@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 20 October 2026
-**Document Version:** v2.0
+**Last Modified:** 21 October 2026
+**Document Version:** v2.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -138,7 +138,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.1 Buying Coins
 
-5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. Before every purchase, we ask you to confirm that you are 18 or over or that a parent or guardian has agreed to it. In our Android app, the shop also takes account of the age range Google Play provides, where you or a parent or carer share it: it reminds players under 18 that a parent or carer may need to approve purchases, and buying coins is switched off while a parent or carer has not approved the latest version of the app in Google Family Link, or while Google Play needs you to confirm your age (see our Privacy Policy, Section 2.0.4).
+5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. Before every purchase, we ask you to confirm that you are 18 or over or that a parent or guardian has agreed to it. In our Android app, wherever you are, the shop also asks Google Play for your age range; Google provides it where you or a parent or carer have chosen to share it, or where the law requires it. If it shows you are under 18, you can only confirm that a parent or carer has agreed (not that you are 18 or over), and buying coins is switched off while a parent or carer has not approved the latest version of the app in Google Family Link, or while Google Play needs you to confirm your age (see our Privacy Policy, Section 2.0.4).
 
 5.1.2 Coin packs are priced in pounds sterling, including VAT or any similar sales tax for your country. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or time-limited offers to pressure you into buying. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page, which may also show you the price in your own currency; your bank or card issuer may charge fees for payments in a foreign currency.
 

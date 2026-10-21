@@ -641,7 +641,9 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     const adult = el('label', 'account-check');
     const adultTick = el('input');
     adultTick.type = 'checkbox';
-    adult.append(adultTick, el('span', '', "I'm 18 or over, or a parent or carer has said yes to this purchase."));
+    // Under 18 by Google Play's age band: "I'm 18 or over" isn't an option.
+    const minor = inApp() && !!coinRules(age).minor;
+    adult.append(adultTick, el('span', '', minor ? 'A parent or carer has said yes to this purchase.' : "I'm 18 or over, or a parent or carer has said yes to this purchase."));
     const payLabel = `Pay ${packPrice(pack)}`;
     const pay = el('button', 'big-btn coin-dialog-pay', payLabel);
     const error = el('p', 'coin-dialog-error');

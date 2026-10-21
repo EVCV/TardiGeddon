@@ -31,6 +31,17 @@ export interface CoinRules {
   blocked?: string;
   /** A line to show above the coin packs. */
   note?: string;
+  /** Google Play says the player is under 18: only a parent's or carer's yes will do. */
+  minor?: boolean;
+}
+
+/**
+ * Whether the band may include under-18s. The lower bound decides it, so a
+ * top band of e.g. "15 and over" (custom ranges in Play Console) still counts.
+ */
+export function mayBeMinor(lower: number | undefined, upper: number | undefined): boolean {
+  if (lower !== undefined) return lower < 18;
+  return upper !== undefined && upper < 18;
 }
 
 /** The coin shop's rules for a player, from their age signal. */
@@ -47,8 +58,8 @@ export function coinRules(signal: AgeSignal | null): CoinRules {
   if (signal.change === 'pending') {
     return { blocked: 'Buying coins is switched off until a parent or carer approves the latest version of TardiGeddon in Family Link.' };
   }
-  if (signal.upper !== undefined && signal.upper < 18) {
-    return { note: '👪 A parent or carer may need to approve purchases. Google Play will ask them.' };
+  if (mayBeMinor(signal.lower, signal.upper)) {
+    return { note: '👪 A parent or carer needs to say yes to every purchase. Google Play may ask them too.', minor: true };
   }
   return {};
 }

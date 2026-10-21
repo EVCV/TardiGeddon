@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { coinRules, mayChange, withTimeout } from '../src/shop/ageSignals';
+import { coinRules, mayBeMinor, mayChange, withTimeout } from '../src/shop/ageSignals';
 
 // Brazil's Digital ECA and US state app-store laws: Google Play's age band only changes buying coins.
 describe('age signals and the coin shop', () => {
@@ -11,13 +11,23 @@ describe('age signals and the coin shop', () => {
     expect(coinRules({ status: 'shared', lower: 18, change: 'approved' })).toEqual({});
   });
 
-  it('tells under-18s a parent may need to approve purchases', () => {
+  it("tells under-18s a parent must say yes, and doesn't let them say they're 18", () => {
     for (const [lower, upper] of [[0, 12], [13, 15], [16, 17]]) {
       const r = coinRules({ status: 'shared', lower, upper });
       expect(r.blocked).toBeUndefined();
       expect(r.note).toMatch(/parent or carer/);
+      expect(r.minor).toBe(true);
     }
     expect(coinRules({ status: 'shared', lower: 13, upper: 15, change: 'approved' }).note).toMatch(/parent/);
+    expect(coinRules({ status: 'shared', lower: 18 }).minor).toBeUndefined();
+  });
+
+  it('counts a custom top band below 18 (e.g. "15 and over") as possibly under 18', () => {
+    expect(mayBeMinor(15, undefined)).toBe(true);
+    expect(mayBeMinor(18, undefined)).toBe(false);
+    expect(mayBeMinor(undefined, 12)).toBe(true);
+    expect(mayBeMinor(undefined, undefined)).toBe(false);
+    expect(coinRules({ status: 'shared', lower: 15 }).minor).toBe(true);
   });
 
   it('switches buying coins off while a parent has not approved this version', () => {

@@ -285,12 +285,14 @@ Google returns it (as of October 2026):
   [Google's page on these laws](https://support.google.com/googleplay/android-developer/answer/16569691)
   and the [API overview](https://developer.android.com/google/play/age-signals/overview)
   a month before each date.
- The app asks Google when the
+
+The app asks Google in every country (Google decides where it answers:
+the places above, plus anyone who chose to share) when the
 player opens the coin packs (`AgeSignalsPlugin.java`, `src/shop/ageSignals.ts`).
 Google may show its own "share your age range?" prompt then. The answer
 only changes buying coins:
 
-- **Under 18:** a reminder that a parent or carer may need to approve.
+- **Under 18:** the purchase tick reads only "A parent or carer has said yes to this purchase" (no "I'm 18 or over"), and a note says a parent must say yes.
 - **A parent hasn't approved this version yet (Family Link):** buying coins is off.
 - **Google needs to confirm the age:** buying coins is off until the player does so in the Play Store.
 
@@ -299,9 +301,9 @@ safety doesn't change (Google: the library itself collects nothing).
 
 The **Age signals** page in Play Console has three parts:
 
-- **Custom age ranges:** leave them off. `coinRules` reads "no upper
-  bound" as 18 and over, which is only true with Google's default bands
-  (0–12, 13–15, 16–17, 18+).
+- **Custom age ranges:** leave them off (Google's 0–12, 13–15, 16–17,
+  18+ are all we need). If they're ever set, `mayBeMinor` goes by the
+  lower bound, so a top band like "15 and over" still counts as under 18.
 - **Significant changes:** after launch, when an update changes what data
   the app collects or how it's used (a Privacy Policy change of that kind),
   the content rating, how it makes money (e.g. ads, subscriptions), or

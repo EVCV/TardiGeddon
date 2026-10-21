@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 20 October 2026
+**Last Modified:** 21 October 2026
 **Document Version:** v2.7
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -55,7 +55,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.0.3 This information stays on your device. In our Android app, it is kept in the app's own storage on your device instead of a browser's. It is not sent to us, except as described in Section 2.1 when you play online and in Section 2.2 if you have an account, and you can delete it at any time by clearing your browser's site data.
 
-2.0.4 In our Android app, when you open the coin packs in the shop, the app asks Google Play for your age range (for example "13 to 15" or "18 and over"), using Google's Play Age Signals service. Google may first ask you, or a parent or carer through Google Family Link, whether to share it; in places where the law requires app stores to check ages, such as Texas, Google shares it once your age is confirmed or a parent or carer supervises your account. The app uses the answer only to adjust buying coins: it reminds players under 18 that a parent or carer may need to approve purchases, and switches buying coins off while a parent or carer has not yet approved the latest version of the app, or while Google needs to confirm your age. The answer is kept in the app's memory until you close it: it is not saved on your device, not sent to us, and not used for anything else. We do this because laws such as Brazil's Digital Statute of Children and Adolescents (Digital ECA) and the Texas App Store Accountability Act ask apps to take account of the age range, and of a parent's or carer's consent, that app stores provide.
+2.0.4 In our Android app, when you open the coin packs in the shop, the app asks Google Play for your age range (for example "13 to 15" or "18 and over"), using Google's Play Age Signals service. Google may first ask you, or a parent or carer through Google Family Link, whether to share it; in places where the law requires app stores to check ages, such as Texas, Google shares it once your age is confirmed or a parent or carer supervises your account. The app uses the answer only to adjust buying coins: for players under 18, it asks them to confirm that a parent or carer has agreed to each purchase (rather than that they are 18 or over), and switches buying coins off while a parent or carer has not yet approved the latest version of the app, or while Google needs to confirm your age. The answer is kept in the app's memory until you close it: it is not saved on your device, not sent to us, and not used for anything else. We do this because laws such as Brazil's Digital Statute of Children and Adolescents (Digital ECA) and the Texas App Store Accountability Act ask apps to take account of the age range, and of a parent's or carer's consent, that app stores provide.
 
 ### 2.1 Information Used When You Play Online
 
