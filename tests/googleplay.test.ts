@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVerify, generateKeyPairSync } from 'node:crypto';
-import { googlePlayApi, playAccountTag } from '../server/googlePlay';
+import { googlePlayApi, INTEGRITY_MAX_AGE_MS, integrityNonce, integrityProblem, playAccountTag, type IntegrityVerdict } from '../server/googlePlay';
+import { integrityNonceWeb } from '../src/shop/playIntegrity';
 import { playAccountTagWeb } from '../src/shop/playAccount';
 import { COIN_PACKS, packForPlayProduct, playProductId } from '../src/shop/catalog';
 
@@ -42,7 +43,7 @@ describe('Google Play billing (server)', () => {
     expect(createVerify('RSA-SHA256').update(`${head}.${claims}`).verify(publicKey, Buffer.from(sig, 'base64url'))).toBe(true);
     expect(JSON.parse(Buffer.from(claims, 'base64url').toString())).toMatchObject({
       iss: 'billing@tardigeddon.iam.gserviceaccount.com',
-      scope: 'https://www.googleapis.com/auth/androidpublisher',
+      scope: 'https://www.googleapis.com/auth/androidpublisher https://www.googleapis.com/auth/playintegrity',
     });
     const check = g.calls.find((c) => c.url.includes('/purchases/products/'))!;
     expect(check.url).toBe('https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.tardigeddon.app/purchases/products/coins_500/tokens/tok%2Fen%2B1');
@@ -83,5 +84,52 @@ describe('Google Play billing (server)', () => {
     // coins_200 was deleted in the Play Console; deleted ids can't be reused.
     expect(playProductId(COIN_PACKS[0])).toBe('coins_200_1');
     expect(packForPlayProduct('coins_200')).toBeUndefined();
+  });
+
+  it('asks Google to open Play Integrity verdicts', async () => {
+    const verdict = { accountDetails: { appLicensingVerdict: 'LICENSED' } };
+    const g = fakeGoogle((url) => (url.includes('/bad:') ? { status: 500 } : { body: { tokenPayloadExternal: verdict } }));
+    const api = googlePlayApi({ GOOGLE_PLAY_SERVICE_ACCOUNT: KEY, GOOGLE_PLAY_PACKAGE: 'com.tardigeddon.app' }, g.fetchFn)!;
+    expect(await api.decodeIntegrity('sealed')).toEqual(verdict);
+    const call = g.calls.find((c) => c.url.includes('playintegrity'))!;
+    expect(call.url).toBe('https://playintegrity.googleapis.com/v1/com.tardigeddon.app:decodeIntegrityToken');
+    expect(call.init.method).toBe('POST');
+    expect(JSON.parse(String(call.init.body))).toEqual({ integrity_token: 'sealed' });
+    // A token Google can't read is no verdict; Google failing is an error.
+    expect(await googlePlayApi({ GOOGLE_PLAY_SERVICE_ACCOUNT: KEY }, fakeGoogle(() => ({ status: 400 })).fetchFn)!.decodeIntegrity('x')).toBeNull();
+    await expect(googlePlayApi({ GOOGLE_PLAY_SERVICE_ACCOUNT: KEY, GOOGLE_PLAY_PACKAGE: 'bad' }, g.fetchFn)!.decodeIntegrity('x')).rejects.toThrow('500');
+  });
+
+  it('makes the same Play Integrity nonce in the app and on the server, with nothing personal in it', async () => {
+    for (const what of ['buy:tok/en+1', 'check:abc', '']) {
+      expect(await integrityNonceWeb(what)).toBe(integrityNonce(what));
+      expect(integrityNonce(what)).toMatch(/^[A-Za-z0-9_-]{43}$/); // URL-safe base64, 16 to 500 characters
+    }
+    expect(integrityNonce('buy:tok')).not.toContain('tok');
+  });
+
+  it('accepts a Play Integrity verdict only for our app from Play, a licensed account and a genuine phone', () => {
+    const now = 1_800_000_000_000;
+    const want = { pkg: 'com.tardigeddon.app', nonce: integrityNonce('buy:t'), now };
+    const good: IntegrityVerdict = {
+      requestDetails: { requestPackageName: 'com.tardigeddon.app', nonce: want.nonce, timestampMillis: String(now - 1000) },
+      appIntegrity: { appRecognitionVerdict: 'PLAY_RECOGNIZED', packageName: 'com.tardigeddon.app' },
+      deviceIntegrity: { deviceRecognitionVerdict: ['MEETS_BASIC_INTEGRITY', 'MEETS_DEVICE_INTEGRITY'] },
+      accountDetails: { appLicensingVerdict: 'LICENSED' },
+    };
+    const with_ = (c: Partial<IntegrityVerdict>) => integrityProblem({ ...good, ...c }, want);
+    expect(integrityProblem(good, want)).toBeNull();
+    const req = good.requestDetails!;
+    expect(with_({ requestDetails: { ...req, nonce: integrityNonce('buy:other') } })).toBe('request');
+    expect(with_({ requestDetails: { ...req, requestPackageName: 'com.copycat' } })).toBe('request');
+    expect(with_({ requestDetails: { ...req, timestampMillis: String(now - INTEGRITY_MAX_AGE_MS - 1) } })).toBe('request');
+    expect(with_({ requestDetails: { ...req, timestampMillis: String(now + 5 * 60_000) } })).toBe('request');
+    expect(with_({ requestDetails: { ...req, timestampMillis: undefined } })).toBe('request');
+    expect(with_({ appIntegrity: { appRecognitionVerdict: 'UNRECOGNIZED_VERSION', packageName: 'com.tardigeddon.app' } })).toBe('app');
+    expect(with_({ appIntegrity: { appRecognitionVerdict: 'UNEVALUATED' } })).toBe('app');
+    expect(with_({ accountDetails: { appLicensingVerdict: 'UNLICENSED' } })).toBe('licence');
+    expect(with_({ accountDetails: { appLicensingVerdict: 'UNEVALUATED' } })).toBe('licence');
+    expect(with_({ deviceIntegrity: { deviceRecognitionVerdict: ['MEETS_BASIC_INTEGRITY'] } })).toBe('device');
+    expect(with_({ deviceIntegrity: {} })).toBe('device');
   });
 });

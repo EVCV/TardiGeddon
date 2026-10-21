@@ -8,6 +8,8 @@ import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
+import { playAccountTagWeb } from '../shop/playAccount';
+import { playIntegrityToken } from '../shop/playIntegrity';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
 
 /** What GET /api/me returns. */
@@ -404,6 +406,9 @@ export async function signInWith(provider: string): Promise<void> {
  */
 export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; coins: number } | { result: 'pending' | 'cancelled' }> {
   if (!me?.user) throw new Error('Please sign in first.');
+  // Google Play vouches for this copy of the game, phone and Play account before
+  // anyone pays (the server checks it again before adding the coins).
+  await call('/api/shop/google/check', { integrity: await playIntegrityToken(`check:${await playAccountTagWeb(me.user.id)}`) });
   const r = await playBuy(packId, me.user.id);
   if (r.status === 'cancelled') return { result: 'cancelled' };
   if (r.status === 'pending') return { result: 'pending' };
@@ -413,7 +418,7 @@ export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; c
     return coins > 0 ? { result: 'done', coins } : { result: 'pending' };
   }
   if (r.status !== 'purchased') return { result: 'pending' };
-  const done = await call<{ coins?: number }>('/api/shop/google', { productId: r.productId, token: r.token });
+  const done = await call<{ coins?: number }>('/api/shop/google', { productId: r.productId, token: r.token, integrity: await playIntegrityToken(`buy:${r.token}`) });
   await refreshAccount();
   return { result: 'done', coins: done.coins ?? 0 };
 }
@@ -433,7 +438,7 @@ export function finishPlayPurchases(): Promise<number> {
     try {
       for (const p of await playUnfinished()) {
         try {
-          added += (await call<{ coins?: number }>('/api/shop/google', p)).coins ?? 0;
+          added += (await call<{ coins?: number }>('/api/shop/google', { ...p, integrity: await playIntegrityToken(`buy:${p.token}`) })).coins ?? 0;
         } catch {
           // e.g. bought on another account: leave it for that account.
         }

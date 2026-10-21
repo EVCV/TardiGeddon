@@ -218,6 +218,11 @@ not "sharing" in Google's sense), optional, purposes **App functionality**
 and **Fraud prevention, security and compliance**. Add that purpose to
 **User IDs** too (reports carry account ids; blocking uses player ids).
 
+Play Integrity adds nothing to tick: the server gets Google's verdict
+(app genuine, licensed, phone genuine), no data type Google lists, uses it
+for that purchase only and keeps none of it (Privacy 2.3.5; Google's
+[Play Integrity data safety notes](https://developer.android.com/google/play/integrity/terms)).
+
 Not collected: location, contacts, photos, files, audio, health, payment
 info (cards etc.: Google keeps those), device IDs, crash logs,
 diagnostics, browsing history. Sign-in providers (Google, Apple) are off in
@@ -391,6 +396,33 @@ Google can take **up to a day** before a new service account's permissions work;
 until then purchases fail to verify (the coins arrive on the next app start once
 they do: nothing is lost, the app keeps unfinished purchases until the server
 confirms them).
+
+**3b. Play Integrity (the server won't add coins without it).** Before the
+payment sheet opens, and again before the coins are added, Google must vouch
+that it's our app as installed from Play, on a Play account that got it from
+Play, on a genuine, certified phone (`PlayIntegrityPlugin.java`,
+`src/shop/playIntegrity.ts`, `integrityProblem` in `server/googlePlay.ts`).
+
+1. **Play Console → TardiGeddon → Protected with Play → Play Integrity API →
+   Get started → Link Cloud project**: choose the project from step 3 (the
+   one with the service account). Linking switches the Play Integrity API on
+   in it.
+2. Same page: **Let Google manage my response encryption (recommended)**,
+   Save. The server asks Google to open each verdict with the same service
+   account; nothing else to set.
+3. Leave the optional verdicts (stronger device checks, environment details)
+   off: the server doesn't use them.
+
+What players see: a rooted or uncertified phone, or a copy not from Play,
+gets a clear "can't buy coins" message before paying. A purchase refused
+after paying gets no coins and isn't acknowledged, so Google refunds it
+within 3 days (and a later try that passes still adds the coins). The
+verdict is used for that request only and never stored. An emulator
+fails the device check: test on a real phone with an internal-testing
+build from Play. For local testing only, `GOOGLE_PLAY_INTEGRITY=off` on
+the server skips the check; never set it on the live server. Google allows
+10,000 checks a day (two per purchase); ask for more in the Play Console
+if sales ever get near that.
 
 **4. Test without real money: licence testers.** **Play Console → Settings
 (the account, not the app) → License testing**: add the Google accounts of

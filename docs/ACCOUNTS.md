@@ -384,7 +384,9 @@ For payments, install the Stripe CLI and run
 Apple and Google require their own in-app purchases for digital items in
 store apps. The Android app uses **Google Play Billing**, checked by this
 server directly (`server/googlePlay.ts`, `POST /api/shop/google`, secret
-`GOOGLE_PLAY_SERVICE_ACCOUNT`; set-up in `docs/GOOGLE_PLAY.md` §7). Purchases
+`GOOGLE_PLAY_SERVICE_ACCOUNT`; set-up in `docs/GOOGLE_PLAY.md` §7), after a
+Play Integrity check (`POST /api/shop/google/check` before the payment sheet,
+and again on the grant). Purchases
 go in the same `purchase` table and wallet as Stripe's (id `gplay:…`), so
 coins bought anywhere work everywhere, and Google refunds take them back like
 Stripe's. Apple's will work the same way when the iOS app comes.

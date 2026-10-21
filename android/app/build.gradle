@@ -65,8 +65,10 @@ dependencies {
     implementation project(':capacitor-android')
     // Coin packs in the app (PlayBillingPlugin.java).
     implementation "com.android.billingclient:billing:8.0.0"
-    // The player's age band from Google Play, for Brazil's Digital ECA (AgeSignalsPlugin.java).
+    // The player's age band from Google Play, for Brazil's Digital ECA and US state laws (AgeSignalsPlugin.java).
     implementation "com.google.android.play:age-signals:0.0.4"
+    // Google vouches for the app, phone and Play account before coins are bought (PlayIntegrityPlugin.java).
+    implementation "com.google.android.play:integrity:1.6.0"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

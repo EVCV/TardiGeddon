@@ -35,6 +35,12 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   purchases of a coin pack, tagged with a hash of *this* account, once per
   token; then consumes it. Google refunds are checked hourly and take the coins
   back. The endpoint is rate-limited per player (each check calls Google).
+- Play Integrity: before Google's payment sheet opens and again before the
+  coins are added, Google must vouch (a sealed verdict only the server can
+  have opened) that it's our app as installed from Play, on a Play account
+  that got it from Play, on a genuine phone (`integrityProblem`). A modified
+  app could skip the age check on the phone; it can't get coins. A refused
+  purchase isn't acknowledged, so Google refunds it.
 - Unlocks are all-or-nothing database transactions (no double spending).
 - Slime: online-rate Slime only when two or more different accounts played
   each other; anything else pays the CPU rate under its 200-a-day cap; one

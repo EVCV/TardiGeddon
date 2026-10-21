@@ -13,7 +13,7 @@ import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
-import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
+import { integrityNonce, playAccountTag, type IntegrityVerdict, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -65,7 +65,27 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     },
     acknowledge: async (_productId, token) => void acknowledged.push(token),
     voided: async () => voided,
+    // The fake's integrity tokens are the verdict itself, as JSON ('down' plays Google being unreachable).
+    decodeIntegrity: async (token) => {
+      if (token === 'down') throw new Error('Play Integrity check failed (503)');
+      try {
+        return JSON.parse(Buffer.from(token, 'base64url').toString()) as IntegrityVerdict;
+      } catch {
+        return null;
+      }
+    },
   };
+  /** A Play Integrity token for a request about `what`, vouched for unless `change` says otherwise. */
+  const integrity = (what: string, change: Partial<IntegrityVerdict> = {}) =>
+    Buffer.from(
+      JSON.stringify({
+        requestDetails: { requestPackageName: 'com.tardigeddon.app', nonce: integrityNonce(what), timestampMillis: String(Date.now()) },
+        appIntegrity: { appRecognitionVerdict: 'PLAY_RECOGNIZED', packageName: 'com.tardigeddon.app' },
+        deviceIntegrity: { deviceRecognitionVerdict: ['MEETS_DEVICE_INTEGRITY'] },
+        accountDetails: { appLicensingVerdict: 'LICENSED' },
+        ...change,
+      }),
+    ).toString('base64url');
 
   // No email service in tests: keep what would have been sent.
   const sent: Mail[] = [];
@@ -425,7 +445,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const japan = async () => (await unspentCoins(accounts.db)).filter((u) => u.region === 'JP');
     // Bought in Japan through Google Play: 1,000 paid coins (£9.99) and 150 free bonus coins.
     playPurchases.set('jp1', { productId: 'coins_1000', purchaseState: 0, consumptionState: 0, obfuscatedExternalAccountId: playAccountTag(id), regionCode: 'JP' });
-    expect((await post('/api/shop/google', { productId: 'coins_1000', token: 'jp1' }, cookie)).status).toBe(200);
+    expect((await post('/api/shop/google', { productId: 'coins_1000', token: 'jp1', integrity: integrity('buy:jp1') }, cookie)).status).toBe(200);
     expect(await lots()).toEqual([
       { paid: true, region: 'JP', coins: 1000, value: 999, left_coins: 1000 },
       { paid: false, region: 'JP', coins: 150, value: 0, left_coins: 150 },
@@ -480,7 +500,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   it('handles one Google Play purchase reported twice at once: one consume, coins once', async () => {
     const { cookie, id } = await signUp('twice@example.com');
-    const buy = () => post('/api/shop/google', { productId: 'coins_500', token: 'dup1' }, cookie);
+    const buy = () => post('/api/shop/google', { productId: 'coins_500', token: 'dup1', integrity: integrity('buy:dup1') }, cookie);
     playPurchases.set('dup1', { productId: 'coins_500', purchaseState: 0, consumptionState: 0, acknowledgementState: 0, obfuscatedExternalAccountId: playAccountTag(id) });
     const [a, b] = await Promise.all([buy(), buy()]);
     const coins = [((await a.json()) as { coins: number }).coins, ((await b.json()) as { coins: number }).coins].sort();
@@ -492,7 +512,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   it("acknowledges a Google Play purchase Google won't consume, so it isn't refunded, and consumes it next time", async () => {
     const { cookie, id } = await signUp('ack@example.com');
-    const buy = (token: string) => post('/api/shop/google', { productId: 'coins_500', token }, cookie);
+    const buy = (token: string) => post('/api/shop/google', { productId: 'coins_500', token, integrity: integrity(`buy:${token}`) }, cookie);
     consumeFails = true;
     playPurchases.set('ack1', { productId: 'coins_500', purchaseState: 0, consumptionState: 0, acknowledgementState: 0, obfuscatedExternalAccountId: playAccountTag(id) });
     expect(await (await buy('ack1')).json()).toMatchObject({ coins: 550 });
@@ -508,7 +528,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   it('sells coin packs in the Android app through Google Play: checked with Google, granted once, consumed, refundable', async () => {
     const { cookie, id } = await signUp('play@example.com');
     expect((await me(cookie)).playBilling).toBe(true);
-    const buy = (token: string, productId = 'coins_500') => post('/api/shop/google', { productId, token }, cookie);
+    const buy = (token: string, productId = 'coins_500') => post('/api/shop/google', { productId, token, integrity: integrity(`buy:${token}`) }, cookie);
     const tag = playAccountTag(id);
     // Signed out, made-up and non-pack purchases get nothing.
     expect((await post('/api/shop/google', { productId: 'coins_500', token: 't1' })).status).toBe(401);
@@ -549,6 +569,40 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await accounts.checkVoided(); // the hourly check sees it again: still only once
     expect((await me(cookie)).wallet.coins).toBe(200);
     voided = [];
+  });
+
+  it('only sells and grants coins in the app when Play Integrity vouches for the app, phone and Play account', async () => {
+    const { cookie, id } = await signUp('integrity@example.com');
+    const check = (token: unknown) => post('/api/shop/google/check', { integrity: token }, cookie);
+    const what = `check:${playAccountTag(id)}`;
+    expect((await post('/api/shop/google/check', { integrity: integrity(what) })).status).toBe(401);
+    expect((await check(integrity(what))).status).toBe(200);
+    // Missing, unreadable, for another request or player, or stale: try again.
+    expect((await check(undefined)).status).toBe(400);
+    expect((await check('not-a-token')).status).toBe(400);
+    expect((await check(integrity(`check:${playAccountTag('someone-else')}`))).status).toBe(400);
+    const stale = { requestPackageName: 'com.tardigeddon.app', nonce: integrityNonce(what), timestampMillis: String(Date.now() - 11 * 60_000) };
+    expect((await check(integrity(what, { requestDetails: stale }))).status).toBe(400);
+    expect((await check('down')).status).toBe(503);
+    // A modified or sideloaded app, a Play account that didn't get it from Play, or a rooted phone: no.
+    const app = await check(integrity(what, { appIntegrity: { appRecognitionVerdict: 'UNRECOGNIZED_VERSION' } }));
+    expect(app.status).toBe(403);
+    expect(((await app.json()) as { error: string }).error).toMatch(/installed from Google Play/);
+    expect((await check(integrity(what, { accountDetails: { appLicensingVerdict: 'UNLICENSED' } }))).status).toBe(403);
+    expect((await check(integrity(what, { deviceIntegrity: { deviceRecognitionVerdict: [] } }))).status).toBe(403);
+
+    // A paid purchase without Google's word gets no coins and isn't acknowledged
+    // (Google refunds it), but a later try that passes still grants it once.
+    playPurchases.set('i1', { productId: 'coins_500', purchaseState: 0, consumptionState: 0, acknowledgementState: 0, obfuscatedExternalAccountId: playAccountTag(id) });
+    const rooted = await post('/api/shop/google', { productId: 'coins_500', token: 'i1', integrity: integrity('buy:i1', { deviceIntegrity: {} }) }, cookie);
+    expect(rooted.status).toBe(403);
+    expect(((await rooted.json()) as { error: string }).error).toMatch(/refunds/);
+    expect((await post('/api/shop/google', { productId: 'coins_500', token: 'i1', integrity: integrity('buy:other') }, cookie)).status).toBe(400);
+    expect((await post('/api/shop/google', { productId: 'coins_500', token: 'i1' }, cookie)).status).toBe(400);
+    expect(acknowledged).not.toContain('i1');
+    expect(consumed).not.toContain('i1');
+    expect((await me(cookie)).wallet.coins).toBe(0);
+    expect(await (await post('/api/shop/google', { productId: 'coins_500', token: 'i1', integrity: integrity('buy:i1') }, cookie)).json()).toMatchObject({ coins: 550 });
   });
 
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {

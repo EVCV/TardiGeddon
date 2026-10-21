@@ -25,7 +25,7 @@ import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 export type { MeResponse };
 import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
-import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
+import { googlePlayApi, integrityNonce, integrityProblem, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
 export interface AccountsEnv extends MailEnv, PlayEnv {
   DATABASE_URL?: string;
@@ -209,6 +209,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const authHandler = toNodeHandler(auth);
   // Google Play Billing (coins bought in the Android app): off without a service account.
   const play = opts.play !== undefined ? opts.play : googlePlayApi(env);
+  const playPackage = env.GOOGLE_PLAY_PACKAGE || 'com.tardigeddon.app';
+  const integrityOn = env.GOOGLE_PLAY_INTEGRITY !== 'off';
   // Refunds and chargebacks made through Google Play take the coins back (as Stripe's do).
   const checkVoided = async () => {
     if (!play) return;
@@ -496,17 +498,64 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
    * must be safe to call more than once for the same purchase.
    */
   const playChecks = new Map<string, number[]>();
+  /** Each check is a call to Google: a few a minute is plenty for any player. False if over. */
+  function playRate(userId: string): boolean {
+    const now = Date.now();
+    const recent = (playChecks.get(userId) ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= 20) return false;
+    playChecks.set(userId, [...recent, now]);
+    return true;
+  }
   /** Purchases being checked right now, by token (see googlePlayPurchase). */
   const playInFlight = new Map<string, Promise<void>>();
+
+  /**
+   * Play Integrity: Google's word that a request about `what` came from our
+   * app as installed from Google Play, by a Play account that got it there,
+   * on a genuine phone. Null if so; else the answer to send. The verdict is
+   * used for this request only and never stored.
+   */
+  async function integrityFailure(integrity: unknown, what: string, after: string): Promise<{ status: number; error: string } | null> {
+    if (!play || !integrityOn) return null;
+    const token = typeof integrity === 'string' && integrity.length <= 8000 ? integrity : '';
+    const retry = { status: 400, error: `Google Play couldn't confirm this copy of TardiGeddon. Please try again in a moment.${after}` };
+    if (!token) return retry;
+    let verdict;
+    try {
+      verdict = await play.decodeIntegrity(token);
+    } catch (e) {
+      console.error('play integrity decode failed', e);
+      return { status: 503, error: `Couldn't check with Google Play just now. Please try again in a moment.${after}` };
+    }
+    const problem = verdict ? integrityProblem(verdict, { pkg: playPackage, nonce: integrityNonce(what), now: Date.now() }) : 'request';
+    if (!problem) return null;
+    console.warn('play integrity refused', problem);
+    if (problem === 'request') return retry;
+    const why = {
+      app: 'Coins can only be bought in TardiGeddon as installed from Google Play.',
+      licence: 'Coins can only be bought on a Google account that got TardiGeddon from Google Play. Open TardiGeddon in the Play Store on this phone, then try again.',
+      device: "This phone didn't pass Google Play's security check (for example, it has been rooted, or isn't a certified Android device), so it can't buy coins.",
+    }[problem];
+    return { status: 403, error: why + after };
+  }
+
+  /** Before Google's payment sheet opens: can this copy of the app buy coins at all? */
+  async function googlePlayCheck(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: 'Please sign in first.' });
+    if (!playRate(user.id)) return json(res, 429, { error: 'Too many tries. Please wait a minute.' });
+    const body = await readJson(req);
+    const bad = await integrityFailure(body?.integrity, `check:${playAccountTag(user.id)}`, '');
+    if (bad) return json(res, bad.status, { error: bad.error });
+    json(res, 200, { ok: true });
+  }
+
   async function googlePlayPurchase(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: 'Please sign in first.' });
-    // Each check is a call to Google: a few a minute is plenty for any player.
-    const now = Date.now();
-    const recent = (playChecks.get(user.id) ?? []).filter((t) => now - t < 60_000);
-    if (recent.length >= 20) return json(res, 429, { error: 'Too many tries. Please wait a minute.' });
-    playChecks.set(user.id, [...recent, now]);
+    if (!playRate(user.id)) return json(res, 429, { error: 'Too many tries. Please wait a minute.' });
     const body = await readJson(req);
     const productId = typeof body?.productId === 'string' ? body.productId : '';
     const token = typeof body?.token === 'string' && body.token.length <= 4000 ? body.token : '';
@@ -517,7 +566,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     // "purchases updated" signal). Done side by side, both would try to consume it
     // and Google refuses the second; so the second waits, then finds it done.
     const before = playInFlight.get(token) ?? Promise.resolve();
-    const mine = before.then(() => settlePlayPurchase(res, user, pack, productId, token));
+    const mine = before.then(() => settlePlayPurchase(res, user, pack, productId, token, body?.integrity));
     // What the next report waits on: never fails, and is what gets removed once done.
     const tracked = mine.catch(() => {});
     playInFlight.set(token, tracked);
@@ -530,7 +579,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   /** Check one Google Play purchase with Google, grant it once, and consume it. */
-  async function settlePlayPurchase(res: ServerResponse, user: NonNullable<MeResponse['user']>, pack: CoinPack, productId: string, token: string): Promise<void> {
+  async function settlePlayPurchase(res: ServerResponse, user: NonNullable<MeResponse['user']>, pack: CoinPack, productId: string, token: string, integrity: unknown): Promise<void> {
     if (!play) return json(res, 503, { error: 'Buying in the app is not open yet.' });
     const p = await play.getProduct(productId, token);
     if (!p) return json(res, 400, { error: "Google Play doesn't know that purchase." });
@@ -546,6 +595,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
       return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: 'That purchase has already been used.' });
     }
+    // Not vouched for by Play Integrity: no coins, and it isn't acknowledged, so
+    // Google refunds it within three days unless a later try passes.
+    const bad = await integrityFailure(integrity, `buy:${token}`, ' Google Play refunds the purchase within 3 days if the coins can’t be added.');
+    if (bad) return json(res, bad.status, { error: bad.error });
     // Licence testers' purchases (purchaseType 0) cost nothing: count them as £0, so the sales page stays true.
     const granted = await recordPurchase(db, {
       sessionId: id,
@@ -686,6 +739,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
           await purchasesPortal(req, res);
+        } else if (path === '/api/shop/google/check' && req.method === 'POST') {
+          await googlePlayCheck(req, res);
         } else if (path === '/api/shop/google' && req.method === 'POST') {
           await googlePlayPurchase(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {

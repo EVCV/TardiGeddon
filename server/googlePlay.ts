@@ -4,7 +4,9 @@
 // real, completed purchase of that pack by this player, grant the coins once
 // (store.ts recordPurchase), then "consume" it so the pack can be bought again.
 // Refunds and chargebacks come from the voided-purchases list (checked hourly).
-// docs/GOOGLE_PLAY.md §7 has the set-up steps.
+// Before granting, Play Integrity must vouch that the request came from our
+// app as installed from Google Play, by a Play account that got it there, on
+// a genuine phone (integrityProblem). docs/GOOGLE_PLAY.md §7 has the set-up steps.
 
 import { createHash, createSign } from 'node:crypto';
 
@@ -13,6 +15,16 @@ export interface PlayEnv {
   GOOGLE_PLAY_SERVICE_ACCOUNT?: string;
   /** The app's package name (default com.tardigeddon.app). */
   GOOGLE_PLAY_PACKAGE?: string;
+  /** "off" skips the Play Integrity check (local testing on an emulator only). */
+  GOOGLE_PLAY_INTEGRITY?: string;
+}
+
+/** The parts of a decoded Play Integrity verdict we check (decodeIntegrityToken). */
+export interface IntegrityVerdict {
+  requestDetails?: { requestPackageName?: string; nonce?: string; timestampMillis?: string };
+  appIntegrity?: { appRecognitionVerdict?: string; packageName?: string };
+  deviceIntegrity?: { deviceRecognitionVerdict?: string[] };
+  accountDetails?: { appLicensingVerdict?: string };
 }
 
 /** What Google says about a one-time purchase (purchases.products.get). */
@@ -46,6 +58,36 @@ export interface PlayApi {
   acknowledge(productId: string, token: string): Promise<void>;
   /** Purchases refunded or charged back since this time. */
   voided(sinceMs: number): Promise<VoidedPurchase[]>;
+  /** Google's verdict in a Play Integrity token; null if Google says the token is no good. */
+  decodeIntegrity(token: string): Promise<IntegrityVerdict | null>;
+}
+
+/**
+ * The nonce the app puts in a Play Integrity request about `what` (e.g.
+ * "buy:" + the purchase token). Hashed: Google asks that nonces carry no
+ * personal data. src/shop/playIntegrity.ts makes the same one.
+ */
+export function integrityNonce(what: string): string {
+  return createHash('sha256').update(`tardigeddon:${what}`).digest('base64url');
+}
+
+/** How old a Play Integrity verdict may be. */
+export const INTEGRITY_MAX_AGE_MS = 10 * 60_000;
+
+/**
+ * What's wrong with a Play Integrity verdict for this request, or null if
+ * Google vouches for all of it: our package and nonce, recent, our app as
+ * Google Play distributes it, a Play account that got the app from Play
+ * ("licensed"), and a genuine, certified Android device.
+ */
+export function integrityProblem(v: IntegrityVerdict, want: { pkg: string; nonce: string; now: number }): 'request' | 'app' | 'licence' | 'device' | null {
+  const r = v.requestDetails;
+  const at = Number(r?.timestampMillis);
+  if (r?.requestPackageName !== want.pkg || r.nonce !== want.nonce || !Number.isFinite(at) || want.now - at > INTEGRITY_MAX_AGE_MS || at - want.now > 60_000) return 'request';
+  if (v.appIntegrity?.appRecognitionVerdict !== 'PLAY_RECOGNIZED' || v.appIntegrity.packageName !== want.pkg) return 'app';
+  if (v.accountDetails?.appLicensingVerdict !== 'LICENSED') return 'licence';
+  if (!v.deviceIntegrity?.deviceRecognitionVerdict?.includes('MEETS_DEVICE_INTEGRITY')) return 'device';
+  return null;
 }
 
 /**
@@ -57,7 +99,9 @@ export function playAccountTag(userId: string): string {
 }
 
 const API = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications';
-const SCOPE = 'https://www.googleapis.com/auth/androidpublisher';
+// Purchases, and decoding Play Integrity verdicts.
+const SCOPE = 'https://www.googleapis.com/auth/androidpublisher https://www.googleapis.com/auth/playintegrity';
+const INTEGRITY_API = 'https://playintegrity.googleapis.com/v1';
 
 interface ServiceAccount {
   client_email: string;
@@ -151,6 +195,18 @@ export function googlePlayApi(env: PlayEnv, fetchFn: typeof fetch = fetch): Play
         if (!page) break;
       }
       return out;
+    },
+    async decodeIntegrity(token) {
+      const r = await fetchFn(`${INTEGRITY_API}/${encodeURIComponent(pkg)}:decodeIntegrityToken`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${await accessToken()}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ integrity_token: token }),
+      });
+      // A token that's malformed, for another app, or expired.
+      if (r.status === 400) return null;
+      if (!r.ok) throw await failed('Play Integrity check', r);
+      const data = (await r.json()) as { tokenPayloadExternal?: IntegrityVerdict };
+      return data.tokenPayloadExternal ?? null;
     },
   };
 }
