@@ -207,7 +207,8 @@ const SCENES = {
     await huddle(page, t);
     await zoom(page, 1.7);
     await fire(page, 'tun', t);
-    const dir = await record(page, 'tun', Number(process.env.TUN_FRAMES ?? 440));
+    // TUN_FRAMES records a longer take to look through (never fewer than the clip needs).
+    const dir = await record(page, 'tun', Math.max(440, Number(process.env.TUN_FRAMES) || 0));
     // From the Tun dropping to just before the next turn's banner.
     encode('clip-tun', dir, { from: 20, to: 420, poster: 60, crf: 27 });
     await ctx.close();
