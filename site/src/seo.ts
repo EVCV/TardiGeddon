@@ -165,11 +165,11 @@ const game = {
   trailer: {
     '@type': 'VideoObject',
     name: 'TardiGeddon gameplay: the Concrete Tun',
-    description: 'A Concrete Tun smashes down through the ground onto a huddle of tardigrades.',
+    description: 'A Concrete Tun smashes down through the ground onto a huddle of tardigrades, knocking one into the sea, and the other team lobs a grenade back.',
     thumbnailUrl: abs('/media/clip-tun-poster.webp'),
     contentUrl: abs('/media/clip-tun.mp4'),
     uploadDate: '2026-10-22',
-    duration: 'PT2.5S',
+    duration: 'PT13S',
   },
 };
 

@@ -159,7 +159,7 @@ export function Home() {
           </div>
         </div>
         <figure className="hero-screen screen">
-          <Clip name="clip-tun" label="Gameplay: a Concrete Tun smashes down through the ground onto a huddle of tardigrades." />
+          <Clip name="clip-tun" label="Gameplay: a Concrete Tun smashes down through the ground onto a huddle of tardigrades, knocking one into the sea, and the other team lobs a grenade back." />
         </figure>
       </section>
 

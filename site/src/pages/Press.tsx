@@ -19,6 +19,9 @@ const MEDIA = [
   { file: 'og-home.jpg', label: 'Key art (1200×630)' },
   { file: 'logo.png', label: 'Logo (transparent PNG)' },
   { file: 'shot-crater.webp', label: 'A shaft blasted through the ground' },
+  { file: 'shot-realm-islands.webp', label: 'Twin Isles' },
+  { file: 'shot-realm-mainland.webp', label: 'Mainland, on a sunny day' },
+  { file: 'shot-realm-archipelago.webp', label: 'Archipelago, in the rain' },
   { file: 'shot-realm-sky.webp', label: 'Sky Realms, on a sunny day' },
   { file: 'shot-realm-spires.webp', label: 'Spires, in the snow' },
   { file: 'shot-realm-canyon.webp', label: 'Canyon, in the rain' },
@@ -27,7 +30,7 @@ const MEDIA = [
   { file: 'shot-weapons.webp', label: 'The weapon panel' },
   { file: 'shot-phone.webp', label: 'On a phone, with touch controls' },
   { file: 'shot-home.webp', label: 'The lobby' },
-  { file: 'clip-tun.mp4', label: 'Clip: the Concrete Tun' },
+  { file: 'clip-tun.mp4', label: 'Clip: a Concrete Tun, and the reply' },
   { file: 'clip-rope.mp4', label: 'Clip: Rope Race' },
   { file: 'clip-victory.mp4', label: 'Clip: a win and a victory dance' },
 ];
