@@ -10,7 +10,6 @@ import { gsap } from 'gsap';
 import { mascotSvg } from '../../../src/ui/mascot';
 import { TEAM_COLORS } from '../../../src/render/palette';
 import { HATS } from '../../../src/render/hats';
-import { prefersReducedMotion } from '../motion/SmoothScroll';
 
 /** Seconds before the first swing after the page loads, and between swings. */
 const FIRST_DELAY = 4;
@@ -26,17 +25,28 @@ export function RopeSwinger() {
   const rope = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
 
-  // Only once everything else has loaded, so it never slows the page down.
+  // Only once everything else has loaded, so it never slows the page down;
+  // and never while the visitor asks for reduced motion (even if they turn it
+  // on with the page open).
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
     let timer = 0;
     const start = () => {
-      timer = window.setTimeout(() => setOn(true), FIRST_DELAY * 1000);
+      clearTimeout(timer);
+      if (!reduce.matches) timer = window.setTimeout(() => setOn(true), FIRST_DELAY * 1000);
+    };
+    const onPref = () => {
+      if (reduce.matches) {
+        clearTimeout(timer);
+        setOn(false);
+      } else if (document.readyState === 'complete') start();
     };
     if (document.readyState === 'complete') start();
     else window.addEventListener('load', start, { once: true });
+    reduce.addEventListener('change', onPref);
     return () => {
       window.removeEventListener('load', start);
+      reduce.removeEventListener('change', onPref);
       clearTimeout(timer);
     };
   }, []);
