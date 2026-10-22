@@ -1,0 +1,45 @@
+name: iOS app
+
+# Builds the iOS app (docs/IOS.md) for the iPhone/iPad simulator, unsigned,
+# to prove the Xcode project and our Swift compile: there's no Mac to try it on.
+# Only when the iOS side changes, as macOS minutes cost ten times Linux ones.
+# Signed builds for TestFlight come once the Apple Developer account is
+# approved (docs/IOS.md §5).
+on:
+  push:
+    paths:
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - 'package*.json'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+jobs:
+  simulator:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      # Apple only takes apps built with Xcode 26 or later (since April 2026).
+      # The newest Xcode 26 on the runner, named in the log so a change shows.
+      - name: Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - run: npm ci
+      - run: npm run app:build
+      - name: Build for the simulator
+        run: >
+          xcodebuild build
+          -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E 'error|warning: .*(App/App/)|BUILD (SUCCEEDED|FAILED)' || true
+      - name: Check it built
+        run: grep -q 'BUILD SUCCEEDED' "$RUNNER_TEMP/xcodebuild.log"
