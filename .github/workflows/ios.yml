@@ -38,7 +38,7 @@ jobs:
         run: |
           # The newest Xcode 27 that isn't a beta (the App Store refuses beta builds;
           # some plain names, e.g. Xcode_27.2.app, are links to a beta).
-          XCODE=$(for x in /Applications/Xcode_27*.app; do r=$(readlink -f "$x"); case "$r" in *[Bb]eta*) continue;; esac; echo "$(defaults read "$r/Contents/Info" CFBundleShortVersionString) $r"; done | sort -uV | tail -1 | cut -d' ' -f2-)
+          XCODE=$(for x in /Applications/Xcode_27*.app; do r=$(readlink -f "$x"); [[ "$r" == *[Bb]eta* ]] && continue; echo "$(defaults read "$r/Contents/Info" CFBundleShortVersionString) $r"; done | sort -uV | tail -1 | cut -d' ' -f2-)
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
           SDK=$(xcrun --sdk iphoneos --show-sdk-version)
