@@ -766,19 +766,30 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const start = await get(`/api/app/social?provider=google&challenge=${challenge}`);
     expect(start.status).toBe(302);
     expect(start.headers.get('location')).toMatch(/^https:\/\/accounts\.google\.com\//);
-    expect(start.headers.getSetCookie().some((c) => c.startsWith(`tardi-app-challenge=${challenge};`))).toBe(true);
+    expect(start.headers.getSetCookie().some((c) => new RegExp(`^tardi-app-challenge=${challenge}\\.\\d{13};`).test(c))).toBe(true);
     // Unknown providers and bad challenges go straight back to the app.
     expect((await get(`/api/app/social?provider=nope&challenge=${challenge}`)).headers.get('location')).toBe('com.tardigeddon.app://signin?error=unavailable');
     expect((await get('/api/app/social?provider=google&challenge=short')).headers.get('location')).toBe('com.tardigeddon.app://signin?error=unavailable');
 
     // Back from the provider without a sign-in (cancelled): the app hears so.
-    const cancelled = await get('/api/app/return', `tardi-app-challenge=${challenge}`);
+    const cancelled = await get('/api/app/return', `tardi-app-challenge=${challenge}.${Date.now()}`);
     expect(cancelled.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
 
+    // The browser was already signed in to the website: cancelling (or any sign-in
+    // that didn't happen in this flow) never hands that old session to the app.
+    const { cookie: old } = await signUp('website@example.com');
+    const later = Date.now() + 1000;
+    const stale = await get('/api/app/return', `${old}; tardi-app-challenge=${challenge}.${later}`);
+    expect(stale.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
+
     // Signed in in the tab (as the provider's callback leaves it): a one-time token for the app.
+    const startedAt = Date.now() - 1000;
     const { cookie: tab, id } = await signUp('tab@example.com');
+    // ...unless the provider came back with an error.
+    const refused = await get('/api/app/return?error=access_denied', `${tab}; tardi-app-challenge=${challenge}.${startedAt}`);
+    expect(refused.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
     const handOff = async () => {
-      const r = await get('/api/app/return', `${tab}; tardi-app-challenge=${challenge}`);
+      const r = await get('/api/app/return', `${tab}; tardi-app-challenge=${challenge}.${startedAt}`);
       const to = new URL(r.headers.get('location')!);
       expect(to.protocol + '//' + to.host + to.pathname).toBe('com.tardigeddon.app://signin');
       return to.searchParams.get('token')!;

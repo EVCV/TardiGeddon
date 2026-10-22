@@ -417,10 +417,12 @@ when the server has that provider switched on (as above).
   1. The app makes a random **verifier**, keeps it on the phone, and opens
      `GET /api/app/social?provider=apple&challenge=<SHA-256 of the verifier>`.
      The server starts Better Auth's sign-in there (its state cookie lands in
-     the tab) and keeps the challenge in a 10-minute cookie.
+     the tab) and keeps the challenge, and the time, in a 10-minute cookie.
   2. Apple sends the player back to Better Auth's callback, which signs the
      tab in and redirects to `GET /api/app/return`.
-  3. That makes a **one-time token** (Better Auth's one-time-token plugin,
+  3. If the provider reported an error, or the tab's session is older than
+     this sign-in (the browser was already signed in to the website), the
+     app is told it was cancelled. Otherwise that makes a **one-time token** (Better Auth's one-time-token plugin,
      2 minutes, stored hashed) and saves the challenge with its hash
      (`app_signin`), then sends the tab to
      `com.tardigeddon.app://signin?token=…` (the app's own link,

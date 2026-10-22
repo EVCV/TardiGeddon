@@ -747,8 +747,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     res.writeHead(302, {
       location: response.url,
       'cache-control': 'no-store',
-      // Better Auth's state cookie, and the app's challenge for when the sign-in comes back.
-      'set-cookie': [...headers.getSetCookie(), `${CHALLENGE_COOKIE}=${challenge}; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=600${secureCookie}`],
+      // Better Auth's state cookie, and the app's challenge for when the sign-in comes back,
+      // and when it started (only a session made after that is handed over).
+      'set-cookie': [...headers.getSetCookie(), `${CHALLENGE_COOKIE}=${challenge}.${Date.now()}; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=600${secureCookie}`],
     });
     res.end();
   }
@@ -756,11 +757,16 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   /** GET /api/app/return: signed in (or not) in the tab; hand it to the app. */
   async function appSocialReturn(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const clear = [`${CHALLENGE_COOKIE}=; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=0${secureCookie}`];
-    const challenge = /(?:^|;\s*)tardi-app-challenge=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
+    const [, challenge, startedAt] = /(?:^|;\s*)tardi-app-challenge=([A-Za-z0-9_-]{43})\.(\d{13})(?:;|$)/.exec(req.headers.cookie ?? '') ?? [];
+    const failed = new URL(req.url ?? '', 'http://x').searchParams.has('error');
     const headers = fromNodeHeaders(req.headers);
-    const session = isChallenge(challenge) ? await auth.api.getSession({ headers }) : null;
-    // No session: the player cancelled, the provider refused, or the tab was too slow.
-    if (!session || !isChallenge(challenge)) return toApp(res, { error: 'cancelled' }, clear);
+    const session = challenge && !failed ? await auth.api.getSession({ headers }) : null;
+    // The player cancelled, the provider refused, or the tab was too slow. A session
+    // from before this sign-in (the browser already signed in to the website) is
+    // someone's old sign-in, not this one: never handed over.
+    if (!session || !isChallenge(challenge) || new Date(session.session.createdAt).getTime() < Number(startedAt)) {
+      return toApp(res, { error: 'cancelled' }, clear);
+    }
     try {
       const { token } = await auth.api.generateOneTimeToken({ headers });
       await saveAppSignIn(db, sha256url(token), challenge, APP_HANDOFF_MINUTES);
