@@ -67,6 +67,12 @@ on the site anyway.
   (`/support`), Easter eggs and the legal pages. The header menu (`NAV` in
   `site/src/components/Layout.tsx`) lists the main ones; on phones it is a
   slide-out panel behind the ☰ button.
+- Every 20–40 s a tardi swings across the screen on a silk rope
+  (`site/src/components/RopeSwinger.tsx`, mounted in `Layout`): one small
+  element moved with GSAP transforms, no taps, started only after the page
+  has loaded, and off for reduced motion.
+- The site's logo is the game's: "Tardi" in red, "Geddon" in yellow (the
+  header pill is the game's blue).
 - The Android app isn't public yet: the site says "coming soon" (Home's
   Android band, the footer, Help & support). On launch day, swap those for a
   Google Play link.

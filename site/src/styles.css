@@ -125,7 +125,8 @@ h1, h2, h3 { line-height: 1.1; }
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  background: var(--paper);
+  /* The game's own logo pill: blue, with the name in red and yellow. */
+  background: #68a8e8;
   border: var(--line) solid var(--ink);
   border-radius: 16px;
   box-shadow: 0 4px 0 var(--ink);
@@ -221,7 +222,8 @@ body.menu-open { overflow: hidden; }
   .menu-scrim { transition: none; }
 }
 .brand-mascot svg { width: 46px; }
-.brand-name { font-family: var(--title); font-size: 22px; color: var(--red); padding-top: 3px; }
+.brand-name { font-family: var(--title); font-size: 22px; color: var(--red); padding-top: 3px; -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill; letter-spacing: 0.02em; }
+.brand-name span { color: var(--accent); }
 
 /* Hero */
 .hero {
@@ -237,6 +239,8 @@ body.menu-open { overflow: hidden; }
 .hero-mascot { display: block; margin: 0 auto -8px; width: clamp(150px, 30vw, 230px); }
 .hero-mascot svg { width: 100%; overflow: visible; }
 .hero-title { font-size: clamp(40px, 13vw, 108px); max-width: 100%; -webkit-text-stroke-width: 3px; text-shadow: 0 6px 0 var(--ink); }
+/* "Tardi" red, "Geddon" yellow, like the game's logo (letters 6 on, when SplitText has split them). */
+.hero-title .geddon, .hero-title .split-char:nth-child(n + 6) { color: var(--accent); }
 .hero-tagline { font-weight: 800; font-size: clamp(20px, 3vw, 28px); margin: 12px 0 0; }
 .hero-pitch { font-size: clamp(17px, 2vw, 19px); max-width: 34em; margin: 0 auto 26px; }
 .hero-actions { display: grid; justify-items: center; gap: 14px; }
@@ -603,4 +607,54 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
 @media (max-width: 560px) {
   .feature .squad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .feature .squad-member:nth-child(n + 4) { display: none; }
+}
+
+/* Big screens: use the room. Wider content, a bit bigger everything. */
+@media (min-width: 1500px) {
+  :root { --wide: 1340px; }
+  body { font-size: 18px; }
+  .hero-title { font-size: 124px; }
+  .hero-mascot { width: 250px; }
+  .hero-pitch, .feature-text p, .android-text p { font-size: 20px; }
+  .feature-text h2 { font-size: 54px; }
+  .section-title { font-size: 62px; }
+  .page:not(.page-wide) { max-width: 960px; }
+}
+@media (min-width: 1850px) {
+  :root { --wide: 1600px; }
+  body { font-size: 19px; }
+  .hero-title { font-size: 150px; }
+  .hero-mascot { width: 290px; }
+  .hero-pitch, .feature-text p, .android-text p, .promise p, .egg-lead { font-size: 21px; }
+  .feature-text h2 { font-size: 62px; }
+  .features { gap: 96px; }
+  .site-nav a { font-size: 18px; padding: 7px 14px 6px; }
+  .brand-name { font-size: 26px; }
+  .brand-mascot svg { width: 54px; }
+  .btn-small { font-size: 20px; padding: 11px 20px 8px; }
+  .page:not(.page-wide) { max-width: 1040px; }
+}
+
+/* The tardi that swings across the screen now and then (components/RopeSwinger.tsx).
+   Behind the header, in front of the page, never in the way of a tap. */
+.swinger { position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 6; pointer-events: none; }
+.swinger-rig { position: absolute; left: 0; top: -24px; width: 0; transform-origin: 0 0; will-change: transform; visibility: hidden; }
+.swinger-rope {
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: #f4f1ff;
+  box-shadow: 0 0 0 1.5px var(--ink);
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+}
+.swinger-tardi { position: absolute; top: 100%; left: -36px; width: 72px; margin-top: -10px; }
+.swinger-tardi svg { width: 100%; height: auto; display: block; overflow: visible; }
+@media (max-width: 600px) {
+  .swinger-tardi { left: -26px; width: 52px; margin-top: -7px; }
+}
+@media (min-width: 1100px) {
+  .swinger-tardi { left: -44px; width: 88px; margin-top: -12px; }
 }
