@@ -6,7 +6,7 @@ import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
 import { loadLang, t } from './i18n/i18n';
-import { confirmEmail, finishPlayPurchases, listenForAppSignIn, refreshAccount } from './account/session';
+import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
 import { choosePractice } from './ui/learn';
@@ -19,7 +19,7 @@ import type { CpuSkill } from './ai/skills';
 import { audioRunning, pauseAudio, unlockAudio } from './audio/mixer';
 import { refreshMusic } from './audio/music';
 import { attachNative, isNativeApp } from './native';
-import { onPlayPurchasesUpdated } from './shop/playBilling';
+import { onStorePurchasesUpdated } from './shop/storeBilling';
 import type { MatchSetup } from './ui/menu';
 import type { ServerMsg } from './net/protocol';
 type OnlineModule = typeof import('./ui/online');
@@ -138,7 +138,7 @@ async function boot(): Promise<void> {
     onPause: (paused) => {
       pauseAudio(paused);
       // Back in the app: a coin purchase may have finished meanwhile (e.g. a slow payment).
-      if (!paused) void finishPlayPurchases();
+      if (!paused) void finishStorePurchases();
     },
   });
 
@@ -178,8 +178,8 @@ async function boot(): Promise<void> {
   // Android app: back from signing in with Apple in a browser tab.
   listenForAppSignIn((message) => hub?.go('account', message || undefined));
   // Android app: any coin purchase that never reached the server (app closed, no signal).
-  void finishPlayPurchases();
-  onPlayPurchasesUpdated(() => void finishPlayPurchases());
+  void finishStorePurchases();
+  onStorePurchasesUpdated(() => void finishStorePurchases());
   if (verify) {
     try {
       await confirmEmail(verify);

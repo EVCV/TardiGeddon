@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createVerify, generateKeyPairSync } from 'node:crypto';
 import { googlePlayApi, playAccountTag } from '../server/googlePlay';
 import { playAccountTagWeb } from '../src/shop/playAccount';
-import { COIN_PACKS, packForPlayProduct, playProductId } from '../src/shop/catalog';
+import { COIN_PACKS, packForStoreProduct, storeProductId } from '../src/shop/catalog';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const KEY = JSON.stringify({
@@ -76,12 +76,12 @@ describe('Google Play billing (server)', () => {
 
   it('maps every coin pack to a valid Play product id and back', () => {
     for (const p of COIN_PACKS) {
-      expect(playProductId(p)).toMatch(/^[a-z0-9_.]+$/);
-      expect(packForPlayProduct(playProductId(p))).toBe(p);
+      expect(storeProductId(p)).toMatch(/^[a-z0-9_.]+$/);
+      expect(packForStoreProduct(storeProductId(p))).toBe(p);
     }
-    expect(packForPlayProduct('hat_crown')).toBeUndefined();
+    expect(packForStoreProduct('hat_crown')).toBeUndefined();
     // coins_200 was deleted in the Play Console; deleted ids can't be reused.
-    expect(playProductId(COIN_PACKS[0])).toBe('coins_200_1');
-    expect(packForPlayProduct('coins_200')).toBeUndefined();
+    expect(storeProductId(COIN_PACKS[0])).toBe('coins_200_1');
+    expect(packForStoreProduct('coins_200')).toBeUndefined();
   });
 });

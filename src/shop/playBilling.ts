@@ -4,7 +4,7 @@
 // and grants the coins (server/googlePlay.ts, POST /api/shop/google).
 
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
-import { COIN_PACKS, playProductId } from './catalog';
+import { COIN_PACKS, storeProductId } from './catalog';
 import { playAccountTagWeb } from './playAccount';
 import { t } from '../i18n/i18n';
 
@@ -36,11 +36,11 @@ let prices: Promise<Record<string, string>> | null = null;
  * not the website's.
  */
 export function playPrices(): Promise<Record<string, string>> {
-  prices ??= PlayBilling.products({ ids: COIN_PACKS.map(playProductId) })
+  prices ??= PlayBilling.products({ ids: COIN_PACKS.map(storeProductId) })
     .then(({ products }) => {
       const byPack: Record<string, string> = {};
       for (const p of COIN_PACKS) {
-        const found = products.find((x) => x.id === playProductId(p));
+        const found = products.find((x) => x.id === storeProductId(p));
         if (found) byPack[p.id] = found.price;
       }
       return byPack;
@@ -59,7 +59,7 @@ export async function playBuy(packId: string, userId: string): Promise<PlayBuyRe
   const pack = COIN_PACKS.find((p) => p.id === packId);
   if (!pack) throw new Error(t('No such coin pack.'));
   await playPrices(); // the plugin needs the product's details first
-  const r = await PlayBilling.buy({ id: playProductId(pack), account: await playAccountTagWeb(userId) });
+  const r = await PlayBilling.buy({ id: storeProductId(pack), account: await playAccountTagWeb(userId) });
   if (r.status === 'purchased' && r.id && r.token) return { status: 'purchased', productId: r.id, token: r.token };
   return { status: r.status === 'purchased' ? 'pending' : r.status };
 }

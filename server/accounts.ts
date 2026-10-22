@@ -6,6 +6,9 @@
 //   GET  /api/app/social, /api/app/return, POST /api/app/redeem
 //                         Apple sign-in for the Android app, in a browser tab
 //   POST /api/ws-ticket   a one-use ticket to join online play (the iOS app, which has no cookie)
+//   POST /api/shop/google, /api/shop/apple
+//                         coin packs bought in the Android / iOS app, checked and granted once
+//   POST /api/shop/apple/notifications  Apple tells us about refunds (App Store Server Notifications v2)
 //
 // Everything is optional: with no DATABASE_URL the game server runs exactly
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
@@ -27,7 +30,7 @@ import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names
 import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, promoFor, shopItem, type CoinPack } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForStoreProduct, packTotal, promoFor, shopItem, type CoinPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
@@ -36,8 +39,9 @@ export type { MeResponse };
 import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
+import { appStoreAccountToken, appStoreApi, REVOKED_NOTIFICATIONS, type AppStoreApi, type AppStoreEnv } from './appStore';
 
-export interface AccountsEnv extends MailEnv, PlayEnv {
+export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv {
   DATABASE_URL?: string;
   BETTER_AUTH_SECRET?: string;
   /** This server's public URL, e.g. https://server.tardigeddon.com */
@@ -102,7 +106,7 @@ export interface Presence {
   invite(fromUserId: string, fromName: string, toUserId: string): 'sent' | 'offline' | 'noroom';
 }
 
-export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null } = {}) {
+export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null; appStore?: AppStoreApi | null } = {}) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
   const db = opts.db ?? new Pool({ connectionString: env.DATABASE_URL, max: 5 });
   const baseURL = env.BETTER_AUTH_URL ?? 'http://localhost:8787';
@@ -254,6 +258,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const authHandler = toNodeHandler(auth);
   // Google Play Billing (coins bought in the Android app): off without a service account.
   const play = opts.play !== undefined ? opts.play : googlePlayApi(env);
+  // App Store purchases (coins bought in the iOS app): off without the app's Apple ID.
+  const appStore = opts.appStore !== undefined ? opts.appStore : appStoreApi(env);
   // Refunds and chargebacks made through Google Play take the coins back (as Stripe's do).
   const checkVoided = async () => {
     if (!play) return;
@@ -649,6 +655,80 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   /**
+   * A coin pack bought in the iOS app: check Apple's signature on the purchase,
+   * then grant its coins once. The app only tells Apple the purchase is
+   * finished after this says so, and sends unfinished ones again later, so
+   * this must be safe to call more than once for the same purchase.
+   */
+  const appleChecks = new Map<string, number[]>();
+  async function appStorePurchase(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!appStore) return json(res, 503, { error: tk('Buying in the app is not open yet.') });
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const now = Date.now();
+    const recent = (appleChecks.get(user.id) ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= 20) return json(res, 429, { error: tk('Too many tries. Please wait a minute.') });
+    appleChecks.set(user.id, [...recent, now]);
+    const body = await readJson(req);
+    const signed = typeof body?.transaction === 'string' && body.transaction.length <= 20_000 ? body.transaction : '';
+    if (!signed) return json(res, 400, { error: tk('No such coin pack.') });
+    let p;
+    try {
+      p = await appStore.purchase(signed);
+    } catch (e) {
+      // Apple's certificate checks couldn't be made just now: the app sends it again later.
+      console.error('app store purchase check failed', e);
+      return json(res, 503, { error: tk('Something went wrong. Please try again.') });
+    }
+    if (!p) return json(res, 400, { error: tk("The App Store doesn't know that purchase.") });
+    // Only coin packs, priced in App Store Connect; never trust the app's word for what was bought.
+    const pack = packForStoreProduct(p.productId);
+    if (!pack || !p.consumable) return json(res, 400, { error: tk('No such coin pack.') });
+    if (p.revoked) return json(res, 400, { error: tk('That purchase was cancelled.') });
+    // Bought while signed in to a different account: not this player's.
+    if (p.appAccountToken !== appStoreAccountToken(user.id)) {
+      return json(res, 403, { error: tk('That purchase was made on a different TardiGeddon account. Sign in to that account to get the coins.') });
+    }
+    const id = `apple:${p.transactionId}`;
+    // Sandbox purchases (TestFlight, App Review) cost nothing: count them as £0, so the sales page stays true.
+    const granted = await recordPurchase(db, {
+      sessionId: id,
+      userId: user.id,
+      item: pack.id,
+      amount: p.sandbox ? 0 : pack.price,
+      currency: CURRENCY,
+      paymentIntent: id,
+      region: p.region,
+    });
+    if (!granted) {
+      // Already granted: fine if it was to this player (the app is just sending it again).
+      const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
+      return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: tk('That purchase has already been used.') });
+    }
+    json(res, 200, { ok: true, coins: packTotal(pack) });
+  }
+
+  /** Apple tells us about refunds (App Store Server Notifications v2): the coins are taken back. */
+  async function appStoreNotification(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!appStore) return json(res, 404, { error: tk('Not found.') });
+    const body = await readJson(req);
+    const signed = typeof body?.signedPayload === 'string' ? body.signedPayload : '';
+    let n;
+    try {
+      n = signed ? await appStore.notification(signed) : null;
+    } catch (e) {
+      // Apple sends it again later.
+      console.error('app store notification check failed', e);
+      return json(res, 503, { error: 'try again' });
+    }
+    if (!n) return json(res, 400, { error: 'not a notification from the App Store' });
+    if (REVOKED_NOTIFICATIONS.includes(n.type) && n.purchase) {
+      await revokePurchase(db, `apple:${n.purchase.transactionId}`, 'refunded');
+    }
+    json(res, 200, { received: true });
+  }
+
+  /**
    * A coin pack bought in the Android app: check the purchase with Google,
    * grant its coins once, then consume it (so it can be bought again). The
    * app sends any purchase it hasn't heard back about again later, so this
@@ -670,7 +750,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const productId = typeof body?.productId === 'string' ? body.productId : '';
     const token = typeof body?.token === 'string' && body.token.length <= 4000 ? body.token : '';
     // Only coin packs, priced in the Play Console; never trust the app's word for what was bought.
-    const pack = packForPlayProduct(productId);
+    const pack = packForStoreProduct(productId);
     if (!pack || !token) return json(res, 400, { error: tk('No such coin pack.') });
     // The app reports a new purchase twice at once (its Buy button, and Google's
     // "purchases updated" signal). Done side by side, both would try to consume it
@@ -875,6 +955,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await webhook(req, res);
           return true;
         }
+        // From Apple's servers, not the game's pages: checked by Apple's signature instead.
+        if (path === '/api/shop/apple/notifications' && req.method === 'POST') {
+          await appStoreNotification(req, res);
+          return true;
+        }
         cors(req, res);
         if (req.method === 'OPTIONS') {
           res.writeHead(204);
@@ -921,6 +1006,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           if (user) me.controls = await controlsOf(db, user.id);
           // Coin packs can be bought in the Android app (Google Play Billing).
           if (play) me.playBilling = true;
+          if (appStore) me.appStore = true;
           if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
         } else if (path === '/api/gift/buy' && req.method === 'POST') {
@@ -960,6 +1046,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
           await purchasesPortal(req, res);
+        } else if (path === '/api/shop/apple' && req.method === 'POST') {
+          await appStorePurchase(req, res);
         } else if (path === '/api/shop/google' && req.method === 'POST') {
           await googlePlayPurchase(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {

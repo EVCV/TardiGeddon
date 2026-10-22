@@ -19,6 +19,7 @@ import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
 import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
+import { appStoreAccountToken, type AppStoreApi, type AppStorePurchase } from '../server/appStore';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -99,6 +100,15 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     voided: async () => voided,
   };
 
+  // No Apple in tests: purchases and notifications the fake "signed", by their text
+  // (Apple's real signature checks are tested in appstore.test.ts).
+  const applePurchases = new Map<string, AppStorePurchase>();
+  const appleNotes = new Map<string, { type: string; purchase: AppStorePurchase | null }>();
+  const appStore: AppStoreApi = {
+    purchase: async (signed) => applePurchases.get(signed) ?? null,
+    notification: async (signed) => appleNotes.get(signed) ?? null,
+  };
+
   // No email service in tests: keep what would have been sent.
   const sent: Mail[] = [];
   const mailer = async (m: Mail) => void sent.push(m);
@@ -116,7 +126,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
-      { stripe, mailer, play },
+      { stripe, mailer, play, appStore },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -581,6 +591,54 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await accounts.checkVoided(); // the hourly check sees it again: still only once
     expect((await me(cookie)).wallet.coins).toBe(200);
     voided = [];
+  });
+
+  it('sells coin packs in the iOS app through the App Store: Apple-signed, granted once, refundable', async () => {
+    const { cookie, id } = await signUp('apple@example.com');
+    expect((await me(cookie)).appStore).toBe(true);
+    const buy = (transaction: string) => post('/api/shop/apple', { transaction }, cookie);
+    const bought = (transactionId: string, over: Partial<AppStorePurchase> = {}): string => {
+      const signed = `signed-${transactionId}`;
+      applePurchases.set(signed, { transactionId, productId: 'coins_500', consumable: true, appAccountToken: appStoreAccountToken(id), revoked: false, sandbox: false, region: 'JP', ...over });
+      return signed;
+    };
+    // Signed out, not signed by Apple, and not a coin pack: nothing.
+    expect((await post('/api/shop/apple', { transaction: bought('a1') })).status).toBe(401);
+    expect((await buy('made-up')).status).toBe(400);
+    expect((await buy(bought('a2', { productId: 'hat_wizard' }))).status).toBe(400);
+    expect((await buy(bought('a3', { consumable: false }))).status).toBe(400);
+    expect((await buy(bought('a4', { revoked: true }))).status).toBe(400);
+    // Made on another account (or not by our app at all): refused, it stays for that account.
+    expect((await buy(bought('a5', { appAccountToken: appStoreAccountToken('someone-else') }))).status).toBe(403);
+    expect((await buy(bought('a6', { appAccountToken: null }))).status).toBe(403);
+    expect((await me(cookie)).wallet.coins).toBe(0);
+
+    const r = await buy(bought('a1'));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ coins: 550 });
+    // Sent again (the app only finishes it once we answer): no second grant.
+    expect(await (await buy('signed-a1')).json()).toMatchObject({ coins: 0 });
+    expect((await me(cookie)).wallet.coins).toBe(550);
+    // Another player sending this player's purchase: refused.
+    const other = await signUp('apple-other@example.com');
+    expect((await post('/api/shop/apple', { transaction: 'signed-a1' }, other.cookie)).status).toBe(403);
+    // A sandbox purchase (TestFlight, App Review) grants coins but counts as £0 on the sales page.
+    expect((await buy(bought('a7', { productId: 'coins_200_1', sandbox: true, region: 'GB' }))).status).toBe(200);
+    const rows = await accounts.db.query<{ amount: number; item: string; region: string }>(`SELECT amount, item, region FROM purchase WHERE user_id = $1 ORDER BY item`, [id]);
+    expect(rows.rows).toEqual([{ amount: 0, item: 'coins:200', region: 'GB' }, { amount: 499, item: 'coins:500', region: 'JP' }]);
+    expect((await me(cookie)).wallet.coins).toBe(750);
+
+    // Refunded through Apple: Apple's notification takes the coins back, once.
+    const notify = (signedPayload: string) => fetch(base + '/api/shop/apple/notifications', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ signedPayload }) });
+    expect((await notify('forged')).status).toBe(400);
+    appleNotes.set('refund-a1', { type: 'REFUND', purchase: applePurchases.get('signed-a1')! });
+    expect((await notify('refund-a1')).status).toBe(200);
+    expect((await notify('refund-a1')).status).toBe(200); // Apple retries: still only once
+    expect((await me(cookie)).wallet.coins).toBe(200);
+    // Other notifications are just acknowledged.
+    appleNotes.set('ask-a7', { type: 'CONSUMPTION_REQUEST', purchase: applePurchases.get('signed-a7')! });
+    expect((await notify('ask-a7')).status).toBe(200);
+    expect((await me(cookie)).wallet.coins).toBe(200);
   });
 
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {

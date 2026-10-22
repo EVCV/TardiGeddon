@@ -9,6 +9,7 @@ on:
   push:
     paths:
       - 'ios/**'
+      - 'server/apple/**'
       - 'capacitor.config.ts'
       - 'package*.json'
       - '.github/workflows/ios.yml'
@@ -24,12 +25,11 @@ jobs:
           node-version: 22
           cache: npm
       # The server checks App Store purchases against Apple's root certificate
-      # (server/apple/): print the one apple.com serves today, to compare.
+      # (server/apple/AppleRootCA-G3.cer): still the one apple.com publishes?
       - name: Apple's root certificate
         run: |
           curl -sSfL -o "$RUNNER_TEMP/g3.cer" https://www.apple.com/certificateauthority/AppleRootCA-G3.cer
-          openssl x509 -inform DER -in "$RUNNER_TEMP/g3.cer" -noout -subject -enddate -fingerprint -sha256
-          base64 -i "$RUNNER_TEMP/g3.cer"
+          cmp "$RUNNER_TEMP/g3.cer" server/apple/AppleRootCA-G3.cer
       # Apple only takes apps built with Xcode 26 or later (since April 2026).
       # The newest Xcode 26 on the runner, named in the log so a change shows.
       - name: Xcode 26

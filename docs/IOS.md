@@ -211,53 +211,87 @@ purchase, in every country.
 - In every other country Apple forbids buttons or links to other ways of
   paying. The app mustn't mention website prices either.
 
-**App side** (`ios/App/App/AppStorePlugin.swift` + `src/shop/appStore.ts`),
+**Built** (server, app and tests); waiting for the owner's App Store setup below.
+
+**App side** (`ios/App/App/AppStorePlugin.swift` ↔ `src/shop/appStore.ts`),
 with StoreKit 2:
 
-- `products(ids)` → localised prices. Show Apple's price, never the website's.
-- `buy(id, appAccountToken)` → Apple's payment sheet. `appAccountToken` is
-  Apple's version of Google's obfuscated account id, but it must be a
-  UUID: take the first 16 bytes of `sha256("tardigeddon:" + userId)`,
-  formatted as a UUID (a helper beside `playAccountTag`, with a test that the
-  app and server agree).
-- Send the purchase's **signed transaction (JWS)** to the server. Call
-  `transaction.finish()` only **after the server says it has granted it**.
-- `Transaction.unfinished` at startup (like `playUnfinished()`), and
-  `Transaction.updates` for purchases that finish later (Ask to Buy, slow
-  payments).
+- `products(ids)` → Apple's localised prices; the shop shows only those, and
+  a pack can't be bought until its price has arrived.
+- `buy(id, account)` → Apple's payment sheet. `account` is Apple's
+  `appAccountToken`: a UUID made from a hash of the player's id
+  (`src/shop/appStoreAccount.ts`; the server makes the same one).
+- The signed purchase goes to the server; `finish` is only called once the
+  server has granted it. `unfinished` (sent again on every start and return
+  to the app) and the `purchasesUpdated` listener catch the rest: no signal,
+  the app closed, Ask to Buy approved later.
+- `src/shop/storeBilling.ts` is the one interface in front of both stores;
+  `buyCoinsInApp` and `finishStorePurchases` (`src/account/session.ts`)
+  handle both. The shop says "App Store" instead of "Google Play" on iOS.
 
-**Shared app code:** put one small interface in front of both stores
-(`products / buy / unfinished / onUpdated`), picked by platform.
-`MeResponse.playBilling` becomes a per-store flag. `playProductId` becomes
-`storeProductId`.
-
-**Products** (App Store Connect → the app → In-App Purchases): the same ids
-as Google Play (`coins_200_1`, `coins_500`, … `coins_10000`), type
-**Consumable**, the same names. Prices: the GBP price points £1.99 … £99.99,
-with the **United Kingdom as the base country**. Each needs a review
-screenshot (the shop with the packs).
+**Products:** the same ids as Google Play (`coins_200_1`, `coins_500`, …
+`coins_10000`: `storeProductId` in `src/shop/catalog.ts`), type
+**Consumable**.
 
 **Server side** (`server/appStore.ts`, `POST /api/shop/apple`):
 
-- Use Apple's **`@apple/app-store-server-library`** (Node). It checks the
-  signature chain up to Apple's root and talks to the App Store Server API.
-- Check: signed by Apple, our bundle id, a known coin pack, not revoked,
-  `appAccountToken` matches this player. Then `recordPurchase` with id
-  `apple:<transactionId>` (granted once, like `gplay:`). The `storefront`
-  country is **3 letters** (`JPN`): convert it to the 2-letter code the Japan
-  figure uses (`src/shop/japan.ts`).
-- **Sandbox** purchases (TestFlight, sandbox testers) grant coins but count
-  as £0, like Google's licence testers.
-- **App Store Server Notifications v2** → `POST /api/shop/apple/notifications`
-  (signature checked by the same library): `REFUND` / `REVOKE` → `revokePurchase`
-  takes the coins back. The same address also gets the parental-consent
-  notices in §4.
-- Server secrets: `APPLE_IAP_KEY_ID`, `APPLE_IAP_ISSUER_ID`,
-  `APPLE_IAP_PRIVATE_KEY` (an In-App Purchase key: App Store Connect → Users
-  and Access → Integrations), `APPLE_BUNDLE_ID` (`com.tardigeddon.app`).
-- Tests like `tests/googleplay.test.ts`: granted once, wrong account refused,
-  sandbox counts as £0, refund takes the coins back, unknown product refused,
-  and a forged or tampered JWS refused.
+- Apple's own **`@apple/app-store-server-library`** checks the signature up
+  to Apple Root CA - G3 (`server/apple/`, checked against apple.com by the
+  iOS build), with revocation checks, for our bundle id, in the live store
+  or the sandbox.
+- Grants only a coin pack (consumable), not refunded, tagged with this
+  player's UUID, once (`apple:<transactionId>`); another account's purchase
+  is refused and stays for that account. The country (`storefront`, 3
+  letters) is kept as 2 letters for the Japan figure (`server/storefronts.ts`).
+- **Sandbox** purchases (TestFlight, sandbox testers, App Review) grant coins
+  but count as £0. Because of that, **never open a public TestFlight link**:
+  internal testers only.
+- **Refunds:** App Store Server Notifications v2 at
+  `POST /api/shop/apple/notifications`; `REFUND` / `REVOKE` take the coins
+  back (once), as with Stripe and Google. Others are acknowledged.
+- One server setting, `APPLE_APP_ID`, turns it on. No Apple key is needed on
+  the server: checking Apple's signature only needs Apple's public certificate.
+- Tests: `tests/appstore.test.ts` runs Apple's real signature checks against
+  a stand-in certificate chain (genuine, changed, another app's, someone
+  else's chain, refund notifications); `tests/accounts.test.ts` covers
+  granting once, wrong account, sandbox £0 and refunds.
+
+### Owner: coins in App Store Connect (after §5's steps 1–2)
+
+1. **Paid Apps Agreement, tax and bank** (App Store Connect → Business) must
+   be done first, or Apple won't sell anything, even in testing.
+2. **The products.** App Store Connect → the app → **Monetization → In-App
+   Purchases → +**, type **Consumable**, one per pack. The Product ID must be
+   exactly as below and can never be reused:
+
+   | Reference name | Product ID | Price (UK) |
+   |---|---|---|
+   | Pocket pouch | `coins_200_1` | £1.99 |
+   | Coin stack | `coins_500` | £4.99 |
+   | Treasure chest | `coins_1000` | £9.99 |
+   | Royal hoard | `coins_2000` | £19.99 |
+   | Mountain of coins | `coins_5000` | £49.99 |
+   | Dragon's hoard | `coins_10000` | £99.99 |
+
+   For each: **Price Schedule → Base country United Kingdom**, the price
+   above (Apple sets the other countries). **Localization** English (U.K.):
+   display name as the reference name, description e.g. "500 coins + 50
+   bonus". A **review screenshot** (the shop with the packs; from TestFlight).
+   Apple reviews the products with the first app version that sells them.
+3. **The server.** The app's Apple ID is the number under App Store Connect →
+   the app → App Information → **Apple ID**:
+
+   ```sh
+   fly secrets set APPLE_APP_ID=1234567890
+   ```
+
+4. **Refund notifications.** App Store Connect → the app → App Information →
+   **App Store Server Notifications**: Production and Sandbox Server URL
+   `https://server.tardigeddon.com/api/shop/apple/notifications`, **Version 2**.
+5. **Test buyers.** App Store Connect → Users and Access → **Sandbox → Test
+   Accounts → +** (a made-up email works). On the iPhone: Settings →
+   Developer → Sandbox Apple Account (or the App Store asks at the first
+   purchase in TestFlight). Sandbox payments are free and grant coins as £0.
 
 ## 4. Ages and parents *(changing)*
 
@@ -465,8 +499,8 @@ from the TestFlight build (§5).
 | 4 | ✅ iPad portrait and resizable windows in the web game (`e2e/tablet.spec.ts`) | Code | — |
 | 5 | ✅ `ios-testflight.yml` + fastlane: build, sign, upload to TestFlight. Left: the owner's keys (§5) | Code + owner (API key, secrets) | 1, 3 |
 | 6 | First TestFlight build on the iPhone and iPad: play, sign in, online, tutorial, rotate, split screen | Owner | 2–5 |
-| 7 | One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
-| 8 | `server/appStore.ts`, notifications, tests; products in App Store Connect | Code + owner (IAP key, products) | 1, 7 |
+| 7 | ✅ One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
+| 8 | ✅ `server/appStore.ts`, notifications, tests. Left: products, `APPLE_APP_ID`, notification URL (§3) | Code + owner | 1, 7 |
 | 9 | Sandbox purchases on TestFlight: pay, refund, app closed mid-purchase, wrong account | Owner | 6, 8 |
 | 10 | Apple and Google sign-in in the app + "Link Apple/Google" + add a password; Apple and Google keys live on the server | Code + owner (Apple and Google keys) | 2 |
 | 11 | Age range, Significant Change API, consent notifications; sandbox-tested | Code | 7, 8 |

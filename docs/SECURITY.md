@@ -49,6 +49,17 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   purchases of a coin pack, tagged with a hash of *this* account, once per
   token; then consumes it. Google refunds are checked hourly and take the coins
   back. The endpoint is rate-limited per player (each check calls Google).
+- iOS app purchases: the app only passes on the purchase as Apple signed it.
+  The server checks the signature up to Apple Root CA - G3
+  (`server/apple/AppleRootCA-G3.cer`, the same file as apple.com publishes: a
+  test pins its fingerprint and the iOS build compares it), with certificate
+  revocation checks, using Apple's own library (`server/appStore.ts`). It
+  grants only coin packs (consumables) for our bundle id, not refunded, tagged
+  with a UUID made from a hash of *this* account, once per transaction. The
+  app finishes a purchase with Apple only after that. Refund notifications
+  are accepted only when Apple signed them, for our app. Sandbox purchases
+  (TestFlight) grant coins free, so the TestFlight build is for invited
+  testers only: never a public TestFlight link.
 - Unlocks are all-or-nothing database transactions (no double spending).
 - Slime: online-rate Slime only when two or more different accounts played
   each other; anything else pays the CPU rate under its 200-a-day cap; one

@@ -17,7 +17,7 @@ import { legalLink, withNodes } from './account';
 import { WEAPONS } from '../sim/weapons';
 import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
 import { isNativeApp } from '../native';
-import { playPrices } from '../shop/playBilling';
+import { appStoreName, storePrices } from '../shop/storeBilling';
 import { ageSignal, coinRules, onAgeSignalStale, type AgeSignal } from '../shop/ageSignals';
 import { buyCoins, buyCoinsInApp, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
@@ -469,16 +469,18 @@ const bestValue = (): string => COIN_PACKS.reduce((a, b) => (pencePerCoin(b) < p
 /** "0.83p a coin". */
 const perCoin = (pence: number): string => t('{pence}p a coin', { pence: pence.toFixed(2) });
 
-// In the Android app coin packs are bought with Google Play Billing, at the
-// price Google shows the player (their currency): fetched once, then cached.
+// In the phone apps coin packs are bought with the phone's store (Google Play
+// on Android, the App Store on iOS), at the price the store shows the player
+// (their currency): fetched once, then cached.
 const inApp = (): boolean => isNativeApp();
+const apple = (): boolean => appStoreName() === 'apple';
 let inAppPrices: Record<string, string> | null = null;
 let inAppPricesFailed = false;
 let loadingPrices = false;
 function loadInAppPrices(ctx: HubContext): void {
   if (inAppPrices || loadingPrices) return;
   loadingPrices = true;
-  playPrices().then(
+  storePrices().then(
     (p) => {
       inAppPrices = p;
       inAppPricesFailed = false;
@@ -680,7 +682,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     adultTick.onchange = update;
     pay.onclick = async () => {
       busy = true;
-      pay.textContent = inApp() ? t('Opening Google Play…') : t('Opening secure checkout…');
+      pay.textContent = !inApp() ? t('Opening secure checkout…') : apple() ? t('Opening the App Store…') : t('Opening Google Play…');
       update();
       error.textContent = '';
       const again = () => {
@@ -699,7 +701,9 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
         ctx.notify(
           r.result === 'done'
             ? t('Thanks! {n} coins are in your wallet.', { n: formatNumber(r.coins || total) })
-            : t('Thanks! Your payment is still going through: the coins will appear as soon as Google Play confirms it.'),
+            : apple()
+              ? t('Thanks! Your payment is still going through: the coins will appear as soon as the App Store confirms it.')
+              : t('Thanks! Your payment is still going through: the coins will appear as soon as Google Play confirms it.'),
         );
       } catch (e) {
         error.textContent = t(e instanceof Error ? e.message : String(e));
@@ -707,7 +711,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
       }
     };
     body.append(consent, adult);
-    body.append(pay, hint, error, el('p', 'coin-dialog-small', inApp() ? t('🔒 You pay with Google Play. Prices include tax.') : t("🔒 You pay on Stripe's secure page. Prices include VAT.")));
+    body.append(pay, hint, error, el('p', 'coin-dialog-small', !inApp() ? t("🔒 You pay on Stripe's secure page. Prices include VAT.") : apple() ? t('🔒 You pay with the App Store. Prices include tax.') : t('🔒 You pay with Google Play. Prices include tax.')));
     update();
   }
   overlay.append(box);
@@ -738,7 +742,9 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   if (inApp()) {
     loadInAppPrices(ctx);
     loadAgeSignal(ctx, box);
-    if (inAppPricesFailed) box.append(el('p', 'account-note', t("Couldn't get prices from Google Play. Check your connection, then open the shop again.")));
+    if (inAppPricesFailed) {
+      box.append(el('p', 'account-note', apple() ? t("Couldn't get prices from the App Store. Check your connection, then open the shop again.") : t("Couldn't get prices from Google Play. Check your connection, then open the shop again.")));
+    }
     if (rules.blocked) box.append(el('p', 'account-note coin-age', t(rules.blocked)));
     else if (rules.note) box.append(el('p', 'account-note coin-age', t(rules.note)));
   }
@@ -779,7 +785,7 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
       el('span', 'pack-rate', inApp() ? '' : perCoin(pencePerCoin(p))),
       el('span', 'pack-price', packPrice(p)),
     );
-    // In the app, not until Google's price is known (it must be the price shown).
+    // In the app, not until the store's price is known (it must be the price shown).
     b.disabled = inApp() && (!inAppPrices?.[p.id] || !ageDone || !!rules.blocked);
     b.onclick = () => openCheckout(me, ctx, p, b);
     grid.append(b);
@@ -787,9 +793,11 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
   box.append(grid, el('p', 'coins-pick', t('👆 Tap a pack to buy it')));
 
   const trust = el('ul', 'coin-trust');
-  const trustLines = inApp()
-    ? [t('🔒 Secure checkout by Google Play'), t('🧾 Receipt from Google'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')]
-    : [t('🔒 Secure checkout by Stripe'), t('🧾 Receipt by email'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')];
+  const trustLines = !inApp()
+    ? [t('🔒 Secure checkout by Stripe'), t('🧾 Receipt by email'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')]
+    : apple()
+      ? [t('🔒 Secure checkout by the App Store'), t('🧾 Receipt from Apple'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')]
+      : [t('🔒 Secure checkout by Google Play'), t('🧾 Receipt from Google'), t('🪙 Coins stay with your account'), t('✅ Looks only: never pay-to-win')];
   for (const line of trustLines) trust.append(el('li', '', line));
   box.append(trust, el('p', 'account-note', t('Coins have no cash value. Under 18? Please ask a parent or carer before buying.')));
   return box;

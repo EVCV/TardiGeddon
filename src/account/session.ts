@@ -13,6 +13,7 @@ import { isNativeApp } from '../native';
 import { App } from '@capacitor/app';
 import { googleAccountPicker, nativeSignInAvailable, newChallenge, openBrowserTab, parseSignInLink, takeVerifier } from './nativeSignIn';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
+import { appStoreAvailable, appStoreBuy, appStoreFinish, appStoreUnfinished, type AppStorePurchase } from '../shop/appStore';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
 import { t } from '../i18n/i18n';
 
@@ -40,6 +41,8 @@ export interface MeResponse {
   preview?: boolean;
   /** Coin packs can be bought in the Android app, with Google Play Billing. */
   playBilling?: boolean;
+  /** Coin packs can be bought in the iOS app, with Apple's in-app purchase. */
+  appStore?: boolean;
   /** The player's control settings, if they've saved any (input/controls.ts). */
   controls?: unknown;
 }
@@ -135,7 +138,7 @@ function set(next: MeResponse | null): void {
   // spend). In the Android app, coin packs are sold with Google Play Billing instead.
   // Google and Apple sign-in pages refuse to open inside an app, so the Android
   // app signs in its own way (signInInApp); other apps offer email only.
-  if (next && isNativeApp()) next = { ...next, shop: next.playBilling === true && playBillingAvailable(), receipts: false, providers: appProviders(next) };
+  if (next && isNativeApp()) next = { ...next, shop: (next.playBilling === true && playBillingAvailable()) || (next.appStore === true && appStoreAvailable()), receipts: false, providers: appProviders(next) };
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
@@ -527,17 +530,25 @@ export function listenForAppSignIn(say: (message: string) => void): void {
  */
 /** `grownUp`: the buyer is 18+ or a parent or carer has agreed (needed for every pack). */
 /**
- * Buy a coin pack in the Android app: Google's payment sheet, then the server
- * checks the purchase with Google and adds the coins.
+ * Buy a coin pack in the phone apps: the store's payment sheet (Google Play
+ * on Android, the App Store on iOS), then the server checks the purchase and
+ * adds the coins.
  */
 export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; coins: number } | { result: 'pending' | 'cancelled' }> {
   if (!me?.user) throw new Error(t('Please sign in first.'));
+  if (appStoreAvailable()) {
+    const r = await appStoreBuy(packId, me.user.id);
+    if (r.status !== 'purchased') return { result: r.status };
+    const coins = await grantAppStorePurchase(r);
+    await refreshAccount();
+    return { result: 'done', coins };
+  }
   const r = await playBuy(packId, me.user.id);
   if (r.status === 'cancelled') return { result: 'cancelled' };
   if (r.status === 'pending') return { result: 'pending' };
   if (r.status === 'owned') {
     // An earlier purchase of this pack that never reached the server: finish that one now.
-    const coins = await finishPlayPurchases();
+    const coins = await finishStorePurchases();
     return coins > 0 ? { result: 'done', coins } : { result: 'pending' };
   }
   if (r.status !== 'purchased') return { result: 'pending' };
@@ -546,24 +557,44 @@ export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; c
   return { result: 'done', coins: done.coins ?? 0 };
 }
 
+/**
+ * Hand an App Store purchase to the server, which checks Apple's signature
+ * and grants the coins once; then finish it with Apple. Not before: a
+ * purchase the server never heard about must come back next time.
+ */
+async function grantAppStorePurchase(p: AppStorePurchase): Promise<number> {
+  const done = await call<{ coins?: number }>('/api/shop/apple', { transaction: p.transaction });
+  await appStoreFinish(p.transactionId);
+  return done.coins ?? 0;
+}
+
 let finishing: Promise<number> | null = null;
 
 /**
- * Send the server any completed Google Play purchase it hasn't granted yet
- * (the app closed mid-purchase, no signal, or a slow payment went through).
- * Resolves to the coins added. Safe to call any time: the server grants each
- * purchase once.
+ * Send the server any completed purchase from the phone's store it hasn't
+ * granted yet (the app closed mid-purchase, no signal, a slow payment went
+ * through, a parent approved it with Ask to Buy). Resolves to the coins added.
+ * Safe to call any time: the server grants each purchase once.
  */
-export function finishPlayPurchases(): Promise<number> {
-  if (!me?.user || !me.playBilling || !playBillingAvailable()) return Promise.resolve(0);
+export function finishStorePurchases(): Promise<number> {
+  const play = !!me?.playBilling && playBillingAvailable();
+  const apple = !!me?.appStore && appStoreAvailable();
+  if (!me?.user || (!play && !apple)) return Promise.resolve(0);
   finishing ??= (async () => {
     let added = 0;
     try {
-      for (const p of await playUnfinished()) {
+      for (const p of play ? await playUnfinished() : []) {
         try {
           added += (await call<{ coins?: number }>('/api/shop/google', p)).coins ?? 0;
         } catch {
           // e.g. bought on another account: leave it for that account.
+        }
+      }
+      for (const p of apple ? await appStoreUnfinished() : []) {
+        try {
+          added += await grantAppStorePurchase(p);
+        } catch {
+          // e.g. bought on another account: left unfinished, for that account.
         }
       }
     } finally {

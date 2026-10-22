@@ -6,6 +6,7 @@ class GameViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         // Our own plugins (Capacitor finds the npm ones by itself).
         bridge?.registerPluginInstance(AuthTokenPlugin())
+        bridge?.registerPluginInstance(AppStorePlugin())
     }
 
     // A swipe in from an edge (aiming, scrolling the map) needs a second swipe to
