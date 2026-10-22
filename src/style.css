@@ -622,9 +622,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .queue-time { font-family: var(--title); font-size: 28px; }
 .team-time { font-family: var(--title); font-size: 13px; color: #fff; -webkit-text-stroke: 0.6px var(--ink); min-width: 40px; }
 
-/* Landscape only on touch devices (see ui/landscape.ts). */
+/* Too narrow to play on a touch screen: phones held upright, a thin split-screen
+   window on a tablet (see ui/landscape.ts). An upright tablet plays as it is. */
 #rotate { display: none; }
-@media (orientation: portrait) {
+@media (orientation: portrait) and (max-width: 699px) {
   html.touch #rotate {
     position: fixed; inset: 0; z-index: 1000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -807,6 +808,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .looks-hint { margin: -4px 0 6px; font-size: 13px; opacity: .8; text-align: left; }
 .hero-text { min-width: 0; text-align: left; }
 .lobby .title { font-size: clamp(40px, 5.5vw, 64px); line-height: 1; }
+/* Two columns (981–1499px wide, e.g. an upright 13-inch iPad): the title shares half
+   the width with your team's picture, so it's sized from that half, not the window. */
+@media (min-width: 981px) and (max-width: 1499px) {
+  .lobby .title { font-size: clamp(32px, min(5.5vw, calc((50vw - 250px) / 6.2)), 64px); }
+}
 .lobby .tagline { margin: 6px 0 10px; font-size: 17px; }
 .hero-team {
   display: inline-block;

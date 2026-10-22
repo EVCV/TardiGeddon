@@ -377,15 +377,19 @@ from the TestFlight build (§5).
 - **iPad: portrait and resizable windows have to work.** Since iPadOS 26
   the "full screen only" setting (`UIRequiresFullScreen`) is deprecated.
   With the iOS 27 SDK it's ignored: the app can be put in a resizable
-  window, and resizable apps must support **every orientation**. So:
-  - declare all four orientations on iPad, and ask to stay in landscape
-    while playing (`prefersInterfaceOrientationLocked`; iPadOS may say no);
-  - make the game **playable in iPad portrait** (3:4 is wide enough: the
-    camera zooms out, HUD and menus reflow). Today `src/ui/landscape.ts`
-    covers portrait with "Turn your phone sideways";
-  - keep that overlay only for windows too narrow to play in (e.g. a thin
-    split screen), with tablet wording;
-  - check the game redraws correctly when the window is resized.
+  window, and resizable apps must support **every orientation**. **Done:**
+  - all four orientations on iPad (`Info.plist`); no orientation lock is
+    needed, since the game plays upright as well as sideways;
+  - the game **plays in iPad portrait**: the menu reflows into one column, the
+    match keeps its touch controls and the map scrolls sideways as on a phone,
+    and a match redraws when the iPad is turned mid-game;
+  - "Turn your phone sideways" (`src/ui/landscape.ts`, `#rotate` in
+    `style.css`) only covers windows under 700px wide: upright phones, and a
+    thin split-screen window on a tablet, which is asked to "Make the window
+    wider" instead;
+  - between 981 and 1499px wide the lobby is two columns, and the title is
+    sized to its half (it ran out of its card on an upright 13-inch iPad);
+  - `e2e/tablet.spec.ts` checks all of this.
 - **Full screen:** hide the status bar, auto-hide the home indicator,
   keep the screen on (`isIdleTimerDisabled`), like Android.
 - **Sound:** audio session **ambient** (respects the silent switch, doesn't
@@ -406,7 +410,7 @@ from the TestFlight build (§5).
 | 1 | Enrol; agreements, tax, bank; Small Business Program; EU trader status; signing repo | Owner | — |
 | 2 | ✅ Token sign-in + WebSocket tickets (server + app, tests), off on Android. | Code | — |
 | 3 | ✅ `ios/` project: orientations, full screen, sound, icons, launch screen, privacy manifest, Keychain plugin; simulator build on GitHub | Code | — |
-| 4 | iPad portrait and resizable windows in the web game | Code | — |
+| 4 | ✅ iPad portrait and resizable windows in the web game (`e2e/tablet.spec.ts`) | Code | — |
 | 5 | `ios.yml` + fastlane: build, sign, upload to TestFlight | Code + owner (API key, secrets) | 1, 3 |
 | 6 | First TestFlight build on the iPhone and iPad: play, sign in, online, tutorial, rotate, split screen | Owner | 2–5 |
 | 7 | One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
