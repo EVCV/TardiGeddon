@@ -84,10 +84,9 @@ runs. That's fine: the phone menu has a Back button on every page.
 ### 2a. Tokens instead of the cookie: **built**
 
 Server and game code are done and tested (`tests/accounts.test.ts`, "signs
-the iOS app in with a token…"). Still to do, with the Xcode project (§7):
-the `AuthToken` Swift plugin that keeps the token in the Keychain (get / set
-/ remove; until it exists the app stays signed in only until it closes), and
-on the server, before the first TestFlight build:
+the iOS app in with a token…"), and the `AuthToken` Keychain plugin is in the
+Xcode project (§7). Still to do on the server, before the first TestFlight
+build:
 
 ```sh
 fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com,capacitor://app.tardigeddon.com
@@ -119,7 +118,7 @@ So the app signs in with a **bearer token** instead:
   `src/account/session.ts`): on iOS it sends the token instead of cookies,
   saves a new one when the server sends it, and forgets it on sign-out or when
   the server no longer knows it. It's kept in the **Keychain** through the
-  `AuthToken` plugin (to write with the Xcode project), never `localStorage`.
+  `AuthToken` plugin (`ios/App/App/AuthTokenPlugin.swift`), never `localStorage`.
 - **Android** keeps the cookie through its launch and can move to tokens in a
   later update (one path is easier to look after than two).
 
@@ -351,12 +350,26 @@ online play are 13+.
   website or Android also spend here (Guideline 3.1.3(b)).
 - **Countries:** as Google Play: everywhere except Vietnam.
 
-## 7. The Xcode project
+## 7. The Xcode project: **built**
 
-- `npm i @capacitor/ios`, `npx cap add ios`, commit `ios/` (like
-  `android/`). `capacitor.config.ts`: `ios: { scheme: 'capacitor' }` with
-  the same `hostname` (→ `capacitor://app.tardigeddon.com`) and background
-  colour. Add `npm run app:ios` (`cap open ios`) for anyone with a Mac.
+`ios/` (Capacitor 8, Swift Package Manager: no CocoaPods), opened with
+`npm run app:ios` on a Mac. `npm run app:build` copies the game into it, as
+for Android. `.github/workflows/ios.yml` builds it for the simulator, unsigned,
+whenever the iOS side changes: that's the check that the Swift compiles.
+
+| What | Where |
+|---|---|
+| Our screen: Capacitor's web view, home bar auto-hidden, edge swipes need a second swipe, our plugins | `ios/App/App/GameViewController.swift` |
+| The sign-in token in the Keychain (this device only) | `ios/App/App/AuthTokenPlugin.swift` ↔ `src/account/token.ts` |
+| Sound mixes with the player's music and follows the silent switch; the screen stays on | `AppDelegate.swift` (+ `navigator.audioSession` in `src/native.ts`) |
+| Orientations, no status bar, `ITSAppUsesNonExemptEncryption = NO`, arm64 | `Info.plist` |
+| Privacy manifest (no tracking; what an account holds) | `PrivacyInfo.xcprivacy` |
+| Settings: `capacitor://app.tardigeddon.com`, no bounce, iPad gets the touch game | `capacitor.config.ts` → `ios` |
+| Icon and splash | `npx @capacitor/assets generate --ios --iconBackgroundColor '#7fd3f7' --splashBackgroundColor '#7fd3f7'` (from `assets/`) |
+
+Minimum iOS 15. Version 0.1.0 (from `package.json`); the build number comes
+from the TestFlight build (§5).
+
 - **Launch screen:** Capacitor's storyboard. Apple requires one from the iOS
   27 SDK.
 - **iPhone:** landscape only (`UISupportedInterfaceOrientations`).
@@ -390,8 +403,8 @@ online play are 13+.
 | # | Work | Who | Needs |
 |---|---|---|---|
 | 1 | Enrol; agreements, tax, bank; Small Business Program; EU trader status; signing repo | Owner | — |
-| 2 | ✅ Token sign-in + WebSocket tickets (server + app, tests), off on Android. Left: the Keychain plugin (with 3) | Code | — |
-| 3 | `ios/` project: orientations, full screen, sound, icons, launch screen, privacy manifest | Code | — |
+| 2 | ✅ Token sign-in + WebSocket tickets (server + app, tests), off on Android. | Code | — |
+| 3 | ✅ `ios/` project: orientations, full screen, sound, icons, launch screen, privacy manifest, Keychain plugin; simulator build on GitHub | Code | — |
 | 4 | iPad portrait and resizable windows in the web game | Code | — |
 | 5 | `ios.yml` + fastlane: build, sign, upload to TestFlight | Code + owner (API key, secrets) | 1, 3 |
 | 6 | First TestFlight build on the iPhone and iPad: play, sign in, online, tutorial, rotate, split screen | Owner | 2–5 |

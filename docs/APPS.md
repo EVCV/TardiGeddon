@@ -8,8 +8,10 @@ The apps are the web game (`dist/`) inside a native shell made with
 | Capacitor settings (app id, name, address inside the phone) | `capacitor.config.ts` |
 | App-only build settings (game server, invite links) | `.env.app` |
 | Android project (open in Android Studio) | `android/` |
+| iOS project (open in Xcode on a Mac: `npm run app:ios`; see `docs/IOS.md`) | `ios/` |
 | Icon and splash sources, and the script that draws them | `assets/`, `scripts/app-icons.mjs` |
 | APK built on every push | `.github/workflows/android.yml` |
+| iOS simulator build when the iOS side changes | `.github/workflows/ios.yml` |
 
 ## Building
 

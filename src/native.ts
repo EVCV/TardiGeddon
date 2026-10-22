@@ -28,6 +28,10 @@ export interface NativeHooks {
 
 export function attachNative(hooks: NativeHooks): void {
   if (!isNativeApp()) return;
+  // iOS: game sound mixes with the player's own music and follows the silent
+  // switch (as AppDelegate.swift sets for the app; WebKit's own audio needs telling too).
+  const nav = navigator as Navigator & { audioSession?: { type: string } };
+  if (Capacitor.getPlatform() === 'ios' && nav.audioSession) nav.audioSession.type = 'ambient';
   void App.addListener('backButton', () => {
     // A dialog over the page closes first (they close on Escape, like on a computer).
     const overlay = document.querySelector('.editor-overlay');

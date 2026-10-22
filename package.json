@@ -18,12 +18,14 @@
     "build:all": "npm run build && npm run site:build && node -e \"require('fs').cpSync('dist', 'dist-site/play', { recursive: true })\"",
     "app:build": "tsc --noEmit && vite build --mode app && cap sync",
     "app:android": "cap open android",
+    "app:ios": "cap open ios",
     "i18n": "tsx scripts/i18n.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
     "@fontsource/luckiest-guy": "^5.3.0",
     "@fontsource/nunito": "^5.3.0",
     "@gsap/react": "^2.1.2",
