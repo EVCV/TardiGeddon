@@ -85,8 +85,8 @@ runs. That's fine: the phone menu has a Back button on every page.
 
 Server and game code are done and tested (`tests/accounts.test.ts`, "signs
 the iOS app in with a token…"), and the `AuthToken` Keychain plugin is in the
-Xcode project (§7). Still to do on the server, before the first TestFlight
-build:
+Xcode project (§7). The game server trusts the iOS app's address (set
+October 2026, alongside Android's; `docs/APPS.md`, "One server setting"):
 
 ```sh
 fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com,capacitor://app.tardigeddon.com

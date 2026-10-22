@@ -39,14 +39,17 @@ New icons: edit `public/icon.svg`, then
 ## One server setting
 
 The app's pages live at `https://app.tardigeddon.com` *inside the phone*
-(Capacitor serves them from the app; nothing is hosted there). The game
-server must trust that origin for sign-in to work:
+(Capacitor serves them from the app; nothing is hosted there). On iOS the
+address is `capacitor://app.tardigeddon.com` (`docs/IOS.md` §2a). The game
+server must trust both for sign-in to work. This is set (October 2026):
 
 ```sh
-fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com
+fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com,capacitor://app.tardigeddon.com
 ```
 
-(If `TRUSTED_ORIGINS` already has values, keep them: comma-separated.)
+`fly secrets set` replaces the whole value: always list every address,
+comma-separated, or one of the apps stops signing in. Setting it restarts the
+game server (online games in progress drop for a few seconds).
 
 Because that address is on `tardigeddon.com`, the server's sign-in cookie is
 "same-site" and works exactly as on the website. Online play needs no change.
