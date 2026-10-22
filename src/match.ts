@@ -817,6 +817,7 @@ export class Match {
     c.onwheel = null;
     c.oncontextmenu = null;
     c.onmousedown = c.onmouseup = null;
+    this.hud.togglePanel(false);
     this.renderer.destroy();
     this.ui.innerHTML = '';
   }

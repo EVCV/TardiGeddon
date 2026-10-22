@@ -21,6 +21,12 @@ export function scrollToTop(): void {
   else window.scrollTo(0, 0);
 }
 
+/** Hold the page still (while the phone menu is open), or let it scroll again. */
+export function holdScroll(on: boolean): void {
+  if (on) lenis?.stop();
+  else lenis?.start();
+}
+
 export function SmoothScroll({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (prefersReducedMotion()) return;

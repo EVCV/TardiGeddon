@@ -62,11 +62,24 @@ on the site anyway.
 ## How the site is built
 
 - `site/src/App.tsx` picks the page from the path (`site/src/router.tsx` is a
-  tiny History-API router). Pages live in `site/src/pages/`.
-- Game facts (weapon list, game styles, team colours, hats, the mascot) are
-  imported straight from the game's own code (`src/sim/weapons.ts`,
-  `src/sim/schemes.ts`, `src/render/palette.ts`, `src/render/hats.ts`,
-  `src/ui/mascot.ts`), so the site can't drift out of date.
+  tiny History-API router). Pages live in `site/src/pages/`: Home, How to play
+  (`/how-to-play`), Weapons (`/weapons`), Leaderboards, Help & support
+  (`/support`), Easter eggs and the legal pages. The header menu (`NAV` in
+  `site/src/components/Layout.tsx`) lists the main ones; on phones it is a
+  slide-out panel behind the ☰ button.
+- The Android app isn't public yet: the site says "coming soon" (Home's
+  Android band, the footer, Help & support). On launch day, swap those for a
+  Google Play link.
+- Game facts (weapons with their "how it's used" tags and descriptions, game
+  styles, map styles, CPU levels, default keys, languages, team colours, hats,
+  the mascot) are imported straight from the game's own code
+  (`src/sim/weapons.ts`, `src/ui/weaponUse.ts`, `src/sim/schemes.ts`,
+  `src/sim/terrain/generate.ts`, `src/ai/skills.ts`, `src/input/controls.ts`,
+  `src/i18n/i18n.ts`, `src/render/palette.ts`, `src/render/hats.ts`,
+  `src/ui/mascot.ts`), so the site can't drift out of date. How to play
+  follows the game's Guide (`src/ui/guide.ts`); keep the two in step. Help &
+  support answers questions about money and accounts in line with the legal
+  pages, and links to them for the details.
 - Legal pages: `/legal/<file name>` renders `site/legal/<file name>.md`
   (loaded on demand with `marked`). `[Placeholders]` are highlighted and the
   page shows a "Draft" note until the owner fills them in. Footer order and
@@ -91,8 +104,12 @@ npm run server                                   # for the online screenshots
 PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node site/capture/capture-media.mjs [scene ...]
 ```
 
-Scenes: `tun`, `victory`, `rope`, `menus`, `aim`, `phone` (all if none
-given). Clips are recorded frame by frame on a virtual clock
+Scenes: `tun`, `victory`, `rope`, `menus` (the lobby, the emblem builder,
+online screens), `realms` (four map styles in different weather),
+`challenge` (Target Smash), `aim` (aiming, and the weapon panel with its
+tags), `phone` (all if none given). Each scene opens the game in a fixed
+free world (`open(..., arena)`), so the seasonal worlds don't turn up in the
+site's pictures. Clips are recorded frame by frame on a virtual clock
 (`site/capture/virtual-clock.js`), so they're smooth however slow the
 headless browser is. Scenes stage things through `window.__tardi` (giving
 the player a superweapon, huddling the enemies so the shot is worth

@@ -81,6 +81,17 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     ctx.putImageData(img, 0, 0, x0, y0, x1 - x0, y1 - y0);
   };
 
+  // Brush stamps only change the land; the picture catches up once per frame,
+  // over the whole box they touched. (Redrawing after every stamp was slow
+  // with the small brushes, which stamp every few pixels along a stroke.)
+  let dirty: { x0: number; y0: number; x1: number; y1: number } | null = null;
+  let frame = 0;
+  const flush = () => {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    if (dirty) paint(dirty.x0, dirty.y0, dirty.x1, dirty.y1);
+    dirty = null;
+  };
   const brush = (cx: number, cy: number) => {
     const r = size;
     for (let y = Math.max(0, Math.floor(cy - r)); y < Math.min(H, cy + r); y++) {
@@ -88,7 +99,15 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
         if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) terrain.mask[y * W + x] = erase ? 0 : 1;
       }
     }
-    paint(cx - r - 4, cy - r - 4, cx + r + 4, cy + r + 4);
+    // The grass edge looks a few pixels below changed land: repaint a margin round it.
+    const x0 = cx - r - 4;
+    const y0 = cy - r - 4;
+    const x1 = cx + r + 4;
+    const y1 = cy + r + 4;
+    dirty = dirty
+      ? { x0: Math.min(dirty.x0, x0), y0: Math.min(dirty.y0, y0), x1: Math.max(dirty.x1, x1), y1: Math.max(dirty.y1, y1) }
+      : { x0, y0, x1, y1 };
+    frame ||= requestAnimationFrame(flush);
   };
 
   // Drawing: a stroke from each pointer move to the next, so fast strokes don't leave gaps.
@@ -111,7 +130,10 @@ export function openMapEditor(host: HTMLElement, opts: { start?: MyMap; onPlay: 
     for (let i = 1; i <= steps; i++) brush(last.x + ((p.x - last.x) * i) / steps, last.y + ((p.y - last.y) * i) / steps);
     last = p;
   };
-  canvas.onpointerup = canvas.onpointercancel = () => (last = null);
+  canvas.onpointerup = canvas.onpointercancel = () => {
+    last = null;
+    flush();
+  };
 
   const button = (text: string, label: string, fn: () => void, cls = 'hud-btn') => {
     const b = el('button', cls, text);
