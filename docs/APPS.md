@@ -79,6 +79,30 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   scale; Settings → Text size "Auto" then scales the whole interface, text and
   buttons together (`src/ui/textSize.ts`, up to what the screen has room for).
 
+## Foldables
+
+Folding phones bring screens the game must handle (`e2e/foldable.spec.ts`
+checks each, with the phones' CSS sizes):
+
+| Screen | What happens |
+|---|---|
+| Outer screen (Galaxy Z Fold, Pixel Fold, iPhone Duo): a tall phone | As any phone: landscape, phone menu; held upright, "Turn your phone sideways" |
+| Inner screen, open (near-square, ~780–1100px each way) | Plays either way up. On its side the phone menu is scaled up less than on a tablet (`--ui-zoom` for screens 6:5 or squarer in `style.css`), or it would squeeze into ~490px |
+| A flip phone's cover screen (under 500px either way) | "Open your phone" |
+| Split screen (a window well under the screen's width) | "Make the window wider" |
+| Opened or closed mid-match | The match carries on and redraws to the new size; the Android activity isn't restarted (`configChanges` in `AndroidManifest.xml` includes the screen sizes) |
+
+**Android 16 and big screens:** for apps targeting API 36, Android ignores an
+app's orientation lock on screens 600dp or more across (an unfolded Fold, a
+tablet), so the app would turn upright there. Games are exempt, so the app
+says it's one: `android:appCategory="game"` in `AndroidManifest.xml`. It
+stays landscape (sensor-landscape) on the inner screen too. Google says the
+general opt-out ends at API 37, but not the game exemption.
+
+On narrow phones (under 720px wide: iPhone SE, small Androids, the iPhone
+Duo's outer screen) the health bars sit next to the timer, not centred, so
+the weapon button in the corner doesn't cover them.
+
 ## "It won't install"
 
 The app runs on **Android 7 (API 24) and newer** (`android/variables.gradle`;

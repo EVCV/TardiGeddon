@@ -345,6 +345,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .touch-size-s .touch-left, .touch-size-s .touch-right { transform: scale(.8); }
 .touch-size-l .touch-left, .touch-size-l .touch-right { transform: scale(1.2); }
 .touch-mode .hud-teams { margin: 0 auto; max-width: 40vw; }
+/* Narrow screens (small phones, a foldable's outer screen): the weapon button in the
+   corner would cover centred health bars, so they sit next to the timer instead. */
+@media (max-width: 719px) { .touch-mode .hud-teams { margin: 0 auto 0 0; } }
 
 .weapon-panel { z-index: 5; }
 .overlay { z-index: 6; }
@@ -623,9 +626,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .team-time { font-family: var(--title); font-size: 13px; color: #fff; -webkit-text-stroke: 0.6px var(--ink); min-width: 40px; }
 
 /* Too narrow to play on a touch screen: phones held upright, a thin split-screen
-   window on a tablet (see ui/landscape.ts). An upright tablet plays as it is. */
+   window on a tablet, or too small either way (a flip phone's cover screen; see
+   ui/landscape.ts). An upright tablet or open foldable plays as it is. */
 #rotate { display: none; }
-@media (orientation: portrait) and (max-width: 699px) {
+@media (orientation: portrait) and (max-width: 699px), (max-width: 499px) and (max-height: 499px) {
   html.touch #rotate {
     position: fixed; inset: 0; z-index: 1000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1929,6 +1933,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @media (pointer: coarse) and (orientation: landscape) and (min-height: 700px) and (max-height: 900px) {
   :root { --ui-zoom: 1.6; }
+}
+/* Near-square screens (an open foldable on its side, ~6:5 or squarer): the phone
+   menu needs a phone's width, so it's scaled up less, or it'd squeeze into ~490px. */
+@media (pointer: coarse) and (orientation: landscape) and (min-height: 540px) and (max-height: 900px) and (max-aspect-ratio: 6/5) {
+  :root { --ui-zoom: 1.15; }
 }
 @media (pointer: coarse) and (orientation: landscape) and (min-height: 540px) and (max-height: 900px) {
   .menu.hub, .menu, .editor-overlay {

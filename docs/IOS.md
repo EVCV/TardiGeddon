@@ -460,6 +460,11 @@ from the TestFlight build (§5).
 - **Launch screen:** Capacitor's storyboard. Apple requires one from the iOS
   27 SDK.
 - **iPhone:** landscape only (`UISupportedInterfaceOrientations`).
+- **Apple's foldable (iPhone Duo, iOS 27):** its outer screen is a phone's;
+  open, it's a wide screen the game plays on (landscape-only on iPhone, as
+  `Info.plist` says), and iOS 27 split screen on it gets "Make the window
+  wider". The sizes tested are estimates until it's in hand (docs/APPS.md,
+  "Foldables").
 - **iPad: portrait and resizable windows have to work.** Since iPadOS 26
   the "full screen only" setting (`UIRequiresFullScreen`) is deprecated.
   With the iOS 27 SDK it's ignored: the app can be put in a resizable
