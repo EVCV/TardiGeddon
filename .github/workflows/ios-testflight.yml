@@ -1,0 +1,63 @@
+name: iOS TestFlight
+
+# On every merge to main that changes the app (and when run by hand), once the
+# App Store Connect key and signing secrets are set up (docs/IOS.md §5): a
+# signed build of the iOS app, uploaded to TestFlight for the iPhone and iPad.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'src/**'
+      - 'public/**'
+      - 'capacitor.config.ts'
+      - '.env.app'
+      - 'package*.json'
+      - '.github/workflows/ios-testflight.yml'
+  workflow_dispatch:
+
+jobs:
+  testflight:
+    runs-on: macos-26
+    env:
+      HAS_KEYS: ${{ secrets.ASC_KEY_ID != '' && secrets.MATCH_PASSWORD != '' }}
+    steps:
+      - name: Signing not set up yet
+        if: env.HAS_KEYS != 'true'
+        run: echo "::notice::No ASC_KEY_ID / MATCH_PASSWORD secrets yet, so no TestFlight build (see docs/IOS.md §5)."
+      - uses: actions/checkout@v5
+        if: env.HAS_KEYS == 'true'
+      - uses: actions/setup-node@v5
+        if: env.HAS_KEYS == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      # Apple only takes apps built with Xcode 26 or later (since April 2026).
+      - name: Xcode 26
+        if: env.HAS_KEYS == 'true'
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - if: env.HAS_KEYS == 'true'
+        run: npm ci && npm run app:build
+      - uses: ruby/setup-ruby@v1
+        if: env.HAS_KEYS == 'true'
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: ios
+      - name: Sign and upload to TestFlight
+        if: env.HAS_KEYS == 'true'
+        working-directory: ios
+        env:
+          LC_ALL: en_US.UTF-8
+          LANG: en_US.UTF-8
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_GIT_URL: ${{ vars.MATCH_GIT_URL || 'https://github.com/EVCV/tardigeddon-signing.git' }}
+        run: bundle exec fastlane beta

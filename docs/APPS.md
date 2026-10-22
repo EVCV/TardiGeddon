@@ -12,6 +12,7 @@ The apps are the web game (`dist/`) inside a native shell made with
 | Icon and splash sources, and the script that draws them | `assets/`, `scripts/app-icons.mjs` |
 | APK built on every push | `.github/workflows/android.yml` |
 | iOS simulator build when the iOS side changes | `.github/workflows/ios.yml` |
+| Signed iOS build to TestFlight on every merge (once the keys are in: `docs/IOS.md` §5) | `.github/workflows/ios-testflight.yml`, `ios/fastlane/` |
 
 ## Building
 

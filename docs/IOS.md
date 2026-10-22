@@ -296,28 +296,80 @@ cartoon violence, in-app purchases, online play with no chat, blocking and
 reporting. Expect 9+ or 13+. Not in the **Kids** category: accounts and
 online play are 13+.
 
-## 5. Building on GitHub (no Mac)
+## 5. Building on GitHub (no Mac): **built**, waiting for the owner's keys
 
-- **Xcode:** apps uploaded since 28 April 2026 must be built with **Xcode 26
-  or later** (iOS 26 SDK). GitHub's `macos-26` runner has Xcode 26.x. Pin
-  the Xcode version in the workflow so a runner update can't change it
-  silently. Expect Apple to require the **iOS 27 SDK** from around spring
-  2027 (§7 is ready for it).
-- **Minimum iOS:** 15 (StoreKit 2 needs it; Apple's floor is 13). The age
-  range check only runs on iOS 26 and later.
-- `.github/workflows/ios.yml`: `npm ci`, `npm run app:build`, then fastlane:
-  `match` (signing), `build_app`, `upload_to_testflight`. Run it on merges to
-  `main` and by hand ("Run workflow"). Not on every push: macOS minutes
-  cost 10× Linux minutes on GitHub's allowance.
-- **Secrets** (GitHub → Settings → Secrets → Actions): an **App Store Connect
-  API key** (`.p8`, key id, issuer id; App Store Connect → Users and Access →
-  Integrations, role App Manager), `MATCH_PASSWORD` (encrypts the signing
-  repo), and a deploy key or token that can read the signing repo. Never in
-  this repo.
-- Build number = the run number; the version comes from `package.json`, as
-  on Android.
-- **TestFlight:** internal testers (up to 100, no review): the owner's
-  iPhone and iPad. External testers need a short beta review.
+Two workflows, both on GitHub's `macos-26` Macs with the newest Xcode 26
+(Apple has only taken apps built with Xcode 26 or later since 28 April 2026;
+expect the **iOS 27 SDK** to be required from around spring 2027, and §7 is
+ready for it):
+
+| Workflow | When | What |
+|---|---|---|
+| `.github/workflows/ios.yml` | a push that changes `ios/`, the Capacitor settings or packages | Unsigned simulator build: proves the project and our Swift compile. Needs nothing from Apple |
+| `.github/workflows/ios-testflight.yml` | every merge to `main` that changes the app, and **Actions → iOS TestFlight → Run workflow** | `npm run app:build`, then fastlane (`ios/fastlane/Fastfile`, lane `beta`): `match` fetches the signing certificate (making it the first time), the build is signed and uploaded to **TestFlight**. Until the secrets below exist it just says so and stops |
+
+The version players see is `package.json`'s (`0.1.0`), as on Android; the
+build number is the workflow's run number, so it goes up by itself. Minimum
+iOS 15 (StoreKit 2 needs it). fastlane's version is pinned in
+`ios/Gemfile.lock`.
+
+### Owner: once Apple approves the account (about 30 minutes)
+
+On a computer, signed in to developer.apple.com with the company's Apple
+Account.
+
+1. **Register the app's id.** developer.apple.com → Account → **Certificates,
+   Identifiers & Profiles → Identifiers → +** → App IDs → App. Description
+   `TardiGeddon`, **Explicit** Bundle ID `com.tardigeddon.app`. Under
+   Capabilities, **In-App Purchase** is already on; also tick **Sign in with
+   Apple**. Continue → Register.
+2. **Create the app.** appstoreconnect.apple.com → **Apps → + → New App**:
+   iOS, name `TardiGeddon`, primary language English (U.K.), bundle ID
+   `com.tardigeddon.app`, SKU `tardigeddon-ios`, User Access: Full Access.
+3. **An API key for GitHub.** App Store Connect → **Users and Access →
+   Integrations → App Store Connect API → Team Keys → +**. Name `GitHub`,
+   access **App Manager**. Note the **Key ID** and, above the list, the
+   **Issuer ID**. **Download** the `.p8` file (Apple only lets you do this
+   once: keep it in the password manager).
+4. **The signing repo.** GitHub → New repository → `EVCV/tardigeddon-signing`,
+   **Private**, nothing else. fastlane keeps the certificate there, encrypted.
+5. **A token that can use it.** GitHub → your picture → Settings → Developer
+   settings → **Fine-grained tokens → Generate new token**: name
+   `fastlane match`, expiry 1 year (put a reminder in the calendar),
+   Repository access **Only select repositories** → `tardigeddon-signing`,
+   Permissions → **Contents: Read and write**. Copy the token.
+6. **Make up a password** for the signing repo (long and random) and save it
+   in the password manager. Losing it means making new certificates, nothing
+   worse.
+7. **Add five secrets** to this repo: **Settings → Secrets and variables →
+   Actions → New repository secret**. In PowerShell, in the folder with the
+   `.p8` file, these copy the two encoded ones to the clipboard:
+
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\AuthKey_XXXXXXXXXX.p8")) | Set-Clipboard
+   [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("EVCV:github_pat_...the token...")) | Set-Clipboard
+   ```
+
+   | Name | Value |
+   |---|---|
+   | `ASC_KEY_ID` | the Key ID (step 3) |
+   | `ASC_ISSUER_ID` | the Issuer ID (step 3) |
+   | `ASC_KEY_P8_BASE64` | the `.p8` file as text (first command) |
+   | `MATCH_PASSWORD` | the password from step 6 |
+   | `MATCH_GIT_BASIC_AUTHORIZATION` | `EVCV:` + the token, as text (second command) |
+
+8. **Run it.** **Actions → iOS TestFlight → Run workflow** (branch `main`).
+   About 15 minutes. The first run makes the distribution certificate and
+   saves it to the signing repo.
+9. **Install it.** App Store Connect → the app → **TestFlight**. Apple
+   processes the build for 10–30 minutes. Then **Internal Testing → +**: a
+   group called `EVCV`, add yourself. Install **TestFlight** from the App
+   Store on the iPhone and the iPad, sign in with the same Apple Account,
+   and install TardiGeddon from there. Each later build arrives the same way.
+
+Export compliance is answered by `Info.plist` (standard encryption only), so
+Apple doesn't ask at each upload. Internal testers (up to 100) need no
+review; external testers need a short beta review.
 
 ## 6. Store listing, privacy and legal
 
@@ -411,7 +463,7 @@ from the TestFlight build (§5).
 | 2 | ✅ Token sign-in + WebSocket tickets (server + app, tests), off on Android. | Code | — |
 | 3 | ✅ `ios/` project: orientations, full screen, sound, icons, launch screen, privacy manifest, Keychain plugin; simulator build on GitHub | Code | — |
 | 4 | ✅ iPad portrait and resizable windows in the web game (`e2e/tablet.spec.ts`) | Code | — |
-| 5 | `ios.yml` + fastlane: build, sign, upload to TestFlight | Code + owner (API key, secrets) | 1, 3 |
+| 5 | ✅ `ios-testflight.yml` + fastlane: build, sign, upload to TestFlight. Left: the owner's keys (§5) | Code + owner (API key, secrets) | 1, 3 |
 | 6 | First TestFlight build on the iPhone and iPad: play, sign in, online, tutorial, rotate, split screen | Owner | 2–5 |
 | 7 | One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
 | 8 | `server/appStore.ts`, notifications, tests; products in App Store Connect | Code + owner (IAP key, products) | 1, 7 |

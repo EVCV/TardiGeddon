@@ -1,0 +1,5 @@
+# fastlane signs the iOS app and uploads it to TestFlight (docs/IOS.md §5).
+# Run from ios/: bundle exec fastlane beta
+source 'https://rubygems.org'
+
+gem 'fastlane', '~> 2.230'
