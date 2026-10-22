@@ -66,5 +66,7 @@ test('on narrow phones the health bars stay clear of the weapon button', async (
     await expect(page.locator('.hud-weapon')).toBeVisible({ timeout: 20_000 });
     const gap = await page.evaluate(() => document.querySelector('.hud-weapon')!.getBoundingClientRect().left - document.querySelector('.hud-teams')!.getBoundingClientRect().right);
     expect(gap, `${size.width}x${size.height}`).toBeGreaterThan(0);
+    // Each match keeps running until its page closes: left open, they slow the next one's start past the timeout on CI.
+    await page.context().close();
   }
 });
