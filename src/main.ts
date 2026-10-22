@@ -6,7 +6,7 @@ import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
 import { loadLang, t } from './i18n/i18n';
-import { confirmEmail, finishPlayPurchases, refreshAccount } from './account/session';
+import { confirmEmail, finishPlayPurchases, listenForAppSignIn, refreshAccount } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
 import { choosePractice } from './ui/learn';
@@ -175,6 +175,8 @@ async function boot(): Promise<void> {
 
   // Who's signed in (and what they own); the menu updates when this lands.
   const before = (await refreshAccount())?.wallet.coins ?? 0;
+  // Android app: back from signing in with Apple in a browser tab.
+  listenForAppSignIn((message) => hub?.go('account', message || undefined));
   // Android app: any coin purchase that never reached the server (app closed, no signal).
   void finishPlayPurchases();
   onPlayPurchasesUpdated(() => void finishPlayPurchases());

@@ -9,6 +9,8 @@ import type { UnspentRow } from '../shop/japan';
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
+import { App } from '@capacitor/app';
+import { googleAccountPicker, nativeSignInAvailable, newChallenge, openBrowserTab, parseSignInLink, takeVerifier } from './nativeSignIn';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
 import { t } from '../i18n/i18n';
@@ -27,6 +29,8 @@ export interface MeResponse {
   receipts?: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
+  /** Google's (public) client ID, for the Android app's Google account picker. */
+  googleClientId?: string;
   /** Whether the server can send email (password reset, confirming your email). */
   mail?: boolean;
   /** Only for the owner (ADMIN_EMAILS on the server): show the Sales page. */
@@ -116,10 +120,10 @@ export function onAccountChange(fn: () => void): () => void {
 function set(next: MeResponse | null): void {
   // In the phone apps: Google and Apple only allow their own payment systems,
   // so no coin packs or Stripe receipts (coins bought on the website still
-  // spend). And Google/Apple sign-in pages refuse to open inside an app, and
-  // would come back to the website: email sign-in only, for now (docs/APPS.md).
-  // In the Android app, coin packs are sold with Google Play Billing instead.
-  if (next && isNativeApp()) next = { ...next, shop: next.playBilling === true && playBillingAvailable(), receipts: false, providers: [] };
+  // spend). In the Android app, coin packs are sold with Google Play Billing instead.
+  // Google and Apple sign-in pages refuse to open inside an app, so the Android
+  // app signs in its own way (signInInApp); other apps offer email only.
+  if (next && isNativeApp()) next = { ...next, shop: next.playBilling === true && playBillingAvailable(), receipts: false, providers: appProviders(next) };
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
@@ -428,10 +432,71 @@ export async function reportCpuMatch(r: { won: boolean; popped: number; damage: 
   return slime;
 }
 
+/** Sign-in providers the Android app can offer: Google (the account picker needs the client ID) and Apple (a browser tab). */
+function appProviders(m: MeResponse): string[] {
+  if (!nativeSignInAvailable()) return [];
+  return m.providers.filter((p) => (p === 'google' ? !!m.googleClientId : p === 'apple'));
+}
+
 /** Google / Apple: off to the provider, then back to the game. */
 export async function signInWith(provider: string): Promise<void> {
+  if (isNativeApp()) return signInInApp(provider);
   const r = await call<{ url?: string }>('/api/auth/sign-in/social', { provider, callbackURL: location.href.split('?')[0] });
   if (r.url) location.href = r.url;
+}
+
+/**
+ * In the Android app. Google: Android's account picker gives a token the server
+ * checks. Apple: its page in a browser tab, which hands the sign-in back to the
+ * app (listenForAppSignIn finishes it).
+ */
+async function signInInApp(provider: string): Promise<void> {
+  if (provider === 'google') {
+    const r = await googleAccountPicker(me?.googleClientId ?? '');
+    if (r.status === 'cancelled') return;
+    if (r.status === 'no_account') throw new Error(t('Add a Google account to this phone first (in its Settings, under Accounts), or sign in with your email.'));
+    if (r.status !== 'ok') throw new Error(t('Couldn’t sign in with Google. Please try again.'));
+    await call('/api/auth/sign-in/social', { provider: 'google', idToken: { token: r.idToken } });
+    await refreshAccount();
+    return;
+  }
+  const base = apiBase();
+  if (!base) throw new Error(t('Accounts are not available here.'));
+  const challenge = await newChallenge();
+  await openBrowserTab(`${base}/api/app/social?provider=${encodeURIComponent(provider)}&challenge=${challenge}`);
+}
+
+/**
+ * Android app: finish sign-ins coming back from the browser tab, also when
+ * Android closed the app while the tab was open. `say` shows a message on the
+ * Account page.
+ */
+export function listenForAppSignIn(say: (message: string) => void): void {
+  if (!nativeSignInAvailable()) return;
+  // The same link can arrive both as the app's launch link and as an event.
+  const seen = new Set<string>();
+  const finish = async (url: string | undefined, atLaunch: boolean) => {
+    const link = url && !seen.has(url) ? parseSignInLink(url) : null;
+    if (!link) return;
+    seen.add(url!);
+    const verifier = takeVerifier();
+    // Started again from the same link (already used): nothing to do.
+    if (atLaunch && !verifier) return;
+    try {
+      if ('error' in link) {
+        if (link.error !== 'cancelled') say(t('Couldn’t sign in. Please try again.'));
+        return;
+      }
+      if (!verifier) throw new Error(t('That sign-in didn’t work. Please try again.'));
+      await call('/api/app/redeem', { token: link.token, verifier });
+      await refreshAccount();
+      say('');
+    } catch (e) {
+      say(e instanceof Error ? e.message : String(e));
+    }
+  };
+  void App.addListener('appUrlOpen', ({ url }) => void finish(url, false));
+  void App.getLaunchUrl().then((r) => finish(r?.url, true));
 }
 
 /**

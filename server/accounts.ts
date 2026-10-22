@@ -3,6 +3,8 @@
 //   GET  /api/me          who is signed in, what they own, what the shop offers
 //   POST /api/shop/checkout   start a Stripe Checkout for one item
 //   POST /api/stripe/webhook  Stripe tells us a payment completed / was refunded
+//   GET  /api/app/social, /api/app/return, POST /api/app/redeem
+//                         Apple sign-in for the Android app, in a browser tab
 //
 // Everything is optional: with no DATABASE_URL the game server runs exactly
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
@@ -11,11 +13,13 @@
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
 import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
+import { oneTimeToken } from 'better-auth/plugins/one-time-token';
+import { APP_SIGNIN_RETURN, isChallenge } from '../src/account/appSignIn';
 import { APIError } from 'better-auth/api';
 import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
 import { tk } from '../src/i18n/tk';
@@ -27,7 +31,7 @@ import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, typ
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
@@ -68,6 +72,10 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
 }
 
 const MAX_BODY = 64 * 1024;
+/** How long the app has to collect a sign-in made in a browser tab. */
+const APP_HANDOFF_MINUTES = 2;
+/** Base64url SHA-256, as the app makes its challenge from its verifier. */
+const sha256url = (s: string) => createHash('sha256').update(s).digest('base64url');
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
 
@@ -171,6 +179,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       },
     },
     socialProviders,
+    // Hands a sign-in made in a browser tab back to the Android app (/api/app/*).
+    // Only ever made and checked here on the server: /api/auth/one-time-token/* is closed.
+    plugins: [oneTimeToken({ storeToken: 'hashed', expiresIn: APP_HANDOFF_MINUTES, disableClientRequest: true })],
     // Fly.io passes the player's IP in this header. It is used, in memory only,
     // to rate-limit sign-in attempts; it is never written to the database.
     advanced: { ipAddress: { ipAddressHeaders: ['fly-client-ip', 'x-forwarded-for'] } },
@@ -701,6 +712,88 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { received: true });
   }
 
+  // Apple sign-in in the Android app. Apple's page won't open inside the app, so
+  // the app opens /api/app/social in a browser tab (which has its own cookies),
+  // the sign-in happens there, and /api/app/return hands it back to the app
+  // with a one-time token. Any app could claim the return link, so the token
+  // only works with the verifier behind the challenge the app sent at the start
+  // (as PKCE does for OAuth), which never leaves the app.
+  const CHALLENGE_COOKIE = 'tardi-app-challenge';
+  const secureCookie = baseURL.startsWith('https://') ? '; Secure' : '';
+  const toApp = (res: ServerResponse, query: Record<string, string>, cookies: string[] = []) => {
+    res.writeHead(302, { location: `${APP_SIGNIN_RETURN}?${new URLSearchParams(query)}`, 'cache-control': 'no-store', 'set-cookie': cookies });
+    res.end();
+  };
+
+  /** GET /api/app/social?provider=apple&challenge=…, in the browser tab: off to the provider. */
+  async function appSocialStart(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const q = new URL(req.url ?? '', 'http://x').searchParams;
+    const provider = q.get('provider') ?? '';
+    const challenge = q.get('challenge');
+    if (!socialProviders[provider] || !isChallenge(challenge)) return toApp(res, { error: 'unavailable' });
+    let started;
+    try {
+      started = await auth.api.signInSocial({
+        body: { provider, callbackURL: `${baseURL}/api/app/return`, errorCallbackURL: `${baseURL}/api/app/return`, disableRedirect: true },
+        headers: fromNodeHeaders(req.headers),
+        returnHeaders: true,
+      });
+    } catch (e) {
+      console.error('app sign-in: could not start', provider, e);
+      return toApp(res, { error: 'unavailable' });
+    }
+    const { headers, response } = started;
+    if (!response.url) return toApp(res, { error: 'unavailable' });
+    res.writeHead(302, {
+      location: response.url,
+      'cache-control': 'no-store',
+      // Better Auth's state cookie, and the app's challenge for when the sign-in comes back.
+      'set-cookie': [...headers.getSetCookie(), `${CHALLENGE_COOKIE}=${challenge}; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=600${secureCookie}`],
+    });
+    res.end();
+  }
+
+  /** GET /api/app/return: signed in (or not) in the tab; hand it to the app. */
+  async function appSocialReturn(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const clear = [`${CHALLENGE_COOKIE}=; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=0${secureCookie}`];
+    const challenge = /(?:^|;\s*)tardi-app-challenge=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
+    const headers = fromNodeHeaders(req.headers);
+    const session = isChallenge(challenge) ? await auth.api.getSession({ headers }) : null;
+    // No session: the player cancelled, the provider refused, or the tab was too slow.
+    if (!session || !isChallenge(challenge)) return toApp(res, { error: 'cancelled' }, clear);
+    try {
+      const { token } = await auth.api.generateOneTimeToken({ headers });
+      await saveAppSignIn(db, sha256url(token), challenge, APP_HANDOFF_MINUTES);
+      toApp(res, { token }, clear);
+    } catch (e) {
+      console.error('app sign-in: could not hand over', e);
+      toApp(res, { error: 'failed' }, clear);
+    }
+  }
+
+  /** POST /api/app/redeem {token, verifier}, from the app: the sign-in becomes the app's. */
+  async function appSocialRedeem(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const failed = () => json(res, 400, { error: tk('That sign-in didn’t work. Please try again.') });
+    let body: { token?: unknown; verifier?: unknown };
+    try {
+      body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
+    } catch {
+      return json(res, 400, { error: tk('Bad request.') });
+    }
+    const { token, verifier } = body;
+    if (typeof token !== 'string' || token.length > 100 || !isChallenge(verifier)) return failed();
+    // Used up whether or not the verifier matches: a stolen token gets one guess.
+    const challenge = await takeAppSignIn(db, sha256url(token));
+    if (!challenge || !timingSafeEqual(Buffer.from(sha256url(verifier)), Buffer.from(challenge))) return failed();
+    try {
+      const { headers } = await auth.api.verifyOneTimeToken({ body: { token }, headers: fromNodeHeaders(req.headers), returnHeaders: true });
+      res.setHeader('set-cookie', headers.getSetCookie());
+    } catch {
+      return failed();
+    }
+    json(res, 200, { ok: true });
+  }
+
   return {
     db,
     auth,
@@ -722,6 +815,15 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           // another site, even one on a sibling subdomain, can't spend a player's coins.
           // (Better Auth checks its own /api/auth/* requests the same way.)
           json(res, 403, { error: tk('Please use the game at tardigeddon.com.') });
+        } else if (path.startsWith('/api/auth/one-time-token/')) {
+          // Only for handing sign-ins to the app, through /api/app/redeem's checks.
+          json(res, 404, { error: tk('Not found.') });
+        } else if (path === '/api/app/social' && req.method === 'GET') {
+          await appSocialStart(req, res);
+        } else if (path === '/api/app/return' && req.method === 'GET') {
+          await appSocialReturn(req, res);
+        } else if (path === '/api/app/redeem' && req.method === 'POST') {
+          await appSocialRedeem(req, res);
         } else if (path.startsWith('/api/auth/')) {
           // Refused sign-ins are logged with the reason (never the email or password).
           res.on('finish', () => {
@@ -740,6 +842,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // The "Purchases & receipts" page (not with Managed Payments: Stripe emails receipts).
             receipts: stripe !== null && !managed,
             providers: Object.keys(socialProviders),
+            // The Android app's Google account picker asks for a token for this (public) client.
+            ...(env.GOOGLE_CLIENT_ID && socialProviders.google ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
             // Whether password reset and email confirmation work (an email service is set up).
             mail: mailer !== null,
           };

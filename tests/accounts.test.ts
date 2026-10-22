@@ -3,6 +3,7 @@
 //   TEST_DATABASE_URL=postgres://postgres@localhost:5432/tardi_test npm test
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
+import { createHash, randomBytes } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
@@ -103,7 +104,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
       { stripe, mailer, play },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
@@ -750,6 +751,53 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(cookie)).owned).toContain('hat:waterbear');
     expect((await redeem()).status).toBe(409);
     expect((await post('/api/gift/redeem', { code: 'water-bear' })).status).toBe(401);
+  });
+
+  it('hands a sign-in made in a browser tab to the Android app, only with the verifier the app kept', async () => {
+    const challengeFor = (v: string) => createHash('sha256').update(v).digest('base64url');
+    const verifier = randomBytes(32).toString('base64url');
+    const challenge = challengeFor(verifier);
+    const get = (path: string, cookie = '') => fetch(base + path, { redirect: 'manual', headers: { cookie } });
+
+    // The app tells the game which client its Google account picker should ask for.
+    expect((await me('')).googleClientId).toBe('tardi-test.apps.googleusercontent.com');
+
+    // The tab starts at the provider, carrying the challenge in a cookie of its own.
+    const start = await get(`/api/app/social?provider=google&challenge=${challenge}`);
+    expect(start.status).toBe(302);
+    expect(start.headers.get('location')).toMatch(/^https:\/\/accounts\.google\.com\//);
+    expect(start.headers.getSetCookie().some((c) => c.startsWith(`tardi-app-challenge=${challenge};`))).toBe(true);
+    // Unknown providers and bad challenges go straight back to the app.
+    expect((await get(`/api/app/social?provider=nope&challenge=${challenge}`)).headers.get('location')).toBe('com.tardigeddon.app://signin?error=unavailable');
+    expect((await get('/api/app/social?provider=google&challenge=short')).headers.get('location')).toBe('com.tardigeddon.app://signin?error=unavailable');
+
+    // Back from the provider without a sign-in (cancelled): the app hears so.
+    const cancelled = await get('/api/app/return', `tardi-app-challenge=${challenge}`);
+    expect(cancelled.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
+
+    // Signed in in the tab (as the provider's callback leaves it): a one-time token for the app.
+    const { cookie: tab, id } = await signUp('tab@example.com');
+    const handOff = async () => {
+      const r = await get('/api/app/return', `${tab}; tardi-app-challenge=${challenge}`);
+      const to = new URL(r.headers.get('location')!);
+      expect(to.protocol + '//' + to.host + to.pathname).toBe('com.tardigeddon.app://signin');
+      return to.searchParams.get('token')!;
+    };
+
+    // Someone else who caught the link can't use it without the verifier, and it's then used up.
+    const stolen = await handOff();
+    expect((await post('/api/app/redeem', { token: stolen, verifier: randomBytes(32).toString('base64url') })).status).toBe(400);
+    expect((await post('/api/app/redeem', { token: stolen, verifier })).status).toBe(400);
+    // Better Auth's own route for these tokens is closed.
+    expect((await post('/api/auth/one-time-token/verify', { token: await handOff() })).status).toBe(404);
+
+    // The app, with its verifier: signed in as the same player, once.
+    const token = await handOff();
+    const r = await post('/api/app/redeem', { token, verifier });
+    expect(r.status).toBe(200);
+    const app = r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    expect((await me(app)).user?.id).toBe(id);
+    expect((await post('/api/app/redeem', { token, verifier })).status).toBe(400);
   });
 
   it('puts daily challenge runs on the leaderboard only after playing them back itself', async () => {

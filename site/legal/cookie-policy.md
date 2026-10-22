@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 17 October 2026
-**Document Version:** v1.5
+**Last Modified:** 22 October 2026
+**Document Version:** v1.6
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -72,6 +72,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
 | `__Secure-better-auth.session_token` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Keeps you signed in to your account. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
 | `__Secure-better-auth.state` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Protects sign-in with Google or Apple from forgery. Only set while you sign in with them | Strictly necessary | 5 minutes |
+| `tardi-app-challenge` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | In our Android app, when you sign in with Apple in your phone's browser: makes sure the sign-in goes back to the app that asked for it. Only set in the browser, while you sign in | Strictly necessary | 10 minutes, or until the sign-in finishes |
 
 3.0.1 This table will be kept up to date if the storage the game uses changes.
 

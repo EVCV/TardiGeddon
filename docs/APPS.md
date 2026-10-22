@@ -62,8 +62,11 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   items, so the Android app sells coin packs with Google Play Billing instead of
   Stripe (`docs/GOOGLE_PLAY.md` §7). Coins bought on the website still spend
   in the app.
-- **Email sign-in only:** Google and Apple refuse to show their sign-in pages
-  inside an app.
+- **Google and Apple sign-in their own way:** they refuse to show their
+  sign-in pages inside an app. Google uses the phone's account picker; Apple
+  opens in a browser tab and comes back to the app
+  (`SocialSignInPlugin.java`, `src/account/nativeSignIn.ts`). Setup and how it
+  works: `docs/ACCOUNTS.md`, "Google and Apple in the Android app".
 - **The phone's font size:** a WebView would enlarge only the text (it spilled
   out of FIRE and other buttons), so `MainActivity` turns that off
   (`setTextZoom(100)`) and `DisplayPlugin` tells the game the phone's font
@@ -93,8 +96,8 @@ Android, before Google Play: **see `docs/GOOGLE_PLAY.md`**: the upload key
 and GitHub secrets (signed `.aab` builds on every merge), the store listing
 text and images (`store/google-play/`, `scripts/store-images.mjs`), and the
 answers for Google's content rating, target audience and Data safety forms.
-Still to build: Google
-sign-in with the native account picker, and app links for invites.
+Still to build: app
+links for invites.
 
 iOS, after Android:
 

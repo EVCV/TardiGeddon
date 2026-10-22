@@ -206,7 +206,7 @@ account, accounts 13+ self-declared.
 | Can users ask for their data to be deleted? | Yes: in the game (Account → Delete account), or by emailing privacy@tardigeddon.com |
 | Delete-account link (Google asks for a web page) | `https://tardigeddon.com/legal/delete-account` (the steps, and what is deleted and kept) |
 | Delete some data without deleting the account? | Yes: `https://tardigeddon.com/legal/delete-account` (Section 3) |
-| Account creation methods | Username and password only (email + password; the confirmation and reset emails aren't sign-in methods) |
+| Account creation methods | Username and password (email + password; the confirmation and reset emails aren't sign-in methods), and **OAuth** once Google or Apple sign-in is switched on on the server (`GOOGLE_CLIENT_ID` / `APPLE_CLIENT_ID`; the app then offers them, docs/ACCOUNTS.md) |
 
 Data types to tick, all **collected, not shared, optional** (only with an
 account), purpose **App functionality** and **Account management**:
@@ -231,8 +231,9 @@ and **Fraud prevention, security and compliance**. Add that purpose to
 
 Not collected: location, contacts, photos, files, audio, health, payment
 info (cards etc.: Google keeps those), device IDs, crash logs,
-diagnostics, browsing history. Sign-in providers (Google, Apple) are off in
-the app.
+diagnostics, browsing history. Signing in with Google or Apple collects
+the same data types as above (email, name, user ID); the profile picture
+*link* they share is kept with the account but never shown or fetched.
 
 ## 5. First release: internal testing
 
@@ -388,7 +389,6 @@ Data safety form "Purchase history", are already in the answers above (§4).
 
 ## 8. Later
 
-- **Google sign-in** with the phone's account picker.
 - **App links:** `https://tardigeddon.com/play/?room=…` opening the app. Needs
   `/.well-known/assetlinks.json` on the website with the **app signing**
   key's SHA-256 (Play Console → App signing).

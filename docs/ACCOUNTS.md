@@ -390,6 +390,55 @@ what players own now. Run it again any time to move the start to now.
 
 Check: the sign-in screen shows "Continue with Google / Apple".
 
+### Google and Apple in the Android app
+
+Their sign-in pages won't open inside an app, so the Android app signs in its
+own way (`android/.../SocialSignInPlugin.java`, `src/account/nativeSignIn.ts`,
+`signInInApp` in `src/account/session.ts`). The app shows each button only
+when the server has that provider switched on (as above).
+
+- **Google:** Android's own account picker (Credential Manager) gives an ID
+  token for the **web** client above (the app reads its ID from `/api/me`,
+  `googleClientId`), and the app sends it to Better Auth
+  (`/api/auth/sign-in/social` with `idToken`), which checks Google's
+  signature and that the token is for our client. Setup, once:
+  console.cloud.google.com → Credentials → Create OAuth client ID →
+  **Android**, package name `com.tardigeddon.app`, and the **SHA-1** of the
+  key that signs the app: Play Console → Test and release → App integrity →
+  App signing → "App signing key certificate". Add a second Android client
+  with the upload key's SHA-1 for builds installed from GitHub Actions, and
+  one with the debug key's (`keytool -list -v -keystore ~/.android/debug.keystore`,
+  password `android`) for Android Studio. No secret: Google matches the app
+  by its package name and signature. Use the same Google Cloud project as
+  the web client.
+- **Apple:** no Android version, so its web page opens in a browser tab
+  (a Chrome Custom Tab), with the same Services ID and return URL as the
+  website (nothing more to set up at Apple):
+  1. The app makes a random **verifier**, keeps it on the phone, and opens
+     `GET /api/app/social?provider=apple&challenge=<SHA-256 of the verifier>`.
+     The server starts Better Auth's sign-in there (its state cookie lands in
+     the tab) and keeps the challenge in a 10-minute cookie.
+  2. Apple sends the player back to Better Auth's callback, which signs the
+     tab in and redirects to `GET /api/app/return`.
+  3. That makes a **one-time token** (Better Auth's one-time-token plugin,
+     2 minutes, stored hashed) and saves the challenge with its hash
+     (`app_signin`), then sends the tab to
+     `com.tardigeddon.app://signin?token=…` (the app's own link,
+     `AndroidManifest.xml`).
+  4. The app posts `{token, verifier}` to `POST /api/app/redeem`, which
+     checks the verifier against the challenge (once only: a wrong one uses
+     the token up) and only then hands the session to the app's cookie.
+
+  Any app could claim that link, so the token alone is worthless without
+  the verifier, which never leaves the app (OAuth's PKCE idea).
+  `/api/auth/one-time-token/*` is closed to the outside. Covered by
+  `tests/accounts.test.ts` ("hands a sign-in made in a browser tab…").
+- **Trusted origin:** the app's sign-ins come from
+  `https://app.tardigeddon.com`, which must be in `TRUSTED_ORIGINS`
+  (docs/APPS.md) — already needed for email sign-in.
+- **Data safety:** with either switched on, the Play Console's "Account
+  creation methods" answer gains OAuth (docs/GOOGLE_PLAY.md §4).
+
 ### Trying it on your own computer
 
 ```sh

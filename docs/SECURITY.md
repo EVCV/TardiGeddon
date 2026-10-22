@@ -14,6 +14,11 @@ the owner needs to keep doing. Last full review: 10 October 2026.
 - The sign-in cookie can't be read by page scripts (HttpOnly), only travels
   over HTTPS (Secure, `__Secure-` name) and isn't sent from other sites
   (SameSite=Lax).
+- Signing in to the Android app in a browser tab (Apple) hands the sign-in
+  back through a link any app could claim, so the one-time token in it only
+  works together with a verifier that never leaves the app (PKCE-style), is
+  used up on the first try, and lasts 2 minutes; Better Auth's own
+  one-time-token routes are closed (`/api/app/*`, docs/ACCOUNTS.md).
 - Shop and stats requests are only accepted from the game's own pages, as
   JSON (`fromGame` in `server/accounts.ts`), so another website can't spend a
   player's coins.
