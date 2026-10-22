@@ -11,8 +11,9 @@ function normalise(path: string): string {
   return path.length > 1 ? path.replace(/\/+$/, '') : path;
 }
 
-export function Router({ children }: { children: ReactNode }) {
-  const [path, setPath] = useState(() => normalise(location.pathname));
+/** `initialPath`: the page to show first (the build renders each page this way, without a browser). */
+export function Router({ children, initialPath }: { children: ReactNode; initialPath?: string }) {
+  const [path, setPath] = useState(() => normalise(initialPath ?? location.pathname));
   useEffect(() => {
     const onPop = () => setPath(normalise(location.pathname));
     window.addEventListener('popstate', onPop);

@@ -2,7 +2,7 @@
 // Anything about money, accounts or privacy must match the legal pages
 // (site/legal/): link to them rather than restating the details.
 
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from '../router';
 import { PLAY_URL } from '../config';
 
@@ -18,9 +18,6 @@ function Q({ q, children }: { q: string; children: ReactNode }) {
 }
 
 export function Support() {
-  useEffect(() => {
-    document.title = 'Help & support · TardiGeddon';
-  }, []);
   return (
     <div className="page support-page">
       <h1 className="display section-title">Help &amp; support</h1>

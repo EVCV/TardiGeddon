@@ -21,13 +21,13 @@ import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names
 import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, shopItem, type CoinPack } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, promoFor, shopItem, type CoinPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 
@@ -553,6 +553,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const body = await readJson(req);
     const code = body && typeof body.code === 'string' ? body.code.slice(0, 40) : '';
     if (!code) return json(res, 400, { error: tk('Type in the gift code.') });
+    // A promo code (free looks, once per account) goes in the same box.
+    const promo = promoFor(code);
+    if (promo) {
+      const items = await redeemPromo(db, user.id, promo.items);
+      if (!items.length) return json(res, 409, { error: tk('You’ve already used that code: it’s in your collection.') });
+      return json(res, 200, { item: promo.items[0], items, from: null, message: '' });
+    }
     const r = await redeemGift(db, user.id, code);
     if (!r.ok) {
       const why = {

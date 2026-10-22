@@ -3,7 +3,7 @@
 import { MAX_NUMBERS, NAME_PROBLEM_TEXT, nameProblem, numbersIn } from '../names';
 import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
-import { canUse, itemFor } from '../shop/catalog';
+import { canUse, itemFor, promoItem } from '../shop/catalog';
 import { SKINS } from '../render/skins';
 import { AIM_STYLES, FX_STYLES } from '../render/cosmetics';
 import { aimSvg, danceSvg, fxSvg, graveSvg } from './cosmeticArt';
@@ -97,7 +97,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
       box.innerHTML = '';
       for (const it of list) {
         const locked = !canUse(kind, it.id, owned);
-        if (locked && !shopOn) continue;
+        // Promo-code looks aren't in the shop: they only show once you have them.
+        if (locked && (!shopOn || promoItem(itemFor(kind, it.id)?.id ?? ''))) continue;
         const b = el('button', 'hat-btn' + (it.id === current ? ' on' : '') + (locked ? ' locked' : ''));
         b.innerHTML =
           kind === 'hat'

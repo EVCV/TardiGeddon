@@ -2,7 +2,7 @@
 // game, and a big "Play now". Facts (weapon count, map styles, game styles)
 // come straight from the game's own data so they never go stale.
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { PANEL_WEAPONS } from '../../../src/sim/weapons';
@@ -16,6 +16,7 @@ import { TEAM_COLORS, TEAM_NAMES, hex } from '../../../src/render/palette';
 import { HATS } from '../../../src/render/hats';
 import { EMBLEM_COLORS, EMBLEM_ICONS, EMBLEM_PATTERNS, EMBLEM_SHAPES } from '../../../src/render/emblems';
 import { prefersReducedMotion } from '../motion/SmoothScroll';
+import { startedFromHtml } from '../boot';
 import SplitText from '../reactbits/SplitText';
 import { Mascot } from '../components/Mascot';
 import { Clip } from '../components/Clip';
@@ -41,11 +42,10 @@ const FACTS = [
 
 export function Home() {
   const root = useRef<HTMLDivElement>(null);
-  const [reduced] = useState(prefersReducedMotion);
+  // No entrance for the title with reduced motion, or when the page's HTML is
+  // already on screen (written at build time): don't hide it again to play one.
+  const [still] = useState(() => prefersReducedMotion() || startedFromHtml());
 
-  useEffect(() => {
-    document.title = 'TardiGeddon: tiny, indestructible, armed';
-  }, []);
 
   useGSAP(
     () => {
@@ -53,8 +53,10 @@ export function Home() {
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         // The mascot bobs about, as tardis do while they wait for their turn.
         gsap.to('.hero-mascot', { y: -14, rotation: -5, duration: 1.3, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-        gsap.from('.hero .reveal', { y: 34, opacity: 0, duration: 0.8, ease: 'back.out(1.7)', stagger: 0.12, delay: 0.35 });
-        gsap.from('.hero-screen', { y: 80, rotation: 4, opacity: 0, duration: 1, ease: 'back.out(1.4)', delay: 0.5 });
+        if (!still) {
+          gsap.from('.hero .reveal', { y: 34, opacity: 0, duration: 0.8, ease: 'back.out(1.7)', stagger: 0.12, delay: 0.35 });
+          gsap.from('.hero-screen', { y: 80, rotation: 4, opacity: 0, duration: 1, ease: 'back.out(1.4)', delay: 0.5 });
+        }
         gsap.from('.fact', {
           y: 30,
           opacity: 0,
@@ -119,7 +121,7 @@ export function Home() {
       <section className="hero">
         <div className="hero-head">
           <Mascot className="hero-mascot" label="The TardiGeddon mascot: a tardigrade in a red beanie" />
-          {reduced ? (
+          {still ? (
             <h1 className="display hero-title">
               Tardi<span className="geddon">Geddon</span>
             </h1>

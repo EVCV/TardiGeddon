@@ -167,6 +167,12 @@ export function Layout({ children }: { children: ReactNode }) {
                 <Link to="/eggs">Easter eggs</Link>
               </li>
               <li>
+                <Link to="/promo-codes">Promo codes</Link>
+              </li>
+              <li>
+                <Link to="/press">Press kit</Link>
+              </li>
+              <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>
             </ul>

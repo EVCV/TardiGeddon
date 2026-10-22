@@ -658,3 +658,56 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
 @media (min-width: 1100px) {
   .swinger-tardi { left: -44px; width: 88px; margin-top: -12px; }
 }
+
+/* Promo codes: the current code, big and easy to copy. */
+.promo-card { display: grid; gap: 8px 28px; align-items: center; padding: clamp(18px, 4vw, 32px); margin: 0 0 24px; }
+.promo-mascot { width: min(220px, 60%); justify-self: center; }
+.promo-body h2 { font-size: clamp(30px, 5vw, 42px); margin: 0 0 10px; }
+.promo-body p { margin: 0 0 14px; }
+.promo-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #d8f5d0;
+  font-weight: 800;
+}
+.promo-code-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.promo-code {
+  font-family: var(--title);
+  font-size: clamp(28px, 6vw, 40px);
+  letter-spacing: 0.08em;
+  padding: 10px 18px 4px;
+  background: var(--accent);
+  border: var(--line) dashed var(--ink);
+  border-radius: 16px;
+  user-select: all;
+}
+@media (min-width: 700px) {
+  .promo-card { grid-template-columns: 220px 1fr; }
+  .promo-mascot { width: 100%; }
+}
+
+/* Press kit. */
+.press-grid { display: grid; gap: 0 24px; }
+@media (min-width: 980px) {
+  .press-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; }
+}
+.facts-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+.facts-list dt { font-weight: 800; }
+.facts-list dd { margin: 0; }
+.press-media { list-style: none; padding: 0 !important; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.press-media li { margin: 0; }
+.press-media a { display: block; color: var(--ink); text-decoration: none; font-weight: 800; }
+.press-media img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--sky-light);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  margin-bottom: 6px;
+}
+.press-media a:hover span { text-decoration: underline; }
+.press-media img[src$='.png'] { object-fit: contain; }

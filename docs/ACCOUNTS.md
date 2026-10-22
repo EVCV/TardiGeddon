@@ -65,6 +65,13 @@ free without an account.
   `POST /api/gift/cancel` takes back an unclaimed gift and refunds the coins;
   `GET /api/gift/sent` lists your gifts. Only preset messages
   (`GIFT_MESSAGES`), no free text.
+- **Promo codes** (Terms 5.9): `PROMOS` in `src/shop/catalog.ts`, typed in the
+  same gift box (`/api/gift/redeem` checks them first). A code unlocks free
+  looks once per account: owning the item is the record (`inventory` row with
+  source `promo`), so there's no table of uses. Promo-only looks
+  (`PROMO_ITEMS`, e.g. the Water Bear Ears hat) aren't sold or shown locked in
+  the shop. Never put coins, Slime or weapons in a promo. `until` (a date) ends
+  a code after that day. The website's /promo-codes page shows the first code.
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

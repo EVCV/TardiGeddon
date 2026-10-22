@@ -4,17 +4,22 @@ import { useEffect, useState } from 'react';
 import { hasLegal, loadLegal, LEGAL_PAGES } from '../legal';
 import { Link } from '../router';
 import { NotFound } from './NotFound';
+import { applyHead } from '../head';
 
-/** Mark the "[Company Legal Name]"-style blanks the owner still has to fill in. */
 /** Pages a solicitor is still reviewing; they show a short note until that is done. */
 const UNDER_REVIEW = new Set(['terms-of-service', 'privacy-policy', 'cookie-policy', 'childrens-privacy']);
 
-function markPlaceholders(html: string): string {
+/** Mark the "[Company Legal Name]"-style blanks the owner still has to fill in. */
+export function markPlaceholders(html: string): string {
   return html.replace(/\[([^\]<>]{2,120})\]/g, '<mark class="placeholder">[$1]</mark>');
 }
 
+/** Pages already rendered, by slug: the build fills this in, as it has no
+ *  time to wait for a page to load (entry-server.tsx). */
+export const renderedLegal: Record<string, string> = {};
+
 export function Legal({ slug }: { slug: string }) {
-  const [html, setHtml] = useState<string | null>(null);
+  const [html, setHtml] = useState<string | null>(() => renderedLegal[slug] ?? null);
 
   useEffect(() => {
     let live = true;
@@ -27,7 +32,7 @@ export function Legal({ slug }: { slug: string }) {
       setHtml(out);
       // The page title comes from the document's own heading.
       const title = /^#\s+(.+)$/m.exec(text)?.[1];
-      if (title) document.title = `${title} · TardiGeddon`;
+      if (title) applyHead(`/legal/${slug}`, title);
     });
     return () => {
       live = false;
