@@ -28,6 +28,7 @@ test('an open foldable on its side (near-square) shows the menu with nothing spi
     await expect(page.getByRole('button', { name: /^Play\b/ }).first()).toBeVisible();
     await expect(page.locator('#rotate')).toBeHidden();
     expect(await spills(page), `${size.width}x${size.height}`).toEqual([]);
+    await page.context().close();
   }
 });
 
@@ -35,10 +36,13 @@ test("each screen gets the right message: turn sideways, a wider window, or open
   const message = async (viewport: { width: number; height: number }, screen = viewport) => {
     const page = await touchPage(browser, viewport, screen);
     await page.goto('/');
-    return (await page.locator('#rotate').isVisible()) ? await page.locator('#rotate h2').textContent() : null;
+    const text = (await page.locator('#rotate').isVisible()) ? await page.locator('#rotate h2').textContent() : null;
+    await page.context().close();
+    return text;
   };
   expect(await message({ width: 412, height: 960 })).toBe('Turn your phone sideways'); // outer screen, upright
   expect(await message({ width: 984, height: 1092 })).toBeNull(); // inner screen, upright: plays
+  expect(await message({ width: 626, height: 890 })).toBeNull(); // iPhone Duo's open screen, upright: plays too
   expect(await message({ width: 490, height: 1092 }, { width: 984, height: 1092 })).toBe('Make the window wider'); // split screen
   expect(await message({ width: 440, height: 626 }, { width: 890, height: 626 })).toBe('Make the window wider'); // split on a small inner screen
   expect(await message({ width: 360, height: 380 })).toBe('Open your phone'); // a flip phone's cover screen
@@ -66,5 +70,7 @@ test('on narrow phones the health bars stay clear of the weapon button', async (
     await expect(page.locator('.hud-weapon')).toBeVisible({ timeout: 20_000 });
     const gap = await page.evaluate(() => document.querySelector('.hud-weapon')!.getBoundingClientRect().left - document.querySelector('.hud-teams')!.getBoundingClientRect().right);
     expect(gap, `${size.width}x${size.height}`).toBeGreaterThan(0);
+    // Close it: a match left running slows the next one down (software rendering).
+    await page.context().close();
   }
 });

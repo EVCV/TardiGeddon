@@ -629,7 +629,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
    window on a tablet, or too small either way (a flip phone's cover screen; see
    ui/landscape.ts). An upright tablet or open foldable plays as it is. */
 #rotate { display: none; }
-@media (orientation: portrait) and (max-width: 699px), (max-width: 499px) and (max-height: 499px) {
+@media (orientation: portrait) and (max-width: 599px), (max-width: 499px) and (max-height: 499px) {
   html.touch #rotate {
     position: fixed; inset: 0; z-index: 1000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;

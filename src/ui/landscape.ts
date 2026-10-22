@@ -1,10 +1,10 @@
 // Phones play in landscape only: a window too narrow to play in (upright, under
-// 700px wide: style.css #rotate) shows a "turn your phone" screen over
+// 600px wide: style.css #rotate) shows a "turn your phone" screen over
 // everything, and the first tap asks the browser to go fullscreen and lock to
 // landscape (Android honours this; iOS Safari can't lock, so the overlay is
 // what enforces it there). Installed apps get the same from the manifest's
 // "orientation": "landscape". Tablets and the big screen of an open foldable
-// are wide enough to play upright too (the iPad app must work every way round:
+// (iPhone Duo's is ~626-669 wide upright) are wide enough to play upright too (the iPad app must work every way round:
 // docs/IOS.md §7). A window much narrower than its screen is a split screen,
 // where turning the phone wouldn't help, so it asks for a wider window instead.
 // A screen too small either way up (a flip phone's cover screen) asks for the

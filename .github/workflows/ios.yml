@@ -17,7 +17,8 @@ on:
 
 jobs:
   simulator:
-    runs-on: macos-26
+    # GitHub's Xcode 27 image (macOS 27, Apple Silicon).
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -30,13 +31,19 @@ jobs:
         run: |
           curl -sSfL -o "$RUNNER_TEMP/g3.cer" https://www.apple.com/certificateauthority/AppleRootCA-G3.cer
           cmp "$RUNNER_TEMP/g3.cer" server/apple/AppleRootCA-G3.cer
-      # Apple only takes apps built with Xcode 26 or later (since April 2026).
-      # The newest Xcode 26 on the runner, named in the log so a change shows.
-      - name: Xcode 26
+      # Xcode 27.1 or later: the iOS 27.1 SDK is what lets the app fill both of
+      # iPhone Duo's screens (older builds run in an iPhone-sized box), and
+      # Apple wants the iOS 27 SDK from April 2027.
+      - name: Xcode 27.1+
         run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          # The newest Xcode 27 that isn't a beta (the App Store refuses beta builds;
+          # some plain names, e.g. Xcode_27.2.app, are links to a beta).
+          XCODE=$(for x in /Applications/Xcode_27*.app; do r=$(readlink -f "$x"); case "$r" in *[Bb]eta*) continue;; esac; echo "$(defaults read "$r/Contents/Info" CFBundleShortVersionString) $r"; done | sort -uV | tail -1 | cut -d' ' -f2-)
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK $SDK"
+          printf '27.1\n%s\n' "$SDK" | sort -V -C || { echo "::error::Needs the iOS 27.1 SDK or later for iPhone Duo (got $SDK)"; exit 1; }
       - run: npm ci
       - run: npm run app:build
       - name: Build for the simulator

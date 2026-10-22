@@ -18,7 +18,8 @@ on:
 
 jobs:
   testflight:
-    runs-on: macos-26
+    # GitHub's Xcode 27 image (macOS 27, Apple Silicon).
+    runs-on: xcode-27
     env:
       HAS_KEYS: ${{ secrets.ASC_KEY_ID != '' && secrets.MATCH_PASSWORD != '' }}
     steps:
@@ -32,13 +33,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # Apple only takes apps built with Xcode 26 or later (since April 2026).
-      - name: Xcode 26
+      # Xcode 27.1 or later, for iPhone Duo (see ios.yml).
+      - name: Xcode 27.1+
         if: env.HAS_KEYS == 'true'
         run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          # The newest Xcode 27 that isn't a beta (the App Store refuses beta builds;
+          # some plain names, e.g. Xcode_27.2.app, are links to a beta).
+          XCODE=$(for x in /Applications/Xcode_27*.app; do r=$(readlink -f "$x"); case "$r" in *[Bb]eta*) continue;; esac; echo "$(defaults read "$r/Contents/Info" CFBundleShortVersionString) $r"; done | sort -uV | tail -1 | cut -d' ' -f2-)
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          printf '27.1\n%s\n' "$SDK" | sort -V -C || { echo "::error::Needs the iOS 27.1 SDK or later for iPhone Duo (got $SDK)"; exit 1; }
       - if: env.HAS_KEYS == 'true'
         run: npm ci && npm run app:build
       - uses: ruby/setup-ruby@v1

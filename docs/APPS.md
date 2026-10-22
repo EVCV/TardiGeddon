@@ -88,6 +88,7 @@ checks each, with the phones' CSS sizes):
 |---|---|
 | Outer screen (Galaxy Z Fold, Pixel Fold, iPhone Duo): a tall phone | As any phone: landscape, phone menu; held upright, "Turn your phone sideways" |
 | Inner screen, open (near-square, ~780–1100px each way) | Plays either way up. On its side the phone menu is scaled up less than on a tablet (`--ui-zoom` for screens 6:5 or squarer in `style.css`), or it would squeeze into ~490px |
+| iPhone Duo's open screen (~626–669 × 890–951, a 4:3-ish book) | Plays either way up: "Turn your phone sideways" only covers windows under 600px wide. The iOS app must be built with the iOS 27.1 SDK to fill it (`docs/IOS.md` §5, §7) |
 | A flip phone's cover screen (under 500px either way) | "Open your phone" |
 | Split screen (a window well under the screen's width) | "Make the window wider" |
 | Opened or closed mid-match | The match carries on and redraws to the new size; the Android activity isn't restarted (`configChanges` in `AndroidManifest.xml` includes the screen sizes) |

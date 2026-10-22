@@ -332,10 +332,12 @@ online play are 13+.
 
 ## 5. Building on GitHub (no Mac): **built**, waiting for the owner's keys
 
-Two workflows, both on GitHub's `macos-26` Macs with the newest Xcode 26
-(Apple has only taken apps built with Xcode 26 or later since 28 April 2026;
-expect the **iOS 27 SDK** to be required from around spring 2027, and §7 is
-ready for it):
+Two workflows, both on GitHub's **Xcode 27 image** (`runs-on: xcode-27`,
+macOS 27, generally available since 15 October 2026), with its newest Xcode
+27 that isn't a beta (the App Store refuses beta builds), and they stop unless
+it has the **iOS 27.1 SDK** or later. 27.1 is what makes the app fill both of
+iPhone Duo's screens (built with older SDKs, it runs in an iPhone-sized box in
+the middle); Apple requires the iOS 27 SDK for all uploads from April 2027:
 
 | Workflow | When | What |
 |---|---|---|
@@ -413,7 +415,11 @@ review; external testers need a short beta review.
 - **Screenshots** (up to 10 per size, PNG/JPEG, no transparency):
   - iPhone, **required**: landscape **2622×1206** (or 2556×1179);
   - iPad 13-inch, **required since we support iPad**: landscape **2752×2064**
-    (or 2732×2048).
+    (or 2732×2048);
+  - **iPhone Duo: required for every app from April 2027**, across its poses
+    (outer screen, open), sizes in App Store Connect's screenshot
+    specifications. Sending them early earns the "optimized for iPhone Duo"
+    badge on the product page.
 
   Add these to `scripts/store-images.mjs`, output in `store/app-store/`.
 - **App Privacy** labels: the same facts as Google's Data safety: email,
@@ -460,11 +466,23 @@ from the TestFlight build (§5).
 - **Launch screen:** Capacitor's storyboard. Apple requires one from the iOS
   27 SDK.
 - **iPhone:** landscape only (`UISupportedInterfaceOrientations`).
-- **Apple's foldable (iPhone Duo, iOS 27):** its outer screen is a phone's;
-  open, it's a wide screen the game plays on (landscape-only on iPhone, as
-  `Info.plist` says), and iOS 27 split screen on it gets "Make the window
-  wider". The sizes tested are estimates until it's in hand (docs/APPS.md,
-  "Foldables").
+- **Apple's foldable, iPhone Duo** (out 23 October 2026, iOS 27.1; Apple's
+  "Preparing your app for iPhone Duo"):
+  - **Built with the iOS 27.1 SDK** (§5), the app fills the outer screen and
+    the open one, and moves between them as the phone folds without
+    restarting (it's a resize; `SceneDelegate` uses `UIWindow(windowScene:)`,
+    as Apple asks, never the screen's size).
+  - **Outer screen** (5.4", ~466×678 points): a phone; landscape, phone menu.
+  - **Open screen** (7.6", ~626–669 × 890–951 points; Apple's point sizes
+    aren't published yet): plays **either way up**. Apple says the open
+    screen may not keep an app's orientation lock and wants games playable
+    in every pose, so "Turn your phone sideways" only covers windows under
+    600px wide.
+  - **Split View** (two apps on the open screen): the game redraws as the
+    divider moves; a half too narrow to play in asks to "Make the window
+    wider".
+  - Tested at the published sizes (`e2e/foldable.spec.ts`); try it on a real
+    one through TestFlight.
 - **iPad: portrait and resizable windows have to work.** Since iPadOS 26
   the "full screen only" setting (`UIRequiresFullScreen`) is deprecated.
   With the iOS 27 SDK it's ignored: the app can be put in a resizable
@@ -475,7 +493,7 @@ from the TestFlight build (§5).
     match keeps its touch controls and the map scrolls sideways as on a phone,
     and a match redraws when the iPad is turned mid-game;
   - "Turn your phone sideways" (`src/ui/landscape.ts`, `#rotate` in
-    `style.css`) only covers windows under 700px wide: upright phones, and a
+    `style.css`) only covers windows under 600px wide: upright phones, and a
     thin split-screen window on a tablet, which is asked to "Make the window
     wider" instead;
   - between 981 and 1499px wide the lobby is two columns, and the title is
