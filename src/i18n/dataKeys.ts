@@ -14,7 +14,7 @@ import { HATS } from '../render/hats';
 import { SEASONS } from '../render/seasons';
 import { SKINS } from '../render/skins';
 import { WEATHER_NAMES } from '../render/weather';
-import { BUNDLES, GIFT_MESSAGES, SHOP_ITEMS } from '../shop/catalog';
+import { BUNDLES, GIFT_MESSAGES, PROMO_ITEMS, SHOP_ITEMS } from '../shop/catalog';
 import { EGGS } from '../eggs';
 import { TRACKS } from '../audio/music';
 
@@ -34,6 +34,7 @@ export function DATA_KEYS(): string[] {
     ...SEASONS,
     ...SKINS,
     ...SHOP_ITEMS,
+    ...PROMO_ITEMS,
     ...BUNDLES,
     ...TRACKS,
   ];

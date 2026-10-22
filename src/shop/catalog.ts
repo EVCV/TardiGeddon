@@ -330,7 +330,7 @@ export function coinPack(id: string): CoinPack | undefined {
 
 /** The shop item that unlocks this hat / skin / weapon, if it isn't free. */
 export function itemFor(kind: ItemKind, ref: string): ShopItem | undefined {
-  return SHOP_ITEMS.find((i) => i.kind === kind && i.ref === ref);
+  return SHOP_ITEMS.find((i) => i.kind === kind && i.ref === ref) ?? PROMO_ITEMS.find((i) => i.kind === kind && i.ref === ref);
 }
 
 /** May someone who owns these items use this hat / skin / weapon? */
@@ -385,6 +385,40 @@ export function giftable(id: string): { coins: number; items: string[]; name: st
   const item = shopItem(id);
   if (item && item.coins !== undefined) return { coins: item.coins, items: [item.id], name: item.name };
   return undefined;
+}
+
+/**
+ * Looks you can only get free, with a promotional code (Terms 5.9): never sold,
+ * never in the shop, and locked like any other item until a code unlocks them.
+ * No price: the server only ever grants them through a promo code.
+ */
+export const PROMO_ITEMS: ShopItem[] = [
+  { id: 'hat:waterbear', kind: 'hat', ref: 'waterbear', name: 'Water Bear Ears', blurb: 'Free with a promo code. Tardigrades are water bears, after all.', rarity: 'epic' },
+];
+
+export function promoItem(id: string): ShopItem | undefined {
+  return PROMO_ITEMS.find((i) => i.id === id);
+}
+
+export interface Promo {
+  /** What players type (letters and digits; spaces, dashes and case don't matter). */
+  code: string;
+  items: string[];
+  /** Last day it works (UTC, inclusive), if it ends. */
+  until?: string;
+}
+
+/**
+ * Promotional codes: each unlocks its items once per account (owning them is
+ * the record). Typed into the same box as gift codes. The website's
+ * /promo-codes page shows the current one (site/src/promo.ts).
+ */
+export const PROMOS: Promo[] = [{ code: 'WATERBEAR', items: ['hat:waterbear'] }];
+
+/** The promo a code is for, if it's one that works today. */
+export function promoFor(code: string, now = Date.now()): Promo | undefined {
+  const c = normaliseGiftCode(code);
+  return PROMOS.find((p) => p.code === c && (!p.until || now < Date.parse(p.until) + 86_400_000));
 }
 
 /** Gift code letters: no I, L, O, 0 or 1, so codes can't be misread. */

@@ -3,7 +3,7 @@
 // game's own data (src/sim/weapons.ts, src/ui/weaponUse.ts), so it can't go
 // out of date.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PANEL_WEAPONS, WEAPONS, type WeaponDef } from '../../../src/sim/weapons';
 import { weaponUse, type WeaponUseId } from '../../../src/ui/weaponUse';
 import { PLAY_URL } from '../config';
@@ -32,9 +32,6 @@ for (const w of LIST) {
 
 export function Weapons() {
   const [kind, setKind] = useState<WeaponUseId | 'all'>('all');
-  useEffect(() => {
-    document.title = 'Weapons · TardiGeddon';
-  }, []);
   const shown = useMemo(() => (kind === 'all' ? LIST : LIST.filter((w) => weaponUse(w).id === kind)), [kind]);
 
   return (

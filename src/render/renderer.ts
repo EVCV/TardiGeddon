@@ -20,6 +20,9 @@ const tr = (text: string, vars?: Record<string, string | number>): string => t(t
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
+/** Seconds the camera stays on a blast, a hit or a splash before going back to
+ *  whoever's turn it is (after a shot: until they move, or the turn ends). */
+const WATCH_HOLD = 1.8;
 /** How far past the map's left/right edges the camera may look. */
 const VIEW_MARGIN_X = 200;
 
@@ -84,6 +87,10 @@ export class GameRenderer {
   private bubbles = new Map<number, { root: Container; until: number; x: number; y: number }>();
   /** Tardis curling up before they pop: id -> start time. */
   private dying = new Map<number, number>();
+  /** Where the action just was (a blast, a hit): the camera stays there until
+   *  it has played out, or the player whose turn it is moves off. `ax`/`ay`:
+   *  where that player stood. */
+  private watch: { x: number; y: number; until: number; turn: number; ax: number; ay: number } | null = null;
   /** When each tardi last said "Whoa!", so it doesn't repeat itself. */
   private teeterSaid = new Map<number, number>();
   private confettiDone = false;
@@ -196,6 +203,7 @@ export class GameRenderer {
     for (const e of events) {
       switch (e.t) {
         case 'explosion':
+          this.watchAt(e.x, e.y, WATCH_HOLD);
           this.terrainView.crater(e.x, e.y, e.r, e.rect);
           this.spawnExplosion(e.x, e.y, e.r, this.state.teams[e.team]?.fx);
           break;
@@ -203,6 +211,7 @@ export class GameRenderer {
           this.tracers.push({ ...e, life: 0.25 });
           break;
         case 'splash':
+          this.watchAt(e.x, this.state.waterY, 1);
           for (let i = 0; i < 14; i++) {
             this.particles.push({
               x: e.x, y: this.state.waterY, vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
@@ -245,17 +254,27 @@ export class GameRenderer {
         }
         case 'damage': {
           const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.floatText(`-${e.amount}`, t.x, t.y - 34, shown(this.state.teams[t.team].color));
+          if (t) {
+            this.floatText(`-${e.amount}`, t.x, t.y - 34, shown(this.state.teams[t.team].color));
+            this.watchAt(t.x, t.y, WATCH_HOLD);
+          }
           break;
         }
         case 'drown': {
           const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.floatText(tr(tk('Bye-bye!')), t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
+          if (t) {
+            this.floatText(tr(tk('Bye-bye!')), t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
+            this.watchAt(t.x, Math.min(t.y, this.state.waterY), WATCH_HOLD);
+          }
           break;
         }
         case 'death':
           // Comedy death: curl up into a tun, wobble, then pop (see render()).
           if (this.tardiViews.has(e.id)) this.dying.set(e.id, this.time);
+          {
+            const t = this.state.tardis.find((x) => x.id === e.id);
+            if (t) this.watchAt(t.x, t.y, DEATH_CURL + 1.2);
+          }
           break;
         case 'burn':
           this.terrainView.crater(e.x, e.y, 2.5, e.rect);
@@ -410,6 +429,22 @@ export class GameRenderer {
     root.addChild(g, label);
     this.floatLayer.addChild(root);
     this.bubbles.set(tardiId, { root, until: this.time + seconds, x: t.x, y: t.y });
+  }
+
+  /** Keep the camera here for `hold` seconds (longer if something's already being watched). */
+  private watchAt(x: number, y: number, hold: number): void {
+    const s = this.state;
+    const a = activeTardi(s);
+    const w = this.watch;
+    const fresh = !w || w.turn !== s.turn.turnNumber;
+    this.watch = {
+      x,
+      y,
+      until: Math.max(fresh ? 0 : w.until, this.time + hold),
+      turn: s.turn.turnNumber,
+      ax: fresh || !a ? (a?.x ?? 0) : w.ax,
+      ay: fresh || !a ? (a?.y ?? 0) : w.ay,
+    };
   }
 
   private floatText(s: string, x: number, y: number, color: number): void {
@@ -889,8 +924,22 @@ export class GameRenderer {
       } else {
         const a = activeTardi(s);
         const moving = s.tardis.find((t) => t.alive && t.airborne && t.knocked);
-        const follow = moving ?? a;
-        if (follow && (follow.alive || moving)) target = this.lerpPos(follow.id, follow.x, follow.y, alpha);
+        const w = this.watch;
+        if (w && a) {
+          // Thrown about by the blast: that's not the player walking off.
+          if (a.airborne || a.knocked) {
+            w.ax = a.x;
+            w.ay = a.y;
+          } else if (Math.abs(a.x - w.ax) + Math.abs(a.y - w.ay) > 8) this.watch = null;
+        }
+        // After the shot (retreat, then the damage being counted) it stays until
+        // the player moves or the next turn starts; otherwise (a mine going off
+        // as someone walks) just long enough to see it.
+        const afterShot = s.turn.phase === 'retreat' || s.turn.phase === 'settle';
+        if (this.watch && (this.watch.turn !== s.turn.turnNumber || (!afterShot && this.time > this.watch.until))) this.watch = null;
+        if (moving) target = this.lerpPos(moving.id, moving.x, moving.y, alpha);
+        else if (this.watch) target = this.watch;
+        else if (a?.alive) target = this.lerpPos(a.id, a.x, a.y, alpha);
       }
       if (target) {
         const k = 1 - Math.pow(0.02, dt);

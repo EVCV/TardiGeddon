@@ -13,7 +13,7 @@
     "e2e": "playwright test",
     "server": "tsx server/main.ts",
     "site:dev": "vite --config site/vite.config.ts",
-    "site:build": "vite build --config site/vite.config.ts",
+    "site:build": "vite build --config site/vite.config.ts && vite build --config site/vite.config.ts --ssr src/entry-server.tsx --outDir ../dist-ssr --emptyOutDir && node site/prerender.mjs",
     "site:preview": "vite preview --config site/vite.config.ts --port 4174",
     "build:all": "npm run build && npm run site:build && node -e \"require('fs').cpSync('dist', 'dist-site/play', { recursive: true })\"",
     "app:build": "tsc --noEmit && vite build --mode app && cap sync",

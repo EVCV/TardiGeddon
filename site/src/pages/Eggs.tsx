@@ -1,14 +1,10 @@
 // The easter eggs, as riddles only (src/eggs.ts). Players tick them off in
 // the game's Guide.
 
-import { useEffect } from 'react';
 import { EGGS } from '../../../src/eggs';
 import { PLAY_URL } from '../config';
 
 export function Eggs() {
-  useEffect(() => {
-    document.title = 'Easter eggs · TardiGeddon';
-  }, []);
   return (
     <div className="page eggs">
       <h1 className="display section-title">Easter eggs</h1>

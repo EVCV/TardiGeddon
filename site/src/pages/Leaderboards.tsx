@@ -67,9 +67,6 @@ export function Leaderboards() {
   const today = challengeDay();
   const yesterday = challengeDay(new Date(Date.now() - 86_400_000));
   const [day, setDay] = useState(today);
-  useEffect(() => {
-    document.title = 'Leaderboards · TardiGeddon';
-  }, []);
   return (
     <div className="page leaderboards">
       <h1 className="display section-title">Leaderboards</h1>

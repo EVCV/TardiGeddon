@@ -3,7 +3,7 @@
 // map styles and game styles come from the game's own code; the rest follows
 // the game's Guide (src/ui/guide.ts), so keep the two saying the same things.
 
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ACTIONS, defaultControls, keyLabel } from '../../../src/input/controls';
 import { DEFAULT_SCHEME } from '../../../src/sim/types';
 import { SCHEME_PRESETS } from '../../../src/sim/schemes';
@@ -55,9 +55,6 @@ const CONTENTS = [
 ] as const;
 
 export function HowToPlay() {
-  useEffect(() => {
-    document.title = 'How to play · TardiGeddon';
-  }, []);
   return (
     <div className="page page-wide how-page">
       <h1 className="display section-title">How to play</h1>

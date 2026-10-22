@@ -12,7 +12,7 @@ import { CpuPlayer } from '../src/ai/cpu';
 import type { SimEvent } from '../src/sim/types';
 import type { GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
-import { canWearHat } from '../src/shop/catalog';
+import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
@@ -31,6 +31,22 @@ describe('shop hats', () => {
     expect(wearableTeam({ name: 'A', hat: 'wizard' }, []).hat).toBe('beanie');
     expect(wearableTeam({ name: 'A', hat: 'wizard' }, ['hat:wizard']).hat).toBe('wizard');
     expect(wearableTeam({ name: 'A', hat: 'tophat' }, []).hat).toBe('tophat');
+  });
+
+  it('include promo-code hats, which only the code unlocks', () => {
+    expect(canWearHat('waterbear', [])).toBe(false);
+    expect(canWearHat('waterbear', ['hat:waterbear'])).toBe(true);
+    expect(promoFor('waterbear')?.items).toEqual(['hat:waterbear']);
+    expect(promoFor(' Water-Bear ')?.code).toBe('WATERBEAR');
+    expect(promoFor('WATERBEARS')).toBeUndefined();
+    // A code with an end date works to the end of that day, then stops.
+    PROMOS.push({ code: 'TESTEND', items: ['hat:waterbear'], until: '2026-10-31' });
+    try {
+      expect(promoFor('testend', Date.parse('2026-10-31T23:00:00Z'))).toBeDefined();
+      expect(promoFor('testend', Date.parse('2026-11-01T00:00:01Z'))).toBeUndefined();
+    } finally {
+      PROMOS.pop();
+    }
   });
 });
 
@@ -723,6 +739,17 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     accounts.resetLimits();
     for (let i = 0; i < 10; i++) expect((await redeem(`AAAA-AAAA-AAA${'ABCDEFGHJK'[i]}`, other.cookie)).status).toBe(404);
     expect((await redeem('AAAA-AAAA-AAAA', other.cookie)).status).toBe(429);
+  });
+
+  it('unlocks a promo code\'s look once per account, through the gift box', async () => {
+    const { cookie } = await signUp('promo@example.com');
+    const redeem = () => post('/api/gift/redeem', { code: 'water-bear' }, cookie);
+    const r = await redeem();
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { items: string[] }).items).toEqual(['hat:waterbear']);
+    expect((await me(cookie)).owned).toContain('hat:waterbear');
+    expect((await redeem()).status).toBe(409);
+    expect((await post('/api/gift/redeem', { code: 'water-bear' })).status).toBe(401);
   });
 
   it('puts daily challenge runs on the leaderboard only after playing them back itself', async () => {

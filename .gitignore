@@ -6,3 +6,4 @@ playwright-report/
 .DS_Store
 *.tmp.mjs
 dist-site/
+dist-ssr

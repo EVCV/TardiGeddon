@@ -804,6 +804,16 @@ export async function redeemGift(db: Pool, userId: string, code: string): Promis
   }
 }
 
+/** Unlock a promo code's items for this player: the ones they don't have yet (none: they've used it). */
+export async function redeemPromo(db: Pool, userId: string, items: string[]): Promise<string[]> {
+  const added: string[] = [];
+  for (const i of items) {
+    const r = await db.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, 'promo') ON CONFLICT DO NOTHING`, [userId, i]);
+    if (r.rowCount) added.push(i);
+  }
+  return added;
+}
+
 /** Take back a gift nobody has claimed yet: the coins go back to the sender. */
 export async function cancelGift(db: Pool, userId: string, giftId: number): Promise<boolean> {
   const c = await db.connect();

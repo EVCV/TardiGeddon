@@ -61,10 +61,21 @@ on the site anyway.
 
 ## How the site is built
 
-- `site/src/App.tsx` picks the page from the path (`site/src/router.tsx` is a
+- `site/src/routes.tsx` picks the page from the path (`site/src/router.tsx` is a
   tiny History-API router). Pages live in `site/src/pages/`: Home, How to play
   (`/how-to-play`), Weapons (`/weapons`), Leaderboards, Help & support
-  (`/support`), Easter eggs and the legal pages. The header menu (`NAV` in
+  (`/support`), Easter eggs, Promo codes (`/promo-codes`), Press kit
+  (`/press`) and the legal pages.
+- **Every page is written to its own HTML file at build time**
+  (`site/src/entry-server.tsx` + `site/prerender.mjs`, run by
+  `npm run site:build`), with its own title, description, share tags and
+  structured data from `site/src/seo.ts`, plus `404.html`, `sitemap.xml` and
+  `robots.txt`. In the browser React draws the page afresh (`createRoot`, no
+  hydration) and `site/src/head.ts` keeps the `<head>` right as you move
+  between pages. So: a new page needs an entry in `PAGES` (seo.ts) and in
+  `PageFor` (routes.tsx), or it's a 404 on the live site. Page code must not
+  touch `window`/`document` while rendering (only in effects). See
+  `docs/SEO.md`. The header menu (`NAV` in
   `site/src/components/Layout.tsx`) lists the main ones; on phones it is a
   slide-out panel behind the ☰ button.
 - Every 20–40 s a tardi swings across the screen on a silk rope
@@ -92,8 +103,8 @@ on the site anyway.
   labels: `site/src/legal.ts`.
 - Legal pages are **noindex** (kept out of search results, links still
   followed): an `X-Robots-Tag: noindex, follow` header for `/legal/*` in
-  `site/public/_headers` (Cloudflare Pages), plus a robots meta tag the app
-  adds on those pages. Don't block them in `robots.txt` (crawlers must fetch a
+  `site/public/_headers` (Cloudflare Pages), plus a robots meta tag in their
+  HTML. Don't block them in `robots.txt` (crawlers must fetch a
   page to see its noindex) and leave them out of any sitemap.
 - Clips play only while on screen; with reduced motion they don't play by
   themselves (poster + controls instead). GSAP animations run inside
@@ -123,6 +134,11 @@ watching); everything on screen is the game itself. The Rope Race clip is
 played by `site/capture/rope-bot.js`. Courses are random, so the script
 tries a few and keeps the best run. Check the result before committing:
 the clip ranges (`from`/`to` in each scene) may need a nudge.
+
+Share pictures (`og-*.jpg`, 1200×630), `logo.png` and `apple-touch-icon.png`
+are drawn from the mascot, the logo lettering and those screenshots by
+`npx tsx site/capture/share-images.ts` (run it again after recapturing, or
+when the promo code or weapon count changes).
 
 ## Commands
 

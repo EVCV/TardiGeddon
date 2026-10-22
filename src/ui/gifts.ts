@@ -4,7 +4,7 @@
 // other players, and only preset messages go with a gift.
 
 import { buyGift, cancelGift, redeemGift, sentGifts, type GiftSent, type MeResponse } from '../account/session';
-import { BUNDLES, GIFTS_PER_DAY, GIFT_MESSAGES, formatNumber, giftable, shopItem } from '../shop/catalog';
+import { BUNDLES, GIFTS_PER_DAY, GIFT_MESSAGES, formatNumber, giftable, promoItem, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { lang, t } from '../i18n/i18n';
 
@@ -12,7 +12,7 @@ import { lang, t } from '../i18n/i18n';
 export function giftName(id: string): string {
   const set = BUNDLES.find((b) => b.id === id);
   if (set) return t('{name} bundle', { name: t(set.name) });
-  const item = shopItem(id);
+  const item = shopItem(id) ?? promoItem(id);
   return item ? t(item.name) : (giftable(id)?.name ?? id);
 }
 
@@ -51,7 +51,7 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
   const box = el('div', 'gifts');
 
   const claim = el('section', 'gift-claim');
-  claim.append(el('h3', 'shop-section', t('🎀 Got a gift code?')));
+  claim.append(el('h3', 'shop-section', t('🎀 Got a gift or promo code?')));
   const form = el('form', 'gift-form');
   const input = el('input', 'gift-input');
   input.placeholder = 'XXXX-XXXX-XXXX';

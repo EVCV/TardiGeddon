@@ -490,6 +490,18 @@ export const HATS: HatDef[] = [
       { k: 'circle', x: 0.6, y: -0.3, r: 0.14, fill: 'pink' },
     ],
   },
+  {
+    // Promo code only (shop/catalog.ts PROMOS): tardigrades are water bears.
+    id: 'waterbear',
+    name: 'Water Bear Ears',
+    shapes: [
+      { k: 'circle', x: -0.7, y: -0.66, r: 0.54, fill: 'team' },
+      { k: 'circle', x: 0.7, y: -0.66, r: 0.54, fill: 'team' },
+      { k: 'circle', x: -0.7, y: -0.66, r: 0.28, fill: 'pink' },
+      { k: 'circle', x: 0.7, y: -0.66, r: 0.28, fill: 'pink' },
+      { k: 'poly', pts: [-1.05, 0.1, -0.95, -0.22, 0.95, -0.22, 1.05, 0.1], fill: 'team' },
+    ],
+  },
 ];
 
 export function hatById(id: string): HatDef {
