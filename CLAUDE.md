@@ -6,9 +6,9 @@ The iOS app plan: `docs/IOS.md`.
 
 ## Commands
 
-- `npm run dev` — dev server (add `?autostart=cpu`, `?autostart=hotseat`, `?autostart=tutorial` or `?autostart=practice` (`&endless` for endless targets) to skip the menu, `&players=N` for 2–10 teams, `?touch` to force touch controls)
+- `npm run dev` — dev server (add `?autostart=cpu`, `?autostart=hotseat`, `?autostart=tutorial` or `?autostart=practice` (`&endless` for endless targets) to skip the menu, `&players=N` for 2–10 teams, `&style=armoured` (a game style), `&map=sky` (a map style), `&seed=N`, `?touch` to force touch controls)
 - `npm run server` — online game server on :8787 (`npm run dev` on localhost connects to it; see `docs/ONLINE.md`)
-- `npm run site:dev` / `site:build` — the public website (React + GSAP + Lenis + React Bits; see `docs/WEBSITE.md`)
+- `npm run site:dev` / `site:build` — the public website (React + GSAP + Lenis + React Bits; see `docs/WEBSITE.md`; every page is prerendered to HTML, search setup in `docs/SEO.md`)
 - `npm run build:all` — site + game (at `/play/`) into `dist-site/`, as deployed to Cloudflare Pages (`docs/DEPLOY.md`)
 - `npm run app:build` — the Android app (Capacitor, `android/`); see `docs/APPS.md`, and `docs/GOOGLE_PLAY.md` for the store (signed builds, listing, forms; images via `scripts/store-images.mjs`). Keep the Data safety answers and `site/legal/` in step with what the code stores
 - `npm test` — unit + soak tests (Vitest). Set `TEST_DATABASE_URL` (an empty throwaway Postgres) to also run the accounts/shop tests
@@ -25,6 +25,11 @@ The iOS app plan: `docs/IOS.md`.
   The sim is driven only by `InputFrame`s, one per tick at 50 Hz. This is what makes
   replays, the CPU's look-ahead and online lockstep play possible.
 - `src/render/` — PixiJS view of the state; reads state, never writes it. Interpolates between ticks.
+- Loading: `src/main.ts` boots the menu only; `src/match.ts` (a match: Pixi, renderer, HUD, CPU) is its own
+  download, fetched right after the first screen shows. Keep the menu's imports free of the sim and Pixi
+  (plain constants live in `sim/rosters.ts`, `ai/skills.ts`, `ui/learn.ts`, `challenge/meta.ts`).
+  Offline play: `scripts/offline.ts` writes `sw.js` at build time (not in the phone apps).
+- Translations (`src/i18n/`): every player-visible text goes through `t('English text', { vars })` (data names: `t(x.name)`, collected via `i18n/dataKeys.ts`; server text: `tk()`), never built from fragments. Languages: es, pt-BR, de, fr, ja in `i18n/locales/`; `tests/i18n.test.ts` fails until each has every text, so after adding or changing English run `npm run i18n -- missing <lang>` and translate (`?lang=de` to try one; `e2e/phone-menu.spec.ts` checks each fits a phone).
 - `src/ui/` — DOM menus/HUD/touch controls. The menu is one hub (`ui/hub.ts`) of pages, not pop-ups: Lobby, Stats, Shop, Account, Settings. `ui/tutorial.ts` is the guided practice match. On phones (landscape, ≤500px tall) the hub is a tap-through game menu instead (home screen + Match setup in the lobby, every page full screen with Back): see the "Phones" blocks at the end of `style.css`, and keep every page fitting the screen (`e2e/phone-menu.spec.ts`). `src/input/` — keyboard/mouse/touch → `InputFrame`; keys and mouse buttons come from the player's bindings (`input/controls.ts`, saved on the account when signed in, else for the visit).
 - `server/` + `src/net/` — online play: the server runs the sim and streams lockstep input frames; clients replay them.
 - Security: `docs/SECURITY.md` (what is protected and how; the CSP in `site/public/_headers`). Online input is untrusted: validate ids with `isWeaponId`, never `WEAPONS[id]` alone.

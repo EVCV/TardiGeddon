@@ -64,10 +64,14 @@ export class Lockstep {
     this.desynced = false;
   }
 
+  /** Sees each frame just before it's played (the winning-shot recorder). */
+  onFrame: ((s: WorldState, f: InputFrame) => void) | null = null;
+
   /** Play one buffered frame. Returns false if none is ready. */
   step(events: SimEvent[]): boolean {
     const f = this.queue.shift();
     if (!f) return false;
+    this.onFrame?.(this.state, f);
     tick(this.state, f, events);
     const want = this.hashes.get(this.state.tick);
     if (want !== undefined) {

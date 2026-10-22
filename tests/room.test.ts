@@ -12,6 +12,7 @@ class Client implements Member {
   userId?: string;
   pid?: string;
   unlocked?: string[];
+  owned?: string[];
   msgs: ServerMsg[] = [];
   ls: Lockstep | null = null;
   send(msg: ServerMsg): void {
@@ -48,6 +49,52 @@ function lobby() {
 }
 
 describe('online room', () => {
+  it('lets people watch: they see the lobby and the same match, with no slot and no say', () => {
+    const { room, a, b } = lobby();
+    const w = new Client();
+    expect(room.watch(w)).toBe(true);
+    expect(w.last('room')?.you).toBe(-1);
+    expect(w.last('room')?.slots).toHaveLength(2);
+    // A watcher can't start the match or add CPUs, or play.
+    room.handle(w, { t: 'addCpu' });
+    room.handle(w, { t: 'start', scheme: {} });
+    expect(a.last('room')?.slots).toHaveLength(2);
+    expect(a.last('start')).toBeUndefined();
+    room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1 } });
+    expect(w.last('start')?.you).toBe(-1);
+    for (let i = 0; i < 300; i++) room.step();
+    for (const c of [a, b, w]) c.catchUp();
+    expect(w.ls!.state.tick).toBe(a.ls!.state.tick);
+    expect(hashWorld(w.ls!.state)).toBe(hashWorld(a.ls!.state));
+    room.handle(w, { t: 'input', f: [16, 0] });
+    // Joining mid-match: a snapshot of where it's got to.
+    const late = new Client();
+    room.watch(late);
+    expect(late.ls?.state.tick).toBe(a.ls!.state.tick);
+    // Leaving as a watcher touches nobody's slot; there's a limit on watchers.
+    room.leave(w);
+    expect(room.humansConnected).toBe(2);
+    for (let i = 0; i < 10; i++) room.watch(new Client());
+    expect(room.watch(new Client())).toBe(false);
+  });
+
+  it('lets the host pick the map and the world everyone sees, but only a world they may use', () => {
+    const pick = (owned: string[], arena: string) => {
+      const room = new Room('WORLD', Date.now, () => 0.42);
+      const a = new Client();
+      a.owned = owned;
+      const b = new Client();
+      room.join(a, team('Alpha'));
+      room.join(b, team('Bravo'));
+      room.handle(a, { t: 'start', scheme: { mapStyle: 'canyon', arena } });
+      return b.last('start')!.scheme;
+    };
+    expect(pick([], 'moor')).toMatchObject({ mapStyle: 'canyon', arena: 'moor' });
+    expect(pick([], 'night').arena).toBeUndefined();
+    expect(pick(['arena:night'], 'night').arena).toBe('night');
+    expect(pick(['arena:night'], 'nope').arena).toBeUndefined();
+  });
+
   it('builds a lobby: host, unique colours, CPU slots, cleaned names', () => {
     const { room, a, b } = lobby();
     room.handle(b, { t: 'addCpu' }); // not host: ignored

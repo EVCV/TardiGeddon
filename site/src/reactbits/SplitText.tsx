@@ -1,6 +1,7 @@
 // From React Bits (https://github.com/DavidHDev/react-bits), MIT + Commons Clause:
 // free to use in our site; the components themselves may not be resold.
-// See ./LICENSE.md. Copied unchanged apart from this header.
+// See ./LICENSE.md. Copied unchanged apart from this header and the
+// `typeof document` check (so the build can render pages without a browser).
 
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -9,7 +10,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText as GSAPSplitText } from 'gsap/SplitText';
 import { useGSAP } from '@gsap/react';
 
-gsap.registerPlugin(ScrollTrigger, GSAPSplitText, useGSAP);
+if (typeof document !== 'undefined') gsap.registerPlugin(ScrollTrigger, GSAPSplitText, useGSAP);
 
 export interface SplitTextProps {
   text: string;

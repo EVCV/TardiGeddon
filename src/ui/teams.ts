@@ -1,12 +1,14 @@
 // Saved team profiles (name, colour, hat, tardi names), one per player slot.
 // Stored per device; storage may be missing or blocked, so every access is guarded.
 
-import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/world';
+import { DEFAULT_NAMES, MAX_TEAMS } from '../sim/rosters';
 import { safeName, tidyName } from '../names';
 import { TEAM_COLORS, TEAM_NAMES } from '../render/palette';
 import { HATS } from '../render/hats';
 import { SKINS } from '../render/skins';
 import { AIM_STYLES, FX_STYLES } from '../render/cosmetics';
+import { DANCES, GRAVES } from '../render/finales';
+import { defaultEmblem, isEmblem } from '../render/emblems';
 
 export interface TeamProfile {
   name: string;
@@ -16,6 +18,11 @@ export interface TeamProfile {
   /** Aim marker style and explosion effect (shop cosmetics). */
   aim: string;
   fx: string;
+  /** Victory dance and gravestone (shop cosmetics; everyone in the match sees them). */
+  dance: string;
+  grave: string;
+  /** Team badge (render/emblems.ts): free, built from ready-made parts. */
+  emblem: string;
   /** Up to 4 tardi names; blanks fall back to the defaults. */
   names: string[];
 }
@@ -28,8 +35,16 @@ export function defaultTardiNames(slot: number): string[] {
   return DEFAULT_NAMES.slice(slot * 4, slot * 4 + 4);
 }
 
+/** Free hats handed out to the slots by default, so the teams don't all look alike. */
+const DEFAULT_HATS = ['beanie', 'cap', 'tophat', 'flower', 'crown'];
+
 export function defaultProfile(slot: number): TeamProfile {
-  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: 'beanie', skin: 'classic', aim: 'classic', fx: 'classic', names: ['', '', '', ''] };
+  return { name: TEAM_NAMES[slot], color: TEAM_COLORS[slot], hat: DEFAULT_HATS[slot % DEFAULT_HATS.length], skin: 'classic', aim: 'classic', fx: 'classic', dance: 'classic', grave: 'classic', emblem: defaultEmblem(slot), names: ['', '', '', ''] };
+}
+
+/** The next team colour after this one (the colour dot in the lobby steps through them). */
+export function nextColor(c: number): number {
+  return TEAM_COLORS[(TEAM_COLORS.indexOf(c) + 1) % TEAM_COLORS.length];
 }
 
 /** Trim, collapse spaces, drop control and invisible characters and cap the length. */
@@ -48,6 +63,9 @@ function valid(p: unknown, slot: number): TeamProfile {
     skin: typeof v.skin === 'string' && SKINS.some((k) => k.id === v.skin) ? v.skin : d.skin,
     aim: typeof v.aim === 'string' && AIM_STYLES.some((a) => a.id === v.aim) ? v.aim : d.aim,
     fx: typeof v.fx === 'string' && FX_STYLES.some((f) => f.id === v.fx) ? v.fx : d.fx,
+    dance: typeof v.dance === 'string' && DANCES.some((x) => x.id === v.dance) ? v.dance : d.dance,
+    grave: typeof v.grave === 'string' && GRAVES.some((x) => x.id === v.grave) ? v.grave : d.grave,
+    emblem: isEmblem(v.emblem) ? v.emblem : d.emblem,
     names: Array.from({ length: 4 }, (_, i) =>
       Array.isArray(v.names) ? safeName(v.names[i], TARDI_NAME_MAX, '') : '',
     ),

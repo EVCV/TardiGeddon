@@ -4,6 +4,9 @@
 // gives them (LobbySlot.pid): the same on every visit for signed-in players,
 // new each visit for guests.
 
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
+
 export interface BlockedPlayer {
   pid: string;
   /** The team name you saw when you blocked them, so you know who's on the list. */
@@ -58,14 +61,14 @@ export function hideTeams(ids: Iterable<number>): void {
   hidden = new Set(ids);
 }
 
-export const BLOCKED_TEAM = 'Blocked player';
+export const BLOCKED_TEAM = tk('Blocked player');
 
 /** A team's name as this player sees it. */
 export function teamLabel(team: { id: number; name: string }): string {
-  return hidden.has(team.id) ? BLOCKED_TEAM : team.name;
+  return hidden.has(team.id) ? t(BLOCKED_TEAM) : team.name;
 }
 
 /** A tardi's name as this player sees it. */
-export function tardiLabel(t: { team: number; name: string }): string {
-  return hidden.has(t.team) ? '' : t.name;
+export function tardiLabel(tardi: { team: number; name: string }): string {
+  return hidden.has(tardi.team) ? '' : tardi.name;
 }

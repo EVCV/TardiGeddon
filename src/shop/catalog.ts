@@ -18,7 +18,7 @@
  * music: the soundtrack you hear in matches; sound: how your sound effects
  * sound (only you hear them).
  */
-export type ItemKind = 'hat' | 'skin' | 'aim' | 'fx' | 'arena' | 'music' | 'sound' | 'weapon';
+export type ItemKind = 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave' | 'arena' | 'music' | 'sound' | 'weapon';
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface ShopItem {
@@ -90,6 +90,12 @@ const aim = (ref: string, name: string, blurb: string, rarity: Rarity, coins: nu
 });
 const fx = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
   id: `fx:${ref}`, kind: 'fx', ref, name, blurb, rarity, coins,
+});
+const dance = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
+  id: `dance:${ref}`, kind: 'dance', ref, name, blurb, rarity, coins,
+});
+const grave = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
+  id: `grave:${ref}`, kind: 'grave', ref, name, blurb, rarity, coins,
 });
 const arena = (ref: string, name: string, blurb: string, rarity: Rarity, coins: number): ShopItem => ({
   id: `arena:${ref}`, kind: 'arena', ref, name, blurb, rarity, coins,
@@ -200,6 +206,20 @@ export const SHOP_ITEMS: ShopItem[] = [
   fx('fireworks', 'Fireworks', 'Stars in every colour.', 'epic', 1800),
   fx('rainbow', 'Rainbow blast', 'Smoke in all the colours of the rainbow.', 'legendary', 2000),
   fx('gold', 'Golden blast', 'Showers of gold. Fancy.', 'legendary', 3000),
+  // Victory dances: how your team celebrates a win. Everyone in the match sees it. Coins.
+  dance('spin', 'Spin cycle', 'Round and round and round.', 'rare', 500),
+  dance('flip', 'Backflip', 'Stick the landing. Every time.', 'rare', 600),
+  dance('moonwalk', 'Moonwalk', 'Smooth. So smooth.', 'epic', 900),
+  dance('floss', 'Floss', 'Swing those little legs.', 'epic', 900),
+  dance('helicopter', 'Helicopter', 'Lift off in a spinning blur.', 'legendary', 1500),
+  dance('worm', 'The worm', 'A tardigrade doing the worm. Iconic.', 'legendary', 1500),
+  // Gravestones: what your tardigrades leave behind when they pop. Everyone sees them. Coins.
+  grave('cross', 'Twig cross', 'Two twigs and a lot of feelings.', 'common', 300),
+  grave('flowers', 'Flower pot', 'Something lovely to remember them by.', 'rare', 500),
+  grave('ghost', 'Little ghost', 'Boo. Still on the team.', 'rare', 600),
+  grave('trophy', 'Trophy', 'Popped like a champion.', 'epic', 900),
+  grave('rocket', 'Rocket', 'Off to the great pond in the sky.', 'epic', 1000),
+  grave('crystal', 'Crystal', 'A glowing gem marks the spot.', 'legendary', 1500),
   // Arena themes: the world you play in. Only you see your arena. Coins.
   arena('sunset', 'Sunset Shore', 'Battle under a warm orange sky.', 'rare', 800),
   arena('autumn', 'Autumn Woods', 'Crunchy orange leaves on every hill.', 'rare', 800),
@@ -310,7 +330,7 @@ export function coinPack(id: string): CoinPack | undefined {
 
 /** The shop item that unlocks this hat / skin / weapon, if it isn't free. */
 export function itemFor(kind: ItemKind, ref: string): ShopItem | undefined {
-  return SHOP_ITEMS.find((i) => i.kind === kind && i.ref === ref);
+  return SHOP_ITEMS.find((i) => i.kind === kind && i.ref === ref) ?? PROMO_ITEMS.find((i) => i.kind === kind && i.ref === ref);
 }
 
 /** May someone who owns these items use this hat / skin / weapon? */
@@ -365,6 +385,40 @@ export function giftable(id: string): { coins: number; items: string[]; name: st
   const item = shopItem(id);
   if (item && item.coins !== undefined) return { coins: item.coins, items: [item.id], name: item.name };
   return undefined;
+}
+
+/**
+ * Looks you can only get free, with a promotional code (Terms 5.9): never sold,
+ * never in the shop, and locked like any other item until a code unlocks them.
+ * No price: the server only ever grants them through a promo code.
+ */
+export const PROMO_ITEMS: ShopItem[] = [
+  { id: 'hat:waterbear', kind: 'hat', ref: 'waterbear', name: 'Water Bear Ears', blurb: 'Free with a promo code. Tardigrades are water bears, after all.', rarity: 'epic' },
+];
+
+export function promoItem(id: string): ShopItem | undefined {
+  return PROMO_ITEMS.find((i) => i.id === id);
+}
+
+export interface Promo {
+  /** What players type (letters and digits; spaces, dashes and case don't matter). */
+  code: string;
+  items: string[];
+  /** Last day it works (UTC, inclusive), if it ends. */
+  until?: string;
+}
+
+/**
+ * Promotional codes: each unlocks its items once per account (owning them is
+ * the record). Typed into the same box as gift codes. The website's
+ * /promo-codes page shows the current one (site/src/promo.ts).
+ */
+export const PROMOS: Promo[] = [{ code: 'WATERBEAR', items: ['hat:waterbear'] }];
+
+/** The promo a code is for, if it's one that works today. */
+export function promoFor(code: string, now = Date.now()): Promo | undefined {
+  const c = normaliseGiftCode(code);
+  return PROMOS.find((p) => p.code === c && (!p.until || now < Date.parse(p.until) + 86_400_000));
 }
 
 /** Gift code letters: no I, L, O, 0 or 1, so codes can't be misread. */

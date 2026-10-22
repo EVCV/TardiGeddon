@@ -61,20 +61,50 @@ on the site anyway.
 
 ## How the site is built
 
-- `site/src/App.tsx` picks the page from the path (`site/src/router.tsx` is a
-  tiny History-API router). Pages live in `site/src/pages/`.
-- Game facts (weapon list, game styles, team colours, hats, the mascot) are
-  imported straight from the game's own code (`src/sim/weapons.ts`,
-  `src/sim/schemes.ts`, `src/render/palette.ts`, `src/render/hats.ts`,
-  `src/ui/mascot.ts`), so the site can't drift out of date.
+- `site/src/routes.tsx` picks the page from the path (`site/src/router.tsx` is a
+  tiny History-API router). Pages live in `site/src/pages/`: Home, How to play
+  (`/how-to-play`), Weapons (`/weapons`), Leaderboards, Help & support
+  (`/support`), Easter eggs, Promo codes (`/promo-codes`), Press kit
+  (`/press`) and the legal pages.
+- **Every page is written to its own HTML file at build time**
+  (`site/src/entry-server.tsx` + `site/prerender.mjs`, run by
+  `npm run site:build`), with its own title, description, share tags and
+  structured data from `site/src/seo.ts`, plus `404.html`, `sitemap.xml` and
+  `robots.txt`. In the browser React draws the page afresh (`createRoot`, no
+  hydration) and `site/src/head.ts` keeps the `<head>` right as you move
+  between pages. So: a new page needs an entry in `PAGES` (seo.ts) and in
+  `PageFor` (routes.tsx), or it's a 404 on the live site. Page code must not
+  touch `window`/`document` while rendering (only in effects). See
+  `docs/SEO.md`. The header menu (`NAV` in
+  `site/src/components/Layout.tsx`) lists the main ones; on phones it is a
+  slide-out panel behind the ☰ button.
+- Every 20–40 s a tardi swings across the screen on a silk rope
+  (`site/src/components/RopeSwinger.tsx`, mounted in `Layout`): one small
+  element moved with GSAP transforms, no taps, started only after the page
+  has loaded, and off for reduced motion.
+- The site's logo is the game's: "Tardi" in red, "Geddon" in yellow (the
+  header pill is the game's blue).
+- The Android app isn't public yet: the site says "coming soon" (Home's
+  Android band, the footer, Help & support). On launch day, swap those for a
+  Google Play link.
+- Game facts (weapons with their "how it's used" tags and descriptions, game
+  styles, map styles, CPU levels, default keys, languages, team colours, hats,
+  the mascot) are imported straight from the game's own code
+  (`src/sim/weapons.ts`, `src/ui/weaponUse.ts`, `src/sim/schemes.ts`,
+  `src/sim/terrain/generate.ts`, `src/ai/skills.ts`, `src/input/controls.ts`,
+  `src/i18n/i18n.ts`, `src/render/palette.ts`, `src/render/hats.ts`,
+  `src/ui/mascot.ts`), so the site can't drift out of date. How to play
+  follows the game's Guide (`src/ui/guide.ts`); keep the two in step. Help &
+  support answers questions about money and accounts in line with the legal
+  pages, and links to them for the details.
 - Legal pages: `/legal/<file name>` renders `site/legal/<file name>.md`
   (loaded on demand with `marked`). `[Placeholders]` are highlighted and the
   page shows a "Draft" note until the owner fills them in. Footer order and
   labels: `site/src/legal.ts`.
 - Legal pages are **noindex** (kept out of search results, links still
   followed): an `X-Robots-Tag: noindex, follow` header for `/legal/*` in
-  `site/public/_headers` (Cloudflare Pages), plus a robots meta tag the app
-  adds on those pages. Don't block them in `robots.txt` (crawlers must fetch a
+  `site/public/_headers` (Cloudflare Pages), plus a robots meta tag in their
+  HTML. Don't block them in `robots.txt` (crawlers must fetch a
   page to see its noindex) and leave them out of any sitemap.
 - Clips play only while on screen; with reduced motion they don't play by
   themselves (poster + controls instead). GSAP animations run inside
@@ -91,8 +121,12 @@ npm run server                                   # for the online screenshots
 PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node site/capture/capture-media.mjs [scene ...]
 ```
 
-Scenes: `tun`, `victory`, `rope`, `menus`, `aim`, `phone` (all if none
-given). Clips are recorded frame by frame on a virtual clock
+Scenes: `tun`, `victory`, `rope`, `menus` (the lobby, the emblem builder,
+online screens), `realms` (four map styles in different weather),
+`challenge` (Target Smash), `aim` (aiming, and the weapon panel with its
+tags), `phone` (all if none given). Each scene opens the game in a fixed
+free world (`open(..., arena)`), so the seasonal worlds don't turn up in the
+site's pictures. Clips are recorded frame by frame on a virtual clock
 (`site/capture/virtual-clock.js`), so they're smooth however slow the
 headless browser is. Scenes stage things through `window.__tardi` (giving
 the player a superweapon, huddling the enemies so the shot is worth
@@ -100,6 +134,11 @@ watching); everything on screen is the game itself. The Rope Race clip is
 played by `site/capture/rope-bot.js`. Courses are random, so the script
 tries a few and keeps the best run. Check the result before committing:
 the clip ranges (`from`/`to` in each scene) may need a nudge.
+
+Share pictures (`og-*.jpg`, 1200×630), `logo.png` and `apple-touch-icon.png`
+are drawn from the mascot, the logo lettering and those screenshots by
+`npx tsx site/capture/share-images.ts` (run it again after recapturing, or
+when the promo code or weapon count changes).
 
 ## Commands
 

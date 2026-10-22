@@ -6,9 +6,13 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
 import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
+import { ChallengeRun, challengeDay, challengeWorld } from '../src/challenge/daily';
+import { createWorld, tick } from '../src/sim/world';
+import { CpuPlayer } from '../src/ai/cpu';
+import type { SimEvent } from '../src/sim/types';
 import type { GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
-import { canWearHat } from '../src/shop/catalog';
+import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
@@ -27,6 +31,22 @@ describe('shop hats', () => {
     expect(wearableTeam({ name: 'A', hat: 'wizard' }, []).hat).toBe('beanie');
     expect(wearableTeam({ name: 'A', hat: 'wizard' }, ['hat:wizard']).hat).toBe('wizard');
     expect(wearableTeam({ name: 'A', hat: 'tophat' }, []).hat).toBe('tophat');
+  });
+
+  it('include promo-code hats, which only the code unlocks', () => {
+    expect(canWearHat('waterbear', [])).toBe(false);
+    expect(canWearHat('waterbear', ['hat:waterbear'])).toBe(true);
+    expect(promoFor('waterbear')?.items).toEqual(['hat:waterbear']);
+    expect(promoFor(' Water-Bear ')?.code).toBe('WATERBEAR');
+    expect(promoFor('WATERBEARS')).toBeUndefined();
+    // A code with an end date works to the end of that day, then stops.
+    PROMOS.push({ code: 'TESTEND', items: ['hat:waterbear'], until: '2026-10-31' });
+    try {
+      expect(promoFor('testend', Date.parse('2026-10-31T23:00:00Z'))).toBeDefined();
+      expect(promoFor('testend', Date.parse('2026-11-01T00:00:01Z'))).toBeUndefined();
+    } finally {
+      PROMOS.pop();
+    }
   });
 });
 
@@ -389,7 +409,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(await sendWebhook('checkout.session.completed', paid('cs_1', id, 'hat:pirate'))).toBe(200); // retry
     expect((await me(cookie)).owned).toEqual(['hat:pirate']);
     expect((await accounts.db.query('SELECT 1 FROM purchase WHERE id = $1', ['cs_1'])).rowCount).toBe(1);
-    expect(await accounts.playerFor({ cookie })).toEqual({ userId: id, owned: ['hat:pirate'] });
+    expect(await accounts.playerFor({ cookie })).toEqual({ userId: id, owned: ['hat:pirate'], rating: 1000 });
 
     expect(await sendWebhook('charge.refunded', { id: 'ch_1', refunded: true, payment_intent: 'pi_cs_1' })).toBe(200);
     expect((await me(cookie)).owned).toEqual([]);
@@ -582,6 +602,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       onlinePlayed: 4, onlineWon: 3, cpuPlayed: 1, cpuWon: 1,
       popped: 8 + 40, damage: 450, selfDamage: 65, selfPopped: 4,
       streak: 2, bestStreak: 2,
+      // Private-room matches don't change the quick-play rating.
+      rating: 1000, ratedGames: 0,
     });
     expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
     expect((await post('/api/stats/match', { won: true })).status).toBe(401);
@@ -717,6 +739,114 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     accounts.resetLimits();
     for (let i = 0; i < 10; i++) expect((await redeem(`AAAA-AAAA-AAA${'ABCDEFGHJK'[i]}`, other.cookie)).status).toBe(404);
     expect((await redeem('AAAA-AAAA-AAAA', other.cookie)).status).toBe(429);
+  });
+
+  it('unlocks a promo code\'s look once per account, through the gift box', async () => {
+    const { cookie } = await signUp('promo@example.com');
+    const redeem = () => post('/api/gift/redeem', { code: 'water-bear' }, cookie);
+    const r = await redeem();
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { items: string[] }).items).toEqual(['hat:waterbear']);
+    expect((await me(cookie)).owned).toContain('hat:waterbear');
+    expect((await redeem()).status).toBe(409);
+    expect((await post('/api/gift/redeem', { code: 'water-bear' })).status).toBe(401);
+  });
+
+  it('puts daily challenge runs on the leaderboard only after playing them back itself', async () => {
+    const day = challengeDay();
+    const run = (popEverything: boolean) => {
+      // A run made by the CPU's brain, recorded the way the game does.
+      const s = createWorld(challengeWorld('targets', day, { name: 'x', color: 0, cpu: false }));
+      const r = new ChallengeRun('targets', day);
+      const brain = new CpuPlayer('perfect');
+      const ev: SimEvent[] = [];
+      while (!r.over) {
+        const f = r.frameFor(s, s.turn.teamIdx === 0 && popEverything ? brain.next(s) : { held: 0, pressed: 0 });
+        tick(s, f, ev);
+        r.played(s, f, ev);
+        ev.length = 0;
+      }
+      return { packed: r.packed(), result: r.result(s) };
+    };
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: [] })).status).toBe(401);
+    const a = await signUp('champ@example.com');
+    const b = await signUp('lazy@example.com');
+    const good = run(true);
+    const idle = run(false);
+    // Unfinished runs, other days and made-up kinds are refused.
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: [-10] }, a.cookie)).status).toBe(400);
+    accounts.resetLimits();
+    expect((await post('/api/challenge/submit', { kind: 'targets', day: '2001-01-01', frames: good.packed }, a.cookie)).status).toBe(400);
+    expect((await post('/api/challenge/submit', { kind: 'chess', day, frames: good.packed }, a.cookie)).status).toBe(400);
+    // A real run: the server's own playback gives the same result.
+    const r = await post('/api/challenge/submit', { kind: 'targets', day, frames: good.packed }, a.cookie);
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { result: unknown }).result).toEqual(good.result);
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: good.packed }, a.cookie)).status).toBe(429);
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: idle.packed }, b.cookie)).status).toBe(200);
+    // A worse run later doesn't replace the best.
+    accounts.resetLimits();
+    expect((await post('/api/challenge/submit', { kind: 'targets', day, frames: idle.packed }, a.cookie)).status).toBe(200);
+    const board = (await (await fetch(`${base}/api/challenge/board?kind=targets&day=${day}`, { headers: { cookie: b.cookie } })).json()) as { rows: { rank: number; name: string; value: number; you?: boolean }[]; me: { rank: number } | null };
+    expect(board.rows.map((x) => [x.rank, x.value])).toEqual([[1, good.result.value], [2, 0]]);
+    expect(board.rows[1].you).toBe(true);
+    expect(board.me?.rank).toBe(2);
+    expect((await fetch(`${base}/api/challenge/board?kind=nope`)).status).toBe(400);
+  }, 120_000);
+
+  it('rates quick-play matches between accounts, and only those', async () => {
+    const a = await signUp('ranked-a@example.com');
+    const b = await signUp('ranked-b@example.com');
+    const r = (userId: string, won: boolean, ranked: boolean) => ({ userId, mode: 'online' as const, won, popped: 0, damage: 0, selfDamage: 0, selfPopped: 0, ...(ranked ? { ranked } : {}) });
+    // A private room: stats, but no rating change.
+    await accounts.recordResults([r(a.id, true, false), r(b.id, false, false)]);
+    expect((await me(a.cookie)).stats).toMatchObject({ rating: 1000, ratedGames: 0 });
+    // Quick play: the winner goes up, the loser down.
+    await accounts.recordResults([r(a.id, true, true), r(b.id, false, true)]);
+    expect((await me(a.cookie)).stats).toMatchObject({ rating: 1020, ratedGames: 1 });
+    expect((await me(b.cookie)).stats).toMatchObject({ rating: 980, ratedGames: 1 });
+    // The game server learns it when they connect (for matching).
+    expect((await accounts.playerFor({ cookie: a.cookie })).rating).toBe(1020);
+  });
+
+  it('makes friends only when both say yes, and only friends see each other online or invite each other', async () => {
+    const a = await signUp('friend-a@example.com');
+    const b = await signUp('friend-b@example.com');
+    const c = await signUp('friend-c@example.com');
+    const get = async (cookie: string) => (await (await fetch(base + '/api/friends', { headers: { cookie } })).json()) as {
+      code: string; friends: { code: string; online: boolean; room: string | null }[]; requests: { code: string }[]; sent: { code: string }[];
+    };
+    const invites: string[] = [];
+    accounts.setPresence({
+      status: (id) => (id === a.id ? { online: true, room: 'ROOMA' } : { online: false, room: null }),
+      invite: (_from, name, to) => (invites.push(`${name}->${to}`), 'sent'),
+    });
+    const codeA = (await get(a.cookie)).code;
+    const codeB = (await get(b.cookie)).code;
+    expect(codeA).toMatch(/^[A-Z2-9]{8}$/);
+    expect((await get(a.cookie)).code).toBe(codeA); // the same every time
+    expect((await fetch(base + '/api/friends')).status).toBe(401);
+    const add = async (cookie: string, code: string) => (await (await post('/api/friends/add', { code }, cookie)).json()) as { result: string };
+    expect((await post('/api/friends/add', { code: 'nope' }, b.cookie)).status).toBe(400);
+    expect((await add(b.cookie, codeA)).result).toBe('asked');
+    expect((await add(b.cookie, codeB)).result).toBe('self');
+    // A request isn't a friendship: no status, no invites yet.
+    expect((await get(a.cookie)).requests.map((x) => x.code)).toEqual([codeB]);
+    expect((await get(b.cookie)).friends).toEqual([]);
+    expect((await post('/api/friends/invite', { code: codeA }, b.cookie)).status).toBe(404);
+    // A says yes (adding B's code back): friends both ways.
+    expect((await add(a.cookie, codeB)).result).toBe('friends');
+    const bView = await get(b.cookie);
+    expect(bView.friends).toMatchObject([{ code: codeA, online: true, room: 'ROOMA' }]);
+    expect(bView.sent).toEqual([]);
+    expect((await (await post('/api/friends/invite', { code: codeA }, b.cookie)).json()).result).toBe('sent');
+    expect(invites).toEqual([`Tester->${a.id}`]);
+    // A stranger with A's code can only ask.
+    expect((await add(c.cookie, codeA)).result).toBe('asked');
+    expect((await get(c.cookie)).friends).toEqual([]);
+    // Unfriending goes both ways.
+    await post('/api/friends/remove', { code: codeB }, a.cookie);
+    expect((await get(b.cookie)).friends).toEqual([]);
   });
 
   it('deleting an account removes what it owned', async () => {

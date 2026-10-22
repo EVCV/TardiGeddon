@@ -8,13 +8,19 @@ import { BTN_FIRE, DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, ty
 import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
+import { isMapStyle } from '../src/sim/terrain/generate';
+import { isCustomMap } from '../src/sim/terrain/custom';
+import { defaultEmblem, isEmblem } from '../src/render/emblems';
+import { ARENAS } from '../src/render/arenas';
+import { seasonArenaOpen } from '../src/render/seasons';
+import { tk } from '../src/i18n/tk';
 import { presetTeamName, safeTeamNames } from '../src/names';
 import { CpuPlayer } from '../src/ai/cpu';
 import { canUse } from '../src/shop/catalog';
 import { MatchTally } from '../src/stats/tally';
 import type { MatchResult } from './store';
 import { encodeWorld, syncHash } from '../src/net/snapshot';
-import { fromWire, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
+import { cleanFrame, toWire, type ClientMsg, type LobbySlot, type LobbyTeam, type ServerMsg, type WireFrame } from '../src/net/protocol';
 
 /** Frames are sent in small batches to cut message count. */
 const FLUSH_EVERY = 2;
@@ -24,7 +30,7 @@ const HASH_EVERY = 100;
 const QUEUE_MAX = 50;
 /** Fire pressed this long (ticks) after a player's turn ran out gets a "too late" message. */
 const LATE_TICKS = 150;
-export const TOO_LATE = 'Too late: your turn had run out before your shot reached the game.';
+export const TOO_LATE = tk('Too late: your turn had run out before your shot reached the game.');
 
 export interface Member {
   send(msg: ServerMsg): void;
@@ -37,9 +43,14 @@ export interface Member {
   userId?: string;
   /** Season weapons they've unlocked (switched on in matches they host). */
   unlocked?: string[];
+  /** Everything they own (the world look they pick for a room they host must be theirs). */
+  owned?: string[];
+  /** Quick-play rating (signed in), for matching players of a similar level. */
+  rating?: number;
 }
 
 export type { MatchResult };
+export { cleanFrame };
 
 /** Why a player can be reported (the game offers these; anything else is "other"). */
 export const REPORT_REASONS = ['name', 'contact', 'cheating', 'other'] as const;
@@ -73,6 +84,7 @@ interface Slot {
   /** Account of the player who took this slot (kept if they drop out). */
   userId?: string;
   unlocked?: string[];
+  owned?: string[];
   token: string;
   queue: InputFrame[];
   held: number;
@@ -98,6 +110,9 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
     skin: typeof v.skin === 'string' && /^[a-z]{1,16}$/.test(v.skin) ? v.skin : 'classic',
     aim: typeof v.aim === 'string' && /^[a-z]{1,16}$/.test(v.aim) ? v.aim : 'classic',
     fx: typeof v.fx === 'string' && /^[a-z]{1,16}$/.test(v.fx) ? v.fx : 'classic',
+    dance: typeof v.dance === 'string' && /^[a-z]{1,16}$/.test(v.dance) ? v.dance : 'classic',
+    grave: typeof v.grave === 'string' && /^[a-z]{1,16}$/.test(v.grave) ? v.grave : 'classic',
+    emblem: isEmblem(v.emblem) ? v.emblem : defaultEmblem(slot),
     names,
   };
 }
@@ -108,12 +123,14 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
  */
 export function wearableTeam<T>(t: T, owned: readonly string[]): T {
   if (!t || typeof t !== 'object') return t;
-  const { hat, skin, aim, fx } = t as { hat?: unknown; skin?: unknown; aim?: unknown; fx?: unknown };
+  const { hat, skin, aim, fx, dance, grave } = t as { hat?: unknown; skin?: unknown; aim?: unknown; fx?: unknown; dance?: unknown; grave?: unknown };
   let out = t;
   if (typeof hat === 'string' && !canUse('hat', hat, owned)) out = { ...out, hat: 'beanie' };
   if (typeof skin === 'string' && !canUse('skin', skin, owned)) out = { ...out, skin: 'classic' };
   if (typeof aim === 'string' && !canUse('aim', aim, owned)) out = { ...out, aim: 'classic' };
   if (typeof fx === 'string' && !canUse('fx', fx, owned)) out = { ...out, fx: 'classic' };
+  if (typeof dance === 'string' && !canUse('dance', dance, owned)) out = { ...out, dance: 'classic' };
+  if (typeof grave === 'string' && !canUse('grave', grave, owned)) out = { ...out, grave: 'classic' };
   return out;
 }
 
@@ -137,13 +154,20 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   num('roundTime', 1, 60);
   num('waterRise', 0, 100);
   num('supers', 0, 5);
-  for (const k of ['turnTime', 'retreatTime', 'startHp', 'tardisPerTeam', 'mines', 'mineFuse', 'drums', 'roundTime', 'waterRise', 'supers'] as const) {
+  num('armour', 0, 100);
+  num('aimGuide', 0, 2);
+  for (const k of ['turnTime', 'retreatTime', 'startHp', 'tardisPerTeam', 'mines', 'mineFuse', 'drums', 'roundTime', 'waterRise', 'supers', 'armour', 'aimGuide'] as const) {
     if (out[k] !== undefined) out[k] = Math.round(out[k]);
   }
   if (typeof v.fallDamage === 'boolean') out.fallDamage = v.fallDamage;
   if (typeof v.friendlyFire === 'boolean') out.friendlyFire = v.friendlyFire;
   if (typeof v.movement === 'boolean') out.movement = v.movement;
   if (typeof v.race === 'boolean') out.race = v.race;
+  if (typeof v.weather === 'boolean') out.weather = v.weather;
+  if (isMapStyle(v.mapStyle)) out.mapStyle = v.mapStyle;
+  // A map from the host's map editor: checked to be a sane map before anyone builds it.
+  if (isCustomMap(v.customMap)) out.customMap = v.customMap;
+  if (typeof v.arena === 'string' && ARENAS.some((a) => a.id === v.arena) && seasonArenaOpen(v.arena)) out.arena = v.arena;
   num('raceRounds', 1, 10);
   if (out.raceRounds !== undefined) out.raceRounds = Math.round(out.raceRounds);
   if (v.weapons && typeof v.weapons === 'object') {
@@ -156,29 +180,18 @@ export function cleanScheme(raw: unknown): Partial<Scheme> {
   return out;
 }
 
-/** Rebuild an input frame from untrusted data: known button bits and command shapes only. */
-export function cleanFrame(raw: unknown): InputFrame {
-  if (!Array.isArray(raw)) return { held: 0, pressed: 0 };
-  const f = fromWire([Number(raw[0]) & 0xff, Number(raw[1]) & 0xff]);
-  const c = raw[2] as Record<string, unknown> | undefined;
-  if (!c || typeof c !== 'object') return f;
-  const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
-  if (c.t === 'weapon' && typeof c.id === 'string' && isWeaponId(c.id)) f.cmd = { t: 'weapon', id: c.id };
-  else if (c.t === 'fuse' && finite(c.s)) f.cmd = { t: 'fuse', s: c.s as number };
-  else if (c.t === 'target' && finite(c.x) && finite(c.y)) f.cmd = { t: 'target', x: Math.round(c.x as number), y: Math.round(c.y as number) };
-  else if (c.t === 'aim' && finite(c.aim) && (c.facing === 1 || c.facing === -1)) f.cmd = { t: 'aim', facing: c.facing, aim: c.aim as number };
-  else if (c.t === 'power' && finite(c.p)) f.cmd = { t: 'power', p: c.p as number };
-  else if (c.t === 'skip') f.cmd = { t: 'skip' };
-  return f;
-}
-
 /** A rejoin token: secret, so nobody can take over a dropped player's slot. */
 function randomToken(): string {
   return randomBytes(16).toString('base64url');
 }
 
+/** Most people watching one room. */
+export const MAX_WATCHERS = 8;
+
 export class Room {
   private slots: Slot[] = [];
+  /** Spectators: they get everything the players get, but have no slot and no say. */
+  private watchers = new Set<Member>();
   private host = 0;
   private state: WorldState | null = null;
   private teams: TeamConfig[] = [];
@@ -207,13 +220,33 @@ export class Room {
     return this.state !== null;
   }
 
+  /** A friend could still come in: a private room's lobby with a slot free. */
+  get joinable(): boolean {
+    return !this.state && !this.quick && this.slots.length < MAX_TEAMS;
+  }
+
   get world(): WorldState | null {
     return this.state;
   }
 
-  /** Everyone connected to this room. */
+  /** Everyone connected to this room, watchers included. */
   get members(): Member[] {
-    return this.slots.flatMap((s) => (s.member ? [s.member] : []));
+    return [...this.slots.flatMap((s) => (s.member ? [s.member] : [])), ...this.watchers];
+  }
+
+  /**
+   * Watch the room (spectate): see the lobby and the match, with no team and
+   * no say. Returns false if it already has as many watchers as it takes.
+   */
+  watch(member: Member): boolean {
+    if (this.watchers.size >= MAX_WATCHERS) return false;
+    this.watchers.add(member);
+    member.send({ t: 'room', code: this.code, slots: this.lobbySlots(), you: -1, token: '', started: this.started });
+    if (this.state) {
+      this.flush();
+      member.send({ t: 'snapshot', state: encodeWorld(this.state), teams: this.teams, you: -1 });
+    }
+    return true;
   }
 
   get humansConnected(): number {
@@ -240,6 +273,7 @@ export class Room {
     slot.pid = member.pid;
     slot.userId = member.userId;
     slot.unlocked = member.unlocked;
+    slot.owned = member.owned;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
     this.broadcastRoom();
@@ -247,6 +281,7 @@ export class Room {
   }
 
   leave(member: Member): void {
+    if (this.watchers.delete(member)) return;
     const slot = this.slots.find((s) => s.member === member);
     if (!slot) return;
     slot.member = null;
@@ -279,7 +314,7 @@ export class Room {
         break;
       case 'start':
         // The host's unlocked season weapons are switched on for everyone in the room.
-        if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme, slot.unlocked ?? []);
+        if (isHost && !this.state && this.slots.length >= 2) this.startMatch(msg.scheme, slot.unlocked ?? [], slot.owned ?? []);
         break;
       case 'input': {
         if (!this.state) break;
@@ -315,7 +350,7 @@ export class Room {
 
   /** Start the match now (used by quick play, which has no host: standard weapons only). */
   start(scheme: unknown): void {
-    if (!this.state && this.slots.length >= 2) this.startMatch(scheme, []);
+    if (!this.state && this.slots.length >= 2) this.startMatch(scheme, [], []);
   }
 
   /** Advance the match by one tick (call at 50 Hz). */
@@ -377,7 +412,9 @@ export class Room {
       // The online Slime rate needs two or more different accounts playing each
       // other; against the CPU or guests it pays the CPU rate, under its daily cap.
       const slime = paid.length >= 2 ? ('online' as const) : ('cpu' as const);
-      const results: MatchResult[] = paid.map(({ i, userId }) => ({ userId, mode: 'online' as const, slime, won: s.turn.winner === i, ...this.tally!.teams[i] }));
+      // Quick play between two or more accounts is ranked (private rooms never are).
+      const ranked = this.quick && paid.length >= 2;
+      const results: MatchResult[] = paid.map(({ i, userId }) => ({ userId, mode: 'online' as const, slime, won: s.turn.winner === i, ...this.tally!.teams[i], ...(ranked ? { ranked } : {}) }));
       if (results.length) this.onResult?.(results);
       // Back to the lobby for a rematch; disconnected players' slots are freed.
       this.state = null;
@@ -425,11 +462,22 @@ export class Room {
     this.host = h < 0 ? 0 : h;
   }
 
-  private startMatch(rawScheme: unknown, unlocked: string[]): void {
+  private startMatch(rawScheme: unknown, unlocked: string[], owned: string[]): void {
     this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => isWeaponId(id) && WEAPONS[id].locked) };
-    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, names: s.team.names, cpu: s.cpu }));
+    // The host picks the world everyone sees: a free one, or one they own.
+    if (this.scheme.arena && !canUse('arena', this.scheme.arena, owned)) delete this.scheme.arena;
+    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, dance: s.team.dance, grave: s.team.grave, emblem: s.team.emblem, names: s.team.names, cpu: s.cpu }));
     const seed = (this.random() * 1e9) | 0;
-    this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
+    try {
+      this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
+    } catch (e) {
+      // A custom map without room for everyone: tell the host, stay in the lobby.
+      // (The sim's English text, marked here so the game can show it translated.)
+      tk('That map hasn’t room for everyone: draw more land above the water.');
+      this.slots[this.host]?.member?.send({ t: 'error', msg: e instanceof Error ? e.message : tk('That match couldn’t start.') });
+      this.state = null;
+      return;
+    }
     this.cpus.clear();
     this.tally = new MatchTally(this.teams.length);
     for (const sl of this.slots) {
@@ -441,6 +489,7 @@ export class Room {
     this.lastTeam = -1;
     this.broadcastRoom();
     this.slots.forEach((s, i) => s.member?.send({ t: 'start', seed, scheme: this.scheme, teams: this.teams, you: i }));
+    for (const w of this.watchers) w.send({ t: 'start', seed, scheme: this.scheme, teams: this.teams, you: -1 });
   }
 
   /** Tell a player their Fire came after their turn had run out (once per turn). */
@@ -462,12 +511,18 @@ export class Room {
     slot.member.send({ t: 'snapshot', state: encodeWorld(this.state), teams: this.teams, you: this.slots.indexOf(slot) });
   }
 
+  private lobbySlots(): LobbySlot[] {
+    return this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}) }));
+  }
+
   private broadcastRoom(): void {
-    const slots: LobbySlot[] = this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}) }));
+    const slots = this.lobbySlots();
     this.slots.forEach((s, i) => s.member?.send({ t: 'room', code: this.code, slots, you: i, token: s.token, started: this.started }));
+    for (const w of this.watchers) w.send({ t: 'room', code: this.code, slots, you: -1, token: '', started: this.started });
   }
 
   private broadcast(msg: ServerMsg): void {
     for (const s of this.slots) s.member?.send(msg);
+    for (const w of this.watchers) w.send(msg);
   }
 }

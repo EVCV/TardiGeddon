@@ -3,12 +3,15 @@
 // its session cookie. Ownership is enforced by the server for online games;
 // the copy cached here only decides what this device shows as unlocked.
 
+import { ARENAS, SURPRISE_ARENA } from '../render/arenas';
+import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import type { UnspentRow } from '../shop/japan';
 import { serverUrl } from '../net/client';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
+import { t } from '../i18n/i18n';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
@@ -83,6 +86,9 @@ export interface PlayerStats {
   /** Own goals: damage to your own team, your own tardis popped. */
   selfDamage: number;
   selfPopped: number;
+  /** Quick-play rating (stats/rank.ts) and how many rated matches it's from. */
+  rating: number;
+  ratedGames: number;
 }
 
 const OWNED_KEY = 'tardigeddon.owned';
@@ -168,7 +174,7 @@ function deviceChoice(key: string, fallback: string) {
   };
 }
 
-const arenaChoice = deviceChoice('tardigeddon.arena', 'classic');
+const arenaChoice = deviceChoice('tardigeddon.arena', SURPRISE_ARENA);
 const musicChoice = deviceChoice('tardigeddon.music', 'classic');
 const soundsChoice = deviceChoice('tardigeddon.sounds', 'classic');
 
@@ -176,10 +182,26 @@ const soundsChoice = deviceChoice('tardigeddon.sounds', 'classic');
 export const chosenArena = (): string => arenaChoice.get();
 export const chooseArena = (id: string): void => arenaChoice.set(id);
 
-/** The arena to actually show: one this device hasn't unlocked falls back to the meadow. */
+/** Arenas this player can use: the free ones and any they own. */
+export function usableArenas(): string[] {
+  const owned = ownedItems();
+  return ARENAS.filter((a) => canUse('arena', a.id, owned) && seasonArenaOpen(a.id)).map((a) => a.id);
+}
+
+/**
+ * The arena to actually show: "Surprise me" picks one of the usable ones at
+ * random each match; one this device hasn't unlocked falls back to the meadow.
+ */
 export function wearArena(): string {
   const id = chosenArena();
-  return canUse('arena', id, ownedItems()) ? id : 'classic';
+  if (id === SURPRISE_ARENA) {
+    // During a seasonal event, its world comes up half the time.
+    const season = currentSeason();
+    if (season && Math.random() < 0.5) return season.arena;
+    const all = usableArenas();
+    return all[Math.floor(Math.random() * all.length)] ?? 'classic';
+  }
+  return canUse('arena', id, ownedItems()) && seasonArenaOpen(id) ? id : 'classic';
 }
 
 /** The match music this player picked (only they hear it). */
@@ -221,6 +243,19 @@ export function wearFx(fx: string): string {
   return canUse('fx', fx, ownedItems()) ? fx : 'classic';
 }
 
+export function wearDance(dance: string): string {
+  return canUse('dance', dance, ownedItems()) ? dance : 'classic';
+}
+
+export function wearGrave(grave: string): string {
+  return canUse('grave', grave, ownedItems()) ? grave : 'classic';
+}
+
+/** A saved team's looks as worn in a match: anything this device hasn't unlocked swapped for the free one. */
+export function wornLooks(p: { hat: string; skin: string; aim: string; fx: string; dance: string; grave: string; emblem: string }) {
+  return { hat: wearHat(p.hat), skin: wearSkin(p.skin), aim: wearAim(p.aim), fx: wearFx(p.fx), dance: wearDance(p.dance), grave: wearGrave(p.grave), emblem: p.emblem };
+}
+
 /** Season weapons the signed-in player has unlocked (switched on in the matches they start). */
 export function myUnlockedWeapons(): string[] {
   return unlockedWeapons(ownedItems());
@@ -228,7 +263,7 @@ export function myUnlockedWeapons(): string[] {
 
 async function call<T>(path: string, body?: unknown): Promise<T> {
   const base = apiBase();
-  if (!base) throw new Error('Accounts are not available here.');
+  if (!base) throw new Error(t('Accounts are not available here.'));
   let r: Response;
   try {
     r = await fetch(base + path, {
@@ -238,10 +273,16 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new Error("Can't reach the server. Check your connection and try again.");
+    throw new Error(t("Can't reach the server. Check your connection and try again."));
   }
   const data = (await r.json().catch(() => ({}))) as T & { message?: string; error?: string };
-  if (!r.ok) throw new Error(data.message || data.error || `Something went wrong (error ${r.status}). Please try again.`);
+  if (!r.ok) {
+    // The server's messages are in English (marked with tk() there): shown in the player's language.
+    const raw = data.message || data.error;
+    const err: Error & { raw?: string } = new Error(raw ? t(raw) : t('Something went wrong (error {status}). Please try again.', { status: r.status }));
+    err.raw = raw;
+    throw err;
+  }
   return data;
 }
 
@@ -270,7 +311,7 @@ function previewMe(): MeResponse {
     user: null,
     owned: [],
     wallet: { coins: 0, slime: 0 },
-    stats: { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0 },
+    stats: { onlinePlayed: 0, onlineWon: 0, cpuPlayed: 0, cpuWon: 0, popped: 0, damage: 0, streak: 0, bestStreak: 0, selfDamage: 0, selfPopped: 0, rating: 1000, ratedGames: 0 },
     shop: true,
     providers: [],
     preview: true,
@@ -298,7 +339,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
     await call('/api/auth/reset-password', { token, newPassword });
   } catch (e) {
     // Better Auth says "Invalid token" for expired and used links alike.
-    if (e instanceof Error && /token/i.test(e.message)) throw new Error('That reset link has expired or was already used. Ask for a new one below.');
+    if (e instanceof Error && /token/i.test((e as Error & { raw?: string }).raw ?? e.message)) throw new Error(t('That reset link has expired or was already used. Ask for a new one below.'));
     throw e;
   }
 }
@@ -308,7 +349,7 @@ export async function confirmEmail(token: string): Promise<void> {
   try {
     await call(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
   } catch {
-    throw new Error('That confirmation link has expired or was already used. Sign in and ask for a new one on your Account page.');
+    throw new Error(t('That confirmation link has expired or was already used. Sign in and ask for a new one on your Account page.'));
   }
   await refreshAccount();
 }
@@ -403,7 +444,7 @@ export async function signInWith(provider: string): Promise<void> {
  * checks the purchase with Google and adds the coins.
  */
 export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; coins: number } | { result: 'pending' | 'cancelled' }> {
-  if (!me?.user) throw new Error('Please sign in first.');
+  if (!me?.user) throw new Error(t('Please sign in first.'));
   const r = await playBuy(packId, me.user.id);
   if (r.status === 'cancelled') return { result: 'cancelled' };
   if (r.status === 'pending') return { result: 'pending' };
@@ -483,3 +524,50 @@ export function saveControls(c: Controls): Promise<'account' | 'visit'> {
     }, 500);
   });
 }
+
+/** A leaderboard row (server/challenges.ts). */
+export interface BoardRow {
+  rank: number;
+  name: string;
+  value: number;
+  ticks: number;
+  you?: boolean;
+}
+
+/** Today's (or a day's) leaderboard for a daily challenge; null if the server can't be reached. */
+export async function challengeBoard(kind: string, day: string): Promise<{ rows: BoardRow[]; me: BoardRow | null } | null> {
+  try {
+    return await call<{ rows: BoardRow[]; me: BoardRow | null }>(`/api/challenge/board?kind=${encodeURIComponent(kind)}&day=${encodeURIComponent(day)}`);
+  } catch {
+    return null;
+  }
+}
+
+/** Send a finished run; the server plays it back and keeps the player's best. */
+export function submitChallenge(kind: string, day: string, frames: unknown): Promise<{ me: BoardRow | null }> {
+  return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames });
+}
+
+/** A friend (server/friends.ts), named by their friend code. */
+export interface Friend {
+  code: string;
+  name: string;
+  online?: boolean;
+  /** The private room they're in, if you could still join it. */
+  room?: string | null;
+}
+
+export interface FriendLists {
+  /** Your own friend code, to give to friends. */
+  code: string;
+  friends: Friend[];
+  /** People asking to be your friend. */
+  requests: Friend[];
+  /** Your requests still waiting for an answer. */
+  sent: Friend[];
+}
+
+export const friendsList = (): Promise<FriendLists> => call<FriendLists>('/api/friends');
+export const addFriend = (code: string): Promise<{ result: 'asked' | 'friends' | 'self' | 'unknown' | 'full' }> => call('/api/friends/add', { code });
+export const removeFriend = (code: string): Promise<{ ok: true }> => call('/api/friends/remove', { code });
+export const inviteFriend = (code: string): Promise<{ result: 'sent' | 'offline' | 'noroom' }> => call('/api/friends/invite', { code });

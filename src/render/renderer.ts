@@ -2,18 +2,27 @@
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import type { SimEvent, Tardi, WorldState } from '../sim/types';
-import { aimVector, activeTardi, girderFits, TARDI_R } from '../sim/world';
+import { aimVector, activeTardi, girderFits, predictPath, ropeTrace, TARDI_R } from '../sim/world';
 import { isSolid } from '../sim/terrain/terrain';
 import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
 import { TardiView, type Mood } from './tardiView';
 import { ObjectView } from './objectView';
-import { PALETTE, hex } from './palette';
+import { PALETTE, hex, shown, teamSymbol } from './palette';
 import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 import { arenaTheme, type ArenaTheme } from './arenas';
+import { WeatherView } from './weather';
+import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
+
+/** Text in the player's language (`t` is a tardigrade in most of this file). */
+const tr = (text: string, vars?: Record<string, string | number>): string => t(text, vars);
 
 /** Seconds a dying tardi spends curling up before it pops. */
 const DEATH_CURL = 0.9;
+/** Seconds the camera stays on a blast, a hit or a splash before going back to
+ *  whoever's turn it is (after a shot: until they move, or the turn ends). */
+const WATCH_HOLD = 1.8;
 /** How far past the map's left/right edges the camera may look. */
 const VIEW_MARGIN_X = 200;
 
@@ -71,17 +80,24 @@ export class GameRenderer {
   private particles: Particle[] = [];
   private floats: FloatText[] = [];
   private tracers: { x0: number; y0: number; x1: number; y1: number; life: number }[] = [];
+  /** Silk Ropes that caught nothing: how far they reached, and the rock they fell short of (if any). */
+  private ropeMisses: { x0: number; y0: number; x1: number; y1: number; rx: number; ry: number; rock: boolean; life: number }[] = [];
   private prev = new Map<number, { x: number; y: number }>();
   private fuseTexts = new Map<number, Text>();
   private bubbles = new Map<number, { root: Container; until: number; x: number; y: number }>();
   /** Tardis curling up before they pop: id -> start time. */
   private dying = new Map<number, number>();
+  /** Where the action just was (a blast, a hit): the camera stays there until
+   *  it has played out, or the player whose turn it is moves off. `ax`/`ay`:
+   *  where that player stood. */
+  private watch: { x: number; y: number; until: number; turn: number; ax: number; ay: number } | null = null;
   /** When each tardi last said "Whoa!", so it doesn't repeat itself. */
   private teeterSaid = new Map<number, number>();
   private confettiDone = false;
   /** Cosmetic sound hook (set by the game). */
   onSound: ((name: 'pop' | 'whoa') => void) | null = null;
   private time = 0;
+  private weather: WeatherView;
 
   constructor(
     private app: Application,
@@ -97,6 +113,8 @@ export class GameRenderer {
         this.ambientBits.push({ x: Math.random(), y: Math.random(), r: 0.8 + Math.random() * 1.8, v: 0.02 + Math.random() * 0.05, p: Math.random() * 6.28 });
       }
     }
+    this.weather = new WeatherView(state.weather.kind, state.terrain.w, !!theme.drift);
+    app.stage.addChild(this.weather.back);
     this.terrainView = new TerrainView(state.terrain, theme);
     this.world.addChild(
       this.hills,
@@ -110,12 +128,20 @@ export class GameRenderer {
       this.projectiles,
       this.fx,
       this.overlay,
+      this.weather.world,
       this.waterFront,
       this.floatLayer,
     );
-    app.stage.addChild(this.world);
+    app.stage.addChild(this.world, this.weather.front);
     for (const t of state.tardis) {
-      const v = new TardiView(t, state.teams[t.team].color, state.teams[t.team].hat, state.teams[t.team].skin);
+      if (!t.alive) {
+        // Popped before this view was made (a replay of the winning shot, a rejoin): its gravestone, not a tardi on 0.
+        const grave = state.teams[t.team].grave;
+        const color = shown(state.teams[t.team].color);
+        if (t.y < state.waterY) this.markers.addChild(grave === 'classic' ? makeHusk(t.x, t.y, color) : makeGrave(t.x, t.y, color, grave));
+        continue;
+      }
+      const v = new TardiView(t, shown(state.teams[t.team].color), state.teams[t.team].hat, state.teams[t.team].skin, state.teams[t.team].dance, teamSymbol(state.teams[t.team].color));
       this.tardiViews.set(t.id, v);
       this.entities.addChild(v.root);
     }
@@ -154,6 +180,17 @@ export class GameRenderer {
     return { x: p.x + (x - p.x) * a, y: p.y + (y - p.y) * a };
   }
 
+  /** An easter egg under a tap on the screen, if any. */
+  tapEgg(sx: number, sy: number): string | null {
+    const w = this.screenToWorld(sx, sy);
+    return this.weather.eggAt(sx, sy, w.x, w.y);
+  }
+
+  /** Easter eggs that show up by themselves (the rainbow). */
+  set onEgg(fn: ((id: string) => void) | null) {
+    this.weather.onEgg = fn;
+  }
+
   screenToWorld(sx: number, sy: number): { x: number; y: number } {
     const { width, height } = this.app.screen;
     return {
@@ -166,6 +203,7 @@ export class GameRenderer {
     for (const e of events) {
       switch (e.t) {
         case 'explosion':
+          this.watchAt(e.x, e.y, WATCH_HOLD);
           this.terrainView.crater(e.x, e.y, e.r, e.rect);
           this.spawnExplosion(e.x, e.y, e.r, this.state.teams[e.team]?.fx);
           break;
@@ -173,6 +211,7 @@ export class GameRenderer {
           this.tracers.push({ ...e, life: 0.25 });
           break;
         case 'splash':
+          this.watchAt(e.x, this.state.waterY, 1);
           for (let i = 0; i < 14; i++) {
             this.particles.push({
               x: e.x, y: this.state.waterY, vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 4,
@@ -180,14 +219,31 @@ export class GameRenderer {
             });
           }
           break;
+        case 'tornado':
+          this.weather.tornado();
+          break;
+        case 'ropeMiss': {
+          const t = this.state.tardis.find((x) => x.id === e.id);
+          if (!t) break;
+          const dx = e.x - t.x;
+          const dy = e.y - t.y;
+          const d = Math.hypot(dx, dy) || 1;
+          const rx = e.x + (dx / d) * e.beyond;
+          const ry = e.y + (dy / d) * e.beyond;
+          this.ropeMisses.push({ x0: t.x, y0: t.y, x1: e.x, y1: e.y, rx, ry, rock: e.beyond > 0, life: 1.6 });
+          // Say how close it was, where the rope ran out.
+          const msg = e.beyond < 0 ? tr(tk('Nothing to grab!')) : e.beyond <= 25 ? tr(tk('So close! {n} short'), { n: Math.round(e.beyond) }) : tr(tk('Too far: {n} short'), { n: Math.round(e.beyond) });
+          this.floatText(msg, e.x, e.y - 14, e.beyond >= 0 && e.beyond <= 25 ? 0xffd84a : 0xff8a7a);
+          break;
+        }
         case 'dud': {
           const o = this.state.objects.find((x) => x.id === e.id);
-          if (o) this.floatText('Dud', o.x, o.y - 16, 0xcccccc);
+          if (o) this.floatText(tr(tk('Dud')), o.x, o.y - 16, 0xcccccc);
           break;
         }
         case 'collect': {
           const t = this.state.tardis.find((x) => x.id === e.tardi);
-          const label = e.contents === 'health' ? `+${e.amount}` : (WEAPONS[e.contents]?.name ?? e.contents);
+          const label = e.contents === 'health' ? `+${e.amount}` : (WEAPONS[e.contents] ? tr(WEAPONS[e.contents].name) : e.contents);
           if (t) this.floatText(label, t.x, t.y - 40, e.contents === 'health' ? 0x5cff7a : 0xffd84a);
           break;
         }
@@ -198,17 +254,27 @@ export class GameRenderer {
         }
         case 'damage': {
           const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.floatText(`-${e.amount}`, t.x, t.y - 34, this.state.teams[t.team].color);
+          if (t) {
+            this.floatText(`-${e.amount}`, t.x, t.y - 34, shown(this.state.teams[t.team].color));
+            this.watchAt(t.x, t.y, WATCH_HOLD);
+          }
           break;
         }
         case 'drown': {
           const t = this.state.tardis.find((x) => x.id === e.id);
-          if (t) this.floatText('Bye-bye!', t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
+          if (t) {
+            this.floatText(tr(tk('Bye-bye!')), t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
+            this.watchAt(t.x, Math.min(t.y, this.state.waterY), WATCH_HOLD);
+          }
           break;
         }
         case 'death':
           // Comedy death: curl up into a tun, wobble, then pop (see render()).
           if (this.tardiViews.has(e.id)) this.dying.set(e.id, this.time);
+          {
+            const t = this.state.tardis.find((x) => x.id === e.id);
+            if (t) this.watchAt(t.x, t.y, DEATH_CURL + 1.2);
+          }
           break;
         case 'burn':
           this.terrainView.crater(e.x, e.y, 2.5, e.rect);
@@ -224,7 +290,7 @@ export class GameRenderer {
               life: 2.5 + Math.random(), max: 3.5, r: 6 + Math.random() * 8, color: 0x7fd06a, kind: 'smoke',
             });
           }
-          this.floatText('Pee-yew!', e.x, e.y - e.r * 0.6, 0x9be06a);
+          this.floatText(tr(tk('Pee-yew!')), e.x, e.y - e.r * 0.6, 0x9be06a);
           break;
         case 'terrain':
           this.terrainView.repaint(e.rect);
@@ -238,7 +304,7 @@ export class GameRenderer {
               life: 0.5, max: 0.5, r: 1.5, color: 0xff9a3b, kind: 'spark',
             });
           }
-          this.floatText('POW!', e.x, e.y - 24, 0xff9a3b);
+          this.floatText(tr(tk('POW!')), e.x, e.y - 24, 0xff9a3b);
           break;
         case 'teleport':
           for (let i = 0; i < 20; i++) {
@@ -271,7 +337,7 @@ export class GameRenderer {
         if (this.time - last > 10) {
           this.teeterSaid.set(t.id, this.time);
           if (Math.random() < 0.6) {
-            this.say(t.id, Math.random() < 0.5 ? 'Whoa!' : 'Whoa whoa WHOA!', 1.6);
+            this.say(t.id, Math.random() < 0.5 ? tr(tk('Whoa!')) : tr(tk('Whoa whoa WHOA!')), 1.6);
             this.onSound?.('whoa');
           }
         }
@@ -311,7 +377,7 @@ export class GameRenderer {
   }
 
   /** End of a comedy death: pop, leave a husk. */
-  private pop(id: number, x: number, y: number, color: number): void {
+  private pop(id: number, x: number, y: number, color: number, grave = 'classic'): void {
     this.dying.delete(id);
     this.tardiViews.get(id)?.root.destroy({ children: true });
     this.tardiViews.delete(id);
@@ -320,14 +386,14 @@ export class GameRenderer {
       const a = Math.random() * Math.PI * 2;
       this.particles.push({ x, y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5 - 1.5, life: 0.9, max: 0.9, r: 2 + Math.random() * 2, color, kind: 'debris' });
     }
-    this.floatText('POP!', x, y - 20, 0xffffff);
-    this.markers.addChild(makeHusk(x, y, color));
+    this.floatText(tr(tk('POP!')), x, y - 20, 0xffffff);
+    this.markers.addChild(grave === 'classic' ? makeHusk(x, y, color) : makeGrave(x, y, color, grave));
     this.onSound?.('pop');
   }
 
   /** Confetti in the winners' colour. */
   private confetti(s: WorldState): void {
-    const color = s.turn.winner >= 0 ? s.teams[s.turn.winner].color : 0xffffff;
+    const color = s.turn.winner >= 0 ? shown(s.teams[s.turn.winner].color) : 0xffffff;
     const { width, height } = this.app.screen;
     const z = this.camera.zoom;
     for (let i = 0; i < 140; i++) {
@@ -349,7 +415,7 @@ export class GameRenderer {
     const root = new Container();
     const label = new Text({
       text,
-      style: { fontFamily: 'Nunito, Arial, sans-serif', fontWeight: '800', fontSize: 13, fill: '#2b1b24', wordWrap: true, wordWrapWidth: 150, align: 'center' },
+      style: { fontFamily: 'Nunito, Arial, Hiragino Sans, Yu Gothic, Noto Sans JP, sans-serif', fontWeight: '800', fontSize: 13, fill: '#2b1b24', wordWrap: true, wordWrapWidth: 150, align: 'center' },
     });
     label.resolution = 3;
     label.anchor.set(0.5, 1);
@@ -365,11 +431,27 @@ export class GameRenderer {
     this.bubbles.set(tardiId, { root, until: this.time + seconds, x: t.x, y: t.y });
   }
 
+  /** Keep the camera here for `hold` seconds (longer if something's already being watched). */
+  private watchAt(x: number, y: number, hold: number): void {
+    const s = this.state;
+    const a = activeTardi(s);
+    const w = this.watch;
+    const fresh = !w || w.turn !== s.turn.turnNumber;
+    this.watch = {
+      x,
+      y,
+      until: Math.max(fresh ? 0 : w.until, this.time + hold),
+      turn: s.turn.turnNumber,
+      ax: fresh || !a ? (a?.x ?? 0) : w.ax,
+      ay: fresh || !a ? (a?.y ?? 0) : w.ay,
+    };
+  }
+
   private floatText(s: string, x: number, y: number, color: number): void {
     const text = new Text({
       text: s,
       style: {
-        fontFamily: 'Luckiest Guy, Arial Black, sans-serif',
+        fontFamily: 'Luckiest Guy, Arial Black, Hiragino Maru Gothic ProN, Yu Gothic, Noto Sans JP, sans-serif',
         fontSize: 18,
         fill: hex(color),
         stroke: { color: '#1b1016', width: 4, join: 'round' },
@@ -420,7 +502,7 @@ export class GameRenderer {
         });
       }
     }
-    if (r >= 20) this.floatText(r >= 30 ? 'POW!' : 'BIFF!', x, y - r - 10, 0xffd84a);
+    if (r >= 20) this.floatText(r >= 30 ? tr(tk('POW!')) : tr(tk('BIFF!')), x, y - r - 10, 0xffd84a);
   }
 
   render(s: WorldState, alpha: number, dt: number, showAim: boolean): void {
@@ -429,6 +511,7 @@ export class GameRenderer {
     this.sky.width = width;
     this.sky.height = height;
     this.drawAmbient(width, height, dt);
+    this.weather.update(dt, width, height, s.wind, s.waterY);
 
     // Tardis
     const active = activeTardi(s);
@@ -436,7 +519,7 @@ export class GameRenderer {
       let v = this.tardiViews.get(t.id);
       if (!v && t.alive && !this.dying.has(t.id)) {
         // Back again (endless practice targets): a fresh view.
-        v = new TardiView(t, s.teams[t.team].color, s.teams[t.team].hat, s.teams[t.team].skin);
+        v = new TardiView(t, shown(s.teams[t.team].color), s.teams[t.team].hat, s.teams[t.team].skin, s.teams[t.team].dance, teamSymbol(s.teams[t.team].color));
         this.tardiViews.set(t.id, v);
         this.entities.addChild(v.root);
       }
@@ -454,7 +537,7 @@ export class GameRenderer {
       const ghost = s.race !== null && t.id !== active?.id && s.turn.phase !== 'gameover';
       v.root.alpha = ghost ? 0.35 : 1;
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
-      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, this.state.teams[t.team].color);
+      if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, shown(this.state.teams[t.team].color), this.state.teams[t.team].grave);
     }
     // Tardigrades taken out of the world (endless practice clears popped targets).
     if (this.tardiViews.size > s.tardis.length) {
@@ -523,7 +606,7 @@ export class GameRenderer {
       if (!ft) {
         ft = new Text({
           text: '',
-          style: { fontFamily: 'Luckiest Guy, Arial Black, sans-serif', fontSize: 12, fill: '#ffffff', stroke: { color: '#1b1016', width: 3, join: 'round' } },
+          style: { fontFamily: 'Luckiest Guy, Arial Black, Hiragino Maru Gothic ProN, Yu Gothic, Noto Sans JP, sans-serif', fontSize: 12, fill: '#ffffff', stroke: { color: '#1b1016', width: 3, join: 'round' } },
         });
         ft.resolution = 3;
         ft.anchor.set(0.5);
@@ -577,12 +660,25 @@ export class GameRenderer {
       ov.circle(a.x, a.y, 3).fill(0xf4f1ff).stroke({ width: 1.2, color: PALETTE.outline });
     }
 
+    // Ropes that missed: a fading dashed line to where the silk ran out, then red dots on to the rock it fell short of.
+    for (const m of this.ropeMisses) {
+      m.life -= dt;
+      const a = Math.min(1, m.life);
+      dots(ov, m.x0, m.y0, m.x1, m.y1, 9, 1.6, 0xf4f1ff, a);
+      if (m.rock) {
+        dots(ov, m.x1, m.y1, m.rx, m.ry, 7, 1.8, 0xff5a5a, a);
+        ov.circle(m.rx, m.ry, 4).stroke({ width: 2, color: 0xff5a5a, alpha: a });
+      }
+      drawCross(ov, m.x1, m.y1, 5, 0xff5a5a, a);
+    }
+    this.ropeMisses = this.ropeMisses.filter((m) => m.life > 0);
+
     // Aim overlay
     const def = WEAPONS[s.turn.weapon];
     const canAimNow = active && !active.rope && (!active.airborne || def.kind === 'rope' || def.kind === 'parachute');
     if (active && showAim && s.turn.phase === 'aim' && canAimNow) {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
-      const teamColor = s.teams[active.team].color;
+      const teamColor = shown(s.teams[active.team].color);
       const style = aimStyle(s.teams[active.team].aim);
       const color = style.marker === 'team' ? teamColor : style.marker === 'rainbow' ? rainbowAt(this.time * 0.5) : style.marker;
       if (def.girder && s.turn.target) {
@@ -598,6 +694,15 @@ export class GameRenderer {
           x - dx * hl + dy * ht, y - dy * hl - dx * ht,
         ]).fill({ color: girderFits(s) ? 0xc08a4a : 0xe04848, alpha: 0.55 }).stroke({ width: 2, color: PALETTE.outline, alpha: 0.8 });
       }
+      if (def.kind === 'rope') {
+        // Where the rope would catch: a dotted line to it and a ring, or red to its reach and a cross when nothing's in range.
+        const r = ropeTrace(s.terrain, active.x, active.y, active.facing, s.turn.aim);
+        const ox = ap.x - active.x;
+        const oy = ap.y - active.y;
+        dots(ov, ap.x, ap.y, r.x + ox, r.y + oy, 10, 1.3, r.hit ? 0xffffff : 0xff8a7a, 0.55);
+        if (r.hit) ov.circle(r.x + ox, r.y + oy, 4.5).stroke({ width: 2, color: 0x7dff8a, alpha: 0.9 });
+        else drawCross(ov, r.x + ox, r.y + oy, 4, 0xff8a7a, 0.8);
+      }
       if (def.kind === 'charge' || def.kind === 'hitscan' || def.kind === 'rope' || def.girder) {
         const { dx, dy } = aimVector(active.facing, s.turn.aim);
         const cx = ap.x + dx * 46;
@@ -607,6 +712,17 @@ export class GameRenderer {
           ov.moveTo(ap.x + dx * 12, ap.y + dy * 12).lineTo(cx, cy).stroke({ width: 1.3, color: style.laser, alpha: 0.9 });
         }
         this.drawMarker(ov, cx, cy, 7, color, style);
+        if (s.turn.charging && def.kind === 'charge' && s.scheme.aimGuide > 0) {
+          // Shot-path guide (a match rule): dots along where it would fly at this power.
+          const path = predictPath(s, def.id, active, s.turn.aim, s.turn.power, s.turn.fuseSeconds * 50, s.scheme.aimGuide >= 2 ? 300 : 30);
+          const ox = ap.x - active.x;
+          const oy = ap.y - active.y;
+          path.forEach((q, i) => {
+            // Bold enough to tell from stars and snow; the short guide fades out along the way.
+            const a = s.scheme.aimGuide >= 2 ? 1 : 1 - (0.6 * i) / path.length;
+            ov.circle(q.x + ox, q.y + oy, 3.2).fill({ color: 0xffd84a, alpha: a }).stroke({ width: 1.6, color: PALETTE.outline, alpha: a });
+          });
+        }
         if (s.turn.charging) {
           // Power wedge: grows with charge, in the aim style's colours.
           const f = s.turn.power / 1000;
@@ -655,7 +771,7 @@ export class GameRenderer {
       const ap = this.lerpPos(active.id, active.x, active.y, alpha);
       const b = Math.abs(Math.sin(this.time * 5)) * 6;
       const ay = ap.y - 52 - b - (active.chute ? 34 : 0);
-      ov.poly([ap.x - 7, ay - 8, ap.x + 7, ay - 8, ap.x, ay]).fill(s.teams[active.team].color).stroke({ width: 2, color: PALETTE.outline });
+      ov.poly([ap.x - 7, ay - 8, ap.x + 7, ay - 8, ap.x, ay]).fill(shown(s.teams[active.team].color)).stroke({ width: 2, color: PALETTE.outline });
     }
 
     this.updateFx(dt);
@@ -808,8 +924,22 @@ export class GameRenderer {
       } else {
         const a = activeTardi(s);
         const moving = s.tardis.find((t) => t.alive && t.airborne && t.knocked);
-        const follow = moving ?? a;
-        if (follow && (follow.alive || moving)) target = this.lerpPos(follow.id, follow.x, follow.y, alpha);
+        const w = this.watch;
+        if (w && a) {
+          // Thrown about by the blast: that's not the player walking off.
+          if (a.airborne || a.knocked) {
+            w.ax = a.x;
+            w.ay = a.y;
+          } else if (Math.abs(a.x - w.ax) + Math.abs(a.y - w.ay) > 8) this.watch = null;
+        }
+        // After the shot (retreat, then the damage being counted) it stays until
+        // the player moves or the next turn starts; otherwise (a mine going off
+        // as someone walks) just long enough to see it.
+        const afterShot = s.turn.phase === 'retreat' || s.turn.phase === 'settle';
+        if (this.watch && (this.watch.turn !== s.turn.turnNumber || (!afterShot && this.time > this.watch.until))) this.watch = null;
+        if (moving) target = this.lerpPos(moving.id, moving.x, moving.y, alpha);
+        else if (this.watch) target = this.watch;
+        else if (a?.alive) target = this.lerpPos(a.id, a.x, a.y, alpha);
       }
       if (target) {
         const k = 1 - Math.pow(0.02, dt);
@@ -836,7 +966,10 @@ export class GameRenderer {
   destroy(): void {
     this.app.stage.removeChildren();
     this.world.destroy({ children: true });
-    this.sky.destroy();
+    // The terrain and sky are big canvas textures, made per match: free them, or each match leaves its copy on the GPU.
+    this.terrainView.destroy();
+    this.weather.destroy();
+    this.sky.destroy({ texture: true, textureSource: true });
     this.ambient.destroy();
   }
 }
@@ -1071,6 +1204,54 @@ function makeHusk(x: number, y: number, color: number): Graphics {
   return g;
 }
 
+/** A gravestone (team cosmetic, render/finales.ts), standing where the tardi popped. Drawn like ui/cosmeticArt graveSvg, at about a third of the size. */
+function makeGrave(x: number, y: number, color: number, id: string): Graphics {
+  const g = new Graphics();
+  const O = PALETTE.outline;
+  const s = 0.45;
+  switch (id) {
+    case 'stone':
+      g.moveTo(-14, 20).lineTo(-14, -6).quadraticCurveTo(-14, -20, 0, -20).quadraticCurveTo(14, -20, 14, -6).lineTo(14, 20).closePath().fill(0xa9b3bf).stroke({ width: 2.5, color: O });
+      g.moveTo(-6, -8).lineTo(6, -8).moveTo(-6, -2).lineTo(6, -2).stroke({ width: 2, color: O, alpha: 0.6 });
+      g.roundRect(-8, 6, 16, 4, 2).fill(color);
+      break;
+    case 'cross':
+      g.moveTo(-2, 20).lineTo(-2, -20).moveTo(-12, -8).lineTo(10, -8).stroke({ width: 6, color: 0x8f5f2e, cap: 'round' });
+      g.circle(-2, -8, 3).fill(color);
+      break;
+    case 'flowers':
+      g.poly([-12, 20, -9, 4, 9, 4, 12, 20]).fill(0xc8693a).stroke({ width: 2, color: O });
+      g.moveTo(0, 4).lineTo(0, -10).moveTo(-6, 4).lineTo(-10, -8).moveTo(6, 4).lineTo(10, -8).stroke({ width: 2, color: 0x3a8a28 });
+      for (const [fx, fy] of [[-10, -10], [0, -14], [10, -10]]) g.circle(fx, fy, 5).fill(color).stroke({ width: 1.5, color: O }).circle(fx, fy, 1.8).fill(0xffd84a);
+      break;
+    case 'ghost':
+      g.moveTo(-12, 14).lineTo(-12, -6).quadraticCurveTo(-12, -20, 0, -20).quadraticCurveTo(12, -20, 12, -6).lineTo(12, 14)
+        .lineTo(8, 10).lineTo(4, 14).lineTo(0, 10).lineTo(-4, 14).lineTo(-8, 10).closePath().fill({ color: 0xf4f6fb, alpha: 0.85 }).stroke({ width: 2, color: O });
+      g.circle(-4, -6, 2).fill(O).circle(4, -6, 2).fill(O);
+      g.ellipse(0, 18, 10, 2).fill({ color, alpha: 0.5 });
+      break;
+    case 'trophy':
+      g.moveTo(-10, -18).lineTo(10, -18).lineTo(10, -6).quadraticCurveTo(10, 6, 0, 6).quadraticCurveTo(-10, 6, -10, -6).closePath().fill(0xffd84a).stroke({ width: 2, color: O });
+      g.rect(-3, 6, 6, 8).fill(0xe0a920).stroke({ width: 1.5, color: O });
+      g.rect(-10, 14, 20, 6).fill(color).stroke({ width: 1.5, color: O });
+      break;
+    case 'rocket':
+      g.moveTo(0, -24).quadraticCurveTo(10, -12, 8, 10).lineTo(-8, 10).quadraticCurveTo(-10, -12, 0, -24).closePath().fill(0xe8ecf2).stroke({ width: 2, color: O });
+      g.circle(0, -8, 4).fill(color).stroke({ width: 1.5, color: O });
+      g.poly([-8, 4, -14, 16, -7, 12]).fill(color).stroke({ width: 1.5, color: O });
+      g.poly([8, 4, 14, 16, 7, 12]).fill(color).stroke({ width: 1.5, color: O });
+      break;
+    case 'crystal':
+      g.poly([0, -24, 10, -4, 6, 20, -6, 20, -10, -4]).fill(0xbff3ff).stroke({ width: 2, color: O });
+      g.moveTo(0, -24).lineTo(-3, 20).moveTo(0, -24).lineTo(3, 20).moveTo(-10, -4).lineTo(10, -4).stroke({ width: 1.2, color: 0x6ab0d8 });
+      g.circle(0, -4, 3).fill({ color, alpha: 0.8 });
+      break;
+  }
+  g.scale.set(s);
+  g.position.set(x, y + 9 - 20 * s);
+  return g;
+}
+
 function makeSkyTexture(theme: ArenaTheme): Texture {
   const c = document.createElement('canvas');
   c.width = 4;
@@ -1082,4 +1263,19 @@ function makeSkyTexture(theme: ArenaTheme): Texture {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 4, 256);
   return Texture.from(c);
+}
+
+/** A dotted line from (x0, y0) to (x1, y1). */
+function dots(g: Graphics, x0: number, y0: number, x1: number, y1: number, gap: number, r: number, color: number, alpha: number): void {
+  const d = Math.hypot(x1 - x0, y1 - y0);
+  const n = Math.floor(d / gap);
+  for (let i = 1; i <= n; i++) {
+    const f = (i * gap) / d;
+    g.circle(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, r);
+  }
+  if (n > 0) g.fill({ color, alpha });
+}
+
+function drawCross(g: Graphics, x: number, y: number, r: number, color: number, alpha: number): void {
+  g.moveTo(x - r, y - r).lineTo(x + r, y + r).moveTo(x + r, y - r).lineTo(x - r, y + r).stroke({ width: 2.5, color, alpha, cap: 'round' });
 }

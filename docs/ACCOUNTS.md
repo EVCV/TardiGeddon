@@ -13,7 +13,9 @@ free without an account.
   plus `inventory` (who owns what), `wallet` (coins and Slime),
   `player_stats`, `player_settings` (control settings from the Settings page),
   `stripe_customer`, `purchase` (every payment), `gift`,
-  `spend` (the Sales page's log, not linked to players) and `done_once`.
+  `spend` (the Sales page's log, not linked to players), `done_once`,
+  `challenge_score` (each player's best daily challenge run per day),
+  `friend_code` and `friend`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -35,6 +37,22 @@ free without an account.
   (20 for playing, +30 for a win, +5 per pop up to 8); games against the CPU
   are reported by the game and pay less (10, +15, +2 per pop), at most 200 a
   day (`server/store.ts`).
+- **Quick-play ranks** (`src/stats/rank.ts`): `player_stats.rating` (Elo-style,
+  from 1000) moves only after quick-play matches between two or more signed-in
+  accounts (`MatchResult.ranked`; private rooms never count). The game server
+  reads it on connect (`playerFor`) and the matchmaker pairs similar ratings
+  first, widening the range the longer someone waits.
+- **Friends** (`server/friends.ts`, `src/ui/friends.ts`): `friend_code` (8
+  letters each) and `friend` (one row per direction: 'asked' or 'friends').
+  Only mutual friends see each other's online status and joinable private
+  room (from the game server's `Presence`, `setPresence`) or send invites
+  (a `{ t: 'invite' }` message to the friend's connections). No chat.
+- **Daily challenges** (`src/challenge/daily.ts`, `server/challenges.ts`):
+  the game sends a finished run's input frames to `POST /api/challenge/submit`;
+  the server plays them through the sim itself (the stand-in team's frames
+  replaced by skips) and keeps the player's best for the day. Nothing the
+  game says about its score is trusted. `GET /api/challenge/board?kind=&day=`
+  is public; the website's /leaderboards page reads it.
 - **Unlocking:** `POST /api/shop/unlock` spends coins or Slime and adds the
   item to the `inventory`, all or nothing.
 - **Gifts** (Terms 5.8): `POST /api/gift/buy` spends the sender's coins on a
@@ -47,6 +65,13 @@ free without an account.
   `POST /api/gift/cancel` takes back an unclaimed gift and refunds the coins;
   `GET /api/gift/sent` lists your gifts. Only preset messages
   (`GIFT_MESSAGES`), no free text.
+- **Promo codes** (Terms 5.9): `PROMOS` in `src/shop/catalog.ts`, typed in the
+  same gift box (`/api/gift/redeem` checks them first). A code unlocks free
+  looks once per account: owning the item is the record (`inventory` row with
+  source `promo`), so there's no table of uses. Promo-only looks
+  (`PROMO_ITEMS`, e.g. the Water Bear Ears hat) aren't sold or shown locked in
+  the shop. Never put coins, Slime or weapons in a promo. `until` (a date) ends
+  a code after that day. The website's /promo-codes page shows the first code.
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

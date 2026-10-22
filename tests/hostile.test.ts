@@ -37,6 +37,17 @@ describe('hostile input', () => {
     expect(Object.keys(sc.weapons ?? {})).toEqual(['bazooka']);
   });
 
+  it('only takes known map styles, a clamped whole armour and a true/false weather', () => {
+    for (const k of [...SNEAKY, 'random', 'lava']) expect(cleanScheme({ mapStyle: k }).mapStyle).toBeUndefined();
+    expect(cleanScheme({ mapStyle: 'sky' }).mapStyle).toBe('sky');
+    expect(cleanScheme({ armour: 1e9 }).armour).toBe(100);
+    expect(cleanScheme({ armour: 12.7 }).armour).toBe(13);
+    expect(cleanScheme({ weather: 'yes' }).weather).toBeUndefined();
+    expect(cleanScheme({ weather: false }).weather).toBe(false);
+    expect(cleanScheme({ aimGuide: 9 }).aimGuide).toBe(2);
+    expect(cleanScheme({ aimGuide: 0.4 }).aimGuide).toBe(0);
+  });
+
   it('has no inherited names in the weapon list', () => {
     for (const id of SNEAKY) expect(WEAPONS[id]).toBeUndefined();
   });

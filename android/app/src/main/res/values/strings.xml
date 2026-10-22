@@ -1,7 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">TardiGeddon</string>
-    <string name="title_activity_main">TardiGeddon</string>
-    <string name="package_name">com.tardigeddon.app</string>
-    <string name="custom_url_scheme">com.tardigeddon.app</string>
+    <!-- Not for translation (incl. Google Play's automatic app strings translation): the
+         name is the brand, and the package name and URL scheme must never change.
+         The game's own text is translated in src/i18n/locales/. -->
+    <string name="app_name" translatable="false">TardiGeddon</string>
+    <string name="title_activity_main" translatable="false">TardiGeddon</string>
+    <string name="package_name" translatable="false">com.tardigeddon.app</string>
+    <string name="custom_url_scheme" translatable="false">com.tardigeddon.app</string>
 </resources>

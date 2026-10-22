@@ -80,3 +80,21 @@ setup is in `docs/DEPLOY.md` (step 6). To ship server changes, run
 
 Any Node host with WebSockets works the same way (Render, Railway, a VPS):
 run `npm ci && npm run server` with `PORT` set, and point `VITE_SERVER_URL` at it.
+
+## Watching (spectators)
+
+`{ t: 'watch', code }` joins a room as a watcher: no slot, no inputs (the
+room ignores anything they send), up to `MAX_WATCHERS` (8) per room. They
+get the lobby (`you: -1`), the `start`, every `frames`/`hash`, and a
+`snapshot` if the match is already under way, exactly like a player, so the
+same lockstep client shows the match. Leaving touches nobody's slot.
+
+## Custom maps
+
+A room's host can pick a map made in the map editor (`src/ui/editor.ts`,
+kept on the device by `src/ui/myMaps.ts`). It travels in the rules as
+`scheme.customMap`, a run-length string (`src/sim/terrain/custom.ts`, at most
+80 KB, which is why the server's `maxPayload` is 96 KB). `cleanScheme` keeps it
+only if it decodes to a sane map; if it hasn't room for every team,
+`startMatch` tells the host and the room stays in the lobby. There is no
+public map gallery (nothing to moderate): maps are swapped as files.

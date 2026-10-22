@@ -6,15 +6,17 @@
 // Kept on this device (`tardigeddon.textsize`). The game world (canvas) isn't scaled.
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { tk } from '../i18n/tk';
 
 export type TextSize = 'auto' | '1' | '1.15' | '1.3' | '1.5';
 
+/** Ids and names (English: shown with t()). */
 export const TEXT_SIZES: [TextSize, string][] = [
-  ['auto', 'Auto'],
-  ['1', 'Normal'],
-  ['1.15', 'Large'],
-  ['1.3', 'Larger'],
-  ['1.5', 'Largest'],
+  ['auto', tk('Auto')],
+  ['1', tk('Normal')],
+  ['1.15', tk('Large')],
+  ['1.3', tk('Larger')],
+  ['1.5', tk('Largest')],
 ];
 
 const KEY = 'tardigeddon.textsize';

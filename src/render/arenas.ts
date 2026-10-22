@@ -21,11 +21,16 @@ export interface ArenaTheme {
   stars?: boolean;
   /** Snowflakes or embers drifting down/up. */
   drift?: { color: number; up?: boolean };
+  /** Everyone has it (no shop item). */
+  free?: boolean;
+  /** Only while this seasonal event is on (render/seasons.ts); free then. */
+  season?: string;
 }
 
 export const ARENAS: ArenaTheme[] = [
   {
     id: 'classic',
+    free: true,
     name: 'Meadow',
     skyTop: PALETTE.skyTop,
     skyBottom: PALETTE.skyBottom,
@@ -35,6 +40,61 @@ export const ARENAS: ArenaTheme[] = [
     waterLight: PALETTE.waterLight,
     grass: PALETTE.grass,
     soil: PALETTE.soil,
+  },
+  // Free looks: "Surprise me" (the default) shuffles these, plus any arenas
+  // the player owns, so maps look different without giving shop ones away.
+  // Kept plain on purpose: no stars, snow or embers (those are shop perks).
+  {
+    id: 'spring',
+    free: true,
+    name: 'Spring Green',
+    skyTop: '#8fdcf2',
+    skyBottom: '#f0fbe6',
+    hillFar: 0xb8e3a0,
+    hillNear: 0x8cc96e,
+    water: 0x3a92d0,
+    waterLight: 0x92d2ff,
+    grass: [0x3a6a1e, 0x7ac64a, 0xb4ea7a],
+    soil: [0x3e2a18, 0xa87848, 0x8a5e36, 0xc29462],
+  },
+  {
+    id: 'moor',
+    free: true,
+    name: 'Misty Moor',
+    skyTop: '#9fb0c8',
+    skyBottom: '#e3e8ee',
+    hillFar: 0xa9b8a4,
+    hillNear: 0x87997f,
+    water: 0x4a6f8f,
+    waterLight: 0x9db8cf,
+    grass: [0x3c4a2c, 0x6f8450, 0x9cb07a],
+    soil: [0x2e2722, 0x6e5c4c, 0x5a4a3c, 0x8a7864],
+  },
+  {
+    id: 'cove',
+    free: true,
+    name: 'Pebble Cove',
+    skyTop: '#76c8ee',
+    skyBottom: '#e6f6fa',
+    hillFar: 0xa8d8d0,
+    hillNear: 0x7fbfb2,
+    water: 0x2a8fb8,
+    waterLight: 0x86dcea,
+    grass: [0x6a5a3a, 0xc8b88a, 0xe8dcb4],
+    soil: [0x3a3430, 0x8f8a80, 0x76716a, 0xb4ada2],
+  },
+  {
+    id: 'bog',
+    free: true,
+    name: 'Peat Bog',
+    skyTop: '#a8c4a0',
+    skyBottom: '#eef0d8',
+    hillFar: 0x9aae78,
+    hillNear: 0x748a56,
+    water: 0x4a6a4a,
+    waterLight: 0x8aaa7a,
+    grass: [0x34401c, 0x667a30, 0x98ac54],
+    soil: [0x24180e, 0x5a3e24, 0x48301a, 0x7a5a3a],
   },
   {
     id: 'sunset',
@@ -136,7 +196,96 @@ export const ARENAS: ArenaTheme[] = [
     soil: [0x140a24, 0x3a6a8a, 0x2a4a6a, 0x9ae0ff],
     stars: true,
   },
+  // Seasonal worlds (render/seasons.ts): free, but only while their event is on.
+  {
+    id: 'pumpkin',
+    name: 'Pumpkin Patch',
+    season: 'halloween',
+    skyTop: '#2a1440',
+    skyBottom: '#e07a2a',
+    hillFar: 0x4a2a5a,
+    hillNear: 0x2e1a3a,
+    water: 0x3a6a3a,
+    waterLight: 0x8ae06a,
+    grass: [0x3a1a08, 0xd8661e, 0xffa040],
+    soil: [0x1a0c14, 0x4a3040, 0x3a2232, 0x7a5a6a],
+    drift: { color: 0xff8a2a },
+    stars: true,
+  },
+  {
+    id: 'frostfair',
+    name: 'Frost Fair',
+    season: 'winter',
+    skyTop: '#1a2a5a',
+    skyBottom: '#9ab8e8',
+    hillFar: 0xd8e6f6,
+    hillNear: 0xb4cce8,
+    water: 0x2a5a9a,
+    waterLight: 0xcfeaff,
+    grass: [0x6a86a8, 0xffffff, 0xffffff],
+    soil: [0x2a3042, 0x7a5a4a, 0x5a4232, 0xc8423a],
+    drift: { color: 0xffffff },
+    stars: true,
+  },
+  {
+    id: 'fireworks',
+    name: 'Midnight Fireworks',
+    season: 'newyear',
+    skyTop: '#05061a',
+    skyBottom: '#2a1f5a',
+    hillFar: 0x1f1a4a,
+    hillNear: 0x15123a,
+    water: 0x1a2a6a,
+    waterLight: 0xffd84a,
+    grass: [0x2a1a3a, 0x8f5bd6, 0xffd84a],
+    soil: [0x0f0a1a, 0x3a2a5a, 0x2a1f44, 0xffd84a],
+    stars: true,
+  },
+  {
+    id: 'sweetheart',
+    name: 'Sweetheart Shore',
+    season: 'valentine',
+    skyTop: '#ff8ab8',
+    skyBottom: '#ffe0ec',
+    hillFar: 0xffb8d0,
+    hillNear: 0xf08ab0,
+    water: 0xd0407a,
+    waterLight: 0xffc0dc,
+    grass: [0x8a1a3a, 0xe0306a, 0xff8ab0],
+    soil: [0x4a1426, 0xc86a7a, 0xa84a5e, 0xffd0dc],
+    drift: { color: 0xff5f8a },
+  },
+  {
+    id: 'blossom',
+    name: 'Cherry Blossom',
+    season: 'spring',
+    skyTop: '#9fd8f6',
+    skyBottom: '#fff2f6',
+    hillFar: 0xf6c8dc,
+    hillNear: 0xe8a0c0,
+    water: 0x4a9ad0,
+    waterLight: 0xbfe6ff,
+    grass: [0x3a6a1e, 0x8ad05a, 0xffc8dc],
+    soil: [0x3e2a1c, 0x9a6a4a, 0x7f553a, 0xc89474],
+    drift: { color: 0xffc0d8 },
+  },
+  {
+    id: 'beach',
+    name: 'Sunny Beach',
+    season: 'summer',
+    skyTop: '#2fb0f0',
+    skyBottom: '#fff6c8',
+    hillFar: 0x8fd8c8,
+    hillNear: 0x5ac0a8,
+    water: 0x1aa0d0,
+    waterLight: 0xa8f0ff,
+    grass: [0xa87a2a, 0xf6d88a, 0xfff2c0],
+    soil: [0x5a3a1a, 0xe8c07a, 0xd0a45a, 0xfff0c0],
+  },
 ];
+
+/** "Surprise me": a different free (or owned) arena every match. */
+export const SURPRISE_ARENA = 'random';
 
 export function arenaTheme(id: string | undefined): ArenaTheme {
   return ARENAS.find((a) => a.id === id) ?? ARENAS[0];

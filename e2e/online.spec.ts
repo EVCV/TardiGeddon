@@ -127,3 +127,24 @@ test('players can report and block each other, in the room and in a match', asyn
   await expect(a.locator('.team-name').nth(1)).toHaveText(theirName);
   expect(errors).toEqual([]);
 });
+
+test('anyone with the code can watch a room’s match', async ({ browser }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one run is enough');
+  const host = await (await browser.newContext()).newPage();
+  const fan = await (await browser.newContext()).newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Play online' }).click();
+  await host.getByRole('button', { name: 'Create a room' }).click();
+  const code = (await host.locator('.room-code').textContent())!.trim();
+  await fan.goto('/');
+  await fan.getByRole('button', { name: 'Play online' }).click();
+  await fan.locator('.code-input').fill(code);
+  await fan.getByRole('button', { name: '👀 Watch' }).click();
+  await expect(fan.getByText('You’re watching')).toBeVisible();
+  await host.getByRole('button', { name: '+ Add CPU' }).click();
+  await host.getByRole('button', { name: 'Start match' }).click();
+  await expect(fan.locator('.watching-badge')).toBeVisible({ timeout: 15_000 });
+  await fan.waitForFunction(() => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.tick ?? 0) > 100);
+  // Watchers have no team.
+  expect(await fan.evaluate(() => (window as unknown as { __tardi: { world: { teams: unknown[] } } }).__tardi.world.teams.length)).toBe(2);
+});

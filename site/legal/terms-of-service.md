@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 20 October 2026
-**Document Version:** v2.0
+**Last Modified:** 22 October 2026
+**Document Version:** v2.1
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -209,6 +209,14 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 5.8.4 A gift can carry one of the preset messages shown in the shop; you cannot write your own. The person who claims a gift sees your account name and the message you chose.
 
 5.8.5 Gift codes must not be sold, traded or used for anything other than giving a gift. If a gift is connected with fraud, a disputed or refunded payment, or a breach of these Terms, we may cancel it or take back the items it gave.
+
+### 5.9 Promotional Codes
+
+5.9.1 From time to time we publish promotional codes (for example on https://tardigeddon.com/promo-codes) that unlock a cosmetic item free of charge. They never give coins, Slime or weapons, and no purchase is needed to use one.
+
+5.9.2 A promotional code is claimed in the same way as a gift (Section 5.8.3), while signed in to an account, and each code can be used once per account. If your account already has the item, the code has nothing more to give.
+
+5.9.3 A promotional code may have an end date, shown where we publish it, and we may end a promotion earlier. Items you have already claimed stay yours on the same terms as any other item (Section 5.4). Promotional codes have no cash value and must not be sold; using automated means or extra accounts to collect items with them breaks these Terms (Section 4.1).
 
 ## Section 6 — Intellectual Property
 

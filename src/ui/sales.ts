@@ -39,7 +39,7 @@ function money(minor: number, currency: string): string {
   }
 }
 
-const KIND_ICON: Record<string, string> = { hat: '🎩', skin: '🎨', aim: '🎯', fx: '💥', arena: '🏞️', music: '🎵', sound: '🔊', weapon: '🔫' };
+const KIND_ICON: Record<string, string> = { hat: '🎩', skin: '🎨', aim: '🎯', fx: '💥', dance: '💃', grave: '🪦', arena: '🏞️', music: '🎵', sound: '🔊', weapon: '🔫' };
 
 /** A shop id as a name people recognise. */
 function itemName(id: string): string {

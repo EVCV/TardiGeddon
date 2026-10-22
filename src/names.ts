@@ -8,15 +8,17 @@
 // (presetTeamName). This filter covers private rooms with friends, and the
 // player's own screen.
 
+import { tk } from './i18n/tk';
+
 export type NameProblem = 'chars' | 'numbers' | 'rude' | 'contact' | 'staff';
 
 /** Why a name was refused, for the player. */
 export const NAME_PROBLEM_TEXT: Record<NameProblem, string> = {
-  chars: 'Names can only use letters, spaces, - and ’.',
-  numbers: 'Names can only have a couple of numbers in them.',
-  rude: 'That name isn’t allowed. Please pick a friendly one.',
-  contact: 'Names can’t include contact details, websites or social media.',
-  staff: 'Names can’t pretend to be the game’s staff.',
+  chars: tk('Names can only use letters, spaces, - and ’.'),
+  numbers: tk('Names can only have a couple of numbers in them.'),
+  rude: tk('That name isn’t allowed. Please pick a friendly one.'),
+  contact: tk('Names can’t include contact details, websites or social media.'),
+  staff: tk('Names can’t pretend to be the game’s staff.'),
 };
 
 // Rude or unsafe words found anywhere inside a word, even with letters

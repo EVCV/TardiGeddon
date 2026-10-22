@@ -4,8 +4,17 @@
 // other players, and only preset messages go with a gift.
 
 import { buyGift, cancelGift, redeemGift, sentGifts, type GiftSent, type MeResponse } from '../account/session';
-import { GIFTS_PER_DAY, GIFT_MESSAGES, formatNumber, giftable } from '../shop/catalog';
+import { BUNDLES, GIFTS_PER_DAY, GIFT_MESSAGES, formatNumber, giftable, promoItem, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
+import { lang, t } from '../i18n/i18n';
+
+/** A giftable look's or bundle's name, in the player's language. */
+export function giftName(id: string): string {
+  const set = BUNDLES.find((b) => b.id === id);
+  if (set) return t('{name} bundle', { name: t(set.name) });
+  const item = shopItem(id) ?? promoItem(id);
+  return item ? t(item.name) : (giftable(id)?.name ?? id);
+}
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -28,9 +37,9 @@ export const newGiftsState = (): GiftsState => ({ user: null, code: '', claimed:
 
 /** Why this player can't send gifts yet, or '' if they can. */
 export function giftBlocker(me: MeResponse): string {
-  if (!me.user) return 'Sign in to send gifts.';
-  if (!me.user.emailVerified) return 'Confirm your email (on the Account page) to send gifts.';
-  if (Date.now() - Date.parse(me.user.createdAt) < 24 * 3600_000) return 'New accounts can send gifts after their first day.';
+  if (!me.user) return t('Sign in to send gifts.');
+  if (!me.user.emailVerified) return t('Confirm your email (on the Account page) to send gifts.');
+  if (Date.now() - Date.parse(me.user.createdAt) < 24 * 3600_000) return t('New accounts can send gifts after their first day.');
   return '';
 }
 
@@ -42,7 +51,7 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
   const box = el('div', 'gifts');
 
   const claim = el('section', 'gift-claim');
-  claim.append(el('h3', 'shop-section', '🎀 Got a gift code?'));
+  claim.append(el('h3', 'shop-section', t('🎀 Got a gift or promo code?')));
   const form = el('form', 'gift-form');
   const input = el('input', 'gift-input');
   input.placeholder = 'XXXX-XXXX-XXXX';
@@ -50,9 +59,9 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
   input.maxLength = 20;
   input.autocomplete = 'off';
   input.spellcheck = false;
-  input.setAttribute('aria-label', 'Gift code');
+  input.setAttribute('aria-label', t('Gift code'));
   input.oninput = () => (state.code = input.value);
-  const go = el('button', 'big-btn', 'Claim gift');
+  const go = el('button', 'big-btn', t('Claim gift'));
   go.type = 'submit';
   go.disabled = ctx.busy || !me.user;
   form.onsubmit = (e) => {
@@ -66,29 +75,35 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
   };
   form.append(input, go);
   claim.append(form);
-  if (!me.user) claim.append(el('p', 'account-note', 'Sign in to claim a gift: it goes into your collection on every device.'));
+  if (!me.user) claim.append(el('p', 'account-note', t('Sign in to claim a gift: it goes into your collection on every device.')));
   if (state.claimed) {
     const done = el('div', 'gift-claimed');
-    done.append(el('b', '', `🎉 You got ${state.claimed.name}!`));
-    if (state.claimed.from) done.append(el('span', '', `From ${state.claimed.from}${state.claimed.message ? `: “${state.claimed.message}”` : ''}`));
-    done.append(el('span', '', 'Pick it in the ✎ team editor in the lobby (arenas, music and sound packs: use them here in the Shop).'));
+    done.append(el('b', '', t('🎉 You got {name}!', { name: state.claimed.name })));
+    if (state.claimed.from) done.append(el(
+          'span',
+          '',
+          state.claimed.message
+            ? t('From {name}: “{message}”', { name: state.claimed.from, message: t(state.claimed.message) })
+            : t('From {name}', { name: state.claimed.from }),
+        ),);
+    done.append(el('span', '', t('Pick it in the ✎ team editor in the lobby (arenas, music and sound packs: use them here in the Shop).')));
     claim.append(done);
   }
   box.append(claim);
 
   const how = el('section', 'gift-how');
   how.append(
-    el('h3', 'shop-section', '🎁 Give a gift'),
-    el('p', '', `Pick any look or bundle in the shop and press “Give as a gift”. You pay with your coins and get a one-use code to give your friend however you like. Up to ${GIFTS_PER_DAY} gifts a day. Until your friend claims it, you can take a gift back and get your coins back.`),
-    el('p', 'account-note', 'Anyone with the code can claim the gift, so only share it with the person it’s for. Weapons and coins can’t be given.'),
+    el('h3', 'shop-section', t('🎁 Give a gift')),
+    el('p', '', t('Pick any look or bundle in the shop and press “Give as a gift”. You pay with your coins and get a one-use code to give your friend however you like. Up to {n} gifts a day. Until your friend claims it, you can take a gift back and get your coins back.', { n: GIFTS_PER_DAY })),
+    el('p', 'account-note', t('Anyone with the code can claim the gift, so only share it with the person it’s for. Weapons and coins can’t be given.')),
   );
   box.append(how);
 
   if (me.user) {
     const sent = el('section', 'gift-sent');
-    sent.append(el('h3', 'shop-section', 'Gifts you’ve sent'));
+    sent.append(el('h3', 'shop-section', t('Gifts you’ve sent')));
     if (state.sent === null) {
-      sent.append(el('p', 'account-note', 'Loading…'));
+      sent.append(el('p', 'account-note', t('Loading…')));
       if (!state.loading) {
         state.loading = true;
         sentGifts()
@@ -105,20 +120,20 @@ export function giftsTab(me: MeResponse, ctx: HubContext, state: GiftsState, nam
           });
       }
     } else if (!state.sent.length) {
-      sent.append(el('p', 'account-note', 'None yet.'));
+      sent.append(el('p', 'account-note', t('None yet.')));
     } else {
       const list = el('ul', 'gift-list');
       for (const g of state.sent) {
         const li = el('li', `gift-row ${g.status}`);
-        const when = new Date(g.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const when = new Date(g.createdAt).toLocaleDateString(lang() === 'en' ? 'en-GB' : lang(), { day: 'numeric', month: 'short' });
         li.append(el('span', 'gift-name', nameOf(g.item)), el('span', 'gift-meta', `…${g.hint} · ${when}`));
-        const status = { waiting: 'Not claimed yet', claimed: 'Claimed ✓', cancelled: 'Taken back' }[g.status];
+        const status = { waiting: t('Not claimed yet'), claimed: t('Claimed ✓'), cancelled: t('Taken back') }[g.status];
         li.append(el('span', 'gift-status', status));
         if (g.status === 'waiting') {
-          const back = el('button', 'hud-btn', 'Take back');
+          const back = el('button', 'hud-btn', t('Take back'));
           back.disabled = ctx.busy;
           back.onclick = () => {
-            if (!confirm(`Take back this gift and get your coins back? The code (…${g.hint}) will stop working.`)) return;
+            if (!confirm(t('Take back this gift and get your coins back? The code (…{hint}) will stop working.', { hint: g.hint }))) return;
             ctx.run(async () => {
               await cancelGift(g.id);
               state.sent = null;
@@ -162,13 +177,13 @@ export function openGiftDialog(me: MeResponse, itemId: string, art: string, from
     if (e.target === overlay) close();
   };
   const x = el('button', 'coin-dialog-x', '×');
-  x.setAttribute('aria-label', 'Close');
+  x.setAttribute('aria-label', t('Close'));
   x.onclick = close;
 
   const head = el('div', 'coin-dialog-head');
   const pic = el('div', 'coin-dialog-art gift-dialog-art');
   pic.innerHTML = art;
-  const title = el('h2', 'coin-dialog-title', `🎀 Gift: ${g.name}`);
+  const title = el('h2', 'coin-dialog-title', t('🎀 Gift: {name}', { name: giftName(itemId) }));
   title.id = 'gift-dialog-title';
   head.append(pic, title, el('div', 'coin-dialog-coins', `🪙 ${formatNumber(g.coins)}`));
   const body = el('div', 'coin-dialog-body');
@@ -178,12 +193,12 @@ export function openGiftDialog(me: MeResponse, itemId: string, art: string, from
   if (blocker) {
     body.append(el('p', 'account-note', blocker));
   } else {
-    body.append(el('p', 'coin-dialog-small', 'Add a message (optional):'));
+    body.append(el('p', 'coin-dialog-small', t('Add a message (optional):')));
     const msgs = el('div', 'gift-msgs');
     let message = 'none';
     const keys = Object.keys(GIFT_MESSAGES);
     for (const k of keys) {
-      const b = el('button', 'gift-msg' + (k === message ? ' on' : ''), k === 'none' ? 'No message' : GIFT_MESSAGES[k]);
+      const b = el('button', 'gift-msg' + (k === message ? ' on' : ''), k === 'none' ? t('No message') : t(GIFT_MESSAGES[k]));
       b.setAttribute('aria-pressed', String(k === message));
       b.onclick = () => {
         message = k;
@@ -198,7 +213,7 @@ export function openGiftDialog(me: MeResponse, itemId: string, art: string, from
     const error = el('p', 'coin-dialog-error');
     error.setAttribute('role', 'alert');
     const short = me.wallet.coins < g.coins;
-    const buy = el('button', 'big-btn coin-dialog-pay', short ? `You need ${formatNumber(g.coins - me.wallet.coins)} more coins` : `Buy gift for 🪙 ${formatNumber(g.coins)}`);
+    const buy = el('button', 'big-btn coin-dialog-pay', short ? t('You need {n} more coins', { n: formatNumber(g.coins - me.wallet.coins) }) : t('Buy gift for 🪙 {n}', { n: formatNumber(g.coins) }));
     buy.disabled = short;
     buy.onclick = async () => {
       buy.disabled = true;
@@ -207,31 +222,31 @@ export function openGiftDialog(me: MeResponse, itemId: string, art: string, from
         const code = await buyGift(itemId, message);
         showCode(code);
       } catch (e) {
-        error.textContent = e instanceof Error ? e.message : String(e);
+        error.textContent = t(e instanceof Error ? e.message : String(e));
         buy.disabled = false;
       }
     };
-    body.append(buy, error, el('p', 'coin-dialog-small', 'You’ll get a one-use code to give your friend. You can take the gift back until they claim it.'));
+    body.append(buy, error, el('p', 'coin-dialog-small', t('You’ll get a one-use code to give your friend. You can take the gift back until they claim it.')));
   }
 
   const showCode = (code: string) => {
     body.replaceChildren();
     const c = el('div', 'gift-code', code);
-    c.setAttribute('aria-label', `Gift code ${code.split('').join(' ')}`);
-    const copy = el('button', 'big-btn coin-dialog-pay', '📋 Copy code');
+    c.setAttribute('aria-label', t('Gift code {code}', { code: code.split('').join(' ') }));
+    const copy = el('button', 'big-btn coin-dialog-pay', t('📋 Copy code'));
     copy.onclick = async () => {
       try {
         await navigator.clipboard.writeText(code);
-        copy.textContent = 'Copied ✓';
+        copy.textContent = t('Copied ✓');
       } catch {
-        copy.textContent = 'Select the code and copy it';
+        copy.textContent = t('Select the code and copy it');
       }
     };
     body.append(
-      el('b', '', 'Here’s your gift code:'),
+      el('b', '', t('Here’s your gift code:')),
       c,
       copy,
-      el('p', 'coin-dialog-small', 'Send it to your friend. They claim it in Shop → 🎀 Gifts. Keep it safe: it’s only shown once, and anyone with it can claim the gift.'),
+      el('p', 'coin-dialog-small', t('Send it to your friend. They claim it in Shop → 🎀 Gifts. Keep it safe: it’s only shown once, and anyone with it can claim the gift.')),
     );
     copy.focus();
   };
