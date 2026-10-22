@@ -6,6 +6,7 @@ import { Mascot } from './Mascot';
 import { PLAY_URL } from '../config';
 import { LEGAL_PAGES } from '../legal';
 import { holdScroll } from '../motion/SmoothScroll';
+import { RopeSwinger } from './RopeSwinger';
 
 /** The site's pages, in menu order. */
 export const NAV = [
@@ -123,7 +124,9 @@ export function Layout({ children }: { children: ReactNode }) {
       <header className="site-header">
         <Link to="/" className="brand" aria-label="TardiGeddon home">
           <Mascot className="brand-mascot" label="" />
-          <span className="brand-name">TardiGeddon</span>
+          <span className="brand-name">
+            Tardi<span>Geddon</span>
+          </span>
         </Link>
         <nav className="site-nav paper" aria-label="Site">
           <NavLinks />
@@ -136,6 +139,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main id="main">{children}</main>
+      <RopeSwinger />
       <footer className="site-footer">
         <div className="footer-inner">
           <div className="footer-brand">

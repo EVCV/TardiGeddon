@@ -120,7 +120,9 @@ export function Home() {
         <div className="hero-head">
           <Mascot className="hero-mascot" label="The TardiGeddon mascot: a tardigrade in a red beanie" />
           {reduced ? (
-            <h1 className="display hero-title">TardiGeddon</h1>
+            <h1 className="display hero-title">
+              Tardi<span className="geddon">Geddon</span>
+            </h1>
           ) : (
             <SplitText
               text="TardiGeddon"
