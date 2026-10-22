@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { Mascot } from '../components/Mascot';
 import { Link } from '../router';
 import { PLAY_URL } from '../config';
-import { PROMO } from '../promo';
+import { PROMO, promoWorks } from '../promo';
 
 export function PromoCodes() {
   const [copied, setCopied] = useState(false);
+  const works = promoWorks();
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(PROMO.code);
@@ -29,7 +30,11 @@ export function PromoCodes() {
       <section className="promo-card paper" aria-labelledby="promo-now">
         <Mascot className="promo-mascot" color={0x3a7be0} hat={PROMO.hatId} label={`A tardigrade wearing the ${PROMO.hatName}`} />
         <div className="promo-body">
-          <p className="promo-status">✅ Working now{PROMO.until ? ` (until ${PROMO.until})` : ''}</p>
+          {works ? (
+            <p className="promo-status">✅ Working now{PROMO.until ? ` (until ${PROMO.until})` : ''}</p>
+          ) : (
+            <p className="promo-status promo-ended">⌛ This code has ended. Watch this page for the next one.</p>
+          )}
           <h2 id="promo-now" className="display">
             Free {PROMO.hatName}
           </h2>
@@ -41,9 +46,11 @@ export function PromoCodes() {
             <code className="promo-code" aria-label={`Promo code: ${PROMO.code}`}>
               {PROMO.code}
             </code>
-            <button className="btn btn-play btn-small" onClick={copy}>
-              {copied ? 'Copied!' : 'Copy code'}
-            </button>
+            {works && (
+              <button className="btn btn-play btn-small" onClick={copy}>
+                {copied ? 'Copied!' : 'Copy code'}
+              </button>
+            )}
           </div>
         </div>
       </section>

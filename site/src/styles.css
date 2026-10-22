@@ -711,3 +711,4 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
 }
 .press-media a:hover span { text-decoration: underline; }
 .press-media img[src$='.png'] { object-fit: contain; }
+.promo-ended { background: #f3e2c8; }
