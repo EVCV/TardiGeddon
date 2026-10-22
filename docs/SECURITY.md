@@ -14,6 +14,15 @@ the owner needs to keep doing. Last full review: 10 October 2026.
 - The sign-in cookie can't be read by page scripts (HttpOnly), only travels
   over HTTPS (Secure, `__Secure-` name) and isn't sent from other sites
   (SameSite=Lax).
+- The iOS app can't use that cookie (WebKit drops it: its pages are
+  `capacitor://`), so it signs in with a **token** instead (Better Auth's
+  bearer plugin, `src/account/token.ts`), kept in the iOS Keychain. The server
+  hands the token only to `capacitor://` origins (`signsInWithToken` in
+  `server/accounts.ts`); everywhere else it's stripped from the reply, so
+  website scripts still can never read a sign-in. Only tokens signed with
+  the server's secret count. Online play can't send the token, so the app
+  swaps it for a ticket (`POST /api/ws-ticket`): random, one use, 30 seconds,
+  never logged.
 - Shop and stats requests are only accepted from the game's own pages, as
   JSON (`fromGame` in `server/accounts.ts`), so another website can't spend a
   player's coins.
@@ -102,8 +111,9 @@ game's code. Please:
   keeps payment records for its own legal reasons either way.
 - **Phone apps:** the Android app runs at `https://app.tardigeddon.com` (inside the
   phone), which must be in `TRUSTED_ORIGINS`; it signs in with the same
-  same-site cookie as the website. The iOS app (`capacitor://` scheme) will need to sign in with a
-  token kept in the phone's secure storage instead (docs/IOS.md §2).
+  same-site cookie as the website. The iOS app (`capacitor://app.tardigeddon.com`)
+  signs in with a token (above); that origin must be in `TRUSTED_ORIGINS` too
+  (docs/IOS.md §2a).
 
 ## Testing the security headers
 

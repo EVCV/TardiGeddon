@@ -1,11 +1,11 @@
 // Accounts + shop against a real Postgres. Skipped unless TEST_DATABASE_URL
 // points at an empty, throwaway database (it creates tables in it), e.g.
 //   TEST_DATABASE_URL=postgres://postgres@localhost:5432/tardi_test npm test
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
-import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
+import { createAccounts, signsInWithToken, type Accounts, type MeResponse } from '../server/accounts';
 import { ChallengeRun, challengeDay, challengeWorld } from '../src/challenge/daily';
 import { createWorld, tick } from '../src/sim/world';
 import { CpuPlayer } from '../src/ai/cpu';
@@ -22,6 +22,8 @@ import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
 const GAME = 'http://localhost:5173/';
+/** The iOS app's pages (capacitor.config.ts), which sign in with a token (docs/IOS.md §2a). */
+const IOS_APP = 'capacitor://app.tardigeddon.com';
 
 describe('shop hats', () => {
   it('are only wearable once owned', () => {
@@ -47,6 +49,15 @@ describe('shop hats', () => {
     } finally {
       PROMOS.pop();
     }
+  });
+});
+
+describe('token sign-in', () => {
+  it('is only for the iOS app, never the website or the Android app', () => {
+    expect(signsInWithToken(IOS_APP)).toBe(true);
+    expect(signsInWithToken('https://app.tardigeddon.com')).toBe(false); // Android: the cookie works there
+    expect(signsInWithToken('https://tardigeddon.com')).toBe(false);
+    expect(signsInWithToken(undefined)).toBe(false);
   });
 });
 
@@ -103,7 +114,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
       { stripe, mailer, play },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
@@ -857,5 +868,56 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await accounts.db.query('SELECT 1 FROM inventory WHERE user_id = $1', [id])).rowCount).toBe(0);
     const kept = await accounts.db.query('SELECT user_id FROM purchase WHERE id = $1', ['cs_4']);
     expect(kept.rows).toEqual([{ user_id: null }]);
+  });
+  it('signs the iOS app in with a token, joins online play with a one-use ticket, and never gives the website the token', async () => {
+    // The website: the cookie only. Page scripts can't read the token.
+    const web = await post('/api/auth/sign-up/email', { email: 'web-token@example.com', password: 'correct horse', name: 'Tester' });
+    expect(web.status).toBe(200);
+    expect(web.headers.get('set-auth-token')).toBeNull();
+    expect(web.headers.get('access-control-expose-headers') ?? '').not.toMatch(/set-auth-token/i);
+
+    // The iOS app: no cookie survives there, so it keeps the token and sends it back.
+    const app = (path: string, body?: unknown, token = '') =>
+      fetch(base + path, {
+        method: body === undefined ? 'GET' : 'POST',
+        headers: { origin: IOS_APP, ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    const pre = await fetch(base + '/api/me', { method: 'OPTIONS', headers: { origin: IOS_APP, 'access-control-request-headers': 'authorization' } });
+    expect(pre.headers.get('access-control-allow-origin')).toBe(IOS_APP);
+    expect(pre.headers.get('access-control-allow-headers')).toMatch(/authorization/);
+
+    const su = await app('/api/auth/sign-up/email', { email: 'ios@example.com', password: 'correct horse', name: 'Tester' });
+    expect(su.status).toBe(200);
+    const token = su.headers.get('set-auth-token') ?? '';
+    expect(token).not.toBe('');
+    expect(su.headers.get('access-control-expose-headers')).toMatch(/set-auth-token/i);
+    const m = (await (await app('/api/me', undefined, token)).json()) as MeResponse;
+    expect(m.user?.email).toBe('ios@example.com');
+    // A made-up token is nobody; so is no token.
+    expect(((await (await app('/api/me', undefined, token.slice(0, -2) + 'xx')).json()) as MeResponse).user).toBeNull();
+    expect(((await (await app('/api/me')).json()) as MeResponse).user).toBeNull();
+
+    // Online play: a ticket from the token, good once.
+    expect((await app('/api/ws-ticket', {})).status).toBe(401);
+    const { ticket } = (await (await app('/api/ws-ticket', {}, token)).json()) as { ticket: string };
+    expect(ticket.length).toBeGreaterThan(30);
+    expect((await accounts.playerFor({}, ticket)).userId).toBe(m.user!.id);
+    expect((await accounts.playerFor({}, ticket)).userId).toBeUndefined();
+    expect((await accounts.playerFor({}, 'made-up')).userId).toBeUndefined();
+    // …and only for 30 seconds.
+    const late = ((await (await app('/api/ws-ticket', {}, token)).json()) as { ticket: string }).ticket;
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 31_000);
+    try {
+      expect((await accounts.playerFor({}, late)).userId).toBeUndefined();
+    } finally {
+      vi.restoreAllMocks();
+    }
+
+    // Signing out ends the token.
+    expect((await app('/api/auth/sign-out', {}, token)).status).toBe(200);
+    expect(((await (await app('/api/me', undefined, token)).json()) as MeResponse).user).toBeNull();
+    expect((await app('/api/ws-ticket', {}, token)).status).toBe(401);
   });
 });

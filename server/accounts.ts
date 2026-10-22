@@ -3,6 +3,7 @@
 //   GET  /api/me          who is signed in, what they own, what the shop offers
 //   POST /api/shop/checkout   start a Stripe Checkout for one item
 //   POST /api/stripe/webhook  Stripe tells us a payment completed / was refunded
+//   POST /api/ws-ticket   a one-use ticket to join online play (the iOS app, which has no cookie)
 //
 // Everything is optional: with no DATABASE_URL the game server runs exactly
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
@@ -11,12 +12,13 @@
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
 import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { APIError } from 'better-auth/api';
+import { bearer } from 'better-auth/plugins';
 import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
 import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
@@ -68,6 +70,19 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
 }
 
 const MAX_BODY = 64 * 1024;
+
+/** How long a ticket to join online play lasts. */
+const WS_TICKET_MS = 30_000;
+
+/**
+ * Origins that sign in with a token instead of the cookie: the iOS app
+ * (capacitor://, where WebKit drops the server's cross-site cookie;
+ * docs/IOS.md §2a). Only these are handed the token. The website keeps its
+ * HttpOnly cookie, which page scripts can never read.
+ */
+export function signsInWithToken(origin: string | undefined): boolean {
+  return typeof origin === 'string' && origin.startsWith('capacitor://');
+}
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
 
@@ -171,6 +186,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       },
     },
     socialProviders,
+    // "Authorization: Bearer <token>" counts as signed in (the iOS app: signsInWithToken).
+    // Only tokens signed with our secret, as the server hands them out.
+    plugins: [bearer({ requireSignature: true })],
     // Fly.io passes the player's IP in this header. It is used, in memory only,
     // to rate-limit sign-in attempts; it is never written to the database.
     advanced: { ipAddress: { ipAddressHeaders: ['fly-client-ip', 'x-forwarded-for'] } },
@@ -264,10 +282,53 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     if (origin && origins.has(origin)) {
       res.setHeader('access-control-allow-origin', origin);
       res.setHeader('access-control-allow-credentials', 'true');
-      res.setHeader('access-control-allow-headers', 'content-type');
+      res.setHeader('access-control-allow-headers', signsInWithToken(origin) ? 'content-type, authorization' : 'content-type');
       res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
       res.setHeader('vary', 'origin');
     }
+    if (!signsInWithToken(origin) || !origins.has(origin!)) hideToken(res);
+  }
+
+  /**
+   * Better Auth's bearer plugin puts the session token in a set-auth-token
+   * header (and lets page scripts read it) on every sign-in. Only the iOS app
+   * needs it: everywhere else it's left out, so the sign-in cookie stays out
+   * of reach of scripts, as it always was.
+   */
+  function hideToken(res: ServerResponse): void {
+    // Better Auth's Node adapter writes every header with setHeader (better-call adapters/node).
+    const setHeader = res.setHeader.bind(res);
+    res.setHeader = ((name: string, value: number | string | readonly string[]) => {
+      const n = name.toLowerCase();
+      if (n === 'set-auth-token') return res;
+      if (n !== 'access-control-expose-headers') return setHeader(name, value);
+      const kept = String(value).split(',').map((h) => h.trim()).filter((h) => h && h.toLowerCase() !== 'set-auth-token');
+      return kept.length ? setHeader(name, kept.join(', ')) : res;
+    }) as typeof res.setHeader;
+  }
+
+  /** Tickets to join online play, by ticket: who it's for and until when. Each works once. */
+  const wsTickets = new Map<string, { userId: string; until: number }>();
+
+  /** The player a ticket from POST /api/ws-ticket is for, once; undefined if it's unknown, used or out of date. */
+  function takeTicket(ticket: string | null | undefined): string | undefined {
+    if (!ticket) return undefined;
+    const t = wsTickets.get(ticket);
+    wsTickets.delete(ticket);
+    return t && t.until > Date.now() ? t.userId : undefined;
+  }
+
+  async function wsTicket(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const now = Date.now();
+    for (const [k, t] of wsTickets) if (t.until <= now) wsTickets.delete(k);
+    // A few at once is plenty (a reconnect, a second tab); more would only fill memory.
+    const mine = [...wsTickets].filter(([, t]) => t.userId === user.id);
+    if (mine.length >= 5) wsTickets.delete(mine[0][0]);
+    const ticket = randomBytes(32).toString('base64url');
+    wsTickets.set(ticket, { userId: user.id, until: now + WS_TICKET_MS });
+    json(res, 200, { ticket });
   }
 
   /** Sent from one of the game's own origins, as JSON (which other sites can't send without asking us first). */
@@ -728,6 +789,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             if (res.statusCode >= 400) console.warn(`auth: ${req.method} ${path} -> ${res.statusCode} (origin ${req.headers.origin ?? 'none'})`);
           });
           await authHandler(req, res);
+        } else if (path === '/api/ws-ticket' && req.method === 'POST') {
+          await wsTicket(req, res);
         } else if (path === '/api/me' && req.method === 'GET') {
           const user = await userFrom(req.headers);
           const me: MeResponse = {
@@ -802,12 +865,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     checkVoided,
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
-    /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[]; rating?: number }> {
-      const user = await userFrom(headers);
-      if (!user) return { owned: [] };
-      const r = (await ratingsOf(db, [user.id])).get(user.id)!;
-      return { userId: user.id, owned: await ownedItems(db, user.id), rating: r.rating };
+    /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number }> {
+      // The sign-in cookie (website, Android app), else a ticket (iOS app).
+      const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
+      if (!userId) return { owned: [] };
+      const r = (await ratingsOf(db, [userId])).get(userId)!;
+      return { userId, owned: await ownedItems(db, userId), rating: r.rating };
     },
     /** The game server says who's online and passes on invites. */
     setPresence(p: Presence): void {

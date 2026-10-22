@@ -1,12 +1,13 @@
 // The signed-in player, as the game sees them: who they are and which shop
 // items they own. Talks to the game server's /api (server/accounts.ts) with
-// its session cookie. Ownership is enforced by the server for online games;
+// its session cookie (in the iOS app, a token instead: ./token.ts). Ownership is enforced by the server for online games;
 // the copy cached here only decides what this device shows as unlocked.
 
 import { ARENAS, SURPRISE_ARENA } from '../render/arenas';
 import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import type { UnspentRow } from '../shop/japan';
-import { serverUrl } from '../net/client';
+import { serverUrl, setTicketSource } from '../net/client';
+import { authToken, saveAuthToken, signsInWithToken } from './token';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
@@ -103,6 +104,17 @@ export function apiBase(): string | null {
   const ws = serverUrl();
   return ws ? ws.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '') : null;
 }
+
+/**
+ * A one-use ticket to join online play as the signed-in player, in the iOS
+ * app (the WebSocket can't carry the token: server/accounts.ts wsTicket).
+ * Null elsewhere, or signed out: the cookie, or nobody.
+ */
+async function wsTicket(): Promise<string | null> {
+  if (!signsInWithToken() || !me?.user || !(await authToken())) return null;
+  return (await call<{ ticket: string }>('/api/ws-ticket', {})).ticket;
+}
+setTicketSource(wsTicket);
 
 export function account(): { me: MeResponse | null; loaded: boolean } {
   return { me, loaded };
@@ -264,17 +276,24 @@ export function myUnlockedWeapons(): string[] {
 async function call<T>(path: string, body?: unknown): Promise<T> {
   const base = apiBase();
   if (!base) throw new Error(t('Accounts are not available here.'));
+  const headers: Record<string, string> = body === undefined ? {} : { 'content-type': 'application/json' };
+  const tokens = signsInWithToken();
+  const sent = tokens ? await authToken() : null;
+  if (sent) headers.authorization = `Bearer ${sent}`;
   let r: Response;
   try {
     r = await fetch(base + path, {
       method: body === undefined ? 'GET' : 'POST',
-      credentials: 'include',
-      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      credentials: tokens ? 'omit' : 'include',
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new Error(t("Can't reach the server. Check your connection and try again."));
   }
+  // A new sign-in (or the same one, renewed).
+  const fresh = tokens ? r.headers.get('set-auth-token') : null;
+  if (fresh) await saveAuthToken(fresh);
   const data = (await r.json().catch(() => ({}))) as T & { message?: string; error?: string };
   if (!r.ok) {
     // The server's messages are in English (marked with tk() there): shown in the player's language.
@@ -290,6 +309,8 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 export async function refreshAccount(): Promise<MeResponse | null> {
   try {
     const r = await call<MeResponse>('/api/me');
+    // The server no longer knows this token (signed out elsewhere, expired): forget it.
+    if (!r.user && signsInWithToken()) await saveAuthToken(null);
     set(Array.isArray(r.owned) ? { ...r, wallet: r.wallet ?? { coins: 0, slime: 0 } } : null);
   } catch {
     set(isPreviewBuild() ? previewMe() : null);
@@ -361,6 +382,7 @@ export async function resendConfirmation(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await call('/api/auth/sign-out', {});
+  if (signsInWithToken()) await saveAuthToken(null);
   try {
     localStorage.removeItem(OWNED_KEY);
   } catch {

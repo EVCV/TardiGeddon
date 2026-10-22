@@ -81,7 +81,19 @@ runs. That's fine: the phone menu has a Back button on every page.
 
 ## 2. Sign-in
 
-### 2a. Tokens instead of the cookie (needed before anything else)
+### 2a. Tokens instead of the cookie: **built**
+
+Server and game code are done and tested (`tests/accounts.test.ts`, "signs
+the iOS app in with a token…"). Still to do, with the Xcode project (§7):
+the `AuthToken` Swift plugin that keeps the token in the Keychain (get / set
+/ remove; until it exists the app stays signed in only until it closes), and
+on the server, before the first TestFlight build:
+
+```sh
+fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com,capacitor://app.tardigeddon.com
+```
+
+How it works:
 
 The Android app's pages live at `https://app.tardigeddon.com` inside the
 phone, so the game server's sign-in cookie is same-site. iOS reserves
@@ -90,30 +102,26 @@ phone, so the game server's sign-in cookie is same-site. iOS reserves
 and iOS's WebKit drops it. Sign-in "works", then the next request comes
 back signed out.
 
-The fix (already planned in `docs/SECURITY.md`) is to sign in with a
-**bearer token** in the app:
+So the app signs in with a **bearer token** instead:
 
-- **Server:** Better Auth's `bearer()` plugin. Sign-in replies carry the
-  session token in a `set-auth-token` header, and requests with
-  `Authorization: Bearer …` count as signed in. CORS must allow
-  `Authorization` and expose `set-auth-token` for the app's origin. Add
-  `capacitor://app.tardigeddon.com` to `TRUSTED_ORIGINS`. Check that
-  `userFrom(headers)` in `server/accounts.ts` reads the header too.
+- **Server** (`server/accounts.ts`): Better Auth's `bearer()` plugin, with
+  signed tokens only. Sign-in replies carry the token in a `set-auth-token`
+  header, and `Authorization: Bearer …` counts as signed in everywhere
+  (`userFrom`). The token is only handed to `capacitor://` origins
+  (`signsInWithToken`); for the website and the Android app it's stripped
+  from the reply, so their HttpOnly cookie stays out of scripts' reach.
 - **Online play:** the WebSocket can't send headers, and the token mustn't
-  go in the URL (it would end up in logs: `SECURITY.md`). The app asks
-  `POST /api/ws-ticket` for a single-use ticket that lasts 30 seconds, and
-  joins with `?ticket=…`. `playerFor` (`server/main.ts`) accepts the cookie or
-  a ticket.
-- **App:** keep the token in the **iOS Keychain**, never `localStorage`.
-  Write a small Swift plugin of our own (`KeychainPlugin.swift`, like the
-  Android plugins). `src/account/session.ts` sends the header when it has a
-  token, and doesn't send `credentials: 'include'` then. Signing out deletes
-  the token.
-- **Android** keeps the cookie through its launch and moves to tokens in a
+  go in the URL (logs). The app asks `POST /api/ws-ticket` for a ticket
+  (random, one use, 30 seconds) and joins with `?ticket=…`; `playerFor`
+  accepts the cookie or a ticket (`server/main.ts`). `src/net/client.ts`
+  fetches one before each connection, reconnects included.
+- **App** (`src/account/token.ts`, used by `call()` in
+  `src/account/session.ts`): on iOS it sends the token instead of cookies,
+  saves a new one when the server sends it, and forgets it on sign-out or when
+  the server no longer knows it. It's kept in the **Keychain** through the
+  `AuthToken` plugin (to write with the Xcode project), never `localStorage`.
+- **Android** keeps the cookie through its launch and can move to tokens in a
   later update (one path is easier to look after than two).
-- **Tests** (with `TEST_DATABASE_URL`): sign in with a token and use it;
-  join online with a ticket; a reused or expired ticket is refused; the
-  token stops working after sign-out.
 
 ### 2b. Sign in with Apple and Google
 
@@ -382,7 +390,7 @@ online play are 13+.
 | # | Work | Who | Needs |
 |---|---|---|---|
 | 1 | Enrol; agreements, tax, bank; Small Business Program; EU trader status; signing repo | Owner | — |
-| 2 | Token sign-in + WebSocket tickets (server + app, tests), off on Android | Code | — |
+| 2 | ✅ Token sign-in + WebSocket tickets (server + app, tests), off on Android. Left: the Keychain plugin (with 3) | Code | — |
 | 3 | `ios/` project: orientations, full screen, sound, icons, launch screen, privacy manifest | Code | — |
 | 4 | iPad portrait and resizable windows in the web game | Code | — |
 | 5 | `ios.yml` + fastlane: build, sign, upload to TestFlight | Code + owner (API key, secrets) | 1, 3 |

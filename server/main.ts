@@ -257,8 +257,10 @@ wss.on('connection', (ws: WebSocket, req) => {
   connsByIp.set(ip, open + 1);
   alive.set(ws, true);
   ws.on('pong', () => alive.set(ws, true));
-  // Shop items this player owns, from their sign-in cookie (none if signed out).
-  const player = accounts ? accounts.playerFor(req.headers).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
+  // Shop items this player owns, from their sign-in cookie, or the iOS app's one-use
+  // ticket (POST /api/ws-ticket); none if signed out.
+  const ticket = new URL(req.url ?? '/', 'http://x').searchParams.get('ticket');
+  const player = accounts ? accounts.playerFor(req.headers, ticket).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
   const owned = player.then((p) => {
     member.userId = 'userId' in p ? p.userId : undefined;
     member.pid = playerId(member.userId);
