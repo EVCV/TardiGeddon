@@ -23,8 +23,11 @@ const WINDY = PANEL_WEAPONS.filter((w) => {
   return (spec?.windFactor ?? 0) > 0;
 });
 
-/** Map styles we have a picture of (site/capture: the "realms" scene). */
+/** A picture of each map style (site/capture: the "realms" scene). */
 const MAP_SHOTS: Record<string, string> = {
+  islands: 'shot-realm-islands',
+  mainland: 'shot-realm-mainland',
+  archipelago: 'shot-realm-archipelago',
   sky: 'shot-realm-sky',
   spires: 'shot-realm-spires',
   canyon: 'shot-realm-canyon',

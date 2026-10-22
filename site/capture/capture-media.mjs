@@ -103,13 +103,13 @@ async function record(page, name, frames) {
 }
 
 /** Encode a frame folder as a muted looping H.264 clip plus a WebP poster. */
-function encode(name, dir, { from = 0, to, poster = 0, width = 1280 } = {}) {
+function encode(name, dir, { from = 0, to, poster = 0, width = 1280, crf = 24 } = {}) {
   const pattern = join(dir, '%04d.png');
   const range = ['-start_number', String(from), '-framerate', String(FPS), '-i', pattern];
   const count = to === undefined ? [] : ['-frames:v', String(to - from)];
   const scale = ['-vf', `scale=${width}:-2:flags=lanczos`];
   const ff = (args) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...args], { stdio: 'inherit' });
-  ff([...range, ...count, ...scale, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', join(OUT, `${name}.mp4`)]);
+  ff([...range, ...count, ...scale, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-pix_fmt', 'yuv420p', '-movflags', '+faststart', join(OUT, `${name}.mp4`)]);
   still(`${name}-poster`, frame(dir, poster), width);
   console.log(`  encoded ${name}`);
 }
@@ -195,7 +195,9 @@ async function huddle(page, t, hp) {
 }
 
 const SCENES = {
-  /** Concrete Tun smashing down through a huddle of enemies. */
+  /** Concrete Tun smashing down through a huddle of enemies, then the CPU's
+   *  reply: a whole exchange (about 13 s), slow enough to follow on the home page.
+   *  (shot-crater.webp and og-image.jpg came from an earlier take of this scene.) */
   async tun() {
     // Mainland (rolling hills) reads best small; TUN_SEED picks another map.
     const { ctx, page } = await open(`?autostart=cpu&players=2&map=mainland${process.env.TUN_SEED ? `&seed=${process.env.TUN_SEED}` : ''}`);
@@ -205,11 +207,10 @@ const SCENES = {
     await huddle(page, t);
     await zoom(page, 1.7);
     await fire(page, 'tun', t);
-    const dir = await record(page, 'tun', 210);
-    encode('clip-tun', dir, { from: 44, to: 119, poster: 62 });
-    still('shot-crater', frame(dir, 195));
-    // Social preview (Open Graph): 1200x630 JPEG of the slam.
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', frame(dir, 62), '-vf', 'crop=1280:672:0:24,scale=1200:630', '-q:v', '3', join(OUT, 'og-image.jpg')]);
+    // TUN_FRAMES records a longer take to look through (never fewer than the clip needs).
+    const dir = await record(page, 'tun', Math.max(440, Number(process.env.TUN_FRAMES) || 0));
+    // From the Tun dropping to just before the next turn's banner.
+    encode('clip-tun', dir, { from: 20, to: 420, poster: 60, crf: 27 });
     await ctx.close();
   },
 
@@ -329,8 +330,13 @@ const SCENES = {
       ['spires', 'snow', 3, 'moor'],
       ['canyon', 'rain', 5, 'cove'],
       ['caverns', 'clear', 2, 'classic'],
+      ['islands', 'clear', 4, 'classic'],
+      ['mainland', 'sunny', 6, 'spring'],
+      ['archipelago', 'rain', 11, 'cove'],
     ];
-    for (const [map, weather, seed, arena] of LOOKS) {
+    // REALMS=islands,mainland retakes just those.
+    const only = process.env.REALMS?.split(',');
+    for (const [map, weather, seed, arena] of LOOKS.filter(([map]) => !only || only.includes(map))) {
       const { ctx, page } = await open(`?autostart=cpu&players=3&map=${map}&seed=${seed}`, DESKTOP, seed, arena);
       await freezeMatch(page);
       await until(page, humanAiming);
@@ -340,8 +346,10 @@ const SCENES = {
         m.world.weather.kind = weather;
         m.newRenderer(m.world);
       }, weather);
-      // Long enough for the turn banner to go.
-      await run(page, 210);
+      await run(page, 120);
+      // The map, not the "Waddles's turn!" banner.
+      await page.addStyleTag({ content: '.hud-banner { display: none !important; }' });
+      await run(page, 12);
       await screenshot(page, `shot-realm-${map}`, 1200);
       await ctx.close();
     }
