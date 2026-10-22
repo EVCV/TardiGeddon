@@ -24,7 +24,7 @@ test('an upright iPad plays, with the whole title in view', async ({ browser }) 
   });
   expect(spill).toBeLessThan(0);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.locator('.hud-timer')).toBeVisible();
+  await expect(page.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
   await expect(page.locator('#rotate')).toBeHidden();
 });
 

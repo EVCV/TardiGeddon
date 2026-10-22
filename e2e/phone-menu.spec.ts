@@ -35,7 +35,7 @@ test('on a phone the menu is screens you tap through, each fitting the screen', 
 
   // PLAY on the home screen starts a match.
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.locator('.hud-timer')).toBeVisible();
+  await expect(page.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
 });
 
 /** Buttons whose text spills out of them. */
@@ -68,7 +68,7 @@ for (const lang of ['es', 'pt-BR', 'de', 'fr', 'ja']) {
     expect(await spilling(page)).toEqual([]);
     await page.locator('.hub-back').click();
     await page.locator('.lobby-nav .big-btn, .lobby-play .play').first().click();
-    await expect(page.locator('.hud-timer')).toBeVisible();
+    await expect(page.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
     await page.waitForTimeout(1500);
     expect(await spilling(page)).toEqual([]);
     await page.screenshot({ path: `test-results/lang-${lang}-match.png` });

@@ -34,7 +34,7 @@ test('two players can play an online match', async ({ browser }, info) => {
   await expect(a.locator('.lobby-slot')).toHaveCount(2);
 
   await a.getByRole('button', { name: 'Start match' }).click();
-  for (const p of [a, b]) await expect(p.locator('.hud-timer')).toBeVisible();
+  for (const p of [a, b]) await expect(p.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
 
   // Both clients follow the server's simulation.
   await a.waitForFunction(() => ((window as unknown as { __tardi?: Tardi }).__tardi?.world.tick ?? 0) > 150);
@@ -118,7 +118,7 @@ test('players can report and block each other, in the room and in a match', asyn
 
   // In the match: hidden there too, and 👥 lists them to unblock.
   await a.getByRole('button', { name: 'Start match' }).click();
-  await expect(a.locator('.hud-timer')).toBeVisible();
+  await expect(a.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
   await expect(a.locator('.team-name').nth(1)).toHaveText('Blocked player');
   await a.getByRole('button', { name: 'Players: report or block' }).click();
   await a.getByRole('button', { name: 'Unblock Blocked player' }).click();

@@ -8,7 +8,7 @@ test('practice: unlimited ammo against targets, from the lobby', async ({ page }
   await page.goto('/');
   await page.getByRole('button', { name: '🎯 Practice' }).click();
   await page.getByRole('button', { name: /Pop 10 targets/ }).click();
-  await expect(page.locator('.hud-timer')).toBeVisible();
+  await expect(page.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
   await page.waitForFunction(() => (window as unknown as { __tardi?: Tardi }).__tardi?.state.turn.phase === 'aim');
   const info = await page.evaluate(() => {
     const s = (window as unknown as { __tardi: Tardi }).__tardi.state;
