@@ -22,6 +22,7 @@ import { Clip } from '../components/Clip';
 import { Shot } from '../components/Shot';
 import { Link } from '../router';
 import { PLAY_URL } from '../config';
+import { EGGS } from '../../../src/eggs';
 
 const WEAPONS = PANEL_WEAPONS.filter((w) => w.id !== 'skip');
 const WEARABLE_HATS = HATS.filter((h) => h.id !== 'none');
@@ -90,6 +91,23 @@ export function Home() {
             scrollTrigger: { trigger: grid, start: 'top 82%' },
           });
         }
+        // The eggs wobble now and then, as if something's about to hatch.
+        gsap.to('.egg-eggs .egg', {
+          keyframes: { rotation: [0, -14, 12, -8, 6, 0] },
+          duration: 0.9,
+          ease: 'sine.inOut',
+          stagger: 0.15,
+          repeat: -1,
+          repeatDelay: 1.6,
+        });
+        gsap.from('.egg-card', {
+          scale: 0.85,
+          rotation: -3,
+          opacity: 0,
+          duration: 0.8,
+          ease: 'back.out(2)',
+          scrollTrigger: { trigger: '.egg-hunt', start: 'top 85%' },
+        });
         gsap.to('.cta-mascot', { rotation: 8, duration: 0.35, ease: 'sine.inOut', yoyo: true, repeat: -1 });
       });
     },
@@ -148,6 +166,29 @@ export function Home() {
           </li>
         ))}
       </ul>
+
+      <section className="egg-hunt" aria-labelledby="egg-hunt-title">
+        <Link to="/eggs" className="egg-card">
+          <span className="egg-sticker" aria-hidden="true">
+            Shh! Top secret
+          </span>
+          <span className="egg-eggs" aria-hidden="true">
+            <span className="egg">🥚</span>
+            <span className="egg">🥚</span>
+            <span className="egg">🥚</span>
+          </span>
+          <span className="egg-text">
+            <span id="egg-hunt-title" className="display egg-title">
+              Whoa, what’s this?!
+            </span>
+            <span className="egg-lead">
+              There are <strong>{EGGS.length} secret easter eggs</strong> hidden in TardiGeddon. We won’t tell you where,
+              but we will give you riddles. Can you find them all?
+            </span>
+            <span className="btn btn-play egg-go">Start the egg hunt →</span>
+          </span>
+        </Link>
+      </section>
 
       <section className="features" aria-label="What's in the game">
         <article className="feature">

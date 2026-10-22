@@ -349,6 +349,59 @@ body.menu-open { overflow: hidden; }
 .squad-member svg { width: 110px; overflow: visible; }
 .squad-member span { font-family: var(--title); font-size: 19px; -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; }
 
+/* The easter egg hunt teaser: loud on purpose. */
+.egg-hunt { max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto; padding: 0 var(--gutter) 72px; }
+.egg-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 14px 28px;
+  padding: 30px clamp(18px, 4vw, 40px) 28px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 0 var(--ink);
+  background:
+    radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.55) 0 6px, transparent 7px) 0 0 / 46px 46px,
+    linear-gradient(135deg, #b98cf0, #ff8fc7 55%, #ffd84a);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.egg-card:hover { transform: translateY(-3px) rotate(-0.5deg); box-shadow: 0 13px 0 var(--ink); }
+.egg-card:active { transform: translateY(4px); box-shadow: 0 6px 0 var(--ink); }
+.egg-card:focus-visible { outline: 4px solid var(--ink); outline-offset: 4px; }
+.egg-sticker {
+  position: absolute;
+  top: -16px;
+  right: clamp(10px, 4vw, 34px);
+  transform: rotate(6deg);
+  background: var(--red);
+  color: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  padding: 4px 12px 2px;
+  font-family: var(--title);
+  font-size: 18px;
+  letter-spacing: 0.03em;
+  box-shadow: 0 4px 0 var(--ink);
+}
+.egg-eggs { display: flex; gap: 6px; font-size: clamp(54px, 9vw, 80px); line-height: 1; filter: drop-shadow(0 4px 0 var(--ink)); }
+.egg { display: inline-block; transform-origin: 50% 85%; }
+.egg-text { display: grid; justify-items: center; gap: 12px; }
+.egg-title { font-size: clamp(36px, 6.5vw, 62px); color: #fff; }
+.egg-lead { font-size: clamp(17px, 2vw, 20px); font-weight: 800; max-width: 30em; }
+.egg-go { margin-top: 4px; }
+.egg-card:hover .egg-go { transform: translateY(-2px); box-shadow: 0 8px 0 var(--ink); }
+@media (min-width: 860px) {
+  .egg-card { grid-template-columns: auto minmax(0, 1fr); text-align: left; justify-items: start; align-items: center; }
+  .egg-text { justify-items: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .egg-card, .egg-card:hover, .egg-card:active { transition: none; transform: none; }
+}
+
 /* Promises and "made for everyone" */
 .promise-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; text-align: left; }
 .promise { padding: 20px 22px; }
