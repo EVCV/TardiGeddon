@@ -8,8 +8,8 @@ class GameViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(AuthTokenPlugin())
     }
 
-    // The home bar fades away while playing, and a swipe up from the bottom edge
-    // (aiming, scrolling the map) needs a second swipe to leave the game.
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
+    // A swipe in from an edge (aiming, scrolling the map) needs a second swipe to
+    // leave the game. The home bar fading away is Capacitor's SystemBars, which
+    // src/native.ts switches on (Capacitor already overrides that property).
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
 }

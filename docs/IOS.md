@@ -359,7 +359,8 @@ whenever the iOS side changes: that's the check that the Swift compiles.
 
 | What | Where |
 |---|---|
-| Our screen: Capacitor's web view, home bar auto-hidden, edge swipes need a second swipe, our plugins | `ios/App/App/GameViewController.swift` |
+| Our screen: Capacitor's web view, edge swipes need a second swipe, our plugins | `ios/App/App/GameViewController.swift` |
+| Home bar fades away while playing (Capacitor's SystemBars) | `src/native.ts` |
 | The sign-in token in the Keychain (this device only) | `ios/App/App/AuthTokenPlugin.swift` ↔ `src/account/token.ts` |
 | Sound mixes with the player's music and follows the silent switch; the screen stays on | `AppDelegate.swift` (+ `navigator.audioSession` in `src/native.ts`) |
 | Orientations, no status bar, `ITSAppUsesNonExemptEncryption = NO`, arm64 | `Info.plist` |
