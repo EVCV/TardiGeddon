@@ -3,7 +3,7 @@
 
 import type { TeamTally } from '../stats/tally';
 import { emblemSvg } from '../render/emblems';
-import { teamLabel } from '../net/blocked';
+import { hiddenTeamsKey, teamLabel } from '../net/blocked';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, PRESS_JUMP, TICK_RATE, type WorldState } from '../sim/types';
 import { PANEL_WEAPONS, WEAPONS, type WeaponDef } from '../sim/weapons';
 import { activeTardi, activeTeam, girderFits } from '../sim/world';
@@ -346,6 +346,8 @@ export class Hud {
       s.tardis.map((x) => x.hp).join(','),
       s.race ? s.race.best.join(',') : '',
       s.practice ? s.practice.popped : '',
+      // Blocking or unblocking a player shows or hides their team's name.
+      hiddenTeamsKey(),
     ].join('|');
     if (key === this.lastKey) return;
     this.lastKey = key;

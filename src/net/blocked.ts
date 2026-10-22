@@ -61,6 +61,11 @@ export function hideTeams(ids: Iterable<number>): void {
   hidden = new Set(ids);
 }
 
+/** Which teams' names are hidden, for redrawing names when it changes (the HUD). */
+export function hiddenTeamsKey(): string {
+  return [...hidden].sort((a, b) => a - b).join(',');
+}
+
 export const BLOCKED_TEAM = tk('Blocked player');
 
 /** A team's name as this player sees it. */
