@@ -197,7 +197,8 @@ async function huddle(page, t, hp) {
 const SCENES = {
   /** Concrete Tun smashing down through a huddle of enemies. */
   async tun() {
-    const { ctx, page } = await open('?autostart=cpu&players=2');
+    // Mainland (rolling hills) reads best small; TUN_SEED picks another map.
+    const { ctx, page } = await open(`?autostart=cpu&players=2&map=mainland${process.env.TUN_SEED ? `&seed=${process.env.TUN_SEED}` : ''}`);
     await freezeMatch(page);
     await until(page, humanAiming);
     const t = await bestTarget(page);
@@ -205,7 +206,7 @@ const SCENES = {
     await zoom(page, 1.7);
     await fire(page, 'tun', t);
     const dir = await record(page, 'tun', 210);
-    encode('clip-tun', dir, { from: 44, to: 130, poster: 62 });
+    encode('clip-tun', dir, { from: 44, to: 119, poster: 62 });
     still('shot-crater', frame(dir, 195));
     // Social preview (Open Graph): 1200x630 JPEG of the slam.
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', frame(dir, 62), '-vf', 'crop=1280:672:0:24,scale=1200:630', '-q:v', '3', join(OUT, 'og-image.jpg')]);

@@ -168,8 +168,8 @@ const game = {
     description: 'A Concrete Tun smashes down through the ground onto a huddle of tardigrades.',
     thumbnailUrl: abs('/media/clip-tun-poster.webp'),
     contentUrl: abs('/media/clip-tun.mp4'),
-    uploadDate: '2026-10-21',
-    duration: 'PT3S',
+    uploadDate: '2026-10-22',
+    duration: 'PT2.5S',
   },
 };
 
