@@ -1,5 +1,11 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
+// Contexts made with browser.newContext() outlive the test (the browser is shared
+// by the worker): close them, or their matches keep running and starve later tests.
+test.afterEach(async ({ browser, context }) => {
+  for (const c of browser.contexts()) if (c !== context) await c.close();
+});
+
 // Foldable phones (docs/APPS.md, "Foldables"): a tall outer screen, a
 // near-square inner one, a flip phone's tiny cover screen, split screens, and
 // the screen changing size mid-match when the phone is opened or closed.

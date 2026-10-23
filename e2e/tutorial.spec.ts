@@ -23,20 +23,21 @@ test('settings bind left-click to Fire, and the tutorial walks through the basic
   await page.waitForFunction(() => (window as unknown as { __tardi?: Game }).__tardi?.state.turn.phase === 'aim');
   await expect(coach).toContainText('Step 1 of');
   await expect(coach).toContainText('Walk with ← or A');
+  // Steps get 15 s each: on a small CI machine the software-rendered match can run slowly.
 
   await page.keyboard.down('KeyD');
-  await expect(coach).toContainText('Step 2 of', { timeout: 5000 });
+  await expect(coach).toContainText('Step 2 of', { timeout: 15_000 });
   await page.keyboard.up('KeyD');
   await page.keyboard.press('Enter');
-  await expect(coach).toContainText('Step 3 of', { timeout: 5000 });
+  await expect(coach).toContainText('Step 3 of', { timeout: 15_000 });
   await page.keyboard.down('ArrowUp');
-  await expect(coach).toContainText('Step 4 of', { timeout: 5000 });
+  await expect(coach).toContainText('Step 4 of', { timeout: 15_000 });
   await page.keyboard.up('ArrowUp');
   // Left-click fires now, so the map is dragged with another button; the wheel zooms.
   await expect(coach).toContainText('with the middle mouse button');
   await page.mouse.move(640, 300);
   await page.mouse.wheel(0, 300);
-  await expect(coach).toContainText('Step 5 of', { timeout: 5000 });
+  await expect(coach).toContainText('Step 5 of', { timeout: 15_000 });
   await page.keyboard.press('Tab');
   await expect(coach).toContainText('Step 6 of');
   await page.locator('.weapon-cell[data-id=bazooka]').click();
@@ -48,6 +49,6 @@ test('settings bind left-click to Fire, and the tutorial walks through the basic
   await page.mouse.down();
   await page.waitForTimeout(500);
   await page.mouse.up();
-  await expect(coach).toContainText('Step 8 of', { timeout: 5000 });
+  await expect(coach).toContainText('Step 8 of', { timeout: 15_000 });
   expect(errors).toEqual([]);
 });

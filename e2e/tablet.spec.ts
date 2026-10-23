@@ -1,5 +1,11 @@
 import { expect, test, type Browser } from '@playwright/test';
 
+// Contexts made with browser.newContext() outlive the test (the browser is shared
+// by the worker): close them, or their matches keep running and starve later tests.
+test.afterEach(async ({ browser, context }) => {
+  for (const c of browser.contexts()) if (c !== context) await c.close();
+});
+
 // Tablets play either way up (the iPad app must: docs/IOS.md §7); phones held
 // upright, and windows too narrow to play in, get a screen asking for more room.
 

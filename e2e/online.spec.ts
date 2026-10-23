@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
+// Contexts made with browser.newContext() outlive the test (the browser is shared
+// by the worker): close them, or their matches keep running and starve later tests.
+test.afterEach(async ({ browser, context }) => {
+  for (const c of browser.contexts()) if (c !== context) await c.close();
+});
+
 // Two players in separate browsers: one creates a room, the other joins by
 // code, and both see the same match once the host starts it.
 
@@ -75,10 +81,12 @@ test('quick play matches two strangers, or one player with a CPU', async ({ brow
   await expect(a.getByText('Looking for players')).toBeVisible();
   await b.getByRole('button', { name: /Quick play/ }).click();
   for (const p of [a, b]) await expect(p.locator('.hud-timer')).toBeVisible({ timeout: 15_000 });
+  // Their match is done with: close it, so it doesn't starve the next one on a small CI machine.
+  for (const p of [a, b]) await p.context().close();
   // A third player gets bored of waiting and plays a CPU.
   await c.getByRole('button', { name: /Quick play/ }).click();
   await c.getByRole('button', { name: 'Play a CPU instead' }).click();
-  await expect(c.locator('.hud-timer')).toBeVisible({ timeout: 10_000 });
+  await expect(c.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
   const teams = await c.evaluate(() => (window as unknown as { __tardi: { world: { teams: { cpu: boolean }[] } } }).__tardi.world.teams.map((t) => t.cpu));
   expect(teams).toEqual([false, true]);
   expect(errors).toEqual([]);

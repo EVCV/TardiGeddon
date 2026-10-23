@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+// Contexts made with browser.newContext() outlive the test (the browser is shared
+// by the worker): close them, or their matches keep running and starve later tests.
+test.afterEach(async ({ browser, context }) => {
+  for (const c of browser.contexts()) if (c !== context) await c.close();
+});
+
 type Tardi = { state: { turn: { phase: string; teamIdx: number }; teams: { ammo: Record<string, number> }[]; tardis: { team: number }[] }; input: { command: (c: unknown) => void } };
 
 test('practice: unlimited ammo against targets, from the lobby', async ({ page }) => {
