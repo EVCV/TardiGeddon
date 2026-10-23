@@ -1,7 +1,7 @@
 // The phone apps (Capacitor, docs/APPS.md): what differs from the web game.
 // On the website none of this runs; Capacitor.isNativePlatform() is false there.
 
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, SystemBars } from '@capacitor/core';
 import { App } from '@capacitor/app';
 
 /** Running inside the Android or iOS app. */
@@ -28,6 +28,12 @@ export interface NativeHooks {
 
 export function attachNative(hooks: NativeHooks): void {
   if (!isNativeApp()) return;
+  // iOS: game sound mixes with the player's own music and follows the silent
+  // switch (as AppDelegate.swift sets for the app; WebKit's own audio needs telling too).
+  const nav = navigator as Navigator & { audioSession?: { type: string } };
+  if (Capacitor.getPlatform() === 'ios' && nav.audioSession) nav.audioSession.type = 'ambient';
+  // iOS: the home bar fades away while playing (Android hides its bars in MainActivity).
+  if (Capacitor.getPlatform() === 'ios') void SystemBars.hide().catch(() => {});
   void App.addListener('backButton', () => {
     // A dialog over the page closes first (they close on Escape, like on a computer).
     const overlay = document.querySelector('.editor-overlay');

@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 22 October 2026
-**Document Version:** v2.7
+**Document Version:** v2.8
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -77,7 +77,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 - your player name and email address;
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
-- if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in;
+- if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it;
 - when your account was created and last updated, and whether you have confirmed your email address;
 - the items your account has unlocked, and how (with coins, Slime, a gift, a promotional code, or an earlier direct purchase);
 - if you send or claim gifts: for each gift, the item, its price in coins, the preset message chosen, when it was bought, claimed or taken back, the account that bought it and the account that claimed it, and the last four characters of its code. We keep the full code only in scrambled ("hashed") form, so it cannot be read back from our records;

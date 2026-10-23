@@ -1,0 +1,6 @@
+# fastlane match keeps the App Store signing certificate and profile in a private
+# git repo, encrypted with MATCH_PASSWORD (docs/IOS.md §5). Never in this repo.
+git_url(ENV['MATCH_GIT_URL'])
+storage_mode('git')
+type('appstore')
+app_identifier(['com.tardigeddon.app'])

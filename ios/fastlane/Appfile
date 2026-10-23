@@ -1,0 +1,3 @@
+# The app on the App Store (capacitor.config.ts appId). The team comes from the
+# App Store Connect API key the lanes sign in with.
+app_identifier('com.tardigeddon.app')

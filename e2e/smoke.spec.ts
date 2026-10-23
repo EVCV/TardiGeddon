@@ -8,7 +8,7 @@ test('menu loads and a CPU match can be played', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.title')).toBeVisible();
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.locator('.hud-timer')).toBeVisible();
+  await expect(page.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
 
   // Let a couple of turns play out (the CPU and timers drive the game).
   await page.waitForFunction(() => {

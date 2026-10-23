@@ -14,6 +14,20 @@ the owner needs to keep doing. Last full review: 10 October 2026.
 - The sign-in cookie can't be read by page scripts (HttpOnly), only travels
   over HTTPS (Secure, `__Secure-` name) and isn't sent from other sites
   (SameSite=Lax).
+- Signing in to the Android app in a browser tab (Apple) hands the sign-in
+  back through a link any app could claim, so the one-time token in it only
+  works together with a verifier that never leaves the app (PKCE-style), is
+  used up on the first try, and lasts 2 minutes; Better Auth's own
+  one-time-token routes are closed (`/api/app/*`, docs/ACCOUNTS.md).
+- The iOS app can't use that cookie (WebKit drops it: its pages are
+  `capacitor://`), so it signs in with a **token** instead (Better Auth's
+  bearer plugin, `src/account/token.ts`), kept in the iOS Keychain. The server
+  hands the token only to `capacitor://` origins (`signsInWithToken` in
+  `server/accounts.ts`); everywhere else it's stripped from the reply, so
+  website scripts still can never read a sign-in. Only tokens signed with
+  the server's secret count. Online play can't send the token, so the app
+  swaps it for a ticket (`POST /api/ws-ticket`): random, one use, 30 seconds,
+  never logged.
 - Shop and stats requests are only accepted from the game's own pages, as
   JSON (`fromGame` in `server/accounts.ts`), so another website can't spend a
   player's coins.
@@ -35,6 +49,17 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   purchases of a coin pack, tagged with a hash of *this* account, once per
   token; then consumes it. Google refunds are checked hourly and take the coins
   back. The endpoint is rate-limited per player (each check calls Google).
+- iOS app purchases: the app only passes on the purchase as Apple signed it.
+  The server checks the signature up to Apple Root CA - G3
+  (`server/apple/AppleRootCA-G3.cer`, the same file as apple.com publishes: a
+  test pins its fingerprint and the iOS build compares it), with certificate
+  revocation checks, using Apple's own library (`server/appStore.ts`). It
+  grants only coin packs (consumables) for our bundle id, not refunded, tagged
+  with a UUID made from a hash of *this* account, once per transaction. The
+  app finishes a purchase with Apple only after that. Refund notifications
+  are accepted only when Apple signed them, for our app. Sandbox purchases
+  (TestFlight) grant coins free, so the TestFlight build is for invited
+  testers only: never a public TestFlight link.
 - Unlocks are all-or-nothing database transactions (no double spending).
 - Slime: online-rate Slime only when two or more different accounts played
   each other; anything else pays the CPU rate under its 200-a-day cap; one
@@ -102,8 +127,9 @@ game's code. Please:
   keeps payment records for its own legal reasons either way.
 - **Phone apps:** the Android app runs at `https://app.tardigeddon.com` (inside the
   phone), which must be in `TRUSTED_ORIGINS`; it signs in with the same
-  same-site cookie as the website. The iOS app (`capacitor://` scheme) will need to sign in with a
-  token kept in the phone's secure storage instead (docs/APPS.md).
+  same-site cookie as the website. The iOS app (`capacitor://app.tardigeddon.com`)
+  signs in with a token (above); that origin must be in `TRUSTED_ORIGINS` too
+  (docs/IOS.md §2a).
 
 ## Testing the security headers
 

@@ -306,22 +306,24 @@ export function shopItem(id: string): ShopItem | undefined {
 }
 
 /**
- * Google Play product ids that differ from the usual pattern. A deleted Play
- * product's id can never be used again, so coins_200 became coins_200_1.
+ * Product ids that differ from the usual pattern. A deleted Play product's id
+ * can never be used again, so coins_200 became coins_200_1 (and the App Store
+ * uses the same ids, to keep one list).
  */
-const PLAY_PRODUCT_IDS: Record<string, string> = { 'coins:200': 'coins_200_1' };
+const STORE_PRODUCT_IDS: Record<string, string> = { 'coins:200': 'coins_200_1' };
 
 /**
  * The pack's product id in Google Play (Play Console → Monetise with Play →
- * Products → One-time products): coins:500 → coins_500. Play ids can't contain ":".
+ * Products → One-time products) and the App Store (App Store Connect → In-App
+ * Purchases, consumable): coins:500 → coins_500. Play ids can't contain ":".
  */
-export function playProductId(pack: CoinPack): string {
-  return PLAY_PRODUCT_IDS[pack.id] ?? pack.id.replace(':', '_');
+export function storeProductId(pack: CoinPack): string {
+  return STORE_PRODUCT_IDS[pack.id] ?? pack.id.replace(':', '_');
 }
 
-/** The coin pack a Google Play product id sells, if any. */
-export function packForPlayProduct(productId: string): CoinPack | undefined {
-  return COIN_PACKS.find((p) => playProductId(p) === productId);
+/** The coin pack a Google Play or App Store product id sells, if any. */
+export function packForStoreProduct(productId: string): CoinPack | undefined {
+  return COIN_PACKS.find((p) => storeProductId(p) === productId);
 }
 
 export function coinPack(id: string): CoinPack | undefined {

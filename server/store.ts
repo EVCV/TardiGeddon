@@ -136,6 +136,14 @@ export async function migrate(db: Pool): Promise<void> {
       controls   jsonb NOT NULL,
       updated_at timestamptz NOT NULL DEFAULT now()
     );
+    -- Signing in to the Android app in a browser tab (Apple): the one-time
+    -- token that hands the sign-in back to the app, and the challenge only the
+    -- app that asked can answer. Both hashed; gone in minutes (purgeExpired).
+    CREATE TABLE IF NOT EXISTS app_signin (
+      token_hash text PRIMARY KEY,
+      challenge  text NOT NULL,
+      expires_at timestamptz NOT NULL
+    );
   `);
   await backfillSpends(db);
   await backfillLots(db);
@@ -270,6 +278,18 @@ export async function setStripeCustomerId(db: Pool, userId: string, customerId: 
 export async function purgeExpired(db: Pool): Promise<void> {
   await db.query('DELETE FROM session WHERE "expiresAt" < now()');
   await db.query('DELETE FROM verification WHERE "expiresAt" < now()');
+  await db.query('DELETE FROM app_signin WHERE expires_at < now()');
+}
+
+/** Remember which app asked for a sign-in handed over with `tokenHash` (see takeAppSignIn). */
+export async function saveAppSignIn(db: Pool, tokenHash: string, challenge: string, minutes: number): Promise<void> {
+  await db.query(`INSERT INTO app_signin (token_hash, challenge, expires_at) VALUES ($1, $2, now() + make_interval(mins => $3))`, [tokenHash, challenge, minutes]);
+}
+
+/** The challenge for a handed-over sign-in, used up (once only), or null if unknown or expired. */
+export async function takeAppSignIn(db: Pool, tokenHash: string): Promise<string | null> {
+  const r = await db.query<{ challenge: string }>('DELETE FROM app_signin WHERE token_hash = $1 AND expires_at > now() RETURNING challenge', [tokenHash]);
+  return r.rows[0]?.challenge ?? null;
 }
 
 export async function ownedItems(db: Pool, userId: string): Promise<string[]> {

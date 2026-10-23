@@ -16,6 +16,21 @@ export function serverUrl(): string | null {
 
 type Handler = (msg: ServerMsg) => void;
 
+let ticketSource: (() => Promise<string | null>) | null = null;
+
+/** Where a one-use ticket to join as the signed-in player comes from (the iOS app: account/session.ts). */
+export function setTicketSource(fn: () => Promise<string | null>): void {
+  ticketSource = fn;
+}
+
+/** The server's address with a ticket to join as the signed-in player, if there is one. */
+export function withTicket(url: string, ticket: string | null): string {
+  if (!ticket) return url;
+  const u = new URL(url);
+  u.searchParams.set('ticket', ticket);
+  return u.href;
+}
+
 export class NetClient {
   private ws: WebSocket | null = null;
   private handlers = new Set<Handler>();
@@ -27,10 +42,12 @@ export class NetClient {
 
   constructor(private url: string) {}
 
-  connect(): Promise<void> {
+  async connect(): Promise<void> {
     this.closing = false;
+    // Without a ticket the player joins signed out (still a full game, just no shop items).
+    const ticket = ticketSource ? await ticketSource().catch(() => null) : null;
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(this.url);
+      const ws = new WebSocket(withTicket(this.url, ticket));
       this.ws = ws;
       ws.onopen = () => resolve();
       ws.onerror = () => reject(new Error(tk('Could not reach the game server.')));
