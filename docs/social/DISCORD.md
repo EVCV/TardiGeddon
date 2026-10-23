@@ -60,12 +60,18 @@ Server Settings → **Safety Setup**:
 
 - **Verification level: Medium** (account older than 5 minutes and a verified
   email). Raise to High (in the server 10 minutes) if raids happen.
-- **Explicit image filter:** filter messages from **all members**.
 - **Require 2FA for moderator actions:** on.
-- **DM and spam protection:** hide DMs from suspicious users, and turn on
-  "warn members before they visit links outside Discord".
-- **Raid protection / CAPTCHA:** on (it's under Safety Setup → Raid
-  protection and CAPTCHA).
+- **Restrict member prune to admins:** on.
+- **Sensitive content filters:** filter messages from **all members**.
+- **Activity Alerts:** on, Safety Notifications Channel **`#mod-log`**
+  (make the channels in step 6 first, then come back). This is Discord's raid
+  and DM-spam alarm: it tells you when joins or DMs jump.
+- **Show Members In Channel List:** switches itself on with Community (step 4).
+
+Discord has moved its separate "DM spam" and "raid / CAPTCHA" switches: the
+alarms are Activity Alerts above, the blocking is AutoMod below, and the
+DM side is covered by members' own spam filters. If your Safety Setup or
+AutoMod page shows extra raid, CAPTCHA or DM-spam options, turn them on.
 
 Server Settings → **AutoMod**:
 
