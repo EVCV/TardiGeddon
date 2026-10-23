@@ -173,6 +173,11 @@ export function Layout({ children }: { children: ReactNode }) {
                 <Link to="/press">Press kit</Link>
               </li>
               <li>
+                <a href="https://www.youtube.com/@TardiGeddon" rel="me noopener">
+                  YouTube
+                </a>
+              </li>
+              <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>
             </ul>

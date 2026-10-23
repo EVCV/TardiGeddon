@@ -54,7 +54,7 @@ describe the genre ("turn-based artillery") instead. See the plan, §1.
 5. Check the structured data: Google's Rich Results Test
    (search.google.com/test/rich-results) on `/` and `/support`.
 6. When the game has social accounts (YouTube, TikTok, X, Bluesky,
-   Discord), add them to `sameAs` on the Organization in `site/src/seo.ts`,
+   Discord; see `docs/social/`), add them to `sameAs` on the Organization in `site/src/seo.ts`,
    and link them from the footer.
 7. When the Android app is live: add the Google Play listing to `sameAs`,
    `gamePlatform: 'Android'` to the VideoGame, and link it from every page.
