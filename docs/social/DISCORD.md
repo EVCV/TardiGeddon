@@ -30,9 +30,20 @@ This account will **own** the server, so look after it like a bank login.
    - Status bubble: `Playing TardiGeddon 💥`
    - Connections → Add Connection → YouTube (the @TardiGeddon channel), so
      the profile shows it.
-4. **Privacy** (User Settings → Content & Social): turn off "Allow DMs from
-   other members in this server" for the TardiGeddon server and others,
-   and turn on message requests. Scammers DM server owners constantly.
+4. **Privacy** (User Settings → Content & Social, and Data & Privacy):
+   - Sensitive content filters → Mature Sexual Media *and* Graphic Media:
+     DMs from friends **Blur**, DMs from others **Block**.
+   - Spam filters: **Filter all spam**.
+   - DM permissions (All servers): **Direct Messages off**. Players reach
+     us in `#help` or at support@tardigeddon.com, never by DM; scammers DM
+     server owners constantly.
+   - Friend requests: **Everyone, Friend of friends and Server members all
+     off**. Send requests *from* this account when needed (to your personal
+     account, a moderator). Personalised messages: off.
+   - Age group ("Confirm Age"): not needed. Discord treats unconfirmed
+     accounts as teens, which only means stricter filters, and those are
+     what we want here. Confirm it only if a setting you need is locked
+     (it asks for a face scan or ID through Discord's age-check partner).
 5. **A second admin.** If this account is ever lost, nobody can manage the
    server. Make your personal Discord account an Admin (step 5), with two-step
    sign-in on that too. Never transfer ownership to anyone else.
