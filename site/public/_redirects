@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects (https://developers.cloudflare.com/pages/configuration/redirects/).
+# The link we print everywhere for the Discord server. Only the invite here
+# changes if it ever has to be replaced (docs: social/DISCORD.md §9).
+/discord https://discord.gg/qK4gxGm28Z 302

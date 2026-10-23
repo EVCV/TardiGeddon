@@ -130,6 +130,7 @@ const organization = {
     postalCode: 'B49 5LH',
     addressCountry: 'GB',
   },
+  sameAs: ['https://discord.gg/qK4gxGm28Z'],
 };
 
 const website = {
