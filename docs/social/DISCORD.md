@@ -22,12 +22,14 @@ This account will **own** the server, so look after it like a bank login.
    - Avatar: `store/social/youtube-avatar.png`
    - Banner: `store/social/discord-profile-banner.png` (needs Nitro; without
      it, pick banner colour `#7fd3f7`).
-   - About Me:
-     > Official account of the TardiGeddon dev team 🐻
-     > Free turn-based artillery game starring tardigrades.
-     > ▶ Play: tardigeddon.com/play
+   - Bio (Discord used to call it "About Me"; 190 characters at most):
+     > Official TardiGeddon dev team 🐻 Free tardigrade artillery game.
+     > ▶ tardigeddon.com/play
      > ✉ support@tardigeddon.com
-     > We will never DM you first asking for passwords, codes or payments.
+     > We never DM first asking for passwords, codes or payments.
+   - Status bubble: `Playing TardiGeddon 💥`
+   - Connections → Add Connection → YouTube (the @TardiGeddon channel), so
+     the profile shows it.
 4. **Privacy** (User Settings → Content & Social): turn off "Allow DMs from
    other members in this server" for the TardiGeddon server and others,
    and turn on message requests. Scammers DM server owners constantly.
