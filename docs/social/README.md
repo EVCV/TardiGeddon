@@ -6,7 +6,7 @@ share: names, the bios, the voice and the rules.
 
 | Platform | Account | Status | Guide |
 |---|---|---|---|
-| Discord | developer@tardigeddon.com, server "TardiGeddon" | Setting up | [DISCORD.md](DISCORD.md) |
+| Discord | developer@tardigeddon.com, server "TardiGeddon" (ID `1563291030382706768`) | Setting up | [DISCORD.md](DISCORD.md) |
 | YouTube | [@TardiGeddon](https://www.youtube.com/@TardiGeddon) | Setting up | [YOUTUBE.md](YOUTUBE.md) |
 | TikTok, Instagram, X, Bluesky, Reddit, Threads, Facebook | | Later, one at a time | |
 

@@ -3,7 +3,7 @@
 // onboarding, and the welcome / rules / FAQ messages (taken from the guide,
 // so the guide stays the one place to change the text).
 //
-//   DISCORD_BOT_TOKEN=… DISCORD_GUILD_ID=… npx tsx scripts/discord-setup.ts
+//   DISCORD_BOT_TOKEN=… npx tsx scripts/discord-setup.ts   (DISCORD_GUILD_ID for another server)
 //   (DRY_RUN=1 to only print what it would do)
 //
 // The bot must be in the server with Administrator. Safe to run again: it
@@ -17,9 +17,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
-const GUILD = process.env.DISCORD_GUILD_ID;
+const GUILD = process.env.DISCORD_GUILD_ID ?? '1563291030382706768'; // the TardiGeddon server
 const DRY = !!process.env.DRY_RUN;
-if (!TOKEN || !GUILD) throw new Error('Set DISCORD_BOT_TOKEN and DISCORD_GUILD_ID');
+if (!TOKEN) throw new Error('Set DISCORD_BOT_TOKEN');
 
 // ---- Discord REST ----
 
