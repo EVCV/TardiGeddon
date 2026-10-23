@@ -121,6 +121,8 @@ const organization = {
   url: SITE_URL,
   logo: { '@type': 'ImageObject', url: abs('/media/logo.png'), width: 1200, height: 400 },
   email: 'support@tardigeddon.com',
+  // The game's social accounts (docs/social/).
+  sameAs: ['https://www.youtube.com/@TardiGeddon', 'https://discord.gg/qK4gxGm28Z'],
   vatID: 'GB389265053',
   address: {
     '@type': 'PostalAddress',
@@ -130,7 +132,6 @@ const organization = {
     postalCode: 'B49 5LH',
     addressCountry: 'GB',
   },
-  sameAs: ['https://discord.gg/qK4gxGm28Z'],
 };
 
 const website = {
