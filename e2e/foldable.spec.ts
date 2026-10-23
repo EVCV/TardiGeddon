@@ -18,8 +18,6 @@ const spills = (page: Page) =>
       .map((e) => (e.textContent ?? '').trim()),
   );
 
-// It makes its own touch screens, so once (in the desktop project) is enough.
-test.beforeEach(({}, info) => test.skip(info.project.name !== 'desktop'));
 
 test('an open foldable on its side (near-square) shows the menu with nothing spilling', async ({ browser }) => {
   for (const size of [{ width: 783, height: 755 }, { width: 832, height: 750 }]) {

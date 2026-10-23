@@ -8,8 +8,6 @@ async function touchPage(browser: Browser, viewport: { width: number; height: nu
   return ctx.newPage();
 }
 
-// It makes its own touch screens, so once (in the desktop project) is enough.
-test.beforeEach(({}, info) => test.skip(info.project.name !== 'desktop'));
 
 test('an upright iPad plays, with the whole title in view', async ({ browser }) => {
   const page = await touchPage(browser, { width: 1032, height: 1376 }, { width: 1032, height: 1376 });
