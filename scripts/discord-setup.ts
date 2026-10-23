@@ -236,8 +236,9 @@ for (const r of ROLES) {
 await step('@everyone permissions', () => api('PATCH', `/guilds/${GUILD}/roles/${GUILD}`, { permissions: EVERYONE }));
 // Order: the list above, top to bottom, just under the bot's own role.
 const me = await api('GET', '/users/@me');
+const nowRoles: Json[] = DRY ? roles : await api('GET', `/guilds/${GUILD}/roles`);
 const botMember = await api('GET', `/guilds/${GUILD}/members/${me.id}`);
-const botTop = Math.max(0, ...roles.filter((r) => botMember.roles.includes(r.id)).map((r) => r.position));
+const botTop = Math.max(0, ...nowRoles.filter((r) => botMember.roles.includes(r.id)).map((r) => r.position));
 const ordered = ROLES.map((r) => role[r.name]).filter(Boolean);
 await step('role order', () =>
   api('PATCH', `/guilds/${GUILD}/roles`, ordered.map((id, i) => ({ id, position: Math.max(1, botTop - 1 - i) }))),
@@ -288,7 +289,9 @@ async function ensure(c: Chan, parent: string, position: number): Promise<void> 
     if (have.available_tags?.length) delete body.available_tags;
     chan[c.name] = (await step(`channel ${c.name}`, () => api('PATCH', `/channels/${have.id}`, body))) ?? have;
   } else {
-    const made = await step(`channel ${c.name}`, () => api('POST', `/guilds/${GUILD}/channels`, body));
+    const { flags, ...create } = body;
+    const made = await step(`channel ${c.name}`, () => api('POST', `/guilds/${GUILD}/channels`, create));
+    if (made && flags) await step(`require tags in #${c.name}`, () => api('PATCH', `/channels/${made.id}`, { flags }));
     if (made) {
       chan[c.name] = made;
       console.log(`+ #${c.name}`);
@@ -378,7 +381,7 @@ const AUTOMOD: Json[] = [
   {
     name: 'Scams',
     trigger_type: 1,
-    trigger_metadata: { keyword_filter: ['*free nitro*', '*nitro gift*', '*steam gift*', '*steamcommunity.gift*', '*discord.gift*', '*@everyone free*', 'airdrop*', 'crypto*', 'onlyfans*'] },
+    trigger_metadata: { keyword_filter: ['*free nitro*', '*nitro gift*', '*steam gift*', '*steamcommunity.gift*', '*discord.gift*', '*@everyone free*', 'airdrop*', 'onlyfans*'] },
     actions: [block, ...alert],
   },
   {
@@ -422,7 +425,7 @@ const snowflake = () => (((BigInt(Date.now()) - 1420070400000n) << 22n) + n++).t
 const option = (title: string, emoji: string, roleName: string, channelName?: string) => ({
   id: snowflake(),
   title,
-  emoji: { name: emoji },
+  emoji_name: emoji,
   role_ids: role[roleName] ? [role[roleName]] : [],
   channel_ids: channelName && chan[channelName] ? [chan[channelName].id] : [],
 });

@@ -80,7 +80,7 @@ Server Settings → **AutoMod**:
 | Block mention spam | On, 5 mentions, block + timeout 10 minutes |
 | Block suspected spam content | On |
 | Block commonly flagged words | All three lists on (profanity, insults and slurs, sexual content) |
-| Custom: scams | Block these words, alert in `#mod-log`: `free nitro`, `nitro gift`, `steam gift`, `steamcommunity.gift`, `discord.gift`, `@everyone free`, `airdrop`, `crypto`, `onlyfans` |
+| Custom: scams | Block these words, alert in `#mod-log`: `free nitro`, `nitro gift`, `steam gift`, `steamcommunity.gift`, `discord.gift`, `@everyone free`, `airdrop`, `onlyfans` (not `crypto`: it would block *cryptobiosis*, a real tardigrade word) |
 | Custom: invites | Block `discord.gg/*` and `discord.com/invite/*` (add staff to the exempt roles) |
 | Block words in member profiles | On, with the flagged-word lists |
 
