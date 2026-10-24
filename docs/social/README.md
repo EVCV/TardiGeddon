@@ -100,6 +100,7 @@ heroes; explosions are cartoon. Write the way the game's own text reads
 | `reddit-banner.png` | 1920×384 | r/TardiGeddon banner (phones crop the sides) |
 | `reddit-profile-banner.png` | 1600×500 | Reddit profile banner (the profile shows about 3.2:1) |
 | `reddit-icon.png` | 256×256 | r/TardiGeddon community icon |
+| `facebook-cover.png` | 1640×624 | Facebook Page cover (phones show only the middle; the profile picture covers the bottom-left) |
 | `discord-server-icon.png` | 512×512 | Discord server icon |
 | `discord-server-banner.png` | 960×540 | Discord server banner (Boost level 2) |
 | `discord-invite-splash.png` | 1920×1080 | Discord invite background (Boost level 1) |

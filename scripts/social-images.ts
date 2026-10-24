@@ -1,6 +1,6 @@
 // Pictures for TardiGeddon's social accounts (docs/social/): YouTube banner,
 // avatar, watermark and thumbnails; Discord server icon, banners and emoji;
-// Bluesky and Reddit banners.
+// Bluesky, Reddit and Facebook banners.
 // Same art as the website's share pictures (site/capture/share-images.ts):
 // the mascot, the logo lettering and real screenshots from site/public/media.
 //
@@ -290,6 +290,28 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
     ),
   },
   { file: 'reddit-icon.png', w: 256, h: 256, html: avatar(256) },
+  // Facebook Page cover (shown 820×312 on computers; phones crop it to 16:9,
+  // the middle 1110px here). The profile picture covers the bottom-left.
+  {
+    file: 'facebook-cover.png',
+    w: 1640,
+    h: 624,
+    html: page(
+      `<div class="sky">
+        ${ground(100, 22)}
+        ${shot('shot-realm-sky.webp', 'left:1320px;top:140px;width:280px;height:158px;transform:rotate(5deg)')}
+        ${tardi(BLUE, 'tophat', 'width:170px;left:330px;top:410px')}
+        ${tardi(GREEN, 'crown', 'width:180px;left:1150px;top:402px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:265px;top:70px;width:1110px;height:330px">
+          <div class="logo" style="font-size:140px;-webkit-text-stroke:6px #2b1b24;text-shadow:0 8px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:44px;margin-top:20px">Tiny. Indestructible. Armed.</div>
+          <div class="badges" style="font-size:32px;margin-top:20px"><b>Free</b><b>No download</b><b>Online with friends</b></div>
+        </div>
+      </div>`,
+      1640,
+      624,
+    ),
+  },
   // Discord custom emoji (128×128, transparent).
   { file: 'emoji/tardi.png', w: 128, h: 128, transparent: true, html: emoji(RED, 'beanie') },
   { file: 'emoji/tardi_blue.png', w: 128, h: 128, transparent: true, html: emoji(BLUE, 'beanie') },
