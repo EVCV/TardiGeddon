@@ -290,6 +290,28 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
     ),
   },
   { file: 'reddit-icon.png', w: 256, h: 256, html: avatar(256) },
+  // itch.io cover (630×500 shown; drawn at double size).
+  {
+    file: 'itch-cover.png',
+    w: 1260,
+    h: 1000,
+    html: page(
+      `<div class="sky">
+        ${ground(200, 36)}
+        ${shot('shot-crater.webp', 'left:140px;top:430px;width:560px;height:315px;transform:rotate(-4deg)')}
+        ${tardi(BLUE, 'tophat', 'width:200px;left:110px;top:665px')}
+        ${tardi(RED, 'beanie', 'width:290px;left:720px;top:595px')}
+        ${tardi(GREEN, 'crown', 'width:200px;left:1010px;top:662px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:0;top:70px;width:1260px">
+          <div class="logo" style="font-size:180px;-webkit-text-stroke:7px #2b1b24;text-shadow:0 10px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:52px;margin-top:24px">Tiny. Indestructible. Armed.</div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:55px;text-align:center;font-family:'Luckiest Guy';font-size:72px;color:#fff8ec;-webkit-text-stroke:4px #2b1b24;paint-order:stroke fill">Free to play</div>
+      </div>`,
+      1260,
+      1000,
+    ),
+  },
   // Game cover, portrait like a box (IGDB, game directories; 1200×1700).
   {
     file: 'game-cover.png',

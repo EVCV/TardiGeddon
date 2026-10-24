@@ -105,6 +105,7 @@ heroes; explosions are cartoon. Write the way the game's own text reads
 | `twitch-offline.png` | 1920×1080 | Twitch video player banner when not live |
 | `twitch-panel-*.png` | 320×100 | Twitch About panels: About, Play free, Discord, Schedule |
 | `game-cover.png` | 1200×1700 | Box-style game cover: IGDB and game directories |
+| `itch-cover.png` | 1260×1000 | itch.io cover (shown at 630×500) |
 | `discord-server-icon.png` | 512×512 | Discord server icon |
 | `discord-server-banner.png` | 960×540 | Discord server banner (Boost level 2) |
 | `discord-invite-splash.png` | 1920×1080 | Discord invite background (Boost level 1) |
