@@ -1,6 +1,6 @@
 // Pictures for TardiGeddon's social accounts (docs/social/): YouTube banner,
 // avatar, watermark and thumbnails; Discord server icon, banners and emoji;
-// Bluesky, Reddit and Facebook banners.
+// Bluesky, Reddit, Facebook and Twitch banners and Twitch panels.
 // Same art as the website's share pictures (site/capture/share-images.ts):
 // the mascot, the logo lettering and real screenshots from site/public/media.
 //
@@ -290,6 +290,59 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
     ),
   },
   { file: 'reddit-icon.png', w: 256, h: 256, html: avatar(256) },
+  // Twitch profile banner (1200×480).
+  {
+    file: 'twitch-banner.png',
+    w: 1200,
+    h: 480,
+    html: page(
+      `<div class="sky">
+        ${ground(80, 18)}
+        ${tardi(BLUE, 'tophat', 'width:150px;left:90px;top:308px')}
+        ${tardi(GREEN, 'crown', 'width:160px;left:950px;top:300px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:100px;top:50px;width:1000px;height:270px">
+          <div class="logo" style="font-size:120px;-webkit-text-stroke:5px #2b1b24;text-shadow:0 7px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:38px;margin-top:18px">Tiny. Indestructible. Armed.</div>
+        </div>
+      </div>`,
+      1200,
+      480,
+    ),
+  },
+  // Twitch "offline" screen: what the video player shows when not live (1920×1080).
+  {
+    file: 'twitch-offline.png',
+    w: 1920,
+    h: 1080,
+    html: page(
+      `<div class="sky">
+        ${ground(170, 32)}
+        ${shot('shot-crater.webp', 'left:110px;top:560px;width:480px;height:270px;transform:rotate(-4deg)')}
+        ${shot('shot-realm-sky.webp', 'left:1330px;top:560px;width:480px;height:270px;transform:rotate(4deg)')}
+        ${tardi(RED, 'beanie', 'width:220px;left:850px;top:676px')}
+        <div class="center" style="position:absolute;left:0;top:90px;width:1920px;height:440px">
+          <div class="logo" style="font-size:170px;-webkit-text-stroke:7px #2b1b24;text-shadow:0 10px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div class="big" style="font-size:96px;margin-top:40px">Offline for now</div>
+          <div style="font-size:48px;margin-top:26px">Play free at tardigeddon.com/play</div>
+        </div>
+      </div>`,
+      1920,
+      1080,
+    ),
+  },
+  // Twitch "About" panels under the stream (320×100 each).
+  ...['About', 'Play free', 'Discord', 'Schedule'].map((label) => ({
+    file: `twitch-panel-${label.toLowerCase().replace(' ', '-')}.png`,
+    w: 320,
+    h: 100,
+    html: page(
+      `<div class="sky center" style="background:#7fd3f7">
+        <div class="big" style="font-size:52px;-webkit-text-stroke:4px #2b1b24;text-shadow:0 5px 0 #2b1b24">${label}</div>
+      </div>`,
+      320,
+      100,
+    ),
+  })),
   // Facebook Page cover (shown 820×312 on computers; phones crop it to 16:9,
   // the middle 1110px here). The profile picture covers the bottom-left.
   {
