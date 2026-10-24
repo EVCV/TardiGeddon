@@ -19,7 +19,7 @@ the Shorts.
 ## 2. Profile
 
 - **Avatar:** `store/social/youtube-avatar.png`
-- **Banner** (3:1): none yet.
+- **Banner:** `store/social/bluesky-banner.png` (3000×1000; the bottom-left corner is kept clear for the avatar)
 - **Display name:** TardiGeddon
 - **Description:**
   > Free turn-based artillery game starring tardigrades 💥 Walk, aim, fire, and be the last tardi standing. No download, no ads.

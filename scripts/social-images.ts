@@ -1,9 +1,10 @@
 // Pictures for TardiGeddon's social accounts (docs/social/): YouTube banner,
-// avatar, watermark and thumbnails; Discord server icon, banners and emoji.
+// avatar, watermark and thumbnails; Discord server icon, banners and emoji;
+// Bluesky banner.
 // Same art as the website's share pictures (site/capture/share-images.ts):
 // the mascot, the logo lettering and real screenshots from site/public/media.
 //
-//   npx tsx scripts/social-images.ts
+//   npx tsx scripts/social-images.ts [file ...]   (e.g. bluesky-banner.png; all if none given)
 //
 // Writes store/social/, including a 25-second vertical teaser for YouTube
 // Shorts made from the website's clips (needs ffmpeg on the PATH). Needs Playwright's Chromium
@@ -223,6 +224,28 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
       240,
     ),
   },
+  // Bluesky profile banner (3:1). The round avatar covers the bottom-left
+  // corner on every screen, so that corner is only sky and ground.
+  {
+    file: 'bluesky-banner.png',
+    w: 3000,
+    h: 1000,
+    html: page(
+      `<div class="sky">
+        ${ground(170, 30)}
+        ${shot('shot-crater.webp', 'left:2130px;top:150px;width:760px;height:428px;transform:rotate(4deg)')}
+        ${tardi(GREEN, 'crown', 'width:270px;left:2420px;top:630px;transform:scaleX(-1)')}
+        ${tardi(BLUE, 'tophat', 'width:250px;left:1760px;top:645px')}
+        <div class="center" style="position:absolute;left:600px;top:130px;width:1500px;height:560px">
+          <div class="logo" style="font-size:190px;-webkit-text-stroke:7px #2b1b24;text-shadow:0 10px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:60px;margin-top:30px">Tiny. Indestructible. Armed.</div>
+          <div class="badges" style="font-size:42px;margin-top:30px"><b>Free</b><b>No download</b><b>Online with friends</b></div>
+        </div>
+      </div>`,
+      3000,
+      1000,
+    ),
+  },
   // Discord custom emoji (128×128, transparent).
   { file: 'emoji/tardi.png', w: 128, h: 128, transparent: true, html: emoji(RED, 'beanie') },
   { file: 'emoji/tardi_blue.png', w: 128, h: 128, transparent: true, html: emoji(BLUE, 'beanie') },
@@ -240,7 +263,8 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
 mkdirSync(join(out, 'emoji'), { recursive: true });
 mkdirSync(join(out, 'shorts'), { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
-for (const img of IMAGES) {
+const only = process.argv.slice(2);
+for (const img of IMAGES.filter((i) => !only.length || only.includes(i.file))) {
   const p = await browser.newPage({ viewport: { width: img.w, height: img.h } });
   await p.setContent(img.html);
   await p.evaluate(() => document.fonts.ready);
@@ -251,6 +275,7 @@ for (const img of IMAGES) {
 await browser.close();
 
 // The Shorts teaser: each clip inside its frame, one after another, with a silent sound track.
+if (only.length) process.exit(0);
 const parts = SHORT.map((_, i) => `[${2 * i + 1}:v]scale=1080:608[c${i}];[${2 * i}:v][c${i}]overlay=0:640:shortest=1,fps=30,format=yuv420p[v${i}]`);
 const concat = `${SHORT.map((_, i) => `[v${i}]`).join('')}concat=n=${SHORT.length}:v=1:a=0[v]`;
 try {

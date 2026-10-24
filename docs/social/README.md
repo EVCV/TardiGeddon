@@ -96,6 +96,7 @@ heroes; explosions are cartoon. Write the way the game's own text reads
 | `youtube-thumb-trailer.png` | 1280×720 | Thumbnail for the trailer |
 | `youtube-thumb-template.png` | 1280×720 | Layout to copy for gameplay thumbnails |
 | `shorts/teaser.mp4` | 1080×1920, 25 s | First YouTube Short (also suits TikTok, Reels) |
+| `bluesky-banner.png` | 3000×1000 | Bluesky profile banner (avatar covers the bottom-left) |
 | `discord-server-icon.png` | 512×512 | Discord server icon |
 | `discord-server-banner.png` | 960×540 | Discord server banner (Boost level 2) |
 | `discord-invite-splash.png` | 1920×1080 | Discord invite background (Boost level 1) |
