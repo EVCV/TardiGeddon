@@ -450,6 +450,7 @@ body.menu-open { overflow: hidden; }
 .footer-mascot svg { width: 84px; }
 .site-footer h2 { font-family: var(--title); font-weight: normal; font-size: 22px; color: var(--accent); margin: 0 0 8px; }
 .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.footer-follow ul { grid-template-columns: repeat(2, max-content); column-gap: 28px; }
 .footer-notices {
   max-width: var(--wide);
   margin: 32px auto 0;

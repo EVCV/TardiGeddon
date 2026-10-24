@@ -15,6 +15,7 @@ import { EGGS } from '../../src/eggs';
 import { SITE_URL } from './config';
 import { LEGAL_PAGES } from './legal';
 import { PROMO } from './promo';
+import { SOCIAL } from './social';
 
 const WEAPON_COUNT = PANEL_WEAPONS.filter((w) => w.id !== 'skip').length;
 
@@ -121,8 +122,8 @@ const organization = {
   url: SITE_URL,
   logo: { '@type': 'ImageObject', url: abs('/media/logo.png'), width: 1200, height: 400 },
   email: 'support@tardigeddon.com',
-  // The game's social accounts (docs/social/).
-  sameAs: ['https://www.youtube.com/@TardiGeddon', 'https://discord.gg/qK4gxGm28Z', 'https://www.tiktok.com/@tardigeddon', 'https://bsky.app/profile/tardigeddon.com'],
+  // The game's social accounts (site/src/social.ts).
+  sameAs: SOCIAL.map((s) => s.profile ?? s.href),
   vatID: 'GB389265053',
   address: {
     '@type': 'PostalAddress',

@@ -5,6 +5,7 @@ import { Link, usePath } from '../router';
 import { Mascot } from './Mascot';
 import { PLAY_URL } from '../config';
 import { LEGAL_PAGES } from '../legal';
+import { SOCIAL } from '../social';
 import { holdScroll } from '../motion/SmoothScroll';
 import { RopeSwinger } from './RopeSwinger';
 
@@ -173,28 +174,20 @@ export function Layout({ children }: { children: ReactNode }) {
                 <Link to="/press">Press kit</Link>
               </li>
               <li>
-                <a href="https://www.youtube.com/@TardiGeddon" rel="me noopener">
-                  YouTube
-                </a>
-              </li>
-              <li>
-                <a href="/discord" rel="me noopener">
-                  Discord
-                </a>
-              </li>
-              <li>
-                <a href="https://www.tiktok.com/@tardigeddon" rel="me noopener">
-                  TikTok
-                </a>
-              </li>
-              <li>
-                <a href="https://bsky.app/profile/tardigeddon.com" rel="me noopener">
-                  Bluesky
-                </a>
-              </li>
-              <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>
+            </ul>
+          </nav>
+          <nav aria-label="Follow" className="footer-follow">
+            <h2>Follow</h2>
+            <ul>
+              {SOCIAL.map((s) => (
+                <li key={s.label}>
+                  <a href={s.href} rel="me noopener">
+                    {s.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </nav>
           <nav aria-label="Legal">

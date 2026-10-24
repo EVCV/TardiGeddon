@@ -10,7 +10,14 @@ share: names, the bios, the voice and the rules.
 | YouTube | [@TardiGeddon](https://www.youtube.com/@TardiGeddon) | Live | [YOUTUBE.md](YOUTUBE.md) |
 | TikTok | [@tardigeddon](https://www.tiktok.com/@tardigeddon) | Live | [TIKTOK.md](TIKTOK.md) |
 | Bluesky | [@tardigeddon.com](https://bsky.app/profile/tardigeddon.com) | Live | [BLUESKY.md](BLUESKY.md) |
-| Instagram, X, Reddit, Threads, Facebook | | Later, one at a time | |
+| Instagram | [@tardigeddon](https://www.instagram.com/tardigeddon) | Live | |
+| Facebook | [facebook.com/tardigeddon](https://www.facebook.com/tardigeddon) | Live | |
+| Threads | [@tardigeddon](https://www.threads.net/@tardigeddon) | Live | |
+| X | [@TardiGeddon](https://x.com/TardiGeddon) | Live | |
+| Twitch | [tardigeddon](https://www.twitch.tv/tardigeddon) | Live | |
+| Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Live (posting plan in progress) | |
+| itch.io | [tardigeddon.itch.io/tardigeddon](https://tardigeddon.itch.io/tardigeddon) | Live (links out to the game) | |
+| IGDB | [igdb.com/games/tardigeddon](https://www.igdb.com/games/tardigeddon) | Submitted | |
 
 Pictures for every platform: `npx tsx scripts/social-images.ts` writes them
 to `store/social/` (see the table at the end). They're drawn from the game's
@@ -81,8 +88,8 @@ heroes; explosions are cartoon. Write the way the game's own text reads
 
 ## After each platform goes live
 
-1. Add it to `sameAs` on the Organization in `site/src/seo.ts` and to the
-   "Game" links in the site footer (`site/src/components/Layout.tsx`).
+1. Add it to `SOCIAL` in `site/src/social.ts`: that's the footer's "Follow"
+   links and the Organization's `sameAs` for search engines.
 2. Link it from the other platforms' link lists.
 3. Update the status in the table above.
 
