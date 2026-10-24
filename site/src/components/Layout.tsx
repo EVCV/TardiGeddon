@@ -183,6 +183,11 @@ export function Layout({ children }: { children: ReactNode }) {
                 </a>
               </li>
               <li>
+                <a href="https://www.tiktok.com/@tardigeddon" rel="me noopener">
+                  TikTok
+                </a>
+              </li>
+              <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>
             </ul>
