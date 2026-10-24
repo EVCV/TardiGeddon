@@ -290,6 +290,30 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
     ),
   },
   { file: 'reddit-icon.png', w: 256, h: 256, html: avatar(256) },
+  // Game cover, portrait like a box (IGDB, game directories; 1200×1700).
+  {
+    file: 'game-cover.png',
+    w: 1200,
+    h: 1700,
+    html: page(
+      `<div class="sky">
+        ${ground(380, 50)}
+        ${shot('shot-crater.webp', 'left:90px;top:680px;width:510px;height:287px;transform:rotate(-5deg)')}
+        ${shot('shot-realm-sky.webp', 'left:600px;top:770px;width:510px;height:287px;transform:rotate(4deg)')}
+        ${tardi(BLUE, 'tophat', 'width:250px;left:110px;top:1135px')}
+        ${tardi(RED, 'beanie', 'width:380px;left:410px;top:1040px')}
+        ${tardi(GREEN, 'crown', 'width:250px;left:840px;top:1130px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:0;top:70px;width:1200px">
+          <div class="logo" style="font-size:235px;-webkit-text-stroke:9px #2b1b24;text-shadow:0 14px 0 #2b1b24;line-height:0.9">Tardi</div>
+          <div class="logo" style="font-size:235px;-webkit-text-stroke:9px #2b1b24;text-shadow:0 14px 0 #2b1b24;line-height:0.9"><span>Geddon</span></div>
+          <div style="font-size:56px;margin-top:20px">Tiny. Indestructible. Armed.</div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:120px;text-align:center;font-family:'Luckiest Guy';font-size:84px;color:#fff8ec;-webkit-text-stroke:4px #2b1b24;paint-order:stroke fill">Free to play</div>
+      </div>`,
+      1200,
+      1700,
+    ),
+  },
   // Twitch profile banner (1200×480).
   {
     file: 'twitch-banner.png',
