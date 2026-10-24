@@ -246,7 +246,7 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
       1000,
     ),
   },
-  // Reddit banner for the profile and r/TardiGeddon (1920×384). The phone app
+  // Reddit banner for r/TardiGeddon (1920×384). The phone app
   // crops the sides, so the logo stays in the middle 1000px.
   {
     file: 'reddit-banner.png',
@@ -266,6 +266,27 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
       </div>`,
       1920,
       384,
+    ),
+  },
+  // Reddit profile banner: the profile shows only about 3.2:1, so it gets its
+  // own picture. The avatar sits over the bottom-left corner.
+  {
+    file: 'reddit-profile-banner.png',
+    w: 1600,
+    h: 500,
+    html: page(
+      `<div class="sky">
+        ${ground(80, 18)}
+        ${shot('shot-crater.webp', 'left:1170px;top:70px;width:370px;height:208px;transform:rotate(4deg)')}
+        ${tardi(GREEN, 'crown', 'width:150px;left:1300px;top:313px;transform:scaleX(-1)')}
+        ${tardi(BLUE, 'tophat', 'width:140px;left:990px;top:322px')}
+        <div class="center" style="position:absolute;left:230px;top:60px;width:900px;height:280px">
+          <div class="logo" style="font-size:118px;-webkit-text-stroke:5px #2b1b24;text-shadow:0 7px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:38px;margin-top:18px">Tiny. Indestructible. Armed.</div>
+        </div>
+      </div>`,
+      1600,
+      500,
     ),
   },
   { file: 'reddit-icon.png', w: 256, h: 256, html: avatar(256) },
