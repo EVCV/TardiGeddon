@@ -122,7 +122,7 @@ const organization = {
   logo: { '@type': 'ImageObject', url: abs('/media/logo.png'), width: 1200, height: 400 },
   email: 'support@tardigeddon.com',
   // The game's social accounts (docs/social/).
-  sameAs: ['https://www.youtube.com/@TardiGeddon', 'https://discord.gg/qK4gxGm28Z'],
+  sameAs: ['https://www.youtube.com/@TardiGeddon', 'https://discord.gg/qK4gxGm28Z', 'https://www.tiktok.com/@tardigeddon'],
   vatID: 'GB389265053',
   address: {
     '@type': 'PostalAddress',
