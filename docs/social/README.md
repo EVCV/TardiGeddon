@@ -9,7 +9,8 @@ share: names, the bios, the voice and the rules.
 | Discord | developer@tardigeddon.com, server "TardiGeddon" (ID `1563291030382706768`), [tardigeddon.com/discord](https://tardigeddon.com/discord) | Live (set up by `scripts/discord-setup.ts`) | [DISCORD.md](DISCORD.md) |
 | YouTube | [@TardiGeddon](https://www.youtube.com/@TardiGeddon) | Live | [YOUTUBE.md](YOUTUBE.md) |
 | TikTok | [@tardigeddon](https://www.tiktok.com/@tardigeddon) | Live | [TIKTOK.md](TIKTOK.md) |
-| Instagram, X, Bluesky, Reddit, Threads, Facebook | | Later, one at a time | |
+| Bluesky | [@tardigeddon.com](https://bsky.app/profile/tardigeddon.com) | Live | [BLUESKY.md](BLUESKY.md) |
+| Instagram, X, Reddit, Threads, Facebook | | Later, one at a time | |
 
 Pictures for every platform: `npx tsx scripts/social-images.ts` writes them
 to `store/social/` (see the table at the end). They're drawn from the game's

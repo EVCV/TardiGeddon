@@ -188,6 +188,11 @@ export function Layout({ children }: { children: ReactNode }) {
                 </a>
               </li>
               <li>
+                <a href="https://bsky.app/profile/tardigeddon.com" rel="me noopener">
+                  Bluesky
+                </a>
+              </li>
+              <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>
             </ul>
