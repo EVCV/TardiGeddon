@@ -6,6 +6,8 @@
 // INVITE_MAX invites a calendar month. The friend's account must be older than the new one, so
 // two new accounts can't invite each other.
 //
+// Creator codes work the same way for the new player (server/creators.ts).
+//
 // The Founder pack: accounts made before the launch (FOUNDER_UNTIL), and the
 // testers and helpers listed in FOUNDER_EMAILS, get looks that are never sold
 // and some coins, the first time they're seen after that. The Early bird pack
@@ -13,7 +15,8 @@
 // EARLY_BIRD_UNTIL; founders get both.
 
 import type { Pool } from 'pg';
-import { userByCode } from './friends';
+import { normaliseFriendCode, userByCode } from './friends';
+import { creatorByCode, joinCreator } from './creators';
 import { grantFreeCoins } from './store';
 import { EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, EARLY_BIRD_UNTIL, FOUNDER_COINS, FOUNDER_ITEMS, FOUNDER_UNTIL, INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../src/shop/rewards';
 
@@ -43,12 +46,26 @@ export async function migrateRewards(db: Pool): Promise<void> {
 
 export type InviteResult = 'ok' | 'unknown' | 'self' | 'already' | 'late' | 'newer';
 
-/** A new player says who invited them, by the friend's code. */
+/**
+ * A new player says who invited them: a friend's code, or a creator's code
+ * (server/creators.ts; the new player gets the same reward, and the creator a
+ * share of what they spend instead of coins).
+ */
 export async function enterInvite(db: Pool, userId: string, code: string, now = Date.now()): Promise<InviteResult> {
   const me = await db.query<{ createdAt: Date }>('SELECT "createdAt" FROM "user" WHERE id = $1', [userId]);
   if (!me.rows[0]) return 'unknown';
   if (now - new Date(me.rows[0].createdAt).getTime() > INVITE_DAYS * 86_400_000) return 'late';
-  const inviter = await userByCode(db, code);
+  const creator = await creatorByCode(db, code);
+  if (creator) {
+    if (creator.userId === userId) return 'self';
+    const r = await db.query('INSERT INTO invite (user_id, inviter_id) VALUES ($1, NULL) ON CONFLICT DO NOTHING', [userId]);
+    if (!r.rowCount) return 'already';
+    await joinCreator(db, userId, creator.code);
+    await settleInvite(db, userId);
+    return 'ok';
+  }
+  const friend = normaliseFriendCode(code);
+  const inviter = friend ? await userByCode(db, friend) : null;
   if (!inviter) return 'unknown';
   if (inviter === userId) return 'self';
   const them = await db.query<{ createdAt: Date }>('SELECT "createdAt" FROM "user" WHERE id = $1', [inviter]);

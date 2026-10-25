@@ -15,7 +15,8 @@ free without an account.
   `stripe_customer`, `purchase` (every payment), `gift`,
   `spend` (the Sales page's log, not linked to players), `done_once`,
   `challenge_score` (each player's best daily challenge run per day),
-  `friend_code`, `friend`, `invite`, `founder` and `early_bird`.
+  `friend_code`, `friend`, `invite`, `founder`, `early_bird`, `creator`,
+  `creator_player` and `creator_payout`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -81,6 +82,20 @@ free without an account.
   `settleInvite` gives both 100 free coins (free `coin_lot`s, so never counted
   as paid), the inviter for up to 10 friends a calendar month (UTC). It runs on `/api/me` and after
   each match. Tries are limited to 5 a minute per player.
+- **Creator codes** (Terms 5.12; `server/creators.ts`): the owner adds a
+  creator on the Sales page (code like `NINJA`, a name, optionally the email
+  of their game account so they see their numbers on the Account page).
+  Players type the code where a friend's code goes (or open
+  `…/play/?invite=NINJA`) in their first 7 days and get the usual invite
+  coins (`creator_player` records it; the `invite` row has no inviter). The
+  creator earns `percent` (10) of an estimated net (`NET_SHARE`: less 20%
+  VAT and 15% store or 5% Stripe fees) of what those players pay, for
+  `months` (12) after each joins, worked out from `purchase` each time (a
+  refund stops counting). You pay them yourself (bank transfer, PayPal) and
+  press "Mark … paid" (`creator_payout`); a refund after paying shows as a
+  negative amount owed, to take off the next payout. Tables: `creator`,
+  `creator_player`, `creator_payout`. Admin API: `GET/POST /api/admin/creators`,
+  `POST /api/admin/creators/paid`.
 - **Founder and Early bird packs** (Terms 5.11; `server/rewards.ts`,
   contents in `src/shop/rewards.ts`): looks never sold (`PROMO_ITEMS`: a hat,
   gravestone, dance, world and music track each), free coins and a badge,

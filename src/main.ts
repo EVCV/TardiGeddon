@@ -173,9 +173,9 @@ async function boot(): Promise<void> {
   if (reset || verify) history.replaceState(null, '', location.pathname);
   if (reset) hub?.resetPassword(reset);
 
-  // A friend's invite link (?invite=CODE): kept until the player has an account (refreshAccount uses it).
+  // A friend's or creator's invite link (?invite=CODE): kept until the player has an account (refreshAccount uses it).
   const invite = params.get('invite');
-  if (invite && /^[A-Za-z0-9-]{8,9}$/.test(invite)) {
+  if (invite && /^[A-Za-z0-9-]{3,20}$/.test(invite)) {
     saveInvite(invite);
     history.replaceState(null, '', location.pathname);
   }

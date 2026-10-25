@@ -53,6 +53,8 @@ export interface MeResponse {
   earlyBird?: boolean;
   /** The Early bird pack was given just now. */
   earlyBirdNew?: boolean;
+  /** A creator (server/creators.ts): their code and how it's doing, totals only (amounts in the currency's smallest unit). */
+  creator?: { code: string; percent: number; months: number; players: number; payers: number; totals: { currency: string; earned: number; paid: number; owed: number }[] };
   /** Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand. */
   invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean };
 }
@@ -455,6 +457,33 @@ export async function deleteAccount(password: string): Promise<void> {
 export async function unlock(item: string): Promise<void> {
   await call('/api/shop/unlock', { item });
   await refreshAccount();
+}
+
+/** A creator's numbers, as the owner's Sales page shows them (server/creators.ts CreatorReport). */
+export interface CreatorReport {
+  code: string;
+  name: string;
+  account: string | null;
+  percent: number;
+  months: number;
+  active: boolean;
+  players: number;
+  payers: number;
+  byMonth: { month: string; currency: string; gross: number; earned: number }[];
+  totals: { currency: string; earned: number; paid: number; owed: number }[];
+}
+
+/** The owner only: creator codes, and adding, changing and paying them. */
+export async function creators(): Promise<CreatorReport[]> {
+  return (await call<{ creators: CreatorReport[] }>('/api/admin/creators')).creators;
+}
+
+export async function saveCreator(c: { code: string; name: string; email?: string; percent?: number; months?: number; active?: boolean }): Promise<CreatorReport[]> {
+  return (await call<{ creators: CreatorReport[] }>('/api/admin/creators', c)).creators;
+}
+
+export async function payCreator(code: string, amount: number, currency: string, note: string): Promise<CreatorReport[]> {
+  return (await call<{ creators: CreatorReport[] }>('/api/admin/creators/paid', { code, amount, currency, note })).creators;
 }
 
 /** The owner's sales figures for the last `days` days (0 = all time). */

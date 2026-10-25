@@ -16,6 +16,7 @@
 
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { creatorCodeOf, creatorReports, migrateCreators, normaliseCreatorCode, recordCreatorPayout, saveCreator } from './creators';
 import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteStatus, isEarlyBird, isFounder, migrateRewards, packBadge, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -248,6 +249,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   await migrate(db);
   await migrateChallenges(db);
   await migrateFriends(db);
+  await migrateCreators(db);
   await migrateRewards(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
@@ -506,8 +508,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   async function inviteApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: tk('Please sign in first.') });
-    const code = normaliseFriendCode((await readJson(req))?.code);
-    if (!code) return json(res, 400, { error: tk('Friend codes are 8 letters and numbers.') });
+    // A friend's code, or a creator's (3 to 16 letters and numbers).
+    const code = normaliseCreatorCode((await readJson(req))?.code);
+    if (!code) return json(res, 400, { error: tk('That doesn’t look like a code. Check it and try again.') });
     // Guessing codes: a few tries a minute is plenty for a real one.
     const now = Date.now();
     const recent = (inviteTries.get(user.id) ?? []).filter((t) => now - t < 60_000);
@@ -516,6 +519,37 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { result: await enterInvite(db, user.id, code) });
   }
   const inviteTries = new Map<string, number[]>();
+
+  /** The owner's creator codes (Sales page): list them, add or change one, record a payout. */
+  async function creatorsApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+    if (!isAdmin(await userFrom(req.headers))) return json(res, 404, { error: tk('Not found.') });
+    if (req.method === 'GET') return json(res, 200, { creators: await creatorReports(db) });
+    const body = await readJson(req);
+    const code = normaliseCreatorCode(body?.code);
+    if (!code) return json(res, 400, { error: 'Codes are 3 to 16 letters and numbers.' });
+    if (path === '/api/admin/creators') {
+      const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : '';
+      if (!name) return json(res, 400, { error: 'Give the creator a name.' });
+      const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi ? v : undefined);
+      const r = await saveCreator(db, {
+        code,
+        name,
+        email: typeof body?.email === 'string' && body.email.trim() ? body.email.trim() : null,
+        percent: int(body?.percent, 0, 50),
+        months: int(body?.months, 1, 120),
+        active: body?.active !== false,
+      });
+      if (r === 'no-account') return json(res, 400, { error: 'No game account has that email.' });
+      return json(res, 200, { creators: await creatorReports(db) });
+    }
+    // Money paid to them (in pence), outside the game.
+    const amount = typeof body?.amount === 'number' && Number.isInteger(body.amount) && body.amount > 0 && body.amount < 10_000_000 ? body.amount : 0;
+    const currency = typeof body?.currency === 'string' && /^[a-z]{3}$/.test(body.currency) ? body.currency : '';
+    if (!amount || !currency) return json(res, 400, { error: 'Bad amount.' });
+    const note = typeof body?.note === 'string' ? body.note.slice(0, 200) : '';
+    if (!(await recordCreatorPayout(db, code, amount, currency, note))) return json(res, 404, { error: 'No such creator.' });
+    json(res, 200, { creators: await creatorReports(db) });
+  }
 
   /** Spend coins or Slime on a shop item. */
   /** Who's online and where, from the game server (setPresence). */
@@ -1050,6 +1084,12 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // An invite whose new player has just confirmed their email.
             if (await settleInvite(db, user.id)) me.wallet = await walletOf(db, user.id);
             me.invite = { code: await friendCode(db, user.id), ...(await inviteStatus(db, user.id, user.createdAt)) };
+            // A creator with a code (server/creators.ts): their own numbers, totals only.
+            const creator = await creatorCodeOf(db, user.id);
+            if (creator) {
+              const [r] = await creatorReports(db, creator);
+              me.creator = { code: r.code, percent: r.percent, months: r.months, players: r.players, payers: r.payers, totals: r.totals };
+            }
           }
           // Coin packs can be bought in the Android app (Google Play Billing).
           if (play) me.playBilling = true;
@@ -1077,6 +1117,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await reportCpuMatch(req, res);
         } else if (path === '/api/invite' && req.method === 'POST') {
           await inviteApi(req, res);
+        } else if ((path === '/api/admin/creators' && (req.method === 'GET' || req.method === 'POST')) || (path === '/api/admin/creators/paid' && req.method === 'POST')) {
+          await creatorsApi(req, res, path);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
           await friendsApi(req, res, path);
         } else if (path === '/api/challenge/submit' && req.method === 'POST') {

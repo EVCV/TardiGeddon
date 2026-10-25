@@ -193,10 +193,10 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
   } else if (inv.canEnter) {
     const add = el('div', 'join-row');
     const input = el('input', 'code-input');
-    input.placeholder = t('Friend’s code');
-    input.maxLength = 9;
+    input.placeholder = t('Friend’s or creator’s code');
+    input.maxLength = 20;
     input.autocapitalize = 'characters';
-    input.setAttribute('aria-label', t('Friend’s code'));
+    input.setAttribute('aria-label', t('Friend’s or creator’s code'));
     const go = el('button', 'hud-btn', t('Add'));
     go.disabled = ctx.busy;
     go.onclick = () =>
@@ -214,10 +214,23 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
         ctx.notify(said[r]);
       });
     add.append(input, go);
-    card.append(el('p', 'account-note', t('Did a friend invite you? Add their code in your first {days} days:', { days: INVITE_DAYS })), add);
+    card.append(el('p', 'account-note', t('Did a friend or a creator invite you? Add their code in your first {days} days:', { days: INVITE_DAYS })), add);
   }
   card.append(note);
+  if (me.creator) card.append(creatorBox(me.creator));
   return card;
+}
+
+/** A creator's own numbers: their code, players who joined with it, and their share (totals only). */
+function creatorBox(c: NonNullable<MeResponse['creator']>): HTMLElement {
+  const box = el('div', 'account-verify');
+  box.append(el('p', '', t('🎥 Your creator code: {code}. Players who join with it get free coins, and you get {percent}% of what they spend for {months} months.', { code: c.code, percent: c.percent, months: c.months })));
+  box.append(el('p', 'account-note', t('{n} players joined with your code, and {p} have bought coins.', { n: c.players, p: c.payers })));
+  for (const x of c.totals) {
+    const money = (minor: number) => new Intl.NumberFormat(lang(), { style: 'currency', currency: x.currency.toUpperCase() }).format(minor / 100);
+    box.append(el('p', 'account-note', t('Earned {earned} · paid to you {paid} · still to come {owed}', { earned: money(x.earned), paid: money(x.paid), owed: money(x.owed) })));
+  }
+  return box;
 }
 
 function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLElement {

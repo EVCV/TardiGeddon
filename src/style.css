@@ -924,6 +924,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .founder-badge { flex: none; margin-right: 4px; }
 .account-founder { margin: 12px 0 0; padding: 8px 12px; border: 3px solid var(--ink); border-radius: 14px; background: #dff5d0; font-weight: 800; }
 .account-invite p { margin: 0 0 10px; }
+.creator-row { padding: 10px 0; border-bottom: 2px dashed rgba(0, 0, 0, 0.15); }
+.creator-row .hud-btn { margin: 6px 8px 0 0; }
+.creator-form { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .invite-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .account-verify { margin-top: 12px; padding: 10px 12px; border: 3px dashed var(--ink); border-radius: 14px; background: #fff3c4; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .account-verify p { margin: 0; font-size: 14px; font-weight: 700; }

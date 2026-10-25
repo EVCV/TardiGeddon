@@ -216,7 +216,7 @@ account), purpose **App functionality** and **Account management**:
 | Personal info → Email address | the account's email |
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
-| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites (which account invited which, for the invite reward), the Founder or Early bird badge (seen by other players online), items owned, coin and Slime balances, control settings |
+| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites and creator codes (which account invited which, or which creator's code a player used, for the rewards and the creator's share), the Founder or Early bird badge (seen by other players online), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → Other user-generated content** (team and

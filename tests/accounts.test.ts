@@ -11,7 +11,7 @@ import { ChallengeRun, challengeDay, challengeWorld } from '../src/challenge/dai
 import { createWorld, tick } from '../src/sim/world';
 import { CpuPlayer } from '../src/ai/cpu';
 import type { SimEvent } from '../src/sim/types';
-import type { GiftSent, SalesReport } from '../src/account/session';
+import type { CreatorReport, GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
@@ -130,7 +130,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', FOUNDER_UNTIL: '2000-01-01', FOUNDER_EMAILS: 'Founder@example.com', EARLY_BIRD_UNTIL: '2000-01-01', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
       { stripe, mailer, play, appStore },
     );
-    await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
+    await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM creator_payout; DELETE FROM creator_player; DELETE FROM creator; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
     await new Promise<void>((r) => server.listen(0, r));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -790,6 +790,57 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(p.badge).toBe('founder');
     expect(p.owned).toEqual(expect.arrayContaining(FOUNDER_ITEMS));
     expect((await accounts.playerFor({ cookie: other.cookie })).badge).toBeUndefined();
+  });
+
+  it('gives creators a code: their players get the invite coins, and the creator a share of what they spend, which the owner pays', async () => {
+    const signInAs = async (email: string) => {
+      const r = await post('/api/auth/sign-in/email', { email, password: 'correct horse' });
+      return r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    };
+    const boss = await signInAs('boss@example.com'); // the owner (the sales test confirmed their email)
+    const streamer = await signUp('streamer@example.com');
+    const admin = (path: string, body?: unknown, cookie = boss) =>
+      body === undefined ? fetch(base + path, { headers: { cookie } }) : post(path, body, cookie);
+    // Only the owner.
+    expect((await admin('/api/admin/creators', undefined, streamer.cookie)).status).toBe(404);
+    expect((await admin('/api/admin/creators', { code: 'NINJA', name: 'Ninja' }, streamer.cookie)).status).toBe(404);
+    expect((await admin('/api/admin/creators', { code: 'ninja', name: 'Ninja', email: 'nobody@example.com' })).status).toBe(400);
+    expect((await admin('/api/admin/creators', { code: 'ninja', name: 'Ninja', email: 'streamer@example.com' })).status).toBe(200);
+
+    const fan = await signUp('fan@example.com');
+    const r = await post('/api/invite', { code: 'ninja' }, fan.cookie);
+    expect(((await r.json()) as { result: string }).result).toBe('ok');
+    expect(((await (await post('/api/invite', { code: 'ninja' }, fan.cookie)).json()) as { result: string }).result).toBe('already');
+    // The usual invite reward for the fan (the creator gets money, not coins).
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [fan.id]);
+    for (let i = 0; i < 3; i++) {
+      accounts.resetLimits();
+      await post('/api/stats/match', { won: false }, fan.cookie);
+    }
+    expect((await me(fan.cookie)).wallet.coins).toBe(INVITE_COINS);
+    expect((await me(streamer.cookie)).wallet.coins).toBe(0);
+
+    // The fan buys coins (£1.99): the creator's share is 10% of the estimated net (less VAT and fees).
+    expect(await sendWebhook('checkout.session.completed', { ...paid('cs_fan1', fan.id, 'coins:200'), amount_total: 1200 })).toBe(200);
+    const share = Math.floor((1200 * (0.95 / 1.2) * 10) / 100);
+    let list = (await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] };
+    let ninja = list.creators.find((c) => c.code === 'NINJA')!;
+    expect(ninja).toMatchObject({ name: 'Ninja', account: 'Tester', percent: 10, months: 12, players: 1, payers: 1 });
+    expect(ninja.totals).toEqual([{ currency: 'gbp', earned: share, paid: 0, owed: share }]);
+    // The creator sees their own numbers (totals only).
+    expect((await me(streamer.cookie)).creator).toMatchObject({ code: 'NINJA', players: 1, payers: 1, totals: [{ currency: 'gbp', earned: share, owed: share }] });
+    expect(JSON.stringify((await me(streamer.cookie)).creator)).not.toMatch(/fan|@/i);
+    // Paid by hand, recorded here.
+    list = (await (await admin('/api/admin/creators/paid', { code: 'NINJA', amount: share, currency: 'gbp' })).json()) as { creators: CreatorReport[] };
+    expect(list.creators.find((c) => c.code === 'NINJA')!.totals[0]).toMatchObject({ paid: share, owed: 0 });
+    // A refund stops it counting (owed goes below zero: taken off the next payout).
+    await sendWebhook('charge.refunded', { id: 'ch_fan1', refunded: true, payment_intent: 'pi_cs_fan1' });
+    ninja = ((await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] }).creators.find((c) => c.code === 'NINJA')!;
+    expect(ninja.totals[0]).toMatchObject({ earned: 0, paid: share, owed: -share });
+    // Switched off: the code stops working.
+    await admin('/api/admin/creators', { code: 'NINJA', name: 'Ninja', email: 'streamer@example.com', active: false });
+    const late = await signUp('latefan@example.com');
+    expect(((await (await post('/api/invite', { code: 'NINJA' }, late.cookie)).json()) as { result: string }).result).toBe('unknown');
   });
 
   it("explains Stripe's refusal when using test keys", async () => {

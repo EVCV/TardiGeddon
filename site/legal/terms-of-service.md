@@ -234,6 +234,14 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 5.11.3 Each pack is given once per account, free, the first time you sign in after it applies to you. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4). Its coins are free coins, as in Section 5.10.2.
 
+### 5.12 Creator Codes
+
+5.12.1 Some content creators (for example streamers and video makers) have a creator code from us. If you enter one where a friend's code goes, within the first 7 days after making your account (or open the creator's invite link before signing up), you get the same reward as for a friend's invite (Section 5.10.1). A creator code takes the place of a friend's code: each account can use one or the other, once.
+
+5.12.2 When you use a creator's code, the creator receives a share of what you spend on coins for a time (at present, 10% of what reaches us after VAT and store or payment fees, for 12 months), paid by us out of our own share. It does not change what you pay or what you get. The creator only sees totals (how many players used their code and how much they earned), never who you are or what you bought.
+
+5.12.3 Creators are bound by a separate agreement with us, including a duty to make clear to their audience that they earn from their code. Creator codes must not be sold, and using one with extra accounts or automated means breaks these Terms (Section 4.1). We may change or end creator codes at any time.
+
 ## Section 6 — Intellectual Property
 
 ### 6.0 Ownership
