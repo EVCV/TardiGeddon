@@ -665,6 +665,7 @@ export class Match {
     if (c?.kind === 'targets' && team.id === 0) this.hud.showBanner(t('Turn {n} of {total}', { n: Math.min(TARGET_TURNS, c.turns + 1), total: TARGET_TURNS }), 0xffffff);
     else if (who) this.hud.showBanner(t("{name}'s turn!", { name: tardiLabel(who) || teamLabel(team) }), shown(team.color));
     this.renderer.camera.manualUntil = 0;
+    this.renderer.camera.held = false;
   }
 
   private attachPointer(): void {
@@ -703,6 +704,7 @@ export class Match {
         this.pinchDist = d;
         p.moved = true;
         cam.manualUntil = performance.now() + 3000;
+        cam.held = true;
         return;
       }
       const dx = e.clientX - p.x;
@@ -718,6 +720,7 @@ export class Match {
         cam.x -= dx / cam.zoom;
         cam.y -= dy / cam.zoom;
         cam.manualUntil = performance.now() + 2500;
+        cam.held = true;
       }
     };
     const up = (e: PointerEvent) => {

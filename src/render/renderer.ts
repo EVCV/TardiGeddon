@@ -52,6 +52,8 @@ export class Camera {
   y = 500;
   zoom = 1;
   manualUntil = 0;
+  /** The player has moved the view this turn (dragged or pinched). */
+  held = false;
 }
 
 export class GameRenderer {
@@ -909,6 +911,19 @@ export class GameRenderer {
     }
   }
 
+  /** Is the player choosing a spot on the map for this weapon? */
+  private pickingSpot(s: WorldState): boolean {
+    const def = WEAPONS[s.turn.weapon];
+    return s.turn.phase === 'aim' && !!def && (def.kind === 'target' || !!def.projectile?.homing);
+  }
+
+  /** Is this point well inside the view (not near an edge)? */
+  private inMiddleOfView(p: { x: number; y: number }): boolean {
+    const cam = this.camera;
+    const { width, height } = this.app.screen;
+    return Math.abs(p.x - cam.x) < (width * 0.35) / cam.zoom && Math.abs(p.y - cam.y) < (height * 0.35) / cam.zoom;
+  }
+
   private updateCamera(s: WorldState, dt: number, alpha: number): void {
     const cam = this.camera;
     const now = performance.now();
@@ -921,6 +936,10 @@ export class GameRenderer {
       } else if (s.projectiles.length > 0) {
         const p = s.projectiles[0];
         target = this.lerpPos(p.id, p.x, p.y, alpha);
+      } else if (this.pickingSpot(s) && (s.turn.target || cam.held)) {
+        // Picking a spot on the map (a strike, the Teleport…): the view stays on
+        // the spot picked, or where the player looked, not back on the tardi.
+        target = s.turn.target && !this.inMiddleOfView(s.turn.target) ? { x: s.turn.target.x, y: s.turn.target.y + 40 } : null;
       } else {
         const a = activeTardi(s);
         const moving = s.tardis.find((t) => t.alive && t.airborne && (t.knocked || t.thrown));
