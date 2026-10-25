@@ -254,7 +254,7 @@ export class Coach {
     for (const e of v.events) {
       const mine = (id: number) => v.state.tardis.find((x) => x.id === id)?.team === 0;
       if ((e.t === 'death' || e.t === 'drown') && mine(e.id)) this.oopsUntil = performance.now() + 5000;
-      if (e.t === 'jump') this.seen.add('jump');
+      if (e.t === 'jump' && mine(e.id)) this.seen.add('jump'); // (the dummy hops about too)
       else if (e.t === 'fire' && e.weapon === 'bazooka') this.firedBazooka = this.firedThisStep = true;
       else if (e.t === 'fire' && e.weapon === 'airstrike') this.seen.add('strike');
       else if (e.t === 'damage' && dummy && e.id === dummy.id) this.hitDummy = true;
