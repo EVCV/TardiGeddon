@@ -17,9 +17,11 @@ import {
   BTN_LEFT,
   BTN_RIGHT,
   BTN_UP,
+  CHARGE_STYLES,
   DEFAULT_SCHEME,
   PRESS_JUMP,
   TICK_RATE,
+  type ChargeStyle,
   type InputFrame,
   type MapObject,
   type ObjectKind,
@@ -100,6 +102,8 @@ export interface TeamConfig {
   dance?: string;
   grave?: string;
   emblem?: string;
+  /** How Fire charges throws for this team (Team.charge). */
+  charge?: ChargeStyle;
 }
 
 export interface WorldConfig {
@@ -182,6 +186,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         winner: -1,
         aimHeld: 0,
         fullHold: 0,
+        powerDir: 1,
       },
       nextId: 1,
       prevHeld: 0,
@@ -203,7 +208,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         if (practice && ti === 0 && !def.hidden) ammo[def.id] = -1;
         if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', dance: tc.dance ?? 'classic', grave: tc.grave ?? 'classic', emblem: tc.emblem ?? '', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', dance: tc.dance ?? 'classic', grave: tc.grave ?? 'classic', emblem: tc.emblem ?? '', charge: tc.charge && CHARGE_STYLES.includes(tc.charge) ? tc.charge : 'normal', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map (practice: you, then the targets).
@@ -540,11 +545,26 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
         turn.charging = true;
         turn.power = 0;
         turn.fullHold = 0;
+        turn.powerDir = 1;
       }
       if (turn.charging) {
+        // Half speed, and/or back down from full power (Team.charge) for players learning to aim.
+        const step = team.charge === 'slow' || team.charge === 'slowbounce' ? POWER_STEP / 2 : POWER_STEP;
+        const bounce = team.charge === 'bounce' || team.charge === 'slowbounce';
         if ((held & BTN_FIRE) !== 0) {
-          if (turn.power >= POWER_MAX) turn.fullHold++;
-          turn.power = Math.min(POWER_MAX, turn.power + POWER_STEP);
+          if (bounce) {
+            turn.power += step * turn.powerDir;
+            if (turn.power >= POWER_MAX) {
+              turn.power = POWER_MAX;
+              turn.powerDir = -1;
+            } else if (turn.power <= step) {
+              turn.power = step;
+              turn.powerDir = 1;
+            }
+          } else {
+            if (turn.power >= POWER_MAX) turn.fullHold++;
+            turn.power = Math.min(POWER_MAX, turn.power + step);
+          }
         }
         if (fireReleased || turn.fullHold >= FULL_HOLD_TICKS) {
           fireProjectile(s, t, def, events);
@@ -2065,7 +2085,7 @@ export function hashWorld(s: WorldState): number {
     mix(s.practice.popped);
   }
   const tr = s.turn;
-  mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);
+  mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power); mix(tr.powerDir);
   const m = s.terrain.mask;
   for (let i = 0; i < m.length; i += 4) {
     mixInt(m[i] | (m[i + 1] << 8) | (m[i + 2] << 16) | (m[i + 3] << 24));

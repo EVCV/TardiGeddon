@@ -29,7 +29,7 @@ import { showChallengeResult } from './ui/challenge';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard, doAction, type KeyboardHooks } from './input/input';
-import { actionFor, controls } from './input/controls';
+import { actionFor, chargeStyle, controls } from './input/controls';
 import { WEAPONS } from './sim/weapons';
 import { Hud } from './ui/hud';
 import { CpuPlayer } from './ai/cpu';
@@ -138,7 +138,7 @@ export class Match {
       const setup = mode.setup;
       const teams: TeamConfig[] = setup.players.map((cpu, i) => {
         const p = setup.teams[i];
-        return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, i), cpu };
+        return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, i), cpu, ...(cpu ? {} : { charge: chargeStyle(controls()) }) };
       });
       // Season weapons this player has unlocked are switched on for everyone in the match.
       this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
@@ -147,14 +147,14 @@ export class Match {
       for (const tm of this.local.teams) if (tm.cpu) this.cpu.set(tm.id, new CpuPlayer(setup.cpuSkill));
     } else if (mode.kind === 'tutorial') {
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       this.local = createWorld(tutorialWorld(you));
       this.cpu.set(1, new TutorialDummy());
       this.coach = new Coach(touchMode, { onMenu, onAgain });
     } else if (mode.kind === 'challenge') {
       // Today's challenge: the same world for everyone; our team's looks are our own.
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       const day = challengeDay();
       this.challenge = new ChallengeRun(mode.challenge, day);
       this.local = createWorld(challengeWorld(mode.challenge, day, you));
@@ -165,7 +165,7 @@ export class Match {
     } else if (mode.kind === 'practice') {
       // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
       this.cpu.set(1, dummyPlayer);
     } else {
@@ -315,7 +315,7 @@ export class Match {
     const packed = run.packed();
     sfx.fanfare();
     setTimeout(() => {
-      if (!this.destroyed) showChallengeResult(this.ui, run.kind, run.day, result, packed, this.onAgain, this.onMenu);
+      if (!this.destroyed) showChallengeResult(this.ui, run.kind, run.day, result, packed, s.teams[0].charge, this.onAgain, this.onMenu);
     }, 1800);
   }
 

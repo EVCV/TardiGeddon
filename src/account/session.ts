@@ -739,8 +739,8 @@ export async function challengeBoard(kind: string, day: string): Promise<{ rows:
 }
 
 /** Send a finished run; the server plays it back and keeps the player's best. */
-export function submitChallenge(kind: string, day: string, frames: unknown): Promise<{ me: BoardRow | null }> {
-  return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames });
+export function submitChallenge(kind: string, day: string, frames: unknown, charge: string): Promise<{ me: BoardRow | null }> {
+  return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames, charge });
 }
 
 /** A friend (server/friends.ts), named by their friend code. */

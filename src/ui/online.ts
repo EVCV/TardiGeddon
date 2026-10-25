@@ -9,6 +9,7 @@ import { hex, shown } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
 import { MAX_TEAMS } from '../sim/rosters';
 import { loadProfiles, matchNames } from './teams';
+import { chargeStyle, controls } from '../input/controls';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
 import { account, usableArenas, wornLooks } from '../account/session';
@@ -42,7 +43,7 @@ const roomPick = { map: 'random', world: '' };
 /** Our team (the first saved team profile), as sent to the server. */
 function myTeam(): LobbyTeam {
   const p = loadProfiles()[0];
-  return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0) };
+  return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), charge: chargeStyle(controls()) };
 }
 
 /** Remember the room so a dropped connection (or reload) can rejoin our slot. */

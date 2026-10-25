@@ -5,6 +5,7 @@
 // when the account is made, src/names.ts).
 
 import type { Pool } from 'pg';
+import { CHARGE_STYLES } from '../src/sim/types';
 import { challengeDay, playBack, unpackFrames, type ChallengeKind, type ChallengeResult } from '../src/challenge/daily';
 import { cleanFrame } from './room';
 
@@ -33,10 +34,12 @@ export function acceptableDay(day: unknown, now: Date = new Date()): day is stri
 }
 
 /** Check a run by playing it; null if the frames aren't a real run. */
-export function checkRun(kind: ChallengeKind, day: string, packed: unknown): ChallengeResult | null {
+export function checkRun(kind: ChallengeKind, day: string, packed: unknown, charge?: unknown): ChallengeResult | null {
   const frames = unpackFrames(packed, cleanFrame);
   if (!frames) return null;
-  return playBack(kind, day, { name: 'Player', color: 0xe04848, cpu: false }, frames);
+  // The player's way of charging throws (Settings → Controls) shapes the run, so it's played back with it.
+  const style = CHARGE_STYLES.find((c) => c === charge) ?? 'normal';
+  return playBack(kind, day, { name: 'Player', color: 0xe04848, cpu: false, charge: style }, frames);
 }
 
 /** Keep the run if it beats the player's best for the day. Returns their best afterwards. */

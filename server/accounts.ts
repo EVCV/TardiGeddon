@@ -609,7 +609,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const now = Date.now();
     if (now - (lastRun.get(user.id) ?? 0) < 5_000) return json(res, 429, { error: tk('Too many runs. Try again in a moment.') });
     lastRun.set(user.id, now);
-    const result = checkRun(body.kind, body.day, body.frames);
+    const result = checkRun(body.kind, body.day, body.frames, body.charge);
     if (!result || !result.done) return json(res, 400, { error: tk('That run didn’t finish.') });
     const best = await saveRun(db, user.id, body.kind, body.day, result);
     const b = await board(db, body.kind, body.day, user.id);

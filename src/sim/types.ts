@@ -229,6 +229,8 @@ export interface TurnState {
   aimHeld: number;
   /** Ticks Fire has been held at full power (the shot goes off by itself after FULL_HOLD_TICKS). */
   fullHold: number;
+  /** Charging up (1) or, with the up-and-down power bar (Team.charge), back down (-1). */
+  powerDir: number;
 }
 
 /** Rope Race course and results. */
@@ -260,8 +262,17 @@ export interface Team {
   dance: string;
   grave: string;
   emblem: string;
+  /**
+   * How Fire charges a throw for this team's players (Settings → Controls):
+   * at half speed ('slow'), and/or going back down from full power instead of
+   * firing by itself ('bounce'), to learn aiming more easily.
+   */
+  charge: ChargeStyle;
   ammo: Record<string, number>;
 }
+
+export type ChargeStyle = 'normal' | 'slow' | 'bounce' | 'slowbounce';
+export const CHARGE_STYLES: readonly ChargeStyle[] = ['normal', 'slow', 'bounce', 'slowbounce'];
 
 /** What the sky is doing. Only the tornado changes play; the rest is scenery. */
 export type WeatherKind = 'clear' | 'sunny' | 'rain' | 'snow' | 'fog' | 'storm';

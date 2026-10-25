@@ -5,7 +5,7 @@
 // input frame it used for every tick. Clients replay those frames through
 // the same deterministic sim, so everyone sees the same match.
 
-import type { Command, InputFrame, Scheme } from '../sim/types';
+import type { ChargeStyle, Command, InputFrame, Scheme } from '../sim/types';
 import { isWeaponId } from '../sim/weapons';
 import type { TeamConfig } from '../sim/world';
 
@@ -26,6 +26,8 @@ export interface LobbyTeam {
   emblem?: string;
   /** Tardi names (cleaned up by the server). */
   names: string[];
+  /** How Fire charges this player's throws (Settings → Controls; Team.charge). */
+  charge?: ChargeStyle;
 }
 
 export interface LobbySlot {

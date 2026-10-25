@@ -101,6 +101,8 @@ export function showChallengeResult(
   day: string,
   result: ChallengeResult,
   packed: unknown,
+  /** How Fire charged throws in this run (the server plays it back the same way). */
+  charge: string,
   onAgain: () => void,
   onMenu: () => void,
 ): void {
@@ -122,7 +124,7 @@ export function showChallengeResult(
     if (account().me) void showBoard();
   } else {
     status.textContent = t('Checking your run…');
-    submitChallenge(kind, day, packed).then(
+    submitChallenge(kind, day, packed, charge).then(
       (r) => {
         status.textContent = r.me ? t('You’re number {rank} today!', { rank: r.me.rank }) : t('Sent.');
         void showBoard();
