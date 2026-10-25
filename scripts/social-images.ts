@@ -1,9 +1,10 @@
 // Pictures for TardiGeddon's social accounts (docs/social/): YouTube banner,
-// avatar, watermark and thumbnails; Discord server icon, banners and emoji.
+// avatar, watermark and thumbnails; Discord server icon, banners and emoji;
+// Bluesky, Reddit, Facebook and Twitch banners and Twitch panels.
 // Same art as the website's share pictures (site/capture/share-images.ts):
 // the mascot, the logo lettering and real screenshots from site/public/media.
 //
-//   npx tsx scripts/social-images.ts
+//   npx tsx scripts/social-images.ts [file ...]   (e.g. bluesky-banner.png; all if none given)
 //
 // Writes store/social/, including a 25-second vertical teaser for YouTube
 // Shorts made from the website's clips (needs ffmpeg on the PATH). Needs Playwright's Chromium
@@ -223,6 +224,193 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
       240,
     ),
   },
+  // Bluesky profile banner (3:1). The round avatar covers the bottom-left
+  // corner on every screen, so that corner is only sky and ground.
+  {
+    file: 'bluesky-banner.png',
+    w: 3000,
+    h: 1000,
+    html: page(
+      `<div class="sky">
+        ${ground(170, 30)}
+        ${shot('shot-crater.webp', 'left:2130px;top:150px;width:760px;height:428px;transform:rotate(4deg)')}
+        ${tardi(GREEN, 'crown', 'width:270px;left:2420px;top:630px;transform:scaleX(-1)')}
+        ${tardi(BLUE, 'tophat', 'width:250px;left:1760px;top:645px')}
+        <div class="center" style="position:absolute;left:600px;top:130px;width:1500px;height:560px">
+          <div class="logo" style="font-size:190px;-webkit-text-stroke:7px #2b1b24;text-shadow:0 10px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:60px;margin-top:30px">Tiny. Indestructible. Armed.</div>
+          <div class="badges" style="font-size:42px;margin-top:30px"><b>Free</b><b>No download</b><b>Online with friends</b></div>
+        </div>
+      </div>`,
+      3000,
+      1000,
+    ),
+  },
+  // Reddit banner for r/TardiGeddon (1920×384). The phone app
+  // crops the sides, so the logo stays in the middle 1000px.
+  {
+    file: 'reddit-banner.png',
+    w: 1920,
+    h: 384,
+    html: page(
+      `<div class="sky">
+        ${ground(70, 16)}
+        ${shot('shot-crater.webp', 'left:60px;top:60px;width:340px;height:191px;transform:rotate(-4deg)')}
+        ${shot('shot-realm-sky.webp', 'left:1520px;top:60px;width:340px;height:191px;transform:rotate(4deg)')}
+        ${tardi(BLUE, 'tophat', 'width:130px;left:420px;top:217px')}
+        ${tardi(GREEN, 'crown', 'width:140px;left:1370px;top:212px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:460px;top:40px;width:1000px;height:250px">
+          <div class="logo" style="font-size:112px;-webkit-text-stroke:5px #2b1b24;text-shadow:0 7px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:34px;margin-top:16px">Tiny. Indestructible. Armed.</div>
+        </div>
+      </div>`,
+      1920,
+      384,
+    ),
+  },
+  // Reddit profile banner: the profile shows only about 3.2:1, so it gets its
+  // own picture. The avatar sits over the bottom-left corner.
+  {
+    file: 'reddit-profile-banner.png',
+    w: 1600,
+    h: 500,
+    html: page(
+      `<div class="sky">
+        ${ground(80, 18)}
+        ${shot('shot-crater.webp', 'left:1170px;top:70px;width:370px;height:208px;transform:rotate(4deg)')}
+        ${tardi(GREEN, 'crown', 'width:150px;left:1300px;top:313px;transform:scaleX(-1)')}
+        ${tardi(BLUE, 'tophat', 'width:140px;left:990px;top:322px')}
+        <div class="center" style="position:absolute;left:230px;top:60px;width:900px;height:280px">
+          <div class="logo" style="font-size:118px;-webkit-text-stroke:5px #2b1b24;text-shadow:0 7px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:38px;margin-top:18px">Tiny. Indestructible. Armed.</div>
+        </div>
+      </div>`,
+      1600,
+      500,
+    ),
+  },
+  { file: 'reddit-icon.png', w: 256, h: 256, html: avatar(256) },
+  // itch.io cover (630×500 shown; drawn at double size).
+  {
+    file: 'itch-cover.png',
+    w: 1260,
+    h: 1000,
+    html: page(
+      `<div class="sky">
+        ${ground(200, 36)}
+        ${shot('shot-crater.webp', 'left:140px;top:430px;width:560px;height:315px;transform:rotate(-4deg)')}
+        ${tardi(BLUE, 'tophat', 'width:200px;left:110px;top:665px')}
+        ${tardi(RED, 'beanie', 'width:290px;left:720px;top:595px')}
+        ${tardi(GREEN, 'crown', 'width:200px;left:1010px;top:662px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:0;top:70px;width:1260px">
+          <div class="logo" style="font-size:180px;-webkit-text-stroke:7px #2b1b24;text-shadow:0 10px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:52px;margin-top:24px">Tiny. Indestructible. Armed.</div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:55px;text-align:center;font-family:'Luckiest Guy';font-size:72px;color:#fff8ec;-webkit-text-stroke:4px #2b1b24;paint-order:stroke fill">Free to play</div>
+      </div>`,
+      1260,
+      1000,
+    ),
+  },
+  // Game cover, portrait like a box (IGDB, game directories; 1200×1700).
+  {
+    file: 'game-cover.png',
+    w: 1200,
+    h: 1700,
+    html: page(
+      `<div class="sky">
+        ${ground(380, 50)}
+        ${shot('shot-crater.webp', 'left:90px;top:680px;width:510px;height:287px;transform:rotate(-5deg)')}
+        ${shot('shot-realm-sky.webp', 'left:600px;top:770px;width:510px;height:287px;transform:rotate(4deg)')}
+        ${tardi(BLUE, 'tophat', 'width:250px;left:110px;top:1135px')}
+        ${tardi(RED, 'beanie', 'width:380px;left:410px;top:1040px')}
+        ${tardi(GREEN, 'crown', 'width:250px;left:840px;top:1130px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:0;top:70px;width:1200px">
+          <div class="logo" style="font-size:235px;-webkit-text-stroke:9px #2b1b24;text-shadow:0 14px 0 #2b1b24;line-height:0.9">Tardi</div>
+          <div class="logo" style="font-size:235px;-webkit-text-stroke:9px #2b1b24;text-shadow:0 14px 0 #2b1b24;line-height:0.9"><span>Geddon</span></div>
+          <div style="font-size:56px;margin-top:20px">Tiny. Indestructible. Armed.</div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:120px;text-align:center;font-family:'Luckiest Guy';font-size:84px;color:#fff8ec;-webkit-text-stroke:4px #2b1b24;paint-order:stroke fill">Free to play</div>
+      </div>`,
+      1200,
+      1700,
+    ),
+  },
+  // Twitch profile banner (1200×480).
+  {
+    file: 'twitch-banner.png',
+    w: 1200,
+    h: 480,
+    html: page(
+      `<div class="sky">
+        ${ground(80, 18)}
+        ${tardi(BLUE, 'tophat', 'width:150px;left:90px;top:308px')}
+        ${tardi(GREEN, 'crown', 'width:160px;left:950px;top:300px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:100px;top:50px;width:1000px;height:270px">
+          <div class="logo" style="font-size:120px;-webkit-text-stroke:5px #2b1b24;text-shadow:0 7px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:38px;margin-top:18px">Tiny. Indestructible. Armed.</div>
+        </div>
+      </div>`,
+      1200,
+      480,
+    ),
+  },
+  // Twitch "offline" screen: what the video player shows when not live (1920×1080).
+  {
+    file: 'twitch-offline.png',
+    w: 1920,
+    h: 1080,
+    html: page(
+      `<div class="sky">
+        ${ground(170, 32)}
+        ${shot('shot-crater.webp', 'left:110px;top:560px;width:480px;height:270px;transform:rotate(-4deg)')}
+        ${shot('shot-realm-sky.webp', 'left:1330px;top:560px;width:480px;height:270px;transform:rotate(4deg)')}
+        ${tardi(RED, 'beanie', 'width:220px;left:850px;top:676px')}
+        <div class="center" style="position:absolute;left:0;top:90px;width:1920px;height:440px">
+          <div class="logo" style="font-size:170px;-webkit-text-stroke:7px #2b1b24;text-shadow:0 10px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div class="big" style="font-size:96px;margin-top:40px">Offline for now</div>
+          <div style="font-size:48px;margin-top:26px">Play free at tardigeddon.com/play</div>
+        </div>
+      </div>`,
+      1920,
+      1080,
+    ),
+  },
+  // Twitch "About" panels under the stream (320×100 each).
+  ...['About', 'Play free', 'Discord', 'Schedule'].map((label) => ({
+    file: `twitch-panel-${label.toLowerCase().replace(' ', '-')}.png`,
+    w: 320,
+    h: 100,
+    html: page(
+      `<div class="sky center" style="background:#7fd3f7">
+        <div class="big" style="font-size:52px;-webkit-text-stroke:4px #2b1b24;text-shadow:0 5px 0 #2b1b24">${label}</div>
+      </div>`,
+      320,
+      100,
+    ),
+  })),
+  // Facebook Page cover (shown 820×312 on computers; phones crop it to 16:9,
+  // the middle 1110px here). The profile picture covers the bottom-left.
+  {
+    file: 'facebook-cover.png',
+    w: 1640,
+    h: 624,
+    html: page(
+      `<div class="sky">
+        ${ground(100, 22)}
+        ${shot('shot-realm-sky.webp', 'left:1320px;top:140px;width:280px;height:158px;transform:rotate(5deg)')}
+        ${tardi(BLUE, 'tophat', 'width:170px;left:330px;top:410px')}
+        ${tardi(GREEN, 'crown', 'width:180px;left:1150px;top:402px;transform:scaleX(-1)')}
+        <div class="center" style="position:absolute;left:265px;top:70px;width:1110px;height:330px">
+          <div class="logo" style="font-size:140px;-webkit-text-stroke:6px #2b1b24;text-shadow:0 8px 0 #2b1b24">Tardi<span>Geddon</span></div>
+          <div style="font-size:44px;margin-top:20px">Tiny. Indestructible. Armed.</div>
+          <div class="badges" style="font-size:32px;margin-top:20px"><b>Free</b><b>No download</b><b>Online with friends</b></div>
+        </div>
+      </div>`,
+      1640,
+      624,
+    ),
+  },
   // Discord custom emoji (128×128, transparent).
   { file: 'emoji/tardi.png', w: 128, h: 128, transparent: true, html: emoji(RED, 'beanie') },
   { file: 'emoji/tardi_blue.png', w: 128, h: 128, transparent: true, html: emoji(BLUE, 'beanie') },
@@ -240,7 +428,8 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
 mkdirSync(join(out, 'emoji'), { recursive: true });
 mkdirSync(join(out, 'shorts'), { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
-for (const img of IMAGES) {
+const only = process.argv.slice(2);
+for (const img of IMAGES.filter((i) => !only.length || only.includes(i.file))) {
   const p = await browser.newPage({ viewport: { width: img.w, height: img.h } });
   await p.setContent(img.html);
   await p.evaluate(() => document.fonts.ready);
@@ -251,6 +440,7 @@ for (const img of IMAGES) {
 await browser.close();
 
 // The Shorts teaser: each clip inside its frame, one after another, with a silent sound track.
+if (only.length) process.exit(0);
 const parts = SHORT.map((_, i) => `[${2 * i + 1}:v]scale=1080:608[c${i}];[${2 * i}:v][c${i}]overlay=0:640:shortest=1,fps=30,format=yuv420p[v${i}]`);
 const concat = `${SHORT.map((_, i) => `[v${i}]`).join('')}concat=n=${SHORT.length}:v=1:a=0[v]`;
 try {
