@@ -215,7 +215,10 @@ export function showHub(
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays, onMapEditor);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays, onMapEditor, () => {
+          shopState.category = 'coins';
+          go('shop');
+        });
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;

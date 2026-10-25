@@ -808,6 +808,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hero-art .mascot svg { width: 150px; }
 .hero-edit { font-size: 13px; min-height: 32px; padding: 2px 10px; background: var(--accent); }
 .hero-looks { font-size: 13px; min-height: 32px; padding: 2px 10px; background: #bfe8ff; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-coins { font-size: 14px; min-height: 34px; padding: 2px 14px; background: linear-gradient(#ffe066, #f5b700); }
+.hero-coins-banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; width: 100%;
+  margin: 8px 0 0; padding: 8px 14px; border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 3px 0 var(--ink);
+  background: linear-gradient(90deg, #fff3b0, #ffd84a); color: var(--ink); font: inherit; font-weight: 800; font-size: 14px; text-align: left; cursor: pointer;
+}
+.hero-coins-banner b { white-space: nowrap; padding: 2px 10px; border-radius: 999px; background: var(--ink); color: #ffd84a; }
+.hero-coins-banner:hover { filter: brightness(1.04); }
+.hero-coins-banner:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.hero-coins[hidden], .hero-coins-banner[hidden] { display: none; }
 .hero-season { margin: 8px 0 0; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 12px; background: #ffe9b8; font-weight: 800; font-size: 14px; }
 .looks-hint { margin: -4px 0 6px; font-size: 13px; opacity: .8; text-align: left; }
 .hero-text { min-width: 0; text-align: left; }
@@ -1695,6 +1705,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
     line-height: 1.15;
   }
   .nav-tile:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+  .nav-tile.nav-coins { background: linear-gradient(#ffe066, #f5b700); }
+  /* The home screen is tight: coins live in the gold tile at the bottom instead. */
+  .lobby[data-view] .hero-coins, .lobby[data-view] .hero-coins-banner { display: none; }
   .nav-icon { font-size: 17px; }
   .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nav-extra { flex-basis: 100%; text-align: center; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
