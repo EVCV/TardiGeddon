@@ -41,7 +41,20 @@ export async function migrateRewards(db: Pool): Promise<void> {
       user_id text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       at      timestamptz NOT NULL DEFAULT now()
     );
+    -- Each account's place in the queue of sign-ups (1st, 2nd…), for "the first
+    -- EARLY_BIRD_MAX accounts". Numbers are never reused, so deleting an account
+    -- doesn't move anyone up the queue.
+    CREATE TABLE IF NOT EXISTS signup_order (
+      user_id text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      n       bigserial UNIQUE
+    );
   `);
+  // Accounts made before this table (or while the server was down) join the queue in the order they were made.
+  await db.query(
+    `INSERT INTO signup_order (user_id)
+     SELECT id FROM "user" u WHERE NOT EXISTS (SELECT 1 FROM signup_order s WHERE s.user_id = u.id) ORDER BY "createdAt", id
+     ON CONFLICT DO NOTHING`,
+  );
 }
 
 export type InviteResult = 'ok' | 'unknown' | 'self' | 'already' | 'late' | 'newer';
@@ -184,12 +197,19 @@ export function earlyBirdRule(env: { EARLY_BIRD_UNTIL?: string; EARLY_BIRD_MAX?:
   return { until, max: env.EARLY_BIRD_MAX !== undefined && Number.isInteger(n) && n >= 0 ? n : EARLY_BIRD_MAX };
 }
 
-/** Is this account an early bird: made in time, and among the first `max` accounts ever made? */
+/** Is this account an early bird: made in time, and among the first `max` accounts ever made (signup_order)? */
 export async function isEarlyBird(db: Pool, rule: EarlyBirdRule, user: { id: string; createdAt: string }): Promise<boolean> {
+  // Every account takes its place in the queue the first time it's seen (straight after signing up), early bird or not.
+  const n = await signupNumber(db, user.id);
   if (new Date(user.createdAt).getTime() >= Date.parse(rule.until) + 86_400_000) return false;
-  if (!rule.max) return true;
-  const r = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM "user" WHERE "createdAt" < $1', [new Date(user.createdAt)]);
-  return r.rows[0].n < rule.max;
+  return !rule.max || n <= rule.max;
+}
+
+/** This account's place in the queue of sign-ups (1 for the first), given the first time it's asked for. */
+export async function signupNumber(db: Pool, userId: string): Promise<number> {
+  await db.query('INSERT INTO signup_order (user_id) SELECT $1 WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1) ON CONFLICT DO NOTHING', [userId]);
+  const r = await db.query<{ n: string }>('SELECT n FROM signup_order WHERE user_id = $1', [userId]);
+  return r.rows[0] ? Number(r.rows[0].n) : Infinity;
 }
 
 /** Give a pack (its looks and free coins) once, recorded in `table`. True if it was given just now. */

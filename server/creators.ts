@@ -138,7 +138,11 @@ export async function creatorReports(db: Pool, code?: string): Promise<CreatorRe
   return out;
 }
 
-/** Add a creator, or change one (name, account, share, months, on or off). */
+/**
+ * Add a creator, or change one (name, share, months, on or off). The linked
+ * game account changes only when an email is given: switching a code off and
+ * on again keeps it.
+ */
 export async function saveCreator(
   db: Pool,
   c: { code: string; name: string; email?: string | null; percent?: number; months?: number; active?: boolean },
@@ -151,7 +155,7 @@ export async function saveCreator(
   }
   await db.query(
     `INSERT INTO creator (code, name, user_id, percent, months, active) VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT (code) DO UPDATE SET name = $2, user_id = $3, percent = $4, months = $5, active = $6`,
+     ON CONFLICT (code) DO UPDATE SET name = $2, user_id = coalesce($3, creator.user_id), percent = $4, months = $5, active = $6`,
     [c.code, c.name, userId, c.percent ?? CREATOR_PERCENT, c.months ?? CREATOR_MONTHS, c.active ?? true],
   );
   return 'ok';

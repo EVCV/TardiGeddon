@@ -1072,7 +1072,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // The Founder and Early bird packs, the first time a founder or early bird is
             // seen (founders get both; then what they own is out of date: read it again).
             const founder = isFounder(founders, user);
-            if ((founder || (await isEarlyBird(db, earlyBirds, user))) && (await grantEarlyBird(db, user.id))) me.earlyBirdNew = true;
+            const earlyBird = await isEarlyBird(db, earlyBirds, user); // (also gives every account its place in the sign-up queue)
+            if ((founder || earlyBird) && (await grantEarlyBird(db, user.id))) me.earlyBirdNew = true;
             if (founder && (await grantFounder(db, user.id))) me.founderNew = true;
             if (me.earlyBirdNew || me.founderNew) {
               me.owned = await ownedItems(db, user.id);

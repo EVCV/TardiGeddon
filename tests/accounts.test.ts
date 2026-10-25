@@ -15,7 +15,7 @@ import type { CreatorReport, GiftSent, SalesReport } from '../src/account/sessio
 import { wearableTeam } from '../server/room';
 import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
-import { earlyBirdRule, founderRule, isEarlyBird, isFounder } from '../server/rewards';
+import { earlyBirdRule, founderRule, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
 import { EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
@@ -744,12 +744,18 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   });
 
   it('gives the Early bird pack to the first accounts made in time', async () => {
+    const older = await signUp('earlierbird@example.com');
     const one = await signUp('earlybird@example.com');
     const created = (await me(one.cookie)).user!.createdAt;
-    const before = (await accounts.db.query('SELECT count(*)::int AS n FROM "user" WHERE "createdAt" < $1', [new Date(created)])).rows[0].n as number;
+    const n = await signupNumber(accounts.db, one.id);
+    expect(await signupNumber(accounts.db, older.id)).toBeLessThan(n);
     const user = { id: one.id, createdAt: created };
-    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(before + 1) }), user)).toBe(true);
-    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(before) }), user)).toBe(false); // too late: the first N are taken
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(n) }), user)).toBe(true);
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(n - 1) }), user)).toBe(false); // too late: the first N are taken
+    // An older account deleted doesn't move anyone up the queue.
+    await accounts.db.query('DELETE FROM "user" WHERE id = $1', [older.id]);
+    expect(await signupNumber(accounts.db, one.id)).toBe(n);
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(n - 1) }), user)).toBe(false);
     expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: '0' }), user)).toBe(true); // no limit
     expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2000-01-01' }), user)).toBe(false);
     expect(earlyBirdRule({}).max).toBe(EARLY_BIRD_MAX);
@@ -837,8 +843,10 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await sendWebhook('charge.refunded', { id: 'ch_fan1', refunded: true, payment_intent: 'pi_cs_fan1' });
     ninja = ((await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] }).creators.find((c) => c.code === 'NINJA')!;
     expect(ninja.totals[0]).toMatchObject({ earned: 0, paid: share, owed: -share });
-    // Switched off: the code stops working.
-    await admin('/api/admin/creators', { code: 'NINJA', name: 'Ninja', email: 'streamer@example.com', active: false });
+    // Switched off (as the Sales page does it: no email): the code stops working, and the account stays linked.
+    await admin('/api/admin/creators', { code: 'NINJA', name: 'Ninja', active: false });
+    ninja = ((await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] }).creators.find((c) => c.code === 'NINJA')!;
+    expect(ninja).toMatchObject({ active: false, account: 'Tester' });
     const late = await signUp('latefan@example.com');
     expect(((await (await post('/api/invite', { code: 'NINJA' }, late.cookie)).json()) as { result: string }).result).toBe('unknown');
   });
