@@ -63,8 +63,9 @@ export class GameRenderer {
   /** Stars, snow or embers over the sky (arena themes), in screen space. */
   private ambient = new Graphics();
   private ambientBits: { x: number; y: number; r: number; v: number; p: number }[] = [];
-  private hills = new Graphics();
-  private hillsNear = new Graphics();
+  /** The background hills: pictures drawn once (makeHillTexture), moved for parallax. */
+  private hills = new Container();
+  private hillsNear = new Container();
   private terrainView: TerrainView;
   private entities = new Container();
   private projectiles = new Graphics();
@@ -155,6 +156,8 @@ export class GameRenderer {
     }
     this.camera.zoom = this.defaultZoom();
   }
+
+
 
   defaultZoom(): number {
     const { width, height } = this.app.screen;
@@ -928,18 +931,22 @@ export class GameRenderer {
     });
   }
 
+  /**
+   * The two rows of background hills. Drawn once into pictures (like the sky
+   * and the ground) rather than as GPU shapes: as huge one-off shapes, some
+   * graphics cards (Chrome) drew them as stray triangles and lines across the sky.
+   */
   private drawHills(): void {
     const w = this.state.terrain.w;
     const h = this.state.waterY;
-    for (const [g, color, amp, base, freq] of [
+    for (const [layer, color, amp, base, freq] of [
       [this.hills, this.theme.hillFar, 90, h - 260, 0.004],
       [this.hillsNear, this.theme.hillNear, 70, h - 170, 0.007],
     ] as const) {
-      g.moveTo(-3000, h + 3000);
-      for (let x = -3000; x <= w + 3000; x += 25) {
-        g.lineTo(x, base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4);
-      }
-      g.lineTo(w + 3000, h + 3000).closePath().fill(color).stroke({ width: 3, color: PALETTE.outline, alpha: 0.25 });
+      const sprite = new Sprite(makeHillTexture(w, h, color, amp, base, freq));
+      sprite.position.set(HILL_LEFT, h - HILL_ABOVE);
+      sprite.scale.set(HILL_SCALE);
+      layer.addChild(sprite);
     }
   }
 
@@ -1021,6 +1028,7 @@ export class GameRenderer {
     this.terrainView.destroy();
     this.weather.destroy();
     this.sky.destroy({ texture: true, textureSource: true });
+    for (const layer of [this.hills, this.hillsNear]) for (const c of layer.children) if (c instanceof Sprite) c.texture.destroy(true);
     this.ambient.destroy();
   }
 }
@@ -1313,6 +1321,38 @@ function makeGrave(x: number, y: number, color: number, id: string): Graphics {
   g.scale.set(s);
   g.position.set(x, y + 9 - 20 * s);
   return g;
+}
+
+/** The hills picture: from this far left of the map, this far above the water, at 1/HILL_SCALE size (they're soft shapes). */
+const HILL_LEFT = -3000;
+const HILL_ABOVE = 420;
+const HILL_SCALE = 4;
+
+/** One row of hills, the same shape as ever: a wavy top filled down past the water. */
+function makeHillTexture(w: number, h: number, color: number, amp: number, base: number, freq: number): Texture {
+  const width = w - 2 * HILL_LEFT;
+  const height = HILL_ABOVE + 3000;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(width / HILL_SCALE);
+  c.height = Math.ceil(height / HILL_SCALE);
+  const ctx = c.getContext('2d')!;
+  ctx.scale(1 / HILL_SCALE, 1 / HILL_SCALE);
+  ctx.translate(-HILL_LEFT, -(h - HILL_ABOVE));
+  ctx.beginPath();
+  ctx.moveTo(HILL_LEFT, h + 3000);
+  for (let x = HILL_LEFT; x <= w - HILL_LEFT; x += 25) {
+    ctx.lineTo(x, base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4);
+  }
+  ctx.lineTo(w - HILL_LEFT, h + 3000);
+  ctx.closePath();
+  ctx.fillStyle = hex(color);
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = hex(PALETTE.outline);
+  ctx.globalAlpha = 0.25;
+  ctx.stroke();
+  return Texture.from(c);
 }
 
 function makeSkyTexture(theme: ArenaTheme): Texture {
