@@ -1203,8 +1203,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .lobby-hero {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas: 'title title' 'art tagline' 'art team' 'art season';
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas: 'title title' 'art tagline' 'art team' 'art season' 'coins coins';
+    grid-template-rows: auto auto auto 1fr auto;
     align-items: start;
     gap: 6px 14px;
     text-align: left;
@@ -1217,6 +1217,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .lobby .tagline { grid-area: tagline; font-size: 15px; margin: 4px 0 0; }
   .lobby-hero .hero-team { grid-area: team; justify-self: start; }
   .lobby-hero .hero-season { grid-area: season; margin: 0; font-size: 13px; padding: 5px 10px; }
+  .lobby-hero .hero-coins-banner { grid-area: coins; margin: 0; }
   .lobby-play { justify-content: flex-start; }
   .lobby-play .menu-buttons { gap: 12px; }
   .lobby-play .big-btn { font-size: 28px; padding: 12px 20px; }

@@ -95,37 +95,63 @@ export function generateMap(o: MapOptions): Terrain {
   const rng = createRng(o.seed);
   const t = createTerrain(o.w, o.h);
   const style = o.style ?? 'islands';
+  if (o.ceiling) {
+    raceCourse(o, t, rng);
+    return t;
+  }
   if (style === 'islands') islands(o, t, rng);
   else {
     LAND[style](o, t, rng);
     // Now and then a few small floating isles drift over other realms too.
     if (style !== 'sky' && style !== 'caverns' && rngFloat(rng) < 0.35) floatingTier(o, t, rng, o.h * 0.22, 1, 3);
   }
-  if (o.ceiling) {
-    // A bumpy roof to swing from: about ROOF_GAP above the highest ground (or
-    // the water) nearby, so wherever a tardi stands the Silk Rope (ROPE_MAX,
-    // 320) can reach it, and high enough to leave a clear course.
-    const roof = lattice1D(rng, o.w, 160);
-    const bumps = lattice1D(rng, o.w, 40);
-    const top = new Int32Array(o.w);
-    for (let x = 0; x < o.w; x++) {
-      let y = 0;
-      while (y < o.waterY && !t.mask[y * o.w + x]) y++;
-      top[x] = y;
-    }
-    for (let x = 0; x < o.w; x++) {
-      let near = o.waterY;
-      for (let dx = -ROOF_SPAN; dx <= ROOF_SPAN; dx++) near = Math.min(near, top[Math.max(0, Math.min(o.w - 1, x + dx))]);
-      const bottom = Math.max(30, Math.floor(near - ROOF_GAP + sample1D(roof, x, 160) * 50 + sample1D(bumps, x, 40) * 25));
-      for (let y = 0; y < bottom; y++) t.mask[y * o.w + x] = 1;
-    }
-  }
   return t;
 }
 
-/** Rope Race roof: about this far above the highest ground within ROOF_SPAN either side. */
+/**
+ * A Rope Race course: a long cave. Gently rolling ground broken by pits down
+ * to the water, under a bumpy roof that's never more than ROOF_GAP (plus a
+ * little) above it, so from anywhere on the course the Silk Rope (ROPE_MAX,
+ * 320) catches it ahead of you.
+ * Wide flat ground at the start and the flag, and a wall at each end.
+ */
+function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
+  const big = lattice1D(rng, o.w, 400);
+  const small = lattice1D(rng, o.w, 60);
+  const bumps = lattice1D(rng, o.w, 50);
+  const base = o.h * 0.62;
+  const end = o.w - MARGIN;
+  // Where the ground is: a start pad, then pits and platforms, then the finish pad.
+  const ground = new Uint8Array(o.w);
+  let x = MARGIN + RACE_PAD;
+  ground.fill(1, MARGIN, x);
+  while (x < end - RACE_PAD) {
+    x += rngInt(rng, 90, 190); // a pit
+    let to = Math.min(x + rngInt(rng, 130, 320), end);
+    if (to > end - RACE_PAD - 90) to = end; // no room for another pit: run on to the finish
+    ground.fill(1, Math.min(x, end), to);
+    x = to;
+  }
+  ground.fill(1, end - RACE_PAD, end);
+  // The ground's height: rolling, flattened at the pads.
+  const flat = (x: number): number => smooth(Math.max(0, Math.min(1, Math.min(x - MARGIN - RACE_PAD, end - RACE_PAD - x) / 200)));
+  const height = (x: number): number => base + (sample1D(big, x, 400) - 0.5) * 160 * flat(x);
+  for (let x = MARGIN; x < end; x++) {
+    if (ground[x]) fillDown(o, t, x, height(x) + (sample1D(small, x, 60) - 0.5) * 24 * flat(x), null, 1);
+  }
+  // The roof.
+  for (let x = 0; x < o.w; x++) {
+    let bottom = height(Math.max(MARGIN, Math.min(end - 1, x))) - ROOF_GAP + (sample1D(bumps, x, 50) - 0.5) * 40;
+    // Rock walls close the cave at both ends: no flying off past the flag.
+    if (x < MARGIN + 10 || x >= end - 10) bottom = o.h;
+    for (let y = 0; y < Math.floor(bottom); y++) t.mask[y * o.w + x] = 1;
+  }
+}
+
+/** Rope Race roof: about this far above the ground under it. */
 const ROOF_GAP = 230;
-const ROOF_SPAN = 20;
+/** Rope Race: the flat ground at the start and the flag. */
+const RACE_PAD = 220;
 
 /** Land never touches the map's sides, so tardis can fall off them. */
 const MARGIN = 60;

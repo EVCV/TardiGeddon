@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AIM_MAX, TARDI_R, activeTardi, createWorld, ropeTrace, tick } from '../src/sim/world';
-import { BTN_DOWN, BTN_UP, EMPTY_INPUT, type SimEvent, type WorldState } from '../src/sim/types';
+import { BTN_DOWN, BTN_FIRE, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from '../src/sim/types';
 import { presetScheme } from '../src/sim/schemes';
 import { isSolid } from '../src/sim/terrain/terrain';
 import { makeWorld, run, runUntilPhase } from './helpers';
@@ -29,6 +29,12 @@ describe('Rope Race', () => {
     expect(ammo.bazooka).toBe(0);
     expect(ammo.rope).toBe(-1);
     expect(s.turn.weapon).toBe('rope');
+    // Aimed so the first rope catches the roof ahead.
+    runUntilPhase(s, 'aim');
+    const t = activeTardi(s)!;
+    const first = ropeTrace(s.terrain, t.x, t.y, t.facing, s.turn.aim);
+    expect(first.hit).toBe(true);
+    expect(first.x).toBeGreaterThan(t.x);
   });
 
   it('records a time when the active tardi reaches the flag, and ends the turn', () => {
@@ -146,4 +152,67 @@ describe('Rope Race courses', () => {
       }
     }
   });
+
+  it('can be finished well inside the time: a simple rope-swinging bot gets round nearly every course', () => {
+    const times: number[] = [];
+    let stuck = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const time = ropeBot(seed * 7919);
+      if (time < 0) stuck++;
+      else times.push(time);
+    }
+    // The bot is crude (a person aims better when caught in a pit), but it
+    // still gets round almost every course in a fraction of the 60 seconds.
+    expect(stuck).toBeLessThanOrEqual(3);
+    expect(times.reduce((a, b) => a + b, 0) / times.length).toBeLessThan(15);
+  });
+
+  it('are closed at both ends, so you can\'t fly off past the flag', () => {
+    const s = race();
+    for (const x of [5, s.terrain.w - 5]) for (let y = 0; y < s.waterY; y += 20) expect(isSolid(s.terrain, x, y)).toBe(true);
+  });
 });
+
+/**
+ * Swings to the flag: ropes ahead at a fixed angle, swings forward, lets go on
+ * the upswing and ropes again; caught somewhere, ropes straight up; on the
+ * finish pad, drops and walks to the flag. Returns seconds taken, or -1.
+ */
+function ropeBot(seed: number): number {
+  const s = race(seed);
+  runUntilPhase(s, 'aim');
+  const start = s.tick;
+  let prevFire = false;
+  let since = 0;
+  let farthest = 0;
+  let progressAt = 0;
+  for (let i = 0; i < s.scheme.turnTime * TICK_RATE; i++) {
+    const t = activeTardi(s)!;
+    let input: InputFrame = EMPTY_INPUT;
+    since++;
+    if (t.x > farthest + 30) {
+      farthest = t.x;
+      progressAt = i;
+    }
+    const stuck = i - progressAt > 100;
+    const onPad = t.x > s.race!.goalX - 180;
+    if (onPad && !t.airborne) {
+      input = { ...EMPTY_INPUT, held: BTN_RIGHT };
+    } else if (t.rope) {
+      let held = BTN_RIGHT;
+      if (t.rope.len > 170) held |= BTN_UP;
+      const upswing = t.x > t.rope.x + 40 && t.vy < 0 && t.vx > 1.5;
+      if ((upswing || onPad || since > 250 || (stuck && since > 60)) && !prevFire) held |= BTN_FIRE;
+      input = { ...EMPTY_INPUT, held };
+    } else if (!prevFire && (since > 6 || !t.airborne)) {
+      input = { ...EMPTY_INPUT, held: BTN_FIRE, cmd: { t: 'aim', aim: stuck ? AIM_MAX : Math.round(AIM_MAX * 0.62), facing: 1 } };
+      since = 0;
+    }
+    prevFire = (input.held & BTN_FIRE) !== 0;
+    const ev: SimEvent[] = [];
+    tick(s, input, ev);
+    if (ev.some((e) => e.t === 'finish')) return (s.tick - start) / TICK_RATE;
+    if (s.turn.phase !== 'aim') return -1;
+  }
+  return -1;
+}
