@@ -20,6 +20,8 @@ export function tutorialWorld(player: TeamConfig): WorldConfig {
   const dummy: TeamConfig = { name: 'Target Dummy', color: 0x9aa4ad, cpu: true, names: ['Dummy'], hat: 'beanie', skin: 'classic', aim: 'classic', fx: 'classic' };
   return {
     seed: 20241,
+    // The lessons start on your turn: the dummy's wander comes after.
+    firstTeam: 0,
     teams: [{ ...player, cpu: false, names: player.names?.slice(0, 1) }, dummy],
     scheme: {
       ...presetScheme('standard'),

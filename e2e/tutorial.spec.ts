@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-type Game = { state: { turn: { phase: string; weapon: string }; teams: { cpu: boolean }[] } };
+type Game = { state: { turn: { phase: string; weapon: string; teamIdx: number }; teams: { cpu: boolean }[] } };
 
 test('settings bind left-click to Fire, and the tutorial walks through the basics', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'keyboard and mouse');
@@ -20,7 +20,11 @@ test('settings bind left-click to Fire, and the tutorial walks through the basic
   await page.locator('.hub-tabs').getByRole('button', { name: /Lobby/ }).click();
   await page.locator('.learn-btn').click();
   const coach = page.locator('.coach');
-  await page.waitForFunction(() => (window as unknown as { __tardi?: Game }).__tardi?.state.turn.phase === 'aim');
+  // Your turn (the dummy, on its own turn, wanders first if it ever goes first).
+  await page.waitForFunction(() => {
+    const s = (window as unknown as { __tardi?: Game }).__tardi?.state;
+    return s?.turn.phase === 'aim' && !s.teams[s.turn.teamIdx].cpu;
+  }, undefined, { timeout: 30_000 });
   await expect(coach).toContainText('Step 1 of');
   await expect(coach).toContainText('Walk with ← or A');
   // Steps get 15 s each: on a small CI machine the software-rendered match can run slowly.

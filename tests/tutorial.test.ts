@@ -15,6 +15,8 @@ describe('tutorial practice match', () => {
     expect(Math.abs(s.wind)).toBe(0);
     expect(s.teams[0].ammo.bazooka).not.toBe(0);
     expect(s.teams[0].ammo.airstrike).not.toBe(0);
+    // The lessons start on your turn.
+    expect(s.turn.teamIdx).toBe(0);
   });
 
   it('the dummy wanders about a little on its turn, never far and never fighting back, and it is soon your go again', () => {
