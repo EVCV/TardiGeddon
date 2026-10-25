@@ -8,8 +8,11 @@ The apps are the web game (`dist/`) inside a native shell made with
 | Capacitor settings (app id, name, address inside the phone) | `capacitor.config.ts` |
 | App-only build settings (game server, invite links) | `.env.app` |
 | Android project (open in Android Studio) | `android/` |
+| iOS project (open in Xcode on a Mac: `npm run app:ios`; see `docs/IOS.md`) | `ios/` |
 | Icon and splash sources, and the script that draws them | `assets/`, `scripts/app-icons.mjs` |
 | APK built on every push | `.github/workflows/android.yml` |
+| iOS simulator build when the iOS side changes | `.github/workflows/ios.yml` |
+| Signed iOS build to TestFlight on every merge (once the keys are in: `docs/IOS.md` §5) | `.github/workflows/ios-testflight.yml`, `ios/fastlane/` |
 
 ## Building
 
@@ -37,14 +40,17 @@ New icons: edit `public/icon.svg`, then
 ## One server setting
 
 The app's pages live at `https://app.tardigeddon.com` *inside the phone*
-(Capacitor serves them from the app; nothing is hosted there). The game
-server must trust that origin for sign-in to work:
+(Capacitor serves them from the app; nothing is hosted there). On iOS the
+address is `capacitor://app.tardigeddon.com` (`docs/IOS.md` §2a). The game
+server must trust both for sign-in to work. This is set (October 2026):
 
 ```sh
-fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com
+fly secrets set TRUSTED_ORIGINS=https://app.tardigeddon.com,capacitor://app.tardigeddon.com
 ```
 
-(If `TRUSTED_ORIGINS` already has values, keep them: comma-separated.)
+`fly secrets set` replaces the whole value: always list every address,
+comma-separated, or one of the apps stops signing in. Setting it restarts the
+game server (online games in progress drop for a few seconds).
 
 Because that address is on `tardigeddon.com`, the server's sign-in cookie is
 "same-site" and works exactly as on the website. Online play needs no change.
@@ -62,13 +68,41 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   items, so the Android app sells coin packs with Google Play Billing instead of
   Stripe (`docs/GOOGLE_PLAY.md` §7). Coins bought on the website still spend
   in the app.
-- **Email sign-in only:** Google and Apple refuse to show their sign-in pages
-  inside an app.
+- **Google and Apple sign-in their own way:** they refuse to show their
+  sign-in pages inside an app. Google uses the phone's account picker; Apple
+  opens in a browser tab and comes back to the app
+  (`SocialSignInPlugin.java`, `src/account/nativeSignIn.ts`). Setup and how it
+  works: `docs/ACCOUNTS.md`, "Google and Apple in the Android app".
 - **The phone's font size:** a WebView would enlarge only the text (it spilled
   out of FIRE and other buttons), so `MainActivity` turns that off
   (`setTextZoom(100)`) and `DisplayPlugin` tells the game the phone's font
   scale; Settings → Text size "Auto" then scales the whole interface, text and
   buttons together (`src/ui/textSize.ts`, up to what the screen has room for).
+
+## Foldables
+
+Folding phones bring screens the game must handle (`e2e/foldable.spec.ts`
+checks each, with the phones' CSS sizes):
+
+| Screen | What happens |
+|---|---|
+| Outer screen (Galaxy Z Fold, Pixel Fold, iPhone Duo): a tall phone | As any phone: landscape, phone menu; held upright, "Turn your phone sideways" |
+| Inner screen, open (near-square, ~780–1100px each way) | Plays either way up. On its side the phone menu is scaled up less than on a tablet (`--ui-zoom` for screens 6:5 or squarer in `style.css`), or it would squeeze into ~490px |
+| iPhone Duo's open screen (~626–669 × 890–951, a 4:3-ish book) | Plays either way up: "Turn your phone sideways" only covers windows under 600px wide. The iOS app must be built with the iOS 27.1 SDK to fill it (`docs/IOS.md` §5, §7) |
+| A flip phone's cover screen (under 500px either way) | "Open your phone" |
+| Split screen (a window well under the screen's width) | "Make the window wider" |
+| Opened or closed mid-match | The match carries on and redraws to the new size; the Android activity isn't restarted (`configChanges` in `AndroidManifest.xml` includes the screen sizes) |
+
+**Android 16 and big screens:** for apps targeting API 36, Android ignores an
+app's orientation lock on screens 600dp or more across (an unfolded Fold, a
+tablet), so the app would turn upright there. Games are exempt, so the app
+says it's one: `android:appCategory="game"` in `AndroidManifest.xml`. It
+stays landscape (sensor-landscape) on the inner screen too. Google says the
+general opt-out ends at API 37, but not the game exemption.
+
+On narrow phones (under 720px wide: iPhone SE, small Androids, the iPhone
+Duo's outer screen) the health bars sit next to the timer, not centred, so
+the weapon button in the corner doesn't cover them.
 
 ## "It won't install"
 
@@ -93,18 +127,9 @@ Android, before Google Play: **see `docs/GOOGLE_PLAY.md`**: the upload key
 and GitHub secrets (signed `.aab` builds on every merge), the store listing
 text and images (`store/google-play/`, `scripts/store-images.mjs`), and the
 answers for Google's content rating, target audience and Data safety forms.
-Still to build: Google
-sign-in with the native account picker, and app links for invites.
+Still to build: app
+links for invites.
 
-iOS, after Android:
-
-- Building needs a Mac with Xcode, or a macOS cloud build (GitHub Actions
-  macOS runners, Codemagic, Ionic Appflow). An Apple Developer account costs
-  $99 a year. `npx cap add ios` creates the project.
-- **Sign-in needs work first:** iOS apps can't use an `https` address inside
-  the phone, so the cookie becomes cross-site and Safari's rules block it.
-  The fix is the token sign-in already planned in `SECURITY.md` (a Better
-  Auth bearer token kept in the phone's secure storage, also sent when
-  joining an online game).
-- Sign in with Apple is required once Google sign-in is offered; buying coins
-  goes through Apple's in-app purchases.
+iOS, after Android: **see `docs/IOS.md`** (the plan: token sign-in, Apple
+in-app purchases, building on GitHub's macOS runners, the App Store listing,
+and the order of work).

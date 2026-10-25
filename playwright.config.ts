@@ -7,6 +7,9 @@ const launchOptions = {
   executablePath: process.env.PW_CHROMIUM_PATH || undefined,
 };
 
+/** Tests that try many screen sizes: their own project, run last (see projects). */
+const SCREENS = /(foldable|tablet)\.spec\.ts$/;
+
 export default defineConfig({
   testDir: 'e2e',
   timeout: 60_000,
@@ -27,7 +30,11 @@ export default defineConfig({
     },
   ],
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], launchOptions } },
-    { name: 'phone', use: { ...devices['Pixel 7 landscape'], launchOptions } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], launchOptions }, testIgnore: SCREENS },
+    { name: 'phone', use: { ...devices['Pixel 7 landscape'], launchOptions }, testIgnore: SCREENS },
+    // The screen-size tests make their own tablets and foldables and start several
+    // matches each. Run alongside the online tests they starved those of CPU (two
+    // browsers playing in real time), which then timed out on CI; so they run after.
+    { name: 'screens', use: { ...devices['Desktop Chrome'], launchOptions }, testMatch: SCREENS, dependencies: ['desktop', 'phone'] },
   ],
 });

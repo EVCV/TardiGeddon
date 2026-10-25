@@ -1,11 +1,12 @@
 // Accounts + shop against a real Postgres. Skipped unless TEST_DATABASE_URL
 // points at an empty, throwaway database (it creates tables in it), e.g.
 //   TEST_DATABASE_URL=postgres://postgres@localhost:5432/tardi_test npm test
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
+import { createHash, randomBytes } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import Stripe from 'stripe';
-import { createAccounts, type Accounts, type MeResponse } from '../server/accounts';
+import { createAccounts, signsInWithToken, type Accounts, type MeResponse } from '../server/accounts';
 import { ChallengeRun, challengeDay, challengeWorld } from '../src/challenge/daily';
 import { createWorld, tick } from '../src/sim/world';
 import { CpuPlayer } from '../src/ai/cpu';
@@ -18,10 +19,13 @@ import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
 import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
+import { appStoreAccountToken, type AppStoreApi, type AppStorePurchase } from '../server/appStore';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
 const GAME = 'http://localhost:5173/';
+/** The iOS app's pages (capacitor.config.ts), which sign in with a token (docs/IOS.md §2a). */
+const IOS_APP = 'capacitor://app.tardigeddon.com';
 
 describe('shop hats', () => {
   it('are only wearable once owned', () => {
@@ -47,6 +51,15 @@ describe('shop hats', () => {
     } finally {
       PROMOS.pop();
     }
+  });
+});
+
+describe('token sign-in', () => {
+  it('is only for the iOS app, never the website or the Android app', () => {
+    expect(signsInWithToken(IOS_APP)).toBe(true);
+    expect(signsInWithToken('https://app.tardigeddon.com')).toBe(false); // Android: the cookie works there
+    expect(signsInWithToken('https://tardigeddon.com')).toBe(false);
+    expect(signsInWithToken(undefined)).toBe(false);
   });
 });
 
@@ -87,6 +100,15 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     voided: async () => voided,
   };
 
+  // No Apple in tests: purchases and notifications the fake "signed", by their text
+  // (Apple's real signature checks are tested in appstore.test.ts).
+  const applePurchases = new Map<string, AppStorePurchase>();
+  const appleNotes = new Map<string, { type: string; purchase: AppStorePurchase | null }>();
+  const appStore: AppStoreApi = {
+    purchase: async (signed) => applePurchases.get(signed) ?? null,
+    notification: async (signed) => appleNotes.get(signed) ?? null,
+  };
+
   // No email service in tests: keep what would have been sent.
   const sent: Mail[] = [];
   const mailer = async (m: Mail) => void sent.push(m);
@@ -103,8 +125,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com' },
-      { stripe, mailer, play },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
+      { stripe, mailer, play, appStore },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -571,6 +593,54 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     voided = [];
   });
 
+  it('sells coin packs in the iOS app through the App Store: Apple-signed, granted once, refundable', async () => {
+    const { cookie, id } = await signUp('apple@example.com');
+    expect((await me(cookie)).appStore).toBe(true);
+    const buy = (transaction: string) => post('/api/shop/apple', { transaction }, cookie);
+    const bought = (transactionId: string, over: Partial<AppStorePurchase> = {}): string => {
+      const signed = `signed-${transactionId}`;
+      applePurchases.set(signed, { transactionId, productId: 'coins_500', consumable: true, appAccountToken: appStoreAccountToken(id), revoked: false, sandbox: false, region: 'JP', ...over });
+      return signed;
+    };
+    // Signed out, not signed by Apple, and not a coin pack: nothing.
+    expect((await post('/api/shop/apple', { transaction: bought('a1') })).status).toBe(401);
+    expect((await buy('made-up')).status).toBe(400);
+    expect((await buy(bought('a2', { productId: 'hat_wizard' }))).status).toBe(400);
+    expect((await buy(bought('a3', { consumable: false }))).status).toBe(400);
+    expect((await buy(bought('a4', { revoked: true }))).status).toBe(400);
+    // Made on another account (or not by our app at all): refused, it stays for that account.
+    expect((await buy(bought('a5', { appAccountToken: appStoreAccountToken('someone-else') }))).status).toBe(403);
+    expect((await buy(bought('a6', { appAccountToken: null }))).status).toBe(403);
+    expect((await me(cookie)).wallet.coins).toBe(0);
+
+    const r = await buy(bought('a1'));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ coins: 550 });
+    // Sent again (the app only finishes it once we answer): no second grant.
+    expect(await (await buy('signed-a1')).json()).toMatchObject({ coins: 0 });
+    expect((await me(cookie)).wallet.coins).toBe(550);
+    // Another player sending this player's purchase: refused.
+    const other = await signUp('apple-other@example.com');
+    expect((await post('/api/shop/apple', { transaction: 'signed-a1' }, other.cookie)).status).toBe(403);
+    // A sandbox purchase (TestFlight, App Review) grants coins but counts as £0 on the sales page.
+    expect((await buy(bought('a7', { productId: 'coins_200_1', sandbox: true, region: 'GB' }))).status).toBe(200);
+    const rows = await accounts.db.query<{ amount: number; item: string; region: string }>(`SELECT amount, item, region FROM purchase WHERE user_id = $1 ORDER BY item`, [id]);
+    expect(rows.rows).toEqual([{ amount: 0, item: 'coins:200', region: 'GB' }, { amount: 499, item: 'coins:500', region: 'JP' }]);
+    expect((await me(cookie)).wallet.coins).toBe(750);
+
+    // Refunded through Apple: Apple's notification takes the coins back, once.
+    const notify = (signedPayload: string) => fetch(base + '/api/shop/apple/notifications', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ signedPayload }) });
+    expect((await notify('forged')).status).toBe(400);
+    appleNotes.set('refund-a1', { type: 'REFUND', purchase: applePurchases.get('signed-a1')! });
+    expect((await notify('refund-a1')).status).toBe(200);
+    expect((await notify('refund-a1')).status).toBe(200); // Apple retries: still only once
+    expect((await me(cookie)).wallet.coins).toBe(200);
+    // Other notifications are just acknowledged.
+    appleNotes.set('ask-a7', { type: 'CONSUMPTION_REQUEST', purchase: applePurchases.get('signed-a7')! });
+    expect((await notify('ask-a7')).status).toBe(200);
+    expect((await me(cookie)).wallet.coins).toBe(200);
+  });
+
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {
     expect((await post('/api/settings', { controls: defaultControls() })).status).toBe(401);
     const { cookie } = await signUp('settings@example.com');
@@ -752,6 +822,64 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await post('/api/gift/redeem', { code: 'water-bear' })).status).toBe(401);
   });
 
+  it('hands a sign-in made in a browser tab to the Android app, only with the verifier the app kept', async () => {
+    const challengeFor = (v: string) => createHash('sha256').update(v).digest('base64url');
+    const verifier = randomBytes(32).toString('base64url');
+    const challenge = challengeFor(verifier);
+    const get = (path: string, cookie = '') => fetch(base + path, { redirect: 'manual', headers: { cookie } });
+
+    // The app tells the game which client its Google account picker should ask for.
+    expect((await me('')).googleClientId).toBe('tardi-test.apps.googleusercontent.com');
+
+    // The tab starts at the provider, carrying the challenge in a cookie of its own.
+    const start = await get(`/api/app/social?provider=google&challenge=${challenge}`);
+    expect(start.status).toBe(302);
+    expect(start.headers.get('location')).toMatch(/^https:\/\/accounts\.google\.com\//);
+    expect(start.headers.getSetCookie().some((c) => new RegExp(`^tardi-app-challenge=${challenge}\\.\\d{13};`).test(c))).toBe(true);
+    // Unknown providers and bad challenges go straight back to the app.
+    expect((await get(`/api/app/social?provider=nope&challenge=${challenge}`)).headers.get('location')).toBe('com.tardigeddon.app://signin?error=unavailable');
+    expect((await get('/api/app/social?provider=google&challenge=short')).headers.get('location')).toBe('com.tardigeddon.app://signin?error=unavailable');
+
+    // Back from the provider without a sign-in (cancelled): the app hears so.
+    const cancelled = await get('/api/app/return', `tardi-app-challenge=${challenge}.${Date.now()}`);
+    expect(cancelled.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
+
+    // The browser was already signed in to the website: cancelling (or any sign-in
+    // that didn't happen in this flow) never hands that old session to the app.
+    const { cookie: old } = await signUp('website@example.com');
+    const later = Date.now() + 1000;
+    const stale = await get('/api/app/return', `${old}; tardi-app-challenge=${challenge}.${later}`);
+    expect(stale.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
+
+    // Signed in in the tab (as the provider's callback leaves it): a one-time token for the app.
+    const startedAt = Date.now() - 1000;
+    const { cookie: tab, id } = await signUp('tab@example.com');
+    // ...unless the provider came back with an error.
+    const refused = await get('/api/app/return?error=access_denied', `${tab}; tardi-app-challenge=${challenge}.${startedAt}`);
+    expect(refused.headers.get('location')).toBe('com.tardigeddon.app://signin?error=cancelled');
+    const handOff = async () => {
+      const r = await get('/api/app/return', `${tab}; tardi-app-challenge=${challenge}.${startedAt}`);
+      const to = new URL(r.headers.get('location')!);
+      expect(to.protocol + '//' + to.host + to.pathname).toBe('com.tardigeddon.app://signin');
+      return to.searchParams.get('token')!;
+    };
+
+    // Someone else who caught the link can't use it without the verifier, and it's then used up.
+    const stolen = await handOff();
+    expect((await post('/api/app/redeem', { token: stolen, verifier: randomBytes(32).toString('base64url') })).status).toBe(400);
+    expect((await post('/api/app/redeem', { token: stolen, verifier })).status).toBe(400);
+    // Better Auth's own route for these tokens is closed.
+    expect((await post('/api/auth/one-time-token/verify', { token: await handOff() })).status).toBe(404);
+
+    // The app, with its verifier: signed in as the same player, once.
+    const token = await handOff();
+    const r = await post('/api/app/redeem', { token, verifier });
+    expect(r.status).toBe(200);
+    const app = r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    expect((await me(app)).user?.id).toBe(id);
+    expect((await post('/api/app/redeem', { token, verifier })).status).toBe(400);
+  });
+
   it('puts daily challenge runs on the leaderboard only after playing them back itself', async () => {
     const day = challengeDay();
     const run = (popEverything: boolean) => {
@@ -857,5 +985,56 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await accounts.db.query('SELECT 1 FROM inventory WHERE user_id = $1', [id])).rowCount).toBe(0);
     const kept = await accounts.db.query('SELECT user_id FROM purchase WHERE id = $1', ['cs_4']);
     expect(kept.rows).toEqual([{ user_id: null }]);
+  });
+  it('signs the iOS app in with a token, joins online play with a one-use ticket, and never gives the website the token', async () => {
+    // The website: the cookie only. Page scripts can't read the token.
+    const web = await post('/api/auth/sign-up/email', { email: 'web-token@example.com', password: 'correct horse', name: 'Tester' });
+    expect(web.status).toBe(200);
+    expect(web.headers.get('set-auth-token')).toBeNull();
+    expect(web.headers.get('access-control-expose-headers') ?? '').not.toMatch(/set-auth-token/i);
+
+    // The iOS app: no cookie survives there, so it keeps the token and sends it back.
+    const app = (path: string, body?: unknown, token = '') =>
+      fetch(base + path, {
+        method: body === undefined ? 'GET' : 'POST',
+        headers: { origin: IOS_APP, ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    const pre = await fetch(base + '/api/me', { method: 'OPTIONS', headers: { origin: IOS_APP, 'access-control-request-headers': 'authorization' } });
+    expect(pre.headers.get('access-control-allow-origin')).toBe(IOS_APP);
+    expect(pre.headers.get('access-control-allow-headers')).toMatch(/authorization/);
+
+    const su = await app('/api/auth/sign-up/email', { email: 'ios@example.com', password: 'correct horse', name: 'Tester' });
+    expect(su.status).toBe(200);
+    const token = su.headers.get('set-auth-token') ?? '';
+    expect(token).not.toBe('');
+    expect(su.headers.get('access-control-expose-headers')).toMatch(/set-auth-token/i);
+    const m = (await (await app('/api/me', undefined, token)).json()) as MeResponse;
+    expect(m.user?.email).toBe('ios@example.com');
+    // A made-up token is nobody; so is no token.
+    expect(((await (await app('/api/me', undefined, token.slice(0, -2) + 'xx')).json()) as MeResponse).user).toBeNull();
+    expect(((await (await app('/api/me')).json()) as MeResponse).user).toBeNull();
+
+    // Online play: a ticket from the token, good once.
+    expect((await app('/api/ws-ticket', {})).status).toBe(401);
+    const { ticket } = (await (await app('/api/ws-ticket', {}, token)).json()) as { ticket: string };
+    expect(ticket.length).toBeGreaterThan(30);
+    expect((await accounts.playerFor({}, ticket)).userId).toBe(m.user!.id);
+    expect((await accounts.playerFor({}, ticket)).userId).toBeUndefined();
+    expect((await accounts.playerFor({}, 'made-up')).userId).toBeUndefined();
+    // …and only for 30 seconds.
+    const late = ((await (await app('/api/ws-ticket', {}, token)).json()) as { ticket: string }).ticket;
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 31_000);
+    try {
+      expect((await accounts.playerFor({}, late)).userId).toBeUndefined();
+    } finally {
+      vi.restoreAllMocks();
+    }
+
+    // Signing out ends the token.
+    expect((await app('/api/auth/sign-out', {}, token)).status).toBe(200);
+    expect(((await (await app('/api/me', undefined, token)).json()) as MeResponse).user).toBeNull();
+    expect((await app('/api/ws-ticket', {}, token)).status).toBe(401);
   });
 });

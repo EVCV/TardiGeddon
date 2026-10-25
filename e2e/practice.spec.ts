@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+// Contexts made with browser.newContext() outlive the test (the browser is shared
+// by the worker): close them, or their matches keep running and starve later tests.
+test.afterEach(async ({ browser, context }) => {
+  for (const c of browser.contexts()) if (c !== context) await c.close();
+});
+
 type Tardi = { state: { turn: { phase: string; teamIdx: number }; teams: { ammo: Record<string, number> }[]; tardis: { team: number }[] }; input: { command: (c: unknown) => void } };
 
 test('practice: unlimited ammo against targets, from the lobby', async ({ page }) => {
@@ -8,7 +14,7 @@ test('practice: unlimited ammo against targets, from the lobby', async ({ page }
   await page.goto('/');
   await page.getByRole('button', { name: '🎯 Practice' }).click();
   await page.getByRole('button', { name: /Pop 10 targets/ }).click();
-  await expect(page.locator('.hud-timer')).toBeVisible();
+  await expect(page.locator('.hud-timer')).toBeVisible({ timeout: 20_000 }); // a match can take a while to start on CI (software rendering)
   await page.waitForFunction(() => (window as unknown as { __tardi?: Tardi }).__tardi?.state.turn.phase === 'aim');
   const info = await page.evaluate(() => {
     const s = (window as unknown as { __tardi: Tardi }).__tardi.state;

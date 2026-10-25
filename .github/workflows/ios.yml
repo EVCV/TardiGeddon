@@ -1,0 +1,59 @@
+name: iOS app
+
+# Builds the iOS app (docs/IOS.md) for the iPhone/iPad simulator, unsigned,
+# to prove the Xcode project and our Swift compile: there's no Mac to try it on.
+# Only when the iOS side changes, as macOS minutes cost ten times Linux ones.
+# Signed builds for TestFlight come once the Apple Developer account is
+# approved (docs/IOS.md §5).
+on:
+  push:
+    paths:
+      - 'ios/**'
+      - 'server/apple/**'
+      - 'capacitor.config.ts'
+      - 'package*.json'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+jobs:
+  simulator:
+    # GitHub's Xcode 27 image (macOS 27, Apple Silicon).
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      # The server checks App Store purchases against Apple's root certificate
+      # (server/apple/AppleRootCA-G3.cer): still the one apple.com publishes?
+      - name: Apple's root certificate
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/g3.cer" https://www.apple.com/certificateauthority/AppleRootCA-G3.cer
+          cmp "$RUNNER_TEMP/g3.cer" server/apple/AppleRootCA-G3.cer
+      # Xcode 27.1 or later: the iOS 27.1 SDK is what lets the app fill both of
+      # iPhone Duo's screens (older builds run in an iPhone-sized box), and
+      # Apple wants the iOS 27 SDK from April 2027.
+      - name: Xcode 27.1+
+        run: |
+          # The newest Xcode 27 that isn't a beta (the App Store refuses beta builds;
+          # some plain names, e.g. Xcode_27.2.app, are links to a beta).
+          XCODE=$(for x in /Applications/Xcode_27*.app; do r=$(readlink -f "$x"); [[ "$r" == *[Bb]eta* ]] && continue; echo "$(defaults read "$r/Contents/Info" CFBundleShortVersionString) $r"; done | sort -uV | tail -1 | cut -d' ' -f2-)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK $SDK"
+          printf '27.1\n%s\n' "$SDK" | sort -V -C || { echo "::error::Needs the iOS 27.1 SDK or later for iPhone Duo (got $SDK)"; exit 1; }
+      - run: npm ci
+      - run: npm run app:build
+      - name: Build for the simulator
+        run: >
+          xcodebuild build
+          -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E 'error|warning: .*(App/App/)|BUILD (SUCCEEDED|FAILED)' || true
+      - name: Check it built
+        run: grep -q 'BUILD SUCCEEDED' "$RUNNER_TEMP/xcodebuild.log"

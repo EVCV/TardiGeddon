@@ -1,15 +1,19 @@
 // The signed-in player, as the game sees them: who they are and which shop
 // items they own. Talks to the game server's /api (server/accounts.ts) with
-// its session cookie. Ownership is enforced by the server for online games;
+// its session cookie (in the iOS app, a token instead: ./token.ts). Ownership is enforced by the server for online games;
 // the copy cached here only decides what this device shows as unlocked.
 
 import { ARENAS, SURPRISE_ARENA } from '../render/arenas';
 import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import type { UnspentRow } from '../shop/japan';
-import { serverUrl } from '../net/client';
+import { serverUrl, setTicketSource } from '../net/client';
+import { authToken, saveAuthToken, signsInWithToken } from './token';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
+import { App } from '@capacitor/app';
+import { googleAccountPicker, nativeSignInAvailable, newChallenge, openBrowserTab, parseSignInLink, takeVerifier } from './nativeSignIn';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
+import { appStoreAvailable, appStoreBuy, appStoreFinish, appStoreUnfinished, type AppStorePurchase } from '../shop/appStore';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
 import { t } from '../i18n/i18n';
 
@@ -27,6 +31,8 @@ export interface MeResponse {
   receipts?: boolean;
   /** Sign-in providers besides email: 'google', 'apple'. */
   providers: string[];
+  /** Google's (public) client ID, for the Android app's Google account picker. */
+  googleClientId?: string;
   /** Whether the server can send email (password reset, confirming your email). */
   mail?: boolean;
   /** Only for the owner (ADMIN_EMAILS on the server): show the Sales page. */
@@ -35,6 +41,8 @@ export interface MeResponse {
   preview?: boolean;
   /** Coin packs can be bought in the Android app, with Google Play Billing. */
   playBilling?: boolean;
+  /** Coin packs can be bought in the iOS app, with Apple's in-app purchase. */
+  appStore?: boolean;
   /** The player's control settings, if they've saved any (input/controls.ts). */
   controls?: unknown;
 }
@@ -104,6 +112,17 @@ export function apiBase(): string | null {
   return ws ? ws.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '') : null;
 }
 
+/**
+ * A one-use ticket to join online play as the signed-in player, in the iOS
+ * app (the WebSocket can't carry the token: server/accounts.ts wsTicket).
+ * Null elsewhere, or signed out: the cookie, or nobody.
+ */
+async function wsTicket(): Promise<string | null> {
+  if (!signsInWithToken() || !me?.user || !(await authToken())) return null;
+  return (await call<{ ticket: string }>('/api/ws-ticket', {})).ticket;
+}
+setTicketSource(wsTicket);
+
 export function account(): { me: MeResponse | null; loaded: boolean } {
   return { me, loaded };
 }
@@ -116,10 +135,10 @@ export function onAccountChange(fn: () => void): () => void {
 function set(next: MeResponse | null): void {
   // In the phone apps: Google and Apple only allow their own payment systems,
   // so no coin packs or Stripe receipts (coins bought on the website still
-  // spend). And Google/Apple sign-in pages refuse to open inside an app, and
-  // would come back to the website: email sign-in only, for now (docs/APPS.md).
-  // In the Android app, coin packs are sold with Google Play Billing instead.
-  if (next && isNativeApp()) next = { ...next, shop: next.playBilling === true && playBillingAvailable(), receipts: false, providers: [] };
+  // spend). In the Android app, coin packs are sold with Google Play Billing instead.
+  // Google and Apple sign-in pages refuse to open inside an app, so the Android
+  // app signs in its own way (signInInApp); other apps offer email only.
+  if (next && isNativeApp()) next = { ...next, shop: (next.playBilling === true && playBillingAvailable()) || (next.appStore === true && appStoreAvailable()), receipts: false, providers: appProviders(next) };
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
@@ -264,17 +283,24 @@ export function myUnlockedWeapons(): string[] {
 async function call<T>(path: string, body?: unknown): Promise<T> {
   const base = apiBase();
   if (!base) throw new Error(t('Accounts are not available here.'));
+  const headers: Record<string, string> = body === undefined ? {} : { 'content-type': 'application/json' };
+  const tokens = signsInWithToken();
+  const sent = tokens ? await authToken() : null;
+  if (sent) headers.authorization = `Bearer ${sent}`;
   let r: Response;
   try {
     r = await fetch(base + path, {
       method: body === undefined ? 'GET' : 'POST',
-      credentials: 'include',
-      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      credentials: tokens ? 'omit' : 'include',
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new Error(t("Can't reach the server. Check your connection and try again."));
   }
+  // A new sign-in (or the same one, renewed).
+  const fresh = tokens ? r.headers.get('set-auth-token') : null;
+  if (fresh) await saveAuthToken(fresh);
   const data = (await r.json().catch(() => ({}))) as T & { message?: string; error?: string };
   if (!r.ok) {
     // The server's messages are in English (marked with tk() there): shown in the player's language.
@@ -290,6 +316,8 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 export async function refreshAccount(): Promise<MeResponse | null> {
   try {
     const r = await call<MeResponse>('/api/me');
+    // The server no longer knows this token (signed out elsewhere, expired): forget it.
+    if (!r.user && signsInWithToken()) await saveAuthToken(null);
     set(Array.isArray(r.owned) ? { ...r, wallet: r.wallet ?? { coins: 0, slime: 0 } } : null);
   } catch {
     set(isPreviewBuild() ? previewMe() : null);
@@ -361,6 +389,7 @@ export async function resendConfirmation(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await call('/api/auth/sign-out', {});
+  if (signsInWithToken()) await saveAuthToken(null);
   try {
     localStorage.removeItem(OWNED_KEY);
   } catch {
@@ -428,10 +457,71 @@ export async function reportCpuMatch(r: { won: boolean; popped: number; damage: 
   return slime;
 }
 
+/** Sign-in providers the Android app can offer: Google (the account picker needs the client ID) and Apple (a browser tab). */
+function appProviders(m: MeResponse): string[] {
+  if (!nativeSignInAvailable()) return [];
+  return m.providers.filter((p) => (p === 'google' ? !!m.googleClientId : p === 'apple'));
+}
+
 /** Google / Apple: off to the provider, then back to the game. */
 export async function signInWith(provider: string): Promise<void> {
+  if (isNativeApp()) return signInInApp(provider);
   const r = await call<{ url?: string }>('/api/auth/sign-in/social', { provider, callbackURL: location.href.split('?')[0] });
   if (r.url) location.href = r.url;
+}
+
+/**
+ * In the Android app. Google: Android's account picker gives a token the server
+ * checks. Apple: its page in a browser tab, which hands the sign-in back to the
+ * app (listenForAppSignIn finishes it).
+ */
+async function signInInApp(provider: string): Promise<void> {
+  if (provider === 'google') {
+    const r = await googleAccountPicker(me?.googleClientId ?? '');
+    if (r.status === 'cancelled') return;
+    if (r.status === 'no_account') throw new Error(t('Add a Google account to this phone first (in its Settings, under Accounts), or sign in with your email.'));
+    if (r.status !== 'ok') throw new Error(t('Couldn’t sign in with Google. Please try again.'));
+    await call('/api/auth/sign-in/social', { provider: 'google', idToken: { token: r.idToken } });
+    await refreshAccount();
+    return;
+  }
+  const base = apiBase();
+  if (!base) throw new Error(t('Accounts are not available here.'));
+  const challenge = await newChallenge();
+  await openBrowserTab(`${base}/api/app/social?provider=${encodeURIComponent(provider)}&challenge=${challenge}`);
+}
+
+/**
+ * Android app: finish sign-ins coming back from the browser tab, also when
+ * Android closed the app while the tab was open. `say` shows a message on the
+ * Account page.
+ */
+export function listenForAppSignIn(say: (message: string) => void): void {
+  if (!nativeSignInAvailable()) return;
+  // The same link can arrive both as the app's launch link and as an event.
+  const seen = new Set<string>();
+  const finish = async (url: string | undefined, atLaunch: boolean) => {
+    const link = url && !seen.has(url) ? parseSignInLink(url) : null;
+    if (!link) return;
+    seen.add(url!);
+    const verifier = takeVerifier();
+    // Started again from the same link (already used): nothing to do.
+    if (atLaunch && !verifier) return;
+    try {
+      if ('error' in link) {
+        if (link.error !== 'cancelled') say(t('Couldn’t sign in. Please try again.'));
+        return;
+      }
+      if (!verifier) throw new Error(t('That sign-in didn’t work. Please try again.'));
+      await call('/api/app/redeem', { token: link.token, verifier });
+      await refreshAccount();
+      say('');
+    } catch (e) {
+      say(e instanceof Error ? e.message : String(e));
+    }
+  };
+  void App.addListener('appUrlOpen', ({ url }) => void finish(url, false));
+  void App.getLaunchUrl().then((r) => finish(r?.url, true));
 }
 
 /**
@@ -440,17 +530,25 @@ export async function signInWith(provider: string): Promise<void> {
  */
 /** `grownUp`: the buyer is 18+ or a parent or carer has agreed (needed for every pack). */
 /**
- * Buy a coin pack in the Android app: Google's payment sheet, then the server
- * checks the purchase with Google and adds the coins.
+ * Buy a coin pack in the phone apps: the store's payment sheet (Google Play
+ * on Android, the App Store on iOS), then the server checks the purchase and
+ * adds the coins.
  */
 export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; coins: number } | { result: 'pending' | 'cancelled' }> {
   if (!me?.user) throw new Error(t('Please sign in first.'));
+  if (appStoreAvailable()) {
+    const r = await appStoreBuy(packId, me.user.id);
+    if (r.status !== 'purchased') return { result: r.status };
+    const coins = await grantAppStorePurchase(r);
+    await refreshAccount();
+    return { result: 'done', coins };
+  }
   const r = await playBuy(packId, me.user.id);
   if (r.status === 'cancelled') return { result: 'cancelled' };
   if (r.status === 'pending') return { result: 'pending' };
   if (r.status === 'owned') {
     // An earlier purchase of this pack that never reached the server: finish that one now.
-    const coins = await finishPlayPurchases();
+    const coins = await finishStorePurchases();
     return coins > 0 ? { result: 'done', coins } : { result: 'pending' };
   }
   if (r.status !== 'purchased') return { result: 'pending' };
@@ -459,24 +557,44 @@ export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; c
   return { result: 'done', coins: done.coins ?? 0 };
 }
 
+/**
+ * Hand an App Store purchase to the server, which checks Apple's signature
+ * and grants the coins once; then finish it with Apple. Not before: a
+ * purchase the server never heard about must come back next time.
+ */
+async function grantAppStorePurchase(p: AppStorePurchase): Promise<number> {
+  const done = await call<{ coins?: number }>('/api/shop/apple', { transaction: p.transaction });
+  await appStoreFinish(p.transactionId);
+  return done.coins ?? 0;
+}
+
 let finishing: Promise<number> | null = null;
 
 /**
- * Send the server any completed Google Play purchase it hasn't granted yet
- * (the app closed mid-purchase, no signal, or a slow payment went through).
- * Resolves to the coins added. Safe to call any time: the server grants each
- * purchase once.
+ * Send the server any completed purchase from the phone's store it hasn't
+ * granted yet (the app closed mid-purchase, no signal, a slow payment went
+ * through, a parent approved it with Ask to Buy). Resolves to the coins added.
+ * Safe to call any time: the server grants each purchase once.
  */
-export function finishPlayPurchases(): Promise<number> {
-  if (!me?.user || !me.playBilling || !playBillingAvailable()) return Promise.resolve(0);
+export function finishStorePurchases(): Promise<number> {
+  const play = !!me?.playBilling && playBillingAvailable();
+  const apple = !!me?.appStore && appStoreAvailable();
+  if (!me?.user || (!play && !apple)) return Promise.resolve(0);
   finishing ??= (async () => {
     let added = 0;
     try {
-      for (const p of await playUnfinished()) {
+      for (const p of play ? await playUnfinished() : []) {
         try {
           added += (await call<{ coins?: number }>('/api/shop/google', p)).coins ?? 0;
         } catch {
           // e.g. bought on another account: leave it for that account.
+        }
+      }
+      for (const p of apple ? await appStoreUnfinished() : []) {
+        try {
+          added += await grantAppStorePurchase(p);
+        } catch {
+          // e.g. bought on another account: left unfinished, for that account.
         }
       }
     } finally {

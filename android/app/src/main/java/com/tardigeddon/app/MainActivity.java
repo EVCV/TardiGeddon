@@ -11,10 +11,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Our own plugin (Capacitor finds the npm ones by itself).
+        // Our own plugins (Capacitor finds the npm ones by itself).
         registerPlugin(PlayBillingPlugin.class);
         registerPlugin(DisplayPlugin.class);
         registerPlugin(AgeSignalsPlugin.class);
+        registerPlugin(SocialSignInPlugin.class);
         super.onCreate(savedInstanceState);
         // Android's font size setting would enlarge only the text, not the buttons
         // around it, so words spilled out of FIRE and friends. The game scales its

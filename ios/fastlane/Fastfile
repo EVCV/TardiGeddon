@@ -1,0 +1,49 @@
+# Signed builds of the iOS app for TestFlight, made on GitHub's Macs
+# (.github/workflows/ios.yml, docs/IOS.md §5). Actions run from ios/; the Ruby
+# here runs from ios/fastlane/.
+require 'json'
+
+default_platform(:ios)
+
+platform :ios do
+  desc 'Sign the app and upload it to TestFlight'
+  lane :beta do
+    setup_ci # a throwaway keychain for the certificate, on GitHub's Mac
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch('ASC_KEY_ID'),
+      issuer_id: ENV.fetch('ASC_ISSUER_ID'),
+      key_content: ENV.fetch('ASC_KEY_P8_BASE64'),
+      is_key_content_base64: true,
+    )
+
+    # Fetches the certificate and profile from the signing repo; the first time,
+    # makes them (with the API key) and saves them there.
+    match(api_key: api_key, readonly: false)
+
+    # The version players see is package.json's; the build number goes up with
+    # every run, as Apple needs a new one for each upload.
+    version = JSON.parse(File.read('../../package.json'))['version']
+    increment_version_number(version_number: version, xcodeproj: 'App/App.xcodeproj')
+    increment_build_number(build_number: ENV.fetch('GITHUB_RUN_NUMBER'), xcodeproj: 'App/App.xcodeproj')
+
+    update_code_signing_settings(
+      path: 'App/App.xcodeproj',
+      targets: ['App'],
+      use_automatic_signing: false,
+      team_id: ENV['sigh_com.tardigeddon.app_appstore_team-id'],
+      profile_name: ENV['sigh_com.tardigeddon.app_appstore_profile-name'],
+      code_sign_identity: 'Apple Distribution',
+    )
+
+    build_app(
+      project: 'App/App.xcodeproj',
+      scheme: 'App',
+      configuration: 'Release',
+      export_method: 'app-store',
+      output_directory: 'build',
+    )
+
+    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
+  end
+end

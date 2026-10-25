@@ -3,6 +3,12 @@
 //   GET  /api/me          who is signed in, what they own, what the shop offers
 //   POST /api/shop/checkout   start a Stripe Checkout for one item
 //   POST /api/stripe/webhook  Stripe tells us a payment completed / was refunded
+//   GET  /api/app/social, /api/app/return, POST /api/app/redeem
+//                         Apple sign-in for the Android app, in a browser tab
+//   POST /api/ws-ticket   a one-use ticket to join online play (the iOS app, which has no cookie)
+//   POST /api/shop/google, /api/shop/apple
+//                         coin packs bought in the Android / iOS app, checked and granted once
+//   POST /api/shop/apple/notifications  Apple tells us about refunds (App Store Server Notifications v2)
 //
 // Everything is optional: with no DATABASE_URL the game server runs exactly
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
@@ -11,27 +17,31 @@
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
 import Stripe from 'stripe';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
+import { oneTimeToken } from 'better-auth/plugins/one-time-token';
+import { APP_SIGNIN_RETURN, isChallenge } from '../src/account/appSignIn';
 import { APIError } from 'better-auth/api';
+import { bearer } from 'better-auth/plugins';
 import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
 import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForPlayProduct, packTotal, promoFor, shopItem, type CoinPack } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForStoreProduct, packTotal, promoFor, shopItem, type CoinPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
 import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
+import { appStoreAccountToken, appStoreApi, REVOKED_NOTIFICATIONS, type AppStoreApi, type AppStoreEnv } from './appStore';
 
-export interface AccountsEnv extends MailEnv, PlayEnv {
+export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv {
   DATABASE_URL?: string;
   BETTER_AUTH_SECRET?: string;
   /** This server's public URL, e.g. https://server.tardigeddon.com */
@@ -68,6 +78,23 @@ export interface AccountsEnv extends MailEnv, PlayEnv {
 }
 
 const MAX_BODY = 64 * 1024;
+/** How long the app has to collect a sign-in made in a browser tab. */
+const APP_HANDOFF_MINUTES = 2;
+/** Base64url SHA-256, as the app makes its challenge from its verifier. */
+const sha256url = (s: string) => createHash('sha256').update(s).digest('base64url');
+
+/** How long a ticket to join online play lasts. */
+const WS_TICKET_MS = 30_000;
+
+/**
+ * Origins that sign in with a token instead of the cookie: the iOS app
+ * (capacitor://, where WebKit drops the server's cross-site cookie;
+ * docs/IOS.md §2a). Only these are handed the token. The website keeps its
+ * HttpOnly cookie, which page scripts can never read.
+ */
+export function signsInWithToken(origin: string | undefined): boolean {
+  return typeof origin === 'string' && origin.startsWith('capacitor://');
+}
 
 export type Accounts = Awaited<ReturnType<typeof createAccounts>>;
 
@@ -79,7 +106,7 @@ export interface Presence {
   invite(fromUserId: string, fromName: string, toUserId: string): 'sent' | 'offline' | 'noroom';
 }
 
-export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null } = {}) {
+export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null; appStore?: AppStoreApi | null } = {}) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
   const db = opts.db ?? new Pool({ connectionString: env.DATABASE_URL, max: 5 });
   const baseURL = env.BETTER_AUTH_URL ?? 'http://localhost:8787';
@@ -171,6 +198,14 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       },
     },
     socialProviders,
+    plugins: [
+      // Hands a sign-in made in a browser tab back to the Android app (/api/app/*).
+      // Only ever made and checked here on the server: /api/auth/one-time-token/* is closed.
+      oneTimeToken({ storeToken: 'hashed', expiresIn: APP_HANDOFF_MINUTES, disableClientRequest: true }),
+      // "Authorization: Bearer <token>" counts as signed in (the iOS app: signsInWithToken).
+      // Only tokens signed with our secret, as the server hands them out.
+      bearer({ requireSignature: true }),
+    ],
     // Fly.io passes the player's IP in this header. It is used, in memory only,
     // to rate-limit sign-in attempts; it is never written to the database.
     advanced: { ipAddress: { ipAddressHeaders: ['fly-client-ip', 'x-forwarded-for'] } },
@@ -223,6 +258,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const authHandler = toNodeHandler(auth);
   // Google Play Billing (coins bought in the Android app): off without a service account.
   const play = opts.play !== undefined ? opts.play : googlePlayApi(env);
+  // App Store purchases (coins bought in the iOS app): off without the app's Apple ID.
+  const appStore = opts.appStore !== undefined ? opts.appStore : appStoreApi(env);
   // Refunds and chargebacks made through Google Play take the coins back (as Stripe's do).
   const checkVoided = async () => {
     if (!play) return;
@@ -264,10 +301,53 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     if (origin && origins.has(origin)) {
       res.setHeader('access-control-allow-origin', origin);
       res.setHeader('access-control-allow-credentials', 'true');
-      res.setHeader('access-control-allow-headers', 'content-type');
+      res.setHeader('access-control-allow-headers', signsInWithToken(origin) ? 'content-type, authorization' : 'content-type');
       res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
       res.setHeader('vary', 'origin');
     }
+    if (!signsInWithToken(origin) || !origins.has(origin!)) hideToken(res);
+  }
+
+  /**
+   * Better Auth's bearer plugin puts the session token in a set-auth-token
+   * header (and lets page scripts read it) on every sign-in. Only the iOS app
+   * needs it: everywhere else it's left out, so the sign-in cookie stays out
+   * of reach of scripts, as it always was.
+   */
+  function hideToken(res: ServerResponse): void {
+    // Better Auth's Node adapter writes every header with setHeader (better-call adapters/node).
+    const setHeader = res.setHeader.bind(res);
+    res.setHeader = ((name: string, value: number | string | readonly string[]) => {
+      const n = name.toLowerCase();
+      if (n === 'set-auth-token') return res;
+      if (n !== 'access-control-expose-headers') return setHeader(name, value);
+      const kept = String(value).split(',').map((h) => h.trim()).filter((h) => h && h.toLowerCase() !== 'set-auth-token');
+      return kept.length ? setHeader(name, kept.join(', ')) : res;
+    }) as typeof res.setHeader;
+  }
+
+  /** Tickets to join online play, by ticket: who it's for and until when. Each works once. */
+  const wsTickets = new Map<string, { userId: string; until: number }>();
+
+  /** The player a ticket from POST /api/ws-ticket is for, once; undefined if it's unknown, used or out of date. */
+  function takeTicket(ticket: string | null | undefined): string | undefined {
+    if (!ticket) return undefined;
+    const t = wsTickets.get(ticket);
+    wsTickets.delete(ticket);
+    return t && t.until > Date.now() ? t.userId : undefined;
+  }
+
+  async function wsTicket(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const now = Date.now();
+    for (const [k, t] of wsTickets) if (t.until <= now) wsTickets.delete(k);
+    // A few at once is plenty (a reconnect, a second tab); more would only fill memory.
+    const mine = [...wsTickets].filter(([, t]) => t.userId === user.id);
+    if (mine.length >= 5) wsTickets.delete(mine[0][0]);
+    const ticket = randomBytes(32).toString('base64url');
+    wsTickets.set(ticket, { userId: user.id, until: now + WS_TICKET_MS });
+    json(res, 200, { ticket });
   }
 
   /** Sent from one of the game's own origins, as JSON (which other sites can't send without asking us first). */
@@ -575,6 +655,80 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   }
 
   /**
+   * A coin pack bought in the iOS app: check Apple's signature on the purchase,
+   * then grant its coins once. The app only tells Apple the purchase is
+   * finished after this says so, and sends unfinished ones again later, so
+   * this must be safe to call more than once for the same purchase.
+   */
+  const appleChecks = new Map<string, number[]>();
+  async function appStorePurchase(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!appStore) return json(res, 503, { error: tk('Buying in the app is not open yet.') });
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const now = Date.now();
+    const recent = (appleChecks.get(user.id) ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= 20) return json(res, 429, { error: tk('Too many tries. Please wait a minute.') });
+    appleChecks.set(user.id, [...recent, now]);
+    const body = await readJson(req);
+    const signed = typeof body?.transaction === 'string' && body.transaction.length <= 20_000 ? body.transaction : '';
+    if (!signed) return json(res, 400, { error: tk('No such coin pack.') });
+    let p;
+    try {
+      p = await appStore.purchase(signed);
+    } catch (e) {
+      // Apple's certificate checks couldn't be made just now: the app sends it again later.
+      console.error('app store purchase check failed', e);
+      return json(res, 503, { error: tk('Something went wrong. Please try again.') });
+    }
+    if (!p) return json(res, 400, { error: tk("The App Store doesn't know that purchase.") });
+    // Only coin packs, priced in App Store Connect; never trust the app's word for what was bought.
+    const pack = packForStoreProduct(p.productId);
+    if (!pack || !p.consumable) return json(res, 400, { error: tk('No such coin pack.') });
+    if (p.revoked) return json(res, 400, { error: tk('That purchase was cancelled.') });
+    // Bought while signed in to a different account: not this player's.
+    if (p.appAccountToken !== appStoreAccountToken(user.id)) {
+      return json(res, 403, { error: tk('That purchase was made on a different TardiGeddon account. Sign in to that account to get the coins.') });
+    }
+    const id = `apple:${p.transactionId}`;
+    // Sandbox purchases (TestFlight, App Review) cost nothing: count them as £0, so the sales page stays true.
+    const granted = await recordPurchase(db, {
+      sessionId: id,
+      userId: user.id,
+      item: pack.id,
+      amount: p.sandbox ? 0 : pack.price,
+      currency: CURRENCY,
+      paymentIntent: id,
+      region: p.region,
+    });
+    if (!granted) {
+      // Already granted: fine if it was to this player (the app is just sending it again).
+      const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
+      return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: tk('That purchase has already been used.') });
+    }
+    json(res, 200, { ok: true, coins: packTotal(pack) });
+  }
+
+  /** Apple tells us about refunds (App Store Server Notifications v2): the coins are taken back. */
+  async function appStoreNotification(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!appStore) return json(res, 404, { error: tk('Not found.') });
+    const body = await readJson(req);
+    const signed = typeof body?.signedPayload === 'string' ? body.signedPayload : '';
+    let n;
+    try {
+      n = signed ? await appStore.notification(signed) : null;
+    } catch (e) {
+      // Apple sends it again later.
+      console.error('app store notification check failed', e);
+      return json(res, 503, { error: 'try again' });
+    }
+    if (!n) return json(res, 400, { error: 'not a notification from the App Store' });
+    if (REVOKED_NOTIFICATIONS.includes(n.type) && n.purchase) {
+      await revokePurchase(db, `apple:${n.purchase.transactionId}`, 'refunded');
+    }
+    json(res, 200, { received: true });
+  }
+
+  /**
    * A coin pack bought in the Android app: check the purchase with Google,
    * grant its coins once, then consume it (so it can be bought again). The
    * app sends any purchase it hasn't heard back about again later, so this
@@ -596,7 +750,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const productId = typeof body?.productId === 'string' ? body.productId : '';
     const token = typeof body?.token === 'string' && body.token.length <= 4000 ? body.token : '';
     // Only coin packs, priced in the Play Console; never trust the app's word for what was bought.
-    const pack = packForPlayProduct(productId);
+    const pack = packForStoreProduct(productId);
     if (!pack || !token) return json(res, 400, { error: tk('No such coin pack.') });
     // The app reports a new purchase twice at once (its Buy button, and Google's
     // "purchases updated" signal). Done side by side, both would try to consume it
@@ -701,6 +855,94 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     json(res, 200, { received: true });
   }
 
+  // Apple sign-in in the Android app. Apple's page won't open inside the app, so
+  // the app opens /api/app/social in a browser tab (which has its own cookies),
+  // the sign-in happens there, and /api/app/return hands it back to the app
+  // with a one-time token. Any app could claim the return link, so the token
+  // only works with the verifier behind the challenge the app sent at the start
+  // (as PKCE does for OAuth), which never leaves the app.
+  const CHALLENGE_COOKIE = 'tardi-app-challenge';
+  const secureCookie = baseURL.startsWith('https://') ? '; Secure' : '';
+  const toApp = (res: ServerResponse, query: Record<string, string>, cookies: string[] = []) => {
+    res.writeHead(302, { location: `${APP_SIGNIN_RETURN}?${new URLSearchParams(query)}`, 'cache-control': 'no-store', 'set-cookie': cookies });
+    res.end();
+  };
+
+  /** GET /api/app/social?provider=apple&challenge=…, in the browser tab: off to the provider. */
+  async function appSocialStart(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const q = new URL(req.url ?? '', 'http://x').searchParams;
+    const provider = q.get('provider') ?? '';
+    const challenge = q.get('challenge');
+    if (!socialProviders[provider] || !isChallenge(challenge)) return toApp(res, { error: 'unavailable' });
+    let started;
+    try {
+      started = await auth.api.signInSocial({
+        body: { provider, callbackURL: `${baseURL}/api/app/return`, errorCallbackURL: `${baseURL}/api/app/return`, disableRedirect: true },
+        headers: fromNodeHeaders(req.headers),
+        returnHeaders: true,
+      });
+    } catch (e) {
+      console.error('app sign-in: could not start', provider, e);
+      return toApp(res, { error: 'unavailable' });
+    }
+    const { headers, response } = started;
+    if (!response.url) return toApp(res, { error: 'unavailable' });
+    res.writeHead(302, {
+      location: response.url,
+      'cache-control': 'no-store',
+      // Better Auth's state cookie, and the app's challenge for when the sign-in comes back,
+      // and when it started (only a session made after that is handed over).
+      'set-cookie': [...headers.getSetCookie(), `${CHALLENGE_COOKIE}=${challenge}.${Date.now()}; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=600${secureCookie}`],
+    });
+    res.end();
+  }
+
+  /** GET /api/app/return: signed in (or not) in the tab; hand it to the app. */
+  async function appSocialReturn(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const clear = [`${CHALLENGE_COOKIE}=; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=0${secureCookie}`];
+    const [, challenge, startedAt] = /(?:^|;\s*)tardi-app-challenge=([A-Za-z0-9_-]{43})\.(\d{13})(?:;|$)/.exec(req.headers.cookie ?? '') ?? [];
+    const failed = new URL(req.url ?? '', 'http://x').searchParams.has('error');
+    const headers = fromNodeHeaders(req.headers);
+    const session = challenge && !failed ? await auth.api.getSession({ headers }) : null;
+    // The player cancelled, the provider refused, or the tab was too slow. A session
+    // from before this sign-in (the browser already signed in to the website) is
+    // someone's old sign-in, not this one: never handed over.
+    if (!session || !isChallenge(challenge) || new Date(session.session.createdAt).getTime() < Number(startedAt)) {
+      return toApp(res, { error: 'cancelled' }, clear);
+    }
+    try {
+      const { token } = await auth.api.generateOneTimeToken({ headers });
+      await saveAppSignIn(db, sha256url(token), challenge, APP_HANDOFF_MINUTES);
+      toApp(res, { token }, clear);
+    } catch (e) {
+      console.error('app sign-in: could not hand over', e);
+      toApp(res, { error: 'failed' }, clear);
+    }
+  }
+
+  /** POST /api/app/redeem {token, verifier}, from the app: the sign-in becomes the app's. */
+  async function appSocialRedeem(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const failed = () => json(res, 400, { error: tk('That sign-in didn’t work. Please try again.') });
+    let body: { token?: unknown; verifier?: unknown };
+    try {
+      body = JSON.parse((await readBody(req)).toString('utf8')) as typeof body;
+    } catch {
+      return json(res, 400, { error: tk('Bad request.') });
+    }
+    const { token, verifier } = body;
+    if (typeof token !== 'string' || token.length > 100 || !isChallenge(verifier)) return failed();
+    // Used up whether or not the verifier matches: a stolen token gets one guess.
+    const challenge = await takeAppSignIn(db, sha256url(token));
+    if (!challenge || !timingSafeEqual(Buffer.from(sha256url(verifier)), Buffer.from(challenge))) return failed();
+    try {
+      const { headers } = await auth.api.verifyOneTimeToken({ body: { token }, headers: fromNodeHeaders(req.headers), returnHeaders: true });
+      res.setHeader('set-cookie', headers.getSetCookie());
+    } catch {
+      return failed();
+    }
+    json(res, 200, { ok: true });
+  }
+
   return {
     db,
     auth,
@@ -713,6 +955,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await webhook(req, res);
           return true;
         }
+        // From Apple's servers, not the game's pages: checked by Apple's signature instead.
+        if (path === '/api/shop/apple/notifications' && req.method === 'POST') {
+          await appStoreNotification(req, res);
+          return true;
+        }
         cors(req, res);
         if (req.method === 'OPTIONS') {
           res.writeHead(204);
@@ -722,12 +969,23 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           // another site, even one on a sibling subdomain, can't spend a player's coins.
           // (Better Auth checks its own /api/auth/* requests the same way.)
           json(res, 403, { error: tk('Please use the game at tardigeddon.com.') });
+        } else if (path.startsWith('/api/auth/one-time-token/')) {
+          // Only for handing sign-ins to the app, through /api/app/redeem's checks.
+          json(res, 404, { error: tk('Not found.') });
+        } else if (path === '/api/app/social' && req.method === 'GET') {
+          await appSocialStart(req, res);
+        } else if (path === '/api/app/return' && req.method === 'GET') {
+          await appSocialReturn(req, res);
+        } else if (path === '/api/app/redeem' && req.method === 'POST') {
+          await appSocialRedeem(req, res);
         } else if (path.startsWith('/api/auth/')) {
           // Refused sign-ins are logged with the reason (never the email or password).
           res.on('finish', () => {
             if (res.statusCode >= 400) console.warn(`auth: ${req.method} ${path} -> ${res.statusCode} (origin ${req.headers.origin ?? 'none'})`);
           });
           await authHandler(req, res);
+        } else if (path === '/api/ws-ticket' && req.method === 'POST') {
+          await wsTicket(req, res);
         } else if (path === '/api/me' && req.method === 'GET') {
           const user = await userFrom(req.headers);
           const me: MeResponse = {
@@ -740,12 +998,15 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // The "Purchases & receipts" page (not with Managed Payments: Stripe emails receipts).
             receipts: stripe !== null && !managed,
             providers: Object.keys(socialProviders),
+            // The Android app's Google account picker asks for a token for this (public) client.
+            ...(env.GOOGLE_CLIENT_ID && socialProviders.google ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
             // Whether password reset and email confirmation work (an email service is set up).
             mail: mailer !== null,
           };
           if (user) me.controls = await controlsOf(db, user.id);
           // Coin packs can be bought in the Android app (Google Play Billing).
           if (play) me.playBilling = true;
+          if (appStore) me.appStore = true;
           if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
         } else if (path === '/api/gift/buy' && req.method === 'POST') {
@@ -785,6 +1046,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await unlock(req, res);
         } else if (path === '/api/shop/portal' && req.method === 'POST') {
           await purchasesPortal(req, res);
+        } else if (path === '/api/shop/apple' && req.method === 'POST') {
+          await appStorePurchase(req, res);
         } else if (path === '/api/shop/google' && req.method === 'POST') {
           await googlePlayPurchase(req, res);
         } else if (path === '/api/shop/checkout' && req.method === 'POST') {
@@ -802,12 +1065,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     checkVoided,
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
-    /** Who these request headers (cookies) belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders): Promise<{ userId?: string; owned: string[]; rating?: number }> {
-      const user = await userFrom(headers);
-      if (!user) return { owned: [] };
-      const r = (await ratingsOf(db, [user.id])).get(user.id)!;
-      return { userId: user.id, owned: await ownedItems(db, user.id), rating: r.rating };
+    /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number }> {
+      // The sign-in cookie (website, Android app), else a ticket (iOS app).
+      const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
+      if (!userId) return { owned: [] };
+      const r = (await ratingsOf(db, [userId])).get(userId)!;
+      return { userId, owned: await ownedItems(db, userId), rating: r.rating };
     },
     /** The game server says who's online and passes on invites. */
     setPresence(p: Presence): void {

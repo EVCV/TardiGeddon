@@ -2,6 +2,7 @@
 
 Turn-based artillery game (Worms Armageddon mechanics) starring tardigrades.
 Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
+The iOS app plan: `docs/IOS.md`.
 
 ## Commands
 
@@ -9,7 +10,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - `npm run server` — online game server on :8787 (`npm run dev` on localhost connects to it; see `docs/ONLINE.md`)
 - `npm run site:dev` / `site:build` — the public website (React + GSAP + Lenis + React Bits; see `docs/WEBSITE.md`; every page is prerendered to HTML, search setup in `docs/SEO.md`)
 - `npm run build:all` — site + game (at `/play/`) into `dist-site/`, as deployed to Cloudflare Pages (`docs/DEPLOY.md`)
-- `npm run app:build` — the Android app (Capacitor, `android/`); see `docs/APPS.md`, and `docs/GOOGLE_PLAY.md` for the store (signed builds, listing, forms; images via `scripts/store-images.mjs`). Keep the Data safety answers and `site/legal/` in step with what the code stores
+- `npm run app:build` — the Android and iOS apps (Capacitor, `android/`, `ios/`; `npm run app:ios` opens Xcode on a Mac); see `docs/APPS.md`, `docs/IOS.md`, and `docs/GOOGLE_PLAY.md` for the store (signed builds, listing, forms; images via `scripts/store-images.mjs`). Keep the Data safety answers and `site/legal/` in step with what the code stores
 - Social accounts (Discord, YouTube, …): `docs/social/`; their pictures and Shorts teaser via `npx tsx scripts/social-images.ts` → `store/social/`
 - `npm test` — unit + soak tests (Vitest). Set `TEST_DATABASE_URL` (an empty throwaway Postgres) to also run the accounts/shop tests
 - `npm run typecheck`, `npm run build`
@@ -35,7 +36,7 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - Security: `docs/SECURITY.md` (what is protected and how; the CSP in `site/public/_headers`). Online input is untrusted: validate ids with `isWeaponId`, never `WEAPONS[id]` alone.
 - `server/accounts.ts` + `src/account/` + `src/shop/` — optional accounts (Better Auth on Neon Postgres) and the
   Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
-- `src/native.ts` — what differs in the phone apps (back button, no Stripe in-app). Coins in the Android app: Google Play Billing (`src/shop/playBilling.ts` + `android/.../PlayBillingPlugin.java`; the server checks and grants each purchase in `server/googlePlay.ts`, never the app). See `docs/GOOGLE_PLAY.md` §7.
+- `src/native.ts` — what differs in the phone apps (back button, no Stripe in-app). Coins in the Android app: Google Play Billing (`src/shop/playBilling.ts` + `android/.../PlayBillingPlugin.java`; the server checks and grants each purchase in `server/googlePlay.ts`, never the app). See `docs/GOOGLE_PLAY.md` §7. Coins in the iOS app: Apple's in-app purchase (`src/shop/appStore.ts` + `ios/.../AppStorePlugin.swift`; the server checks Apple's signature and grants in `server/appStore.ts`); `src/shop/storeBilling.ts` fronts both stores. See `docs/IOS.md` §3.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
   Runs on one machine only (host), so it may use non-deterministic code.
 - Weapons are data in `src/sim/weapons.ts`.
@@ -60,5 +61,9 @@ Design and roadmap: `docs/GAME_PLAN.md`. Art rules: `docs/STYLE_GUIDE.md`.
 - **Countries:** everywhere except Vietnam (online games need a licence there). The EU is all or
   nothing (geo-blocking rules). Brazil needs the in-app age check (`src/shop/ageSignals.ts`); Japan
   needs the unspent-coin record (`coin_lot`, `src/shop/japan.ts`). See `docs/GOOGLE_PLAY.md`.
+- **iOS app:** iPhone and iPad; built on GitHub Actions macOS runners with fastlane `match` (no Mac);
+  coins only through Apple in-app purchase in the app (no US link-out for now).
+- **Sign-in:** email, Apple and Google on every platform (website, iOS, Android). Email confirmation
+  works in production. The owner has an iPhone and an iPad for TestFlight. See `docs/IOS.md`.
 - **Coins are never refunded just because a player stops playing.** The only exceptions are the law's:
   faulty items, and in Japan, unspent bought coins if we stop selling coins there (Terms 5.5.4).
