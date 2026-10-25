@@ -137,7 +137,8 @@ export class TardiView {
     // Breathing / bobbing
     const breathe = 1 + Math.sin(time * 3 + t.id) * 0.03;
     this.body.scale.y = breathe;
-    this.body.rotation = t.airborne && t.knocked ? Math.sin(time * 12 + t.id) * 0.6 : 0;
+    // Tumbling when blown up; spinning round when the tornado has it.
+    this.body.rotation = t.airborne && t.thrown ? time * 14 + t.id : t.airborne && t.knocked ? Math.sin(time * 12 + t.id) * 0.6 : 0;
 
     // Front legs, animated by walk position
     const phase = x * 0.5;

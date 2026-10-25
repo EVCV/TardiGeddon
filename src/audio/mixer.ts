@@ -9,10 +9,12 @@ export interface AudioSettings {
   effects: boolean;
   /** 0–100. */
   effectsVol: number;
+  /** iPhone/iPad: play even when the phone is on silent (else the silent switch mutes the game). */
+  onSilent: boolean;
 }
 
 const KEY = 'tardigeddon.audio';
-const DEFAULTS: AudioSettings = { music: true, musicVol: 60, effects: true, effectsVol: 80 };
+const DEFAULTS: AudioSettings = { music: true, musicVol: 60, effects: true, effectsVol: 80, onSilent: false };
 
 let ctx: AudioContext | null = null;
 let musicBus: GainNode | null = null;
@@ -33,6 +35,7 @@ function load(): AudioSettings {
       musicVol: clampVol(v.musicVol, DEFAULTS.musicVol),
       effects: typeof v.effects === 'boolean' ? v.effects : DEFAULTS.effects,
       effectsVol: clampVol(v.effectsVol, DEFAULTS.effectsVol),
+      onSilent: typeof v.onSilent === 'boolean' ? v.onSilent : DEFAULTS.onSilent,
     };
   } catch {
     return { ...DEFAULTS };
@@ -51,6 +54,7 @@ export function saveAudioSettings(next: AudioSettings): void {
     // Storage blocked: the settings last until the page closes.
   }
   applyVolumes();
+  applySession();
   for (const fn of listeners) fn();
 }
 
@@ -83,9 +87,26 @@ function applyVolumes(): void {
   sfxBus.gain.setTargetAtTime(gainFor(current.effects, current.effectsVol, 1.25), now, 0.02);
 }
 
+// iPhone/iPad (Safari and the app): WebKit's audio session. "ambient" mixes with
+// the player's own music and follows the silent switch; "playback" plays on silent.
+type AudioSessionNav = Navigator & { audioSession?: { type: string } };
+
+/** Can the player choose whether sound plays on silent (iPhone/iPad)? */
+export function hasSilentSwitch(): boolean {
+  return !!(navigator as AudioSessionNav).audioSession && /iPhone|iPad|Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 0;
+}
+
+function applySession(): void {
+  if (!hasSilentSwitch()) return;
+  const session = (navigator as AudioSessionNav).audioSession!;
+  const type = current.onSilent ? 'playback' : 'ambient';
+  if (session.type !== type) session.type = type;
+}
+
 /** Make (or wake) the AudioContext. Browsers only allow it after a tap or key press. */
 export function unlockAudio(): void {
   if (!ctx) {
+    applySession();
     try {
       ctx = new AudioContext();
     } catch {
@@ -106,7 +127,8 @@ export function unlockAudio(): void {
     sfxBus.connect(ctx.destination);
     applyVolumes();
   }
-  if (ctx.state === 'suspended') void ctx.resume();
+  // Not just "suspended": iOS also leaves it "interrupted" (a call, Siri, another app's sound).
+  if (ctx.state !== 'running') void ctx.resume();
 }
 
 /** Has sound actually started (the browser allowed it)? */

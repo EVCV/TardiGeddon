@@ -189,7 +189,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
       race: null,
       practice: null,
       realm: custom ? 'custom' : style,
-      weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7) },
+      weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7), tornadoDone: false },
     };
 
     cfg.teams.forEach((tc, ti) => {
@@ -228,6 +228,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
           facing: rngInt(rng, 0, 1) ? 1 : -1,
           airborne: false,
           knocked: false,
+          thrown: false,
           fallStartY: p.y,
           rope: null,
           chute: false,
@@ -315,6 +316,8 @@ function findSpawns(
   waterY: number,
   count: number,
   rng: WorldState['rng'],
+  /** Keep this far from each of these (e.g. mines). */
+  avoid: { x: number; y: number }[] = [],
 ): { x: number; y: number }[] | null {
   const spots: { x: number; y: number }[] = [];
   for (let tries = 0; tries < 2000 + count * 200 && spots.length < count; tries++) {
@@ -325,6 +328,7 @@ function findSpawns(
     if (circleCollides(terrain, x, y, TARDI_R)) continue;
     if (!circleCollides(terrain, x, y + 2, TARDI_R)) continue;
     if (spots.some((p) => Math.abs(p.x - x) < 50 && Math.abs(p.y - y) < 50)) continue;
+    if (avoid.some((p) => Math.abs(p.x - x) < 60 && Math.abs(p.y - y) < 60)) continue;
     spots.push({ x, y });
   }
   return spots.length === count ? spots : null;
@@ -1137,6 +1141,7 @@ export function explode(
     t.vy += ny * imp - imp * 0.35;
     t.airborne = true;
     t.knocked = true;
+    t.thrown = false;
     t.rope = null;
     t.chute = false;
     t.pendingDmg += dmg;
@@ -1318,6 +1323,7 @@ function refillTargets(s: WorldState, events: SimEvent[]): void {
         alive: true,
         airborne: false,
         knocked: false,
+        thrown: false,
         fallStartY: y,
         rope: null,
         chute: false,
@@ -1716,7 +1722,7 @@ function wrapRope(terrain: Terrain, t: Tardi, rope: NonNullable<Tardi['rope']>):
 
 function land(s: WorldState, t: Tardi): void {
   t.chute = false;
-  if (!t.knocked && s.scheme.fallDamage) {
+  if (!t.knocked && !t.thrown && s.scheme.fallDamage) {
     const fall = t.y - t.fallStartY;
     if (fall > SAFE_FALL) {
       t.pendingDmg += Math.min(50, Math.round((fall - SAFE_FALL) / 3));
@@ -1725,6 +1731,7 @@ function land(s: WorldState, t: Tardi): void {
   }
   t.airborne = false;
   t.knocked = false;
+  t.thrown = false;
   t.vx = 0;
   t.vy = 0;
 }
@@ -1796,6 +1803,14 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     events.push({ t: 'gameover', winner: turn.winner });
     return;
   }
+  // Between turns, once everything is still: very rarely, a tornado (once a match at most).
+  if (s.scheme.weather && !s.race && !s.practice && !s.weather.tornadoDone) {
+    const odds = s.weather.kind === 'storm' ? TORNADO_ODDS_STORM : TORNADO_ODDS;
+    if (rngNext(s.weather.rng) % odds === 0 && tornado(s, events)) {
+      turn.settleTimer = 0;
+      return; // the next turn starts once everyone has landed
+    }
+  }
   let next = turn.teamIdx;
   do {
     next = (next + 1) % s.teams.length;
@@ -1862,10 +1877,6 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
     events.push({ t: 'waterRise', y: s.waterY });
   }
   if (turn.turnNumber > 1 && rngFloat(s.rng) < s.scheme.crateChance) dropCrate(s, events);
-  if (turn.turnNumber > 1 && s.scheme.weather && !s.race && !s.practice) {
-    const odds = s.weather.kind === 'storm' ? TORNADO_ODDS_STORM : TORNADO_ODDS;
-    if (rngNext(s.weather.rng) % odds === 0) tornado(s, events);
-  }
 }
 
 /** One turn in this many brings a tornado (a rare surprise)... */
@@ -1893,14 +1904,67 @@ export function pickWeather(seed: number, scheme: Scheme): WeatherKind {
   return 'clear';
 }
 
-/** A tornado: every tardigrade still in the game is picked up and set down somewhere new. */
-function tornado(s: WorldState, events: SimEvent[]): void {
+/** How high above the start or the landing spot (whichever is higher) the tornado throws them: the lowest that clears. */
+const TORNADO_LIFTS = [140, 240, 360];
+
+/** The throw from (x0, y0) up to `lift` above the higher end, landing on (x1, y1). Null if it can't be done. */
+function tornadoThrow(x0: number, y0: number, x1: number, y1: number, lift: number): { vx: number; vy: number } | null {
+  // Never faster on the way down than tardis can fall, or they'd overshoot.
+  const maxDrop = (MAX_FALL_SPEED * MAX_FALL_SPEED) / (2 * GRAVITY) - 20;
+  const top = Math.min(y0, y1) - lift;
+  if (y1 - top > maxDrop) return null;
+  // Each tick adds gravity, then moves: after n ticks y = y0 + n*vy + g*n(n+1)/2.
+  // Up to the top, then down to the landing spot after n ticks.
+  const vy = -Math.sqrt(2 * GRAVITY * (y0 - top));
+  const b = vy + GRAVITY / 2;
+  const n = Math.max(1, (-b + Math.sqrt(b * b - 2 * GRAVITY * (y0 - y1))) / GRAVITY);
+  return { vx: (x1 - x0) / n, vy };
+}
+
+/** Does a tardigrade thrown this way fly clear of the ground until it's nearly down at landY? */
+function arcClear(terrain: Terrain, x: number, y: number, vx: number, vy: number, landY: number): boolean {
+  for (let i = 0; i < 50 * TICK_RATE; i++) {
+    vy = Math.min(MAX_FALL_SPEED, vy + GRAVITY);
+    x += vx;
+    y += vy;
+    if (vy > 0 && y > landY - 2 * TARDI_R) return true; // the landing itself
+    if (circleCollides(terrain, x, y, TARDI_R + 1)) return false;
+  }
+  return false;
+}
+
+/**
+ * A tornado: every tardigrade still in the game is thrown up into the air and
+ * comes down somewhere new, on dry land (rarely set straight down, when no throw
+ * clears the hills). The landing doesn't hurt (Tardi.thrown).
+ * Returns false when there was nowhere to put them.
+ */
+function tornado(s: WorldState, events: SimEvent[]): boolean {
   const alive = s.tardis.filter((t) => t.alive);
-  const spots = findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng);
-  if (!spots) return;
+  // Not next to a mine or a drum: a tornado's surprise shouldn't come with an explosion.
+  const hazards = s.objects.filter((o) => o.kind === 'mine' || o.kind === 'drum');
+  const spots = findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng, hazards) ?? findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng);
+  if (!spots) return false;
+  s.weather.tornadoDone = true;
   events.push({ t: 'tornado' });
   alive.forEach((t, i) => {
     const p = spots[i];
+    // The lowest throw whose arc clears the ground on the way (spots are open to
+    // the sky, so higher is clearer); with none clear, it's set straight down there.
+    for (const lift of TORNADO_LIFTS) {
+      const v = tornadoThrow(t.x, t.y, p.x, p.y, lift);
+      if (!v || !arcClear(s.terrain, t.x, t.y - 2, v.vx, v.vy, p.y)) continue;
+      t.vx = v.vx;
+      t.vy = v.vy;
+      t.y -= 2; // off the ground first, so the first tick moves it rather than lands it
+      t.airborne = true;
+      t.knocked = false;
+      t.thrown = true;
+      t.fallStartY = t.y;
+      t.rope = null;
+      t.chute = false;
+      return;
+    }
     t.x = p.x;
     t.y = p.y;
     t.vx = 0;
@@ -1912,6 +1976,7 @@ function tornado(s: WorldState, events: SimEvent[]): void {
     t.chute = false;
     events.push({ t: 'teleport', id: t.id, x: p.x, y: p.y });
   });
+  return true;
 }
 
 // ---------------------------------------------------------------- hashing
@@ -1937,11 +2002,12 @@ export function hashWorld(s: WorldState): number {
   mix(s.tick);
   mixInt(s.rng.a);
   mixInt(s.weather.rng.a);
+  mixInt(s.weather.tornadoDone ? 1 : 0);
   mix(s.wind);
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
-    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
+    mix(t.knocked ? 1 : 0); mix(t.thrown ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
     if (t.rope) {
       mix(t.rope.x); mix(t.rope.y); mix(t.rope.len);
       for (const b of t.rope.bends) { mix(b.x); mix(b.y); mix(b.side); }

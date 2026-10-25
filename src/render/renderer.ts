@@ -923,7 +923,7 @@ export class GameRenderer {
         target = this.lerpPos(p.id, p.x, p.y, alpha);
       } else {
         const a = activeTardi(s);
-        const moving = s.tardis.find((t) => t.alive && t.airborne && t.knocked);
+        const moving = s.tardis.find((t) => t.alive && t.airborne && (t.knocked || t.thrown));
         const w = this.watch;
         if (w && a) {
           // Thrown about by the blast: that's not the player walking off.

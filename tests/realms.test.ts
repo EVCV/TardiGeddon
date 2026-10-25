@@ -65,7 +65,7 @@ describe('weather', () => {
     expect(createWorld({ seed: 1, teams: teams(2), scheme: { weather: false } }).weather.kind).toBe('clear');
   });
 
-  it('a tornado sets every tardigrade down somewhere new, on dry land', () => {
+  it('a tornado throws every tardigrade through the air to somewhere new, on dry land', () => {
     const s = makeWorld();
     s.weather.kind = 'storm';
     // Find the weather dice roll that brings the storm's tornado on the next turn.
@@ -79,11 +79,38 @@ describe('weather', () => {
     tick(s, { held: 0, pressed: 0, cmd: { t: 'skip' } }, ev);
     for (let i = 0; i < 3000 && !ev.some((e) => e.t === 'turnStart'); i++) tick(s, { held: 0, pressed: 0 }, ev);
     expect(ev.some((e) => e.t === 'tornado')).toBe(true);
-    expect(s.tardis.filter((t, i) => t.x !== before[i][0] || t.y !== before[i][1]).length).toBeGreaterThan(4);
-    for (const t of s.tardis) expect(circleCollides(s.terrain, t.x, t.y, TARDI_R)).toBe(false);
+    // Thrown, not teleported: no teleports, and they flew high.
+    expect(ev.some((e) => e.t === 'teleport')).toBe(false);
+    expect(s.tardis.filter((t, i) => Math.abs(t.x - before[i][0]) > 20).length).toBeGreaterThan(4);
+    for (const t of s.tardis) {
+      expect(circleCollides(s.terrain, t.x, t.y, TARDI_R)).toBe(false);
+      expect(t.airborne).toBe(false);
+      expect(t.hp).toBe(100); // the landing doesn't hurt
+    }
     // Nothing else changed by it: the game goes on.
     run(s, 400);
     expect(s.tardis.every((t) => t.alive)).toBe(true);
+  });
+
+  it('brings one tornado a match at most, even in a storm', () => {
+    const s = createWorld({ seed: 2, teams: teams(2), scheme: { crateChance: 0, turnTime: 10 } });
+    s.weather.kind = 'storm';
+    let tornadoes = 0;
+    for (let turn = 0; turn < 400 && s.turn.phase !== 'gameover'; turn++) {
+      // A dice roll that brings the tornado at every chance it gets.
+      let a = s.weather.rng.a;
+      while (rngNext({ a }) % TORNADO_ODDS_STORM !== 0) a++;
+      s.weather.rng.a = a;
+      const n = s.turn.turnNumber;
+      for (let i = 0; i < 50 * 60 && s.turn.turnNumber === n; i++) {
+        const ev: SimEvent[] = [];
+        tick(s, { held: 0, pressed: 0, cmd: s.turn.phase === 'aim' ? { t: 'skip' } : undefined }, ev);
+        tornadoes += ev.filter((e) => e.t === 'tornado').length;
+      }
+      if (turn > 8) break;
+    }
+    expect(s.turn.turnNumber).toBeGreaterThan(8);
+    expect(tornadoes).toBe(1);
   });
 
   it('never brings a tornado with weather off', () => {

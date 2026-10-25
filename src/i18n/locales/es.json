@@ -725,6 +725,7 @@
  "Play on this map against the computer": "Jugar en este mapa contra la CPU",
  "Play online": "Jugar en línea",
  "Play online, or one-on-one against the CPU, to fill these in.": "Juega en línea, o uno contra uno contra la CPU, para rellenar esto.",
+ "Play sound even when the phone is on silent": "Reproducir sonido aunque el teléfono esté en silencio",
  "Player name": "Nombre de jugador",
  "Player name: {problem}": "Nombre de jugador: {problem}",
  "Players": "Jugadores",

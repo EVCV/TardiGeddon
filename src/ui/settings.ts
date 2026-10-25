@@ -7,7 +7,7 @@
 
 import { ACTIONS, MAX_BINDINGS, bind, bindable, controls, defaultControls, keyLabel, unbind, type Action, type Controls, type TouchSize } from '../input/controls';
 import { account, chooseMusic, chooseSounds, ownedItems, saveControls, wearMusic, wearSounds } from '../account/session';
-import { audioSettings, saveAudioSettings, unlockAudio, type AudioSettings } from '../audio/mixer';
+import { audioSettings, hasSilentSwitch, saveAudioSettings, unlockAudio, type AudioSettings } from '../audio/mixer';
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS, sfx, useSoundPack } from '../audio/sfx';
 import { blockedPlayers, unblock } from '../net/blocked';
@@ -395,6 +395,34 @@ function soundSettings(ctx: HubContext): HTMLElement {
     return box;
   };
   card.append(row(t('Music'), 'music', 'musicVol'), row(t('Sound effects'), 'effects', 'effectsVol', () => sfx.jump()));
+  // iPhone/iPad: the silent switch mutes the game unless the player says otherwise.
+  if (hasSilentSwitch()) {
+    const check = el('label', 'account-check');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = a.onSilent;
+    input.onchange = () => {
+      saveAudioSettings({ ...audioSettings(), onSilent: input.checked });
+      unlockAudio();
+      sfx.jump();
+    };
+    check.append(input, el('span', '', t('Play sound even when the phone is on silent')));
+    card.append(check);
+  }
+  // iPhone/iPad: the silent switch mutes the game unless the player says otherwise.
+  if (hasSilentSwitch()) {
+    const check = el('label', 'account-check');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = a.onSilent;
+    input.onchange = () => {
+      saveAudioSettings({ ...audioSettings(), onSilent: input.checked });
+      unlockAudio();
+      sfx.jump();
+    };
+    check.append(input, el('span', '', t('Play sound even when the phone is on silent')));
+    card.append(check);
+  }
 
   // Which track plays in matches, and which sound pack: the free ones and those owned.
   const owned = ownedItems();

@@ -126,6 +126,8 @@ export interface Tardi {
   airborne: boolean;
   /** Launched by an explosion (bounces, no fall damage). */
   knocked: boolean;
+  /** Thrown by the tornado: stops where it lands (no bounce), unhurt. */
+  thrown: boolean;
   fallStartY: number;
   /** Silk Rope while swinging: the pivot it swings from, the free length
    *  below that pivot, and earlier pivots where it wrapped round corners. */
@@ -266,6 +268,8 @@ export interface WeatherState {
   kind: WeatherKind;
   /** Its own random numbers, so weather never changes the wind, crates or anything else. */
   rng: RngState;
+  /** A tornado has been: there's only ever one a match. */
+  tornadoDone: boolean;
 }
 
 export interface WorldState {
@@ -320,7 +324,7 @@ export type SimEvent =
   | { t: 'crateDrop'; id: number }
   | { t: 'collect'; id: number; tardi: number; contents: string; amount: number }
   | { t: 'suddenDeath' }
-  /** A tornado swept through and set every tardigrade down somewhere new. */
+  /** A tornado swept through and threw every tardigrade somewhere new. */
   | { t: 'tornado' }
   /** Damage the armour soaked up. */
   | { t: 'armour'; id: number; amount: number }
