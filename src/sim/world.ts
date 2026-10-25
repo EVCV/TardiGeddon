@@ -112,6 +112,8 @@ export interface WorldConfig {
   scheme?: Partial<Scheme>;
   mapW?: number;
   mapH?: number;
+  /** Which team goes first (the tutorial: the player). Unset: picked at random. */
+  firstTeam?: number;
 }
 
 export { DEFAULT_NAMES, MAX_TEAMS } from './rosters';
@@ -264,6 +266,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
     placeObjects(s, 'mine', Math.round(scheme.mines * scale));
     placeObjects(s, 'drum', Math.round(scheme.drums * scale));
     s.turn.teamIdx = rngInt(rng, 0, s.teams.length - 1);
+    if (cfg.firstTeam !== undefined) s.turn.teamIdx = cfg.firstTeam;
     beginTurn(s, s.turn.teamIdx, []);
     return s;
   }
