@@ -191,6 +191,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .team-row { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; }
 .team-row.active .team-name { text-decoration: underline; }
 .team-name { min-width: 84px; text-align: right; color: #fff; text-shadow: 0 0 3px var(--ink), 0 1px 0 var(--ink); }
+/* Long team names stay on one line (cut with …), so the bars keep their size. */
+.team-name { flex: none; width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) { .team-name { width: 100px; } }
+.hud-teams.many .team-name { width: 90px; }
 .team-bar { height: 12px; border: 2px solid var(--ink); border-radius: 6px; transition: width .6s; }
 .hud-tools { display: flex; gap: 6px; }
 .hud-weapon .wi { font-size: 18px; }
@@ -250,6 +254,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .panel-head { position: sticky; top: -12px; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -12px -12px 10px; padding: 12px 12px 6px; background: var(--paper); }
 .weapon-panel h2 { font-family: var(--title); margin: 0; font-weight: normal; letter-spacing: 1px; }
 .panel-close { flex: none; }
+.weapon-sections { display: flex; flex-direction: column; gap: 10px; }
+.weapon-section[hidden] { display: none; }
+.weapon-section-title { margin: 0 0 6px; font-size: 13px; font-weight: 800; letter-spacing: .3px; opacity: .8; }
+.section-super { padding: 8px; border: 3px solid #e0a920; border-radius: 14px; background: #fff6c8; }
+.section-super .weapon-section-title { opacity: 1; color: #8a5a00; }
+.weapon-cell.super { border-color: #c08a00; background: #fffbe6; }
 .weapon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .weapon-cell {
   display: flex;
@@ -808,6 +818,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hero-art .mascot svg { width: 150px; }
 .hero-edit { font-size: 13px; min-height: 32px; padding: 2px 10px; background: var(--accent); }
 .hero-looks { font-size: 13px; min-height: 32px; padding: 2px 10px; background: #bfe8ff; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-coins { font-size: 14px; min-height: 34px; padding: 2px 14px; background: linear-gradient(#ffe066, #f5b700); }
+.hero-coins-banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; width: 100%;
+  margin: 8px 0 0; padding: 8px 14px; border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 3px 0 var(--ink);
+  background: linear-gradient(90deg, #fff3b0, #ffd84a); color: var(--ink); font: inherit; font-weight: 800; font-size: 14px; text-align: left; cursor: pointer;
+}
+.hero-coins-banner b { white-space: nowrap; padding: 2px 10px; border-radius: 999px; background: var(--ink); color: #ffd84a; }
+.hero-coins-banner:hover { filter: brightness(1.04); }
+.hero-coins-banner:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.hero-coins[hidden], .hero-coins-banner[hidden] { display: none; }
 .hero-season { margin: 8px 0 0; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 12px; background: #ffe9b8; font-weight: 800; font-size: 14px; }
 .looks-hint { margin: -4px 0 6px; font-size: 13px; opacity: .8; text-align: left; }
 .hero-text { min-width: 0; text-align: left; }
@@ -911,6 +931,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .account-form .link-btn { align-self: center; font-size: 14px; }
 .account-form .account-note { text-align: center; }
 .account-reset { grid-column: 1 / -1; justify-self: center; max-width: 440px; width: 100%; }
+.founder-badge { flex: none; margin-right: 4px; }
+.account-founder { margin: 12px 0 0; padding: 8px 12px; border: 3px solid var(--ink); border-radius: 14px; background: #dff5d0; font-weight: 800; }
+.account-invite p { margin: 0 0 10px; }
+.creator-row { padding: 10px 0; border-bottom: 2px dashed rgba(0, 0, 0, 0.15); }
+.creator-row .hud-btn { margin: 6px 8px 0 0; }
+.creator-form { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.invite-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .account-verify { margin-top: 12px; padding: 10px 12px; border: 3px dashed var(--ink); border-radius: 14px; background: #fff3c4; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .account-verify p { margin: 0; font-size: 14px; font-weight: 700; }
 
@@ -1695,6 +1722,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
     line-height: 1.15;
   }
   .nav-tile:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+  .nav-tile.nav-coins { background: linear-gradient(#ffe066, #f5b700); }
+  /* The home screen is tight: coins live in the gold tile at the bottom instead. */
+  .lobby[data-view] .hero-coins, .lobby[data-view] .hero-coins-banner { display: none; }
   .nav-icon { font-size: 17px; }
   .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nav-extra { flex-basis: 100%; text-align: center; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

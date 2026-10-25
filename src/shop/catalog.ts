@@ -390,12 +390,22 @@ export function giftable(id: string): { coins: number; items: string[]; name: st
 }
 
 /**
- * Looks you can only get free, with a promotional code (Terms 5.9): never sold,
- * never in the shop, and locked like any other item until a code unlocks them.
- * No price: the server only ever grants them through a promo code.
+ * Looks you can only get free, with a promotional code (Terms 5.9) or in the
+ * Founder pack (src/shop/rewards.ts): never sold, never in the shop, and
+ * locked like any other item until the server grants them.
  */
 export const PROMO_ITEMS: ShopItem[] = [
   { id: 'hat:waterbear', kind: 'hat', ref: 'waterbear', name: 'Water Bear Ears', blurb: 'Free with a promo code. Tardigrades are water bears, after all.', rarity: 'epic' },
+  { id: 'hat:earlybird', kind: 'hat', ref: 'earlybird', name: 'Early bird eggshell', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
+  { id: 'grave:egg', kind: 'grave', ref: 'egg', name: 'Cracked egg', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
+  { id: 'dance:hatch', kind: 'dance', ref: 'hatch', name: 'Hatching', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
+  { id: 'arena:dawn', kind: 'arena', ref: 'dawn', name: 'Daybreak Meadow', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
+  { id: 'music:daybreak', kind: 'music', ref: 'daybreak', name: 'Daybreak', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
+  { id: 'hat:founder', kind: 'hat', ref: 'founder', name: 'Founder’s sprout crown', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
+  { id: 'grave:founder', kind: 'grave', ref: 'founder', name: 'Founder’s plaque', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
+  { id: 'dance:bow', kind: 'dance', ref: 'bow', name: 'Founder’s bow', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
+  { id: 'arena:golden', kind: 'arena', ref: 'golden', name: 'Golden Garden', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
+  { id: 'music:anthem', kind: 'music', ref: 'anthem', name: 'Founders’ Anthem', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
 ];
 
 export function promoItem(id: string): ShopItem | undefined {

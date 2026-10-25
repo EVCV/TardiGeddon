@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TRACKS, melody, musicTrack } from '../src/audio/music';
 import { SOUND_PACKS, soundPack } from '../src/audio/sfx';
-import { SHOP_ITEMS, canUse } from '../src/shop/catalog';
+import { SHOP_ITEMS, canUse, promoItem } from '../src/shop/catalog';
 
 describe('music', () => {
   it('has unique tracks whose rhythms fill their bars', () => {
@@ -34,7 +34,9 @@ describe('music', () => {
     expect(canUse('sound', 'classic', [])).toBe(true);
     for (const t of TRACKS.filter((t) => t.id !== 'menu' && t.id !== 'classic')) {
       const item = SHOP_ITEMS.find((i) => i.id === `music:${t.id}`);
-      expect(item?.coins, t.id).toBeGreaterThan(0);
+      // (The Early bird and Founder packs' tracks are never sold, only given.)
+      if (promoItem(`music:${t.id}`)) expect(item, t.id).toBeUndefined();
+      else expect(item?.coins, t.id).toBeGreaterThan(0);
       expect(canUse('music', t.id, [])).toBe(false);
       expect(canUse('music', t.id, [`music:${t.id}`])).toBe(true);
     }

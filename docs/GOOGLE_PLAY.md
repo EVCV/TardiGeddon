@@ -216,7 +216,7 @@ account), purpose **App functionality** and **Account management**:
 | Personal info → Email address | the account's email |
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
-| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), items owned, coin and Slime balances, control settings |
+| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites and creator codes (which account invited which, or which creator's code a player used, for the rewards and the creator's share), the Founder or Early bird badge (seen by other players online), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → Other user-generated content** (team and
@@ -247,6 +247,39 @@ the same data types as above (email, name, user ID); the profile picture
 Before going further, check on a real phone from Play: sign in (needs
 `TRUSTED_ORIGINS` on the server, `docs/APPS.md`), online play, the back
 button, the tutorial, and that links open in the browser.
+
+### Uploading every merge automatically
+
+Once set up, every merge to main uploads its signed `.aab` to internal
+testing by itself (the release job in `.github/workflows/android.yml` runs
+`android/fastlane/` lane `internal`), as iOS goes to TestFlight. Testers get
+the update from Google Play. Until a release has been rolled out from
+Play Console once, Google only accepts **draft** releases: the upload still happens,
+then roll it out by hand (Internal testing → the draft → **Review release →
+Start rollout**). After that, uploads roll out on their own.
+
+Setting it up (once):
+
+1. **Google Cloud console** (console.cloud.google.com, signed in as the
+   Play Console owner) → pick or create a project (e.g. "TardiGeddon") →
+   **APIs & Services → Library** → enable **Google Play Android Developer API**.
+2. **IAM & Admin → Service accounts → Create service account**: name
+   `play-releases`, no roles → Done. Open it → **Keys → Add key → Create new
+   key → JSON**. A `.json` file downloads: it's a password, keep it private.
+3. **Play Console → Users and permissions → Invite new users**: the service
+   account's email (`play-releases@….iam.gserviceaccount.com`) → **App
+   permissions → Add app → TardiGeddon** → tick **Release to testing tracks**
+   (and **View app information**) → Invite. No account-wide permissions.
+4. **GitHub → the repository → Settings → Secrets and variables → Actions →
+   New repository secret**: name `PLAY_SERVICE_ACCOUNT_JSON`, value: the whole
+   `.json` file's text (or it base64-encoded). Then delete the downloaded file.
+5. Run **Actions → Android app → Run workflow** on main: the release job
+   ends with "Upload to Google Play (internal testing)". If it says the
+   service account has no permission, wait an hour (Play takes a while to
+   pass on new users) and run it again.
+
+Each upload needs a higher version code: it's the workflow's run number, so
+it only goes up. A build uploaded by hand from Actions isn't needed any more.
 
 ## 6. Production
 

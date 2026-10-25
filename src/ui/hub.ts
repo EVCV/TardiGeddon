@@ -9,6 +9,7 @@ import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
+import { EARLY_BIRD_COINS, FOUNDER_COINS } from '../shop/rewards';
 import { newSalesState, renderSalesPage } from './sales';
 import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
@@ -53,6 +54,9 @@ const TABS: [HubTab, string, string][] = [
   // Not in the top bar: opened from the lobby and Settings.
   ['guide', '📖', tk('Guide')],
 ];
+
+/** The Founder pack's thank-you has been shown (for this visit: the menu is rebuilt after each match). */
+let founderThanked = false;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -180,6 +184,7 @@ export function showHub(
       };
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
+      if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
       who.append(el('span', 'hub-me-name', me.user.name));
       who.onclick = () => go('account');
       right.append(coins, slime, who);
@@ -199,6 +204,13 @@ export function showHub(
     shell.dataset.tab = tab;
     renderBar();
 
+    // The Founder pack has just been given: say thank you (once: the server only says so once).
+    if ((me?.founderNew || me?.earlyBirdNew) && !founderThanked) {
+      founderThanked = true;
+      status = me.founderNew
+        ? t('🌱 Thanks for being here from the start! Your Founder and Early bird packs are in: two worlds, two music tracks, two dances, two hats, two gravestones and {coins} coins. Find them in ✎ Customise team and the World button.', { coins: FOUNDER_COINS + EARLY_BIRD_COINS })
+        : t('🐣 Thanks for joining early! Your Early bird pack is in: a world, a music track, a dance, a hat, a gravestone and {coins} coins. Find them in ✎ Customise team and the World button.', { coins: EARLY_BIRD_COINS });
+    }
     notice.innerHTML = '';
     const shown = status || (me?.preview && !previewDismissed ? t("Preview build: accounts and payments aren't connected here, so signing in and buying won't work.") : '');
     notice.classList.toggle('hidden', !shown);
@@ -215,7 +227,10 @@ export function showHub(
 
     if (tab === 'lobby') {
       if (!lobby) {
-        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays, onMapEditor);
+        lobby = buildLobby(onStart, onOnline, go, onTutorial, onPractice, onChallenge, onReplays, onMapEditor, () => {
+          shopState.category = 'coins';
+          go('shop');
+        });
         page.replaceChildren(lobby.el);
       } else lobby.refresh();
       return;

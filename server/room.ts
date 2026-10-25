@@ -4,7 +4,7 @@
 // unit-tested without sockets.
 
 import { createWorld, DEFAULT_NAMES, MAX_TEAMS, tick, type TeamConfig } from '../src/sim/world';
-import { BTN_FIRE, DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../src/sim/types';
+import { BTN_FIRE, CHARGE_STYLES, DEFAULT_SCHEME, EMPTY_INPUT, type InputFrame, type Scheme, type SimEvent, type WorldState } from '../src/sim/types';
 import { randomBytes } from 'node:crypto';
 import { WEAPONS, isWeaponId } from '../src/sim/weapons';
 import { TEAM_COLORS, TEAM_NAMES } from '../src/render/palette';
@@ -47,6 +47,8 @@ export interface Member {
   owned?: string[];
   /** Quick-play rating (signed in), for matching players of a similar level. */
   rating?: number;
+  /** The Founder (🌱) or Early bird (🐣) badge others see by their name. */
+  badge?: 'founder' | 'earlybird';
 }
 
 export type { MatchResult };
@@ -85,6 +87,7 @@ interface Slot {
   userId?: string;
   unlocked?: string[];
   owned?: string[];
+  badge?: 'founder' | 'earlybird';
   token: string;
   queue: InputFrame[];
   held: number;
@@ -114,6 +117,7 @@ export function cleanTeam(t: unknown, slot: number): LobbyTeam {
     grave: typeof v.grave === 'string' && /^[a-z]{1,16}$/.test(v.grave) ? v.grave : 'classic',
     emblem: isEmblem(v.emblem) ? v.emblem : defaultEmblem(slot),
     names,
+    charge: CHARGE_STYLES.find((c) => c === v.charge) ?? 'normal',
   };
 }
 
@@ -274,6 +278,7 @@ export class Room {
     slot.userId = member.userId;
     slot.unlocked = member.unlocked;
     slot.owned = member.owned;
+    slot.badge = member.badge;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
     this.broadcastRoom();
@@ -466,7 +471,7 @@ export class Room {
     this.scheme = { ...cleanScheme(rawScheme), unlocked: unlocked.filter((id) => isWeaponId(id) && WEAPONS[id].locked) };
     // The host picks the world everyone sees: a free one, or one they own.
     if (this.scheme.arena && !canUse('arena', this.scheme.arena, owned)) delete this.scheme.arena;
-    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, dance: s.team.dance, grave: s.team.grave, emblem: s.team.emblem, names: s.team.names, cpu: s.cpu }));
+    this.teams = this.slots.map((s) => ({ name: s.team.name, color: s.team.color, hat: s.team.hat, skin: s.team.skin, aim: s.team.aim, fx: s.team.fx, dance: s.team.dance, grave: s.team.grave, emblem: s.team.emblem, names: s.team.names, cpu: s.cpu, charge: s.cpu ? 'normal' : s.team.charge }));
     const seed = (this.random() * 1e9) | 0;
     try {
       this.state = createWorld({ seed, teams: this.teams, scheme: { ...DEFAULT_SCHEME, ...this.scheme } });
@@ -512,7 +517,7 @@ export class Room {
   }
 
   private lobbySlots(): LobbySlot[] {
-    return this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}) }));
+    return this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}), ...(s.badge ? { badge: s.badge } : {}) }));
   }
 
   private broadcastRoom(): void {

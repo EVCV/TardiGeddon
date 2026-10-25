@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeTardi, createWorld, tick } from '../src/sim/world';
+import { AIM_MAX, TARDI_R, activeTardi, createWorld, ropeTrace, tick } from '../src/sim/world';
 import { BTN_DOWN, BTN_UP, EMPTY_INPUT, type SimEvent, type WorldState } from '../src/sim/types';
 import { presetScheme } from '../src/sim/schemes';
 import { isSolid } from '../src/sim/terrain/terrain';
@@ -123,5 +123,27 @@ describe('aiming', () => {
     const a = s.turn.aim;
     run(s, 1, { held: BTN_DOWN, pressed: 0 });
     expect(a - s.turn.aim).toBe(2);
+  });
+});
+
+describe('Rope Race courses', () => {
+  it('always have something to rope onto overhead, from the start and from anywhere on the ground', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = createWorld({ seed: seed * 7919, teams: [{ name: 'A', color: 1, cpu: false }, { name: 'B', color: 2, cpu: false }], scheme: presetScheme('roperace') });
+      const t = s.terrain;
+      // From the start: some upward aim, either way, catches.
+      const r = s.race!;
+      const catches = [1, -1].some((f) => [0.5, 0.65, 0.8, 0.95].some((a) => ropeTrace(t, r.startX, r.startY, f, Math.round(AIM_MAX * a)).hit));
+      expect(catches, `seed ${seed * 7919}: nothing to rope onto from the start`).toBe(true);
+      // Anywhere a tardi could stand: straight up reaches the roof.
+      for (let x = 40; x < t.w - 40; x += 25) {
+        let y = 0;
+        while (y < t.h && t.mask[y * t.w + x]) y++; // through the roof
+        while (y < s.waterY && !t.mask[y * t.w + x]) y++; // down to the ground
+        if (y >= s.waterY) continue;
+        const up = [1, -1].some((f) => [0.6, 0.8, 1].some((a) => ropeTrace(t, x, y - TARDI_R - 1, f, Math.round(AIM_MAX * a)).hit));
+        expect(up, `seed ${seed * 7919} x ${x}`).toBe(true);
+      }
+    }
   });
 });

@@ -161,6 +161,8 @@ export function danceSvg(id: string, teamColor = 0xe04848, hat = 'beanie', skin 
     floss: 'rotate(14)',
     helicopter: 'translate(0 -10) rotate(30)',
     worm: 'scale(1.1 .8)',
+    hatch: 'scale(1.1 .8)',
+    bow: 'rotate(30)',
   };
   const marks: Record<string, string> = {
     classic: '<path d="M-14 26 h28" stroke-dasharray="4 4"/>',
@@ -171,6 +173,8 @@ export function danceSvg(id: string, teamColor = 0xe04848, hat = 'beanie', skin 
     floss: '<path d="M-36 -10 l8 8 l-8 8 M36 -10 l-8 8 l8 8"/>',
     helicopter: '<path d="M-24 -26 h48 M-18 -32 h36"/>',
     worm: '<path d="M-34 22 q8 -10 16 0 t16 0 t16 0 t16 0"/>',
+    hatch: '<path d="M-30 -16 l4 6 l4 -6 l4 6 M30 -16 l-4 6 l-4 -6 l-4 6"/>',
+    bow: '<path d="M-6 -28 A24 24 0 0 1 26 -6"/><path d="M26 -6 l-1 -7 m1 7 l-7 0"/>',
   };
   return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
     + `<g fill="none" stroke="${hex(teamColor)}" stroke-width="2.5" stroke-linecap="round">${marks[id] ?? marks.classic}</g>`
@@ -190,6 +194,8 @@ export function graveSvg(id: string, teamColor = 0xe04848): string {
     trophy: `<path d="M-10 -18 H10 V-6 Q10 6 0 6 Q-10 6 -10 -6 Z" fill="#ffd84a" stroke="${INK}" stroke-width="2"/><path d="M-10 -14 Q-18 -14 -16 -6 Q-14 0 -9 0 M10 -14 Q18 -14 16 -6 Q14 0 9 0" fill="none" stroke="${INK}" stroke-width="2"/><rect x="-3" y="6" width="6" height="8" fill="#e0a920" stroke="${INK}" stroke-width="1.5"/><rect x="-10" y="14" width="20" height="6" rx="1" fill="${c}" stroke="${INK}" stroke-width="1.5"/>`,
     rocket: `<path d="M0 -24 Q10 -12 8 10 H-8 Q-10 -12 0 -24 Z" fill="#e8ecf2" stroke="${INK}" stroke-width="2"/><circle cx="0" cy="-8" r="4" fill="${c}" stroke="${INK}" stroke-width="1.5"/><path d="M-8 4 L-14 16 L-7 12 M8 4 L14 16 L7 12" fill="${c}" stroke="${INK}" stroke-width="1.5"/><path d="M-4 12 Q0 22 4 12" fill="#ffb02e" stroke="${INK}" stroke-width="1.2"/>`,
     crystal: `<path d="M0 -24 L10 -4 L6 20 H-6 L-10 -4 Z" fill="#bff3ff" stroke="${INK}" stroke-width="2"/><path d="M0 -24 L-3 20 M0 -24 L3 20 M-10 -4 H10" stroke="#6ab0d8" stroke-width="1.2"/><circle cx="0" cy="-4" r="3" fill="${c}" opacity=".8"/>`,
+    egg: `<ellipse cx="0" cy="2" rx="13" ry="18" fill="#fff6e0" stroke="${INK}" stroke-width="2.5"/><path d="M-12 -2 L-6 3 L-1 -3 L4 3 L8 -2 L12 1" fill="none" stroke="${INK}" stroke-width="2"/><rect x="-8" y="12" width="16" height="4" rx="2" fill="${c}"/>`,
+    founder: `<path d="M0 -8 V-20" stroke="#3a8a28" stroke-width="2.5"/><ellipse cx="-5" cy="-20" rx="5" ry="3" fill="#5aa83a" stroke="${INK}" stroke-width="1.5"/><ellipse cx="5" cy="-23" rx="5" ry="3" fill="#5aa83a" stroke="${INK}" stroke-width="1.5"/><rect x="-14" y="-8" width="28" height="28" rx="4" fill="#ffd84a" stroke="${INK}" stroke-width="2.5"/><text x="0" y="5" font-size="7" font-weight="900" text-anchor="middle" fill="${INK}">FOUNDER</text><rect x="-8" y="12" width="16" height="4" rx="2" fill="${c}"/>`,
   };
   return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ground}<g stroke-linejoin="round">${art[id] ?? art.classic}</g></svg>`;
 }

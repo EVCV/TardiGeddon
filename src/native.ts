@@ -28,10 +28,6 @@ export interface NativeHooks {
 
 export function attachNative(hooks: NativeHooks): void {
   if (!isNativeApp()) return;
-  // iOS: game sound mixes with the player's own music and follows the silent
-  // switch (as AppDelegate.swift sets for the app; WebKit's own audio needs telling too).
-  const nav = navigator as Navigator & { audioSession?: { type: string } };
-  if (Capacitor.getPlatform() === 'ios' && nav.audioSession) nav.audioSession.type = 'ambient';
   // iOS: the home bar fades away while playing (Android hides its bars in MainActivity).
   if (Capacitor.getPlatform() === 'ios') void SystemBars.hide().catch(() => {});
   void App.addListener('backButton', () => {

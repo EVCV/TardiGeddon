@@ -45,6 +45,18 @@ export interface MeResponse {
   appStore?: boolean;
   /** The player's control settings, if they've saved any (input/controls.ts). */
   controls?: unknown;
+  /** Has the Founder pack (src/shop/rewards.ts): shows the 🌱 badge. */
+  founder?: boolean;
+  /** The Founder pack was given just now: say thank you. */
+  founderNew?: boolean;
+  /** Has the Early bird pack (founders too): shows the 🐣 badge (🌱 for founders). */
+  earlyBird?: boolean;
+  /** The Early bird pack was given just now. */
+  earlyBirdNew?: boolean;
+  /** A creator (server/creators.ts): their code and how it's doing, totals only (amounts in the currency's smallest unit). */
+  creator?: { code: string; percent: number; months: number; players: number; payers: number; totals: { currency: string; earned: number; paid: number; owed: number }[] };
+  /** Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand. */
+  invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean };
 }
 
 /** The owner's sales page: totals only, never who bought what. */
@@ -322,7 +334,45 @@ export async function refreshAccount(): Promise<MeResponse | null> {
   } catch {
     set(isPreviewBuild() ? previewMe() : null);
   }
+  // Came from a friend's invite link (?invite=CODE): say who invited them, once signed up.
+  const invite = savedInvite();
+  if (me?.invite?.canEnter && invite) {
+    saveInvite(null);
+    try {
+      await enterInvite(invite);
+      return await refreshAccount();
+    } catch {
+      /* a bad or old code: they can type one in on the Account page */
+    }
+  } else if (me?.invite && !me.invite.canEnter && invite) saveInvite(null);
   return me;
+}
+
+const INVITE_KEY = 'tardigeddon.invite';
+
+/** A friend's invite code from an invite link, kept until the player has an account to use it with. */
+export function savedInvite(): string | null {
+  try {
+    return localStorage.getItem(INVITE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveInvite(code: string | null): void {
+  try {
+    if (code) localStorage.setItem(INVITE_KEY, code);
+    else localStorage.removeItem(INVITE_KEY);
+  } catch {
+    /* storage blocked: they can type the code in instead */
+  }
+}
+
+export type InviteResult = 'ok' | 'unknown' | 'self' | 'already' | 'late' | 'newer';
+
+/** Say which friend invited this player (src/shop/rewards.ts). */
+export async function enterInvite(code: string): Promise<InviteResult> {
+  return (await call<{ result: InviteResult }>('/api/invite', { code })).result;
 }
 
 /**
@@ -407,6 +457,33 @@ export async function deleteAccount(password: string): Promise<void> {
 export async function unlock(item: string): Promise<void> {
   await call('/api/shop/unlock', { item });
   await refreshAccount();
+}
+
+/** A creator's numbers, as the owner's Sales page shows them (server/creators.ts CreatorReport). */
+export interface CreatorReport {
+  code: string;
+  name: string;
+  account: string | null;
+  percent: number;
+  months: number;
+  active: boolean;
+  players: number;
+  payers: number;
+  byMonth: { month: string; currency: string; gross: number; earned: number }[];
+  totals: { currency: string; earned: number; paid: number; owed: number }[];
+}
+
+/** The owner only: creator codes, and adding, changing and paying them. */
+export async function creators(): Promise<CreatorReport[]> {
+  return (await call<{ creators: CreatorReport[] }>('/api/admin/creators')).creators;
+}
+
+export async function saveCreator(c: { code: string; name: string; email?: string; percent?: number; months?: number; active?: boolean }): Promise<CreatorReport[]> {
+  return (await call<{ creators: CreatorReport[] }>('/api/admin/creators', c)).creators;
+}
+
+export async function payCreator(code: string, amount: number, currency: string, note: string): Promise<CreatorReport[]> {
+  return (await call<{ creators: CreatorReport[] }>('/api/admin/creators/paid', { code, amount, currency, note })).creators;
 }
 
 /** The owner's sales figures for the last `days` days (0 = all time). */
@@ -662,8 +739,8 @@ export async function challengeBoard(kind: string, day: string): Promise<{ rows:
 }
 
 /** Send a finished run; the server plays it back and keeps the player's best. */
-export function submitChallenge(kind: string, day: string, frames: unknown): Promise<{ me: BoardRow | null }> {
-  return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames });
+export function submitChallenge(kind: string, day: string, frames: unknown, charge: string): Promise<{ me: BoardRow | null }> {
+  return call<{ me: BoardRow | null }>('/api/challenge/submit', { kind, day, frames, charge });
 }
 
 /** A friend (server/friends.ts), named by their friend code. */

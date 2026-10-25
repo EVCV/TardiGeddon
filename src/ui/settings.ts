@@ -7,7 +7,7 @@
 
 import { ACTIONS, MAX_BINDINGS, bind, bindable, controls, defaultControls, keyLabel, unbind, type Action, type Controls, type TouchSize } from '../input/controls';
 import { account, chooseMusic, chooseSounds, ownedItems, saveControls, wearMusic, wearSounds } from '../account/session';
-import { audioSettings, saveAudioSettings, unlockAudio, type AudioSettings } from '../audio/mixer';
+import { audioSettings, hasSilentSwitch, saveAudioSettings, unlockAudio, type AudioSettings } from '../audio/mixer';
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS, sfx, useSoundPack } from '../audio/sfx';
 import { blockedPlayers, unblock } from '../net/blocked';
@@ -310,27 +310,31 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
     }),
   );
   toggle('highContrast', t('High contrast'), t('Black and white panels, stronger outlines and bigger name tags in matches.'));
-  // Tap to fire: kept with the controls (on the account when signed in).
-  {
-    const on = controls().tapFire;
+  // Tap to fire and the power bar: kept with the controls (on the account when signed in).
+  const controlSwitch = (key: 'tapFire' | 'slowPower' | 'powerBounce', title: string, help: string) => {
+    const on = controls()[key];
     const row = el('div', 'access-row');
     const b = el('button', 'seg-btn' + (on ? ' on' : ''), on ? t('On') : t('Off'));
     b.setAttribute('role', 'switch');
     b.setAttribute('aria-checked', String(on));
-    const name = el('b', '', t('Tap to fire'));
-    name.id = 'access-tapfire';
+    const name = el('b', '', title);
+    name.id = `access-${key.toLowerCase()}`;
     b.setAttribute('aria-labelledby', name.id);
     const label = el('div', 'access-text');
-    label.append(name, el('span', 'account-note', t('No holding: tap Fire once to start charging a shot and again to let go. Works with keys, mouse and touch.')));
-    b.onclick = () => save({ ...controls(), tapFire: !on });
+    label.append(name, el('span', 'account-note', help));
+    b.onclick = () => save({ ...controls(), [key]: !on });
     row.append(label, b);
     card.append(row);
-  }
+  };
+  controlSwitch('tapFire', t('Tap to fire'), t('No holding: tap Fire once to start charging a shot and again to let go. Works with keys, mouse and touch.'));
+  controlSwitch('slowPower', t('Slower power bar'), t('Throws charge up at half speed, so it’s easier to let go at the right power while you learn. Only for you: other players keep their own.'));
+  controlSwitch('powerBounce', t('Power bar goes back down'), t('At full power the bar falls back and rises again until you let go, instead of throwing by itself.'));
   toggle(
     'captions',
     t('Sound captions'),
     t('Short words at the bottom of the screen for what the sounds are saying (“💥 Boom”, “⚠️ Mine ticking”, “🔔 Next turn”), so nothing is missed with the sound off.'),
   );
+  toggle('hints', t('Help prompts'), t('A line at the bottom of the screen in a match saying what to do next with the weapon in hand (“Tap the map where it should fall”).'));
   toggle('calm', t('Calmer effects'), t('No lightning flashes or other sudden flashes, and less movement in the menus. On by itself if your device asks for reduced motion.'));
   card.append(el('p', 'account-note', t('Only changes what you see on this device, never the match. Kept on this device.')));
   return card;
@@ -395,6 +399,34 @@ function soundSettings(ctx: HubContext): HTMLElement {
     return box;
   };
   card.append(row(t('Music'), 'music', 'musicVol'), row(t('Sound effects'), 'effects', 'effectsVol', () => sfx.jump()));
+  // iPhone/iPad: the silent switch mutes the game unless the player says otherwise.
+  if (hasSilentSwitch()) {
+    const check = el('label', 'account-check');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = a.onSilent;
+    input.onchange = () => {
+      saveAudioSettings({ ...audioSettings(), onSilent: input.checked });
+      unlockAudio();
+      sfx.jump();
+    };
+    check.append(input, el('span', '', t('Play sound even when the phone is on silent')));
+    card.append(check);
+  }
+  // iPhone/iPad: the silent switch mutes the game unless the player says otherwise.
+  if (hasSilentSwitch()) {
+    const check = el('label', 'account-check');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = a.onSilent;
+    input.onchange = () => {
+      saveAudioSettings({ ...audioSettings(), onSilent: input.checked });
+      unlockAudio();
+      sfx.jump();
+    };
+    check.append(input, el('span', '', t('Play sound even when the phone is on silent')));
+    card.append(check);
+  }
 
   // Which track plays in matches, and which sound pack: the free ones and those owned.
   const owned = ownedItems();

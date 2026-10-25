@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, packTotal, shopItem } from '../src/shop/catalog';
+import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, packTotal, promoItem, shopItem } from '../src/shop/catalog';
 import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
@@ -80,6 +80,8 @@ describe('shop catalogue', () => {
       if (a.free) expect([shopItem(`arena:${a.id}`), a.stars, a.drift], a.id).toEqual([undefined, undefined, undefined]);
       // Seasonal worlds are free while their event is on, never sold.
       else if (a.season) expect([shopItem(`arena:${a.id}`), SEASONS.find((x) => x.id === a.season)?.arena], a.id).toEqual([undefined, a.id]);
+      // The Early bird and Founder packs' worlds are never sold, only given.
+      else if (promoItem(`arena:${a.id}`)) expect(shopItem(`arena:${a.id}`), a.id).toBeUndefined();
       else expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
     }
     expect(ARENAS.filter((a) => a.free).map((a) => a.id)).toEqual(['classic', 'spring', 'moor', 'cove', 'bog']);
@@ -118,8 +120,12 @@ describe('explosion effects', () => {
 
 describe('victory dances, gravestones and emblems', () => {
   it('sells every dance and gravestone except the free ones, for coins', () => {
-    for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id));
-    for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id));
+    for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id) && !promoItem(`dance:${d.id}`));
+    // (The Founder pack's plaque is never sold: only ever given.)
+    for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id) && !promoItem(`grave:${g.id}`));
+    expect(promoItem('grave:founder')).toBeDefined();
+    expect(wearableTeam({ grave: 'founder' }, [])).toEqual({ grave: 'classic' });
+    expect(wearableTeam({ grave: 'founder' }, ['grave:founder'])).toEqual({ grave: 'founder' });
   });
 
   it('go online with the team, but only if the player owns them; emblems are free but must be real', () => {

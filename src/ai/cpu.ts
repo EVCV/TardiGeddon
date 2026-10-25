@@ -6,7 +6,7 @@
 // slices of a few milliseconds per tick while the CPU "thinks", never all at
 // once: on the game server one CPU turn must not stall every other match.
 
-import { cloneWorld, launchVelocity, stepProjectile, activeTardi, tick, traceHitscan, TARDI_R, AIM_STEP, AIM_MAX, POWER_STEP, STRIKE_WIND_DRIFT } from '../sim/world';
+import { cloneWorld, girderFits, launchVelocity, ropeTrace, stepProjectile, activeTardi, tick, traceHitscan, TARDI_R, AIM_STEP, AIM_MAX, POWER_STEP, STRIKE_WIND_DRIFT } from '../sim/world';
 import { circleCollides, surfaceBelow } from '../sim/terrain/terrain';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, PRESS_JUMP, TICK_RATE, type InputFrame, type Projectile, type SimEvent, type Tardi, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
@@ -28,18 +28,33 @@ interface SkillDef {
   /** Shaky hands: typical power error (power runs 0..1000) and aim error (aim steps). */
   powerErr: number;
   aimErr: number;
-  /** Chance of a wild, hopeful shot instead of an aimed one. */
+  /** Chance of a shot that misses by a lot (still aimed at someone). */
   wild: number;
   /** Chance it walks somewhere better when it has no good shot from where it is. */
   moves: number;
+  /** Only shots a person would think of: facing the way it lands, never fired steeply into the ground. */
+  human: boolean;
 }
 
+// Tuned with the damage they do to a team that never moves (tests/cpuskill.test.ts):
+// Normal should land roughly one shot in three, like a fair player.
 const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
-  easy: { spread: 200, windSense: 0.3, powerErr: 30, aimErr: 1, wild: 0.15, moves: 0.4 },
-  normal: { spread: 45, windSense: 0.85, powerErr: 0, aimErr: 0, wild: 0.03, moves: 0.8 },
-  hard: { spread: 25, windSense: 0.95, powerErr: 0, aimErr: 0, wild: 0, moves: 1 },
-  perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0, moves: 1 },
+  easy: { spread: 330, windSense: 0.2, powerErr: 70, aimErr: 2, wild: 0.2, moves: 0.4, human: true },
+  normal: { spread: 120, windSense: 0.55, powerErr: 35, aimErr: 1, wild: 0.06, moves: 0.8, human: true },
+  hard: { spread: 40, windSense: 0.9, powerErr: 12, aimErr: 0, wild: 0, moves: 1, human: true },
+  perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0, moves: 1, human: false },
 };
+
+/**
+ * Would a person fire this? A shot landing behind the tardi it's facing away
+ * from, or one aimed steeply down at the ground in front of it (bounced off a
+ * wall, or dropped down a pit), looks like the CPU aiming the wrong way.
+ */
+function humanShot(me: Tardi, plan: Plan, x: number, y: number): boolean {
+  const dx = x - me.x;
+  if (dx * plan.facing < -40) return false;
+  return plan.aim >= -AIM_MAX / 2 || y - me.y > Math.abs(dx);
+}
 
 /** Bell-curve noise with a standard deviation of 1. */
 function gauss(): number {
@@ -212,6 +227,15 @@ interface ShotSearch {
   bestAt: Candidate | null;
 }
 
+/**
+ * Thrown weapons the CPU can plan by simulating the throw: every ordinary one
+ * in the weapons panel (not the ones that steer, burrow, walk or drop from
+ * the sky, which it plans in their own ways or not at all).
+ */
+const THROWN = Object.values(WEAPONS)
+  .filter((d) => d.kind === 'charge' && !d.hidden && d.projectile && !d.projectile.homing && !d.projectile.drill && !d.projectile.walker && !d.projectile.crusher)
+  .map((d) => d.id);
+
 /** Aims across the whole range, a `step` apart, on the grid of the turn's start aim (`from`). */
 function aims(from: number, step: number): number[] {
   const out: number[] = [];
@@ -231,6 +255,7 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
   sim.wind = s.wind * skill.windSense;
   const cands: Candidate[] = [];
   const add = (plan: Plan, x: number, y: number, radius: number, damage: number) => {
+    if (skill.human && !humanShot(me, plan, x, y)) return;
     cands.push({ plan, x, y, score: scoreHit(s, x, y, radius, damage, me.team), ownGoal: hurtsTeam(s, x, y, radius, me.team) });
   };
 
@@ -240,7 +265,7 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
   // that fly alike (bazooka and mortar, grenade and cluster) land in the same
   // place, so each throw is worked out once for both.
   const landed = new Map<string, { x: number; y: number } | null>();
-  const thrown = coarse ? ['bazooka', 'grenade'] : ['bazooka', 'grenade', 'cluster', 'mortar', 'holywater'];
+  const thrown = coarse ? ['bazooka', 'grenade'] : THROWN;
   for (const weapon of thrown.filter(usable)) {
     const spec = WEAPONS[weapon].projectile!;
     const flight = flightKey(weapon);
@@ -296,8 +321,26 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
   const sim = cloneWorld(s);
   sim.wind = s.wind * skill.windSense;
   const found = yield* searchShots(s, skill);
-  const { cands, bestAt } = found;
-  let { best, bestScore } = found;
+  const { cands } = found;
+  let { best, bestScore, bestAt } = found;
+  // Below Expert it doesn't always reach for the same weapon: any that would
+  // do nearly as well might get picked, the better ones more often.
+  if (skill.spread > 0 && bestAt) {
+    const byWeapon = new Map<string, Candidate>();
+    for (const c of cands) {
+      const was = byWeapon.get(c.plan.weapon);
+      if (!c.ownGoal && c.score > 0 && (!was || c.score > was.score)) byWeapon.set(c.plan.weapon, c);
+    }
+    const good = [...byWeapon.values()].filter((c) => c.score >= bestScore * 0.6);
+    let roll = Math.random() * good.reduce((sum, c) => sum + c.score, 0);
+    for (const c of good) {
+      roll -= c.score;
+      if (roll > 0) continue;
+      best = c.plan;
+      bestAt = c;
+      break;
+    }
+  }
   const ammo = s.teams[me.team].ammo;
   const usable = (w: string) => ammo[w] !== 0;
   // Concrete Tun: dropped straight onto an enemy, slamming it several times.
@@ -369,6 +412,11 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
   // Nothing in reach (walled off in a cave, or behind a spire): rather than
   // skip, lob one as close to the nearest enemy as it can, blasting a way through.
   if (!best) {
+    // Sometimes it builds a Twig Girder wall to hide behind instead.
+    if (usable('girder') && enemies.length && Math.random() < 0.5) {
+      const wall = shieldPlan(s, me, enemies[0]);
+      if (wall) return wall;
+    }
     let bestD = Infinity;
     for (const c of cands) {
       if (c.ownGoal) continue;
@@ -388,18 +436,18 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
 
   const safe = cands.filter((c) => !c.ownGoal);
   let pick: Candidate | undefined;
-  if (Math.random() < skill.wild) {
-    // "That'll do": a hopeful shot at nothing in particular.
-    pick = safe[Math.floor(Math.random() * safe.length)];
-  } else if (bestAt) {
+  if (bestAt) {
     // Pick the victim its best shot was going for, then aim for a spot
-    // near them; how near depends on skill.
+    // near them; how near depends on skill. It always looks like it's trying:
+    // now and then (`wild`) it just misses by a lot.
+    const at = bestAt;
     const victim = s.tardis
       .filter((t) => t.alive && t.team !== me.team)
-      .sort((a, b) => Math.hypot(a.x - bestAt.x, a.y - bestAt.y) - Math.hypot(b.x - bestAt.x, b.y - bestAt.y))[0];
+      .sort((a, b) => Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y))[0];
     if (victim) {
-      const tx = victim.x + gauss() * skill.spread;
-      const ty = victim.y + gauss() * skill.spread * 0.3;
+      const spread = skill.spread * (Math.random() < skill.wild ? 3 : 1);
+      const tx = victim.x + gauss() * spread;
+      const ty = victim.y + gauss() * spread * 0.3;
       let bestD = Infinity;
       for (const c of safe) {
         if (c.plan.weapon !== best.weapon) continue; // stick with the weapon it chose
@@ -420,6 +468,22 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
   }
   plan.aim = Math.max(-1024, Math.min(1024, plan.aim + Math.round(gauss() * skill.aimErr) * AIM_STEP));
   return plan;
+}
+
+/** A Twig Girder stood upright beside the tardi, between it and the enemy, if one fits there. */
+function shieldPlan(s: WorldState, me: Tardi, enemy: Tardi): Plan | null {
+  const facing: 1 | -1 = enemy.x >= me.x ? 1 : -1;
+  for (const gap of [14, 24, 34]) {
+    const target = { x: Math.round(me.x + facing * (TARDI_R + gap)), y: Math.round(me.y - 22) };
+    const sim = cloneWorld(s);
+    const t = activeTardi(sim)!;
+    t.facing = facing;
+    sim.turn.weapon = 'girder';
+    sim.turn.aim = AIM_MAX;
+    sim.turn.target = target;
+    if (girderFits(sim)) return { weapon: 'girder', facing, aim: AIM_MAX, power: 0, fuse: 3, target };
+  }
+  return null;
 }
 
 /**
@@ -528,31 +592,64 @@ const MOVE_MIN_TICKS = 25 * TICK_RATE;
 const GOOD_SHOT = 25;
 /** How far it considers walking each way (ticks of holding ◀ or ▶). */
 const WALKS = [45, 100, 170];
+/** How many hops forward it considers. */
+const HOPS = [2, 4];
+/** A drop further than this hurts (as in the sim, less a little to be safe). */
+const SAFE_FALL = 80;
+/** Silk Rope swings it considers: up and ahead at these aims (low ones catch the hillside ahead), swinging for up to this many ticks. */
+const ROPE_AIMS = [AIM_MAX * 0.25, AIM_MAX * 0.45, AIM_MAX * 0.7, AIM_MAX * 0.88];
+const ROPE_SWINGS = [40, 90];
+/** Chance (times its skill's `moves`) it strolls somewhere else even with a good shot, so it doesn't stand like a statue. */
+const WANDER = 0.35;
+
+/** A way of getting somewhere: the frames to press, and how things stand afterwards. */
+interface Move {
+  frames: InputFrame[];
+  end: WorldState;
+  crates: number;
+  hurt: number;
+}
 
 /**
- * Should the tardi walk before shooting? When there's no good shot from
- * where it stands, try walking each way for a few distances on a copy of the
- * world (hopping over steps), and see what shots it would have from there,
- * and whether it would pick up a crate or get hurt on the way. Returns the
- * frames to press to get to the best spot, or null to stay put.
+ * Should the tardi move before shooting? On a copy of the world it tries
+ * walking each way for a few distances (hopping over steps), hopping along,
+ * and swinging on the Silk Rope, and sees what shots it would have from
+ * there, and whether it would pick up a crate or get hurt on the way. With no
+ * good shot where it stands it goes for the best spot; with one, now and then
+ * it wanders to a spot about as good, like a person would. Returns the frames
+ * to press, or null to stay put.
  */
 function* planMove(live: WorldState, skill: SkillDef): Generator<void, InputFrame[] | null> {
   const s = cloneWorld(live);
   yield;
   const here = yield* searchShots(s, skill, true);
-  if (here.bestScore >= GOOD_SHOT) return null;
+  const wander = here.bestScore >= GOOD_SHOT;
+  if (wander && Math.random() >= WANDER) return null;
   let best: InputFrame[] | null = null;
-  let bestScore = here.bestScore + 8; // moving has to be clearly worth it
-  for (const dir of [-1, 1] as const) {
-    for (const ticks of WALKS) {
-      const w = walkTo(s, dir, ticks);
-      yield;
-      if (!w) continue;
-      const there = yield* searchShots(w.end, skill, true);
-      const score = there.bestScore + w.crates * 15 - w.hurt * 2;
-      if (score > bestScore) {
-        bestScore = score;
-        best = w.frames;
+  // Moving has to be clearly worth it, or (wandering) cost little of the shot.
+  let bestScore = wander ? here.bestScore * 0.85 : here.bestScore + 8;
+  const consider = function* (m: Move | null): Generator<void, void> {
+    yield;
+    if (!m) return;
+    const there = yield* searchShots(m.end, skill, true);
+    const score = there.bestScore + m.crates * 15 - m.hurt * 2;
+    if (score > bestScore) {
+      bestScore = score;
+      best = m.frames;
+    }
+  };
+  const dirs: (1 | -1)[] = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+  for (const dir of dirs) {
+    for (const ticks of wander ? [WALKS[0]] : WALKS) yield* consider(walkTo(s, dir, ticks));
+    for (const hops of wander ? [HOPS[0]] : HOPS) yield* consider(hopTo(s, dir, hops));
+  }
+  // The rope: when walking won't do, or sometimes just because it's fun.
+  const me = activeTardi(s)!;
+  if (s.teams[me.team].ammo.rope !== 0 && (bestScore < GOOD_SHOT || Math.random() < 0.3)) {
+    for (const dir of dirs) {
+      for (const aim of ROPE_AIMS) {
+        if (!ropeTrace(s.terrain, me.x, me.y, dir, Math.round(aim)).hit) continue;
+        for (const swing of ROPE_SWINGS) yield* consider(ropeTo(s, dir, Math.round(aim), swing));
       }
     }
   }
@@ -560,53 +657,136 @@ function* planMove(live: WorldState, skill: SkillDef): Generator<void, InputFram
 }
 
 /**
+ * Presses buttons on a copy of the world, one tick at a time, counting crates
+ * picked up. `step` is false once things have gone wrong (drowned, turn over,
+ * off the edge).
+ */
+class Rehearsal {
+  readonly s: WorldState;
+  readonly me: Tardi;
+  readonly frames: InputFrame[] = [];
+  crates = 0;
+  private readonly hp: number;
+  private readonly x0: number;
+  private readonly events: SimEvent[] = [];
+
+  constructor(s0: WorldState) {
+    this.s = cloneWorld(s0);
+    this.me = activeTardi(this.s)!;
+    this.hp = this.me.hp - this.me.pendingDmg;
+    this.x0 = this.me.x;
+  }
+
+  step(f: InputFrame): boolean {
+    const { s, me } = this;
+    tick(s, f, this.events);
+    this.frames.push(f);
+    for (const e of this.events) if (e.t === 'collect' && e.tardi === me.id) this.crates++;
+    this.events.length = 0;
+    return me.alive && s.turn.phase === 'aim' && me.y < s.waterY - 12 && me.x > 20 && me.x < s.terrain.w - 20;
+  }
+
+  /** Come down and land, opening the Leaf Parachute if it's a long way down. */
+  land(): boolean {
+    const { s, me } = this;
+    for (let i = 0; i < 500 && me.airborne; i++) {
+      // On the way down, and the whole drop (from the top of the jump or swing) would hurt.
+      const falling = me.vy > 1 && !me.chute && !me.knocked && !me.rope;
+      const drop = groundBelow(s, me) - TARDI_R - me.fallStartY;
+      if (falling && drop > SAFE_FALL && s.teams[me.team].ammo.parachute !== 0 && s.scheme.fallDamage) {
+        if (!this.step({ held: 0, pressed: 0, cmd: { t: 'weapon', id: 'parachute' } })) return false;
+        if (!this.step({ held: BTN_FIRE, pressed: 0 })) return false;
+        continue;
+      }
+      if (!this.step(EMPTY_INPUT)) return false;
+    }
+    return !me.airborne;
+  }
+
+  /** Where it ended up, unless that's nowhere much or beside a mine that's about to go off. */
+  result(): Move | null {
+    const { s, me } = this;
+    if (Math.abs(me.x - this.x0) < 20) return null;
+    if (s.objects.some((o) => o.kind === 'mine' && o.fuse > 0 && Math.abs(o.x - me.x) < 60 && Math.abs(o.y - me.y) < 60)) return null;
+    return { frames: this.frames, end: s, crates: this.crates, hurt: Math.max(0, this.hp - (me.hp - me.pendingDmg)) };
+  }
+}
+
+/** How far below the tardi the ground is (a long way when there's none). */
+function groundBelow(s: WorldState, t: Tardi): number {
+  const y = surfaceBelow(s.terrain, Math.round(t.x), Math.max(0, Math.round(t.y + TARDI_R + 1)));
+  return y < 0 ? s.terrain.h : y;
+}
+
+/**
  * Walk the active tardi one way for `ticks` on a copy of the world, jumping
  * when stuck against a step, then let it land. Null if it would drown, fall
  * off the map, end its turn, or end up next to a ticking mine.
  */
-export function walkTo(s0: WorldState, dir: 1 | -1, ticks: number): { frames: InputFrame[]; end: WorldState; crates: number; hurt: number } | null {
-  const s = cloneWorld(s0);
-  const me = activeTardi(s);
-  if (!me) return null;
-  const hp = me.hp - me.pendingDmg;
-  const frames: InputFrame[] = [];
-  const events: SimEvent[] = [];
+export function walkTo(s0: WorldState, dir: 1 | -1, ticks: number): Move | null {
+  if (!activeTardi(s0)) return null;
+  const r = new Rehearsal(s0);
+  const me = r.me;
   let stuck = 0;
   let lastX = me.x;
-  let crates = 0;
-  const step = (f: InputFrame): boolean => {
-    tick(s, f, events);
-    frames.push(f);
-    for (const e of events) if (e.t === 'collect' && e.tardi === me.id) crates++;
-    events.length = 0;
-    return me.alive && s.turn.phase === 'aim' && me.y < s.waterY - 12 && me.x > 20 && me.x < s.terrain.w - 20;
-  };
   const fwd = dir === 1 ? BTN_RIGHT : BTN_LEFT;
   const back = dir === 1 ? BTN_LEFT : BTN_RIGHT;
   for (let i = 0; i < ticks; i++) {
     if (stuck >= 6 && !me.airborne) {
       // Against a step: back off a little for a run-up, face forward again, then jump.
       // (Then wait for the jump: a second press straight away would be a backflip.)
-      for (let k = 0; k < 10; k++) if (!step({ held: back, pressed: 0 })) return null;
-      if (!step({ held: fwd, pressed: 0 })) return null;
-      if (!step({ held: 0, pressed: PRESS_JUMP })) return null;
-      for (let k = 0; k < 12; k++) if (!step({ held: fwd, pressed: 0 })) return null;
+      for (let k = 0; k < 10; k++) if (!r.step({ held: back, pressed: 0 })) return null;
+      if (!r.step({ held: fwd, pressed: 0 })) return null;
+      if (!r.step({ held: 0, pressed: PRESS_JUMP })) return null;
+      for (let k = 0; k < 12; k++) if (!r.step({ held: fwd, pressed: 0 })) return null;
       stuck = -10;
       lastX = me.x;
       continue;
     }
-    if (!step({ held: fwd, pressed: 0 })) return null;
+    if (!r.step({ held: fwd, pressed: 0 })) return null;
     if (!me.airborne && Math.abs(me.x - lastX) < 0.2) stuck++;
     else stuck = 0;
     lastX = me.x;
   }
-  // Let go and land.
-  for (let i = 0; i < 80 && me.airborne; i++) if (!step(EMPTY_INPUT)) return null;
-  if (me.airborne) return null;
-  // Not somewhere it has barely moved from, or beside a mine that's about to go off.
-  if (Math.abs(me.x - s0.tardis.find((t) => t.id === me.id)!.x) < 20) return null;
-  if (s.objects.some((o) => o.kind === 'mine' && o.fuse > 0 && Math.abs(o.x - me.x) < 60 && Math.abs(o.y - me.y) < 60)) return null;
-  return { frames, end: s, crates, hurt: Math.max(0, hp - (me.hp - me.pendingDmg)) };
+  return r.land() ? r.result() : null;
+}
+
+/** Hop `hops` times one way (a jump, then landing before the next). */
+export function hopTo(s0: WorldState, dir: 1 | -1, hops: number): Move | null {
+  if (!activeTardi(s0)) return null;
+  const r = new Rehearsal(s0);
+  const fwd = dir === 1 ? BTN_RIGHT : BTN_LEFT;
+  for (let h = 0; h < hops; h++) {
+    if (!r.step({ held: fwd, pressed: 0 })) return null; // face the way
+    if (!r.step({ held: 0, pressed: PRESS_JUMP })) return null;
+    // The jump goes off after a moment; then wait to land (a press meanwhile would be a backflip).
+    for (let k = 0; k < 14 && !r.me.airborne; k++) if (!r.step(EMPTY_INPUT)) return null;
+    if (!r.land()) return null;
+  }
+  return r.result();
+}
+
+/** Shoot the Silk Rope up and ahead at `aim`, swing that way (for `swing` ticks at most), let go and land. */
+export function ropeTo(s0: WorldState, dir: 1 | -1, aim: number, swing: number): Move | null {
+  if (!activeTardi(s0)) return null;
+  const r = new Rehearsal(s0);
+  const me = r.me;
+  const fwd = dir === 1 ? BTN_RIGHT : BTN_LEFT;
+  if (!r.step({ held: 0, pressed: 0, cmd: { t: 'weapon', id: 'rope' } })) return null;
+  if (!r.step({ held: 0, pressed: 0, cmd: { t: 'aim', facing: dir, aim } })) return null;
+  if (!r.step({ held: BTN_FIRE, pressed: 0 })) return null;
+  if (!me.rope) return null;
+  if (!r.step(EMPTY_INPUT)) return null;
+  // Reel in a little as it swings, for height; let go swinging forward and up
+  // (after `swing` ticks at most), as a player would.
+  for (let k = 0; k < swing; k++) {
+    if (k > 15 && me.vx * dir > 1.5 && me.vy < -0.5) break;
+    if (!r.step({ held: fwd | (k < swing / 3 ? BTN_UP : 0), pressed: 0 })) return null;
+  }
+  if (!r.step({ held: 0, pressed: PRESS_JUMP })) return null;
+  if (!r.land()) return null;
+  // Not left hanging: it has to have let go and be standing.
+  return me.rope ? null : r.result();
 }
 
 /** Everything about a weapon that decides where its shot flies (not what it does when it lands). */

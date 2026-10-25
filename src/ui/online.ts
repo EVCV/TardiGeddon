@@ -9,6 +9,7 @@ import { hex, shown } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
 import { MAX_TEAMS } from '../sim/rosters';
 import { loadProfiles, matchNames } from './teams';
+import { chargeStyle, controls } from '../input/controls';
 import { savedScheme } from './menu';
 import { NetClient, serverUrl } from '../net/client';
 import { account, usableArenas, wornLooks } from '../account/session';
@@ -42,7 +43,7 @@ const roomPick = { map: 'random', world: '' };
 /** Our team (the first saved team profile), as sent to the server. */
 function myTeam(): LobbyTeam {
   const p = loadProfiles()[0];
-  return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0) };
+  return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), charge: chargeStyle(controls()) };
 }
 
 /** Remember the room so a dropped connection (or reload) can rejoin our slot. */
@@ -325,7 +326,14 @@ export function showOnline(
       if (i === room.you && !s.cpu) tag.textContent = s.host ? t('👑 You') : t('You');
       const badge = el('span', 'team-emblem');
       badge.innerHTML = emblemSvg(s.team.emblem, t('{name} emblem', { name: slotName(s) }));
-      row.append(pic, badge, name, tag);
+      row.append(pic, badge, name);
+      if (s.badge) {
+        const f = el('span', 'founder-badge', s.badge === 'founder' ? '🌱' : '🐣');
+        f.title = s.badge === 'founder' ? t('Founder: here from the start') : t('Early bird: joined in the first months');
+        f.setAttribute('aria-label', f.title);
+        row.append(f);
+      }
+      row.append(tag);
       if (otherPlayer(s, i, room.you)) row.append(playerActions(root, s, (reason) => client?.report(i, reason), () => renderLobby(client?.room ?? room)));
       if (isHost && s.cpu) {
         const rm = el('button', 'slot-edit', '✕');

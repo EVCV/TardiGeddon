@@ -52,6 +52,8 @@ export class Camera {
   y = 500;
   zoom = 1;
   manualUntil = 0;
+  /** The player has moved the view this turn (dragged or pinched). */
+  held = false;
 }
 
 export class GameRenderer {
@@ -61,8 +63,9 @@ export class GameRenderer {
   /** Stars, snow or embers over the sky (arena themes), in screen space. */
   private ambient = new Graphics();
   private ambientBits: { x: number; y: number; r: number; v: number; p: number }[] = [];
-  private hills = new Graphics();
-  private hillsNear = new Graphics();
+  /** The background hills: pictures drawn once (makeHillTexture), moved for parallax. */
+  private hills = new Container();
+  private hillsNear = new Container();
   private terrainView: TerrainView;
   private entities = new Container();
   private projectiles = new Graphics();
@@ -153,6 +156,8 @@ export class GameRenderer {
     }
     this.camera.zoom = this.defaultZoom();
   }
+
+
 
   defaultZoom(): number {
     const { width, height } = this.app.screen;
@@ -306,7 +311,12 @@ export class GameRenderer {
           }
           this.floatText(tr(tk('POW!')), e.x, e.y - 24, 0xff9a3b);
           break;
+        case 'respawn':
         case 'teleport':
+          if (e.t === 'respawn') {
+            this.floatText(tr(tk('Back again!')), e.x, e.y - 30, 0xffffff);
+            this.watchAt(e.x, e.y, WATCH_HOLD);
+          }
           for (let i = 0; i < 20; i++) {
             const a = Math.random() * Math.PI * 2;
             this.particles.push({
@@ -374,6 +384,27 @@ export class GameRenderer {
     g.roundRect(sx - 16, sy - 42, 32, 14, 3).fill(0x9ee06a).stroke({ width: 1.5, color: O });
     g.moveTo(sx - 9, sy - 35).lineTo(sx + 7, sy - 35).moveTo(sx + 3, sy - 39).lineTo(sx + 7, sy - 35).lineTo(sx + 3, sy - 31);
     g.stroke({ width: 2, color: O });
+  }
+
+  /**
+   * Tardigrades standing close together: their name tags would sit on top of
+   * each other (long names especially), so each one that would overlap one to
+   * its left is lifted a line higher.
+   */
+  private unstackLabels(): void {
+    const tags = [...this.tardiViews.values()]
+      .filter((v) => v.root.visible && v.labelWidth > 0)
+      .map((v) => ({ v, x: v.root.x, y: v.root.y, w: v.labelWidth, lift: 0 }))
+      .sort((a, b) => a.x - b.x);
+    for (let i = 0; i < tags.length; i++) {
+      const a = tags[i];
+      for (let tries = 0; tries < 4; tries++) {
+        const hit = tags.slice(0, i).some((b) => Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 4 && Math.abs(a.y - a.lift - (b.y - b.lift)) < 13);
+        if (!hit) break;
+        a.lift += 13;
+      }
+      a.v.labelLift = a.lift;
+    }
   }
 
   /** End of a comedy death: pop, leave a husk. */
@@ -524,6 +555,11 @@ export class GameRenderer {
         this.entities.addChild(v.root);
       }
       if (!v) continue;
+      if (this.dying.has(t.id) && t.alive) {
+        // Back again (the tutorial) before it finished curling up: pop where it lay; a fresh view comes next frame.
+        this.pop(t.id, v.root.x, v.root.y, shown(s.teams[t.team].color), s.teams[t.team].grave);
+        continue;
+      }
       if (!t.alive && t.y > s.waterY) {
         v.root.visible = false;
         continue;
@@ -539,6 +575,7 @@ export class GameRenderer {
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
       if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, shown(this.state.teams[t.team].color), this.state.teams[t.team].grave);
     }
+    this.unstackLabels();
     // Tardigrades taken out of the world (endless practice clears popped targets).
     if (this.tardiViews.size > s.tardis.length) {
       for (const [id, v] of this.tardiViews) {
@@ -894,19 +931,36 @@ export class GameRenderer {
     });
   }
 
+  /**
+   * The two rows of background hills. Drawn once into pictures (like the sky
+   * and the ground) rather than as GPU shapes: as huge one-off shapes, some
+   * graphics cards (Chrome) drew them as stray triangles and lines across the sky.
+   */
   private drawHills(): void {
     const w = this.state.terrain.w;
     const h = this.state.waterY;
-    for (const [g, color, amp, base, freq] of [
+    for (const [layer, color, amp, base, freq] of [
       [this.hills, this.theme.hillFar, 90, h - 260, 0.004],
       [this.hillsNear, this.theme.hillNear, 70, h - 170, 0.007],
     ] as const) {
-      g.moveTo(-3000, h + 3000);
-      for (let x = -3000; x <= w + 3000; x += 25) {
-        g.lineTo(x, base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4);
-      }
-      g.lineTo(w + 3000, h + 3000).closePath().fill(color).stroke({ width: 3, color: PALETTE.outline, alpha: 0.25 });
+      const sprite = new Sprite(makeHillTexture(w, h, color, amp, base, freq));
+      sprite.position.set(HILL_LEFT, h - HILL_ABOVE);
+      sprite.scale.set(HILL_SCALE);
+      layer.addChild(sprite);
     }
+  }
+
+  /** Is the player choosing a spot on the map for this weapon? */
+  private pickingSpot(s: WorldState): boolean {
+    const def = WEAPONS[s.turn.weapon];
+    return s.turn.phase === 'aim' && !!def && (def.kind === 'target' || !!def.projectile?.homing);
+  }
+
+  /** Is this point well inside the view (not near an edge)? */
+  private inMiddleOfView(p: { x: number; y: number }): boolean {
+    const cam = this.camera;
+    const { width, height } = this.app.screen;
+    return Math.abs(p.x - cam.x) < (width * 0.35) / cam.zoom && Math.abs(p.y - cam.y) < (height * 0.35) / cam.zoom;
   }
 
   private updateCamera(s: WorldState, dt: number, alpha: number): void {
@@ -921,9 +975,13 @@ export class GameRenderer {
       } else if (s.projectiles.length > 0) {
         const p = s.projectiles[0];
         target = this.lerpPos(p.id, p.x, p.y, alpha);
+      } else if (this.pickingSpot(s) && (s.turn.target || cam.held)) {
+        // Picking a spot on the map (a strike, the Teleport…): the view stays on
+        // the spot picked, or where the player looked, not back on the tardi.
+        target = s.turn.target && !this.inMiddleOfView(s.turn.target) ? { x: s.turn.target.x, y: s.turn.target.y + 40 } : null;
       } else {
         const a = activeTardi(s);
-        const moving = s.tardis.find((t) => t.alive && t.airborne && t.knocked);
+        const moving = s.tardis.find((t) => t.alive && t.airborne && (t.knocked || t.thrown));
         const w = this.watch;
         if (w && a) {
           // Thrown about by the blast: that's not the player walking off.
@@ -970,6 +1028,7 @@ export class GameRenderer {
     this.terrainView.destroy();
     this.weather.destroy();
     this.sky.destroy({ texture: true, textureSource: true });
+    for (const layer of [this.hills, this.hillsNear]) for (const c of layer.children) if (c instanceof Sprite) c.texture.destroy(true);
     this.ambient.destroy();
   }
 }
@@ -1246,10 +1305,54 @@ function makeGrave(x: number, y: number, color: number, id: string): Graphics {
       g.moveTo(0, -24).lineTo(-3, 20).moveTo(0, -24).lineTo(3, 20).moveTo(-10, -4).lineTo(10, -4).stroke({ width: 1.2, color: 0x6ab0d8 });
       g.circle(0, -4, 3).fill({ color, alpha: 0.8 });
       break;
+    case 'founder':
+      g.moveTo(0, -8).lineTo(0, -20).stroke({ width: 2.5, color: 0x3a8a28 });
+      g.ellipse(-5, -20, 5, 3).fill(0x5aa83a).stroke({ width: 1.5, color: O }).ellipse(5, -23, 5, 3).fill(0x5aa83a).stroke({ width: 1.5, color: O });
+      g.roundRect(-14, -8, 28, 28, 4).fill(0xffd84a).stroke({ width: 2.5, color: O });
+      g.roundRect(-9, -3, 18, 10, 2).fill(0xf0b400);
+      g.roundRect(-8, 12, 16, 4, 2).fill(color);
+      break;
+    case 'egg':
+      g.ellipse(0, 2, 13, 18).fill(0xfff6e0).stroke({ width: 2.5, color: O });
+      g.moveTo(-12, -2).lineTo(-6, 3).lineTo(-1, -3).lineTo(4, 3).lineTo(8, -2).lineTo(12, 1).stroke({ width: 2, color: O });
+      g.roundRect(-8, 12, 16, 4, 2).fill(color);
+      break;
   }
   g.scale.set(s);
   g.position.set(x, y + 9 - 20 * s);
   return g;
+}
+
+/** The hills picture: from this far left of the map, this far above the water, at 1/HILL_SCALE size (they're soft shapes). */
+const HILL_LEFT = -3000;
+const HILL_ABOVE = 420;
+const HILL_SCALE = 4;
+
+/** One row of hills, the same shape as ever: a wavy top filled down past the water. */
+function makeHillTexture(w: number, h: number, color: number, amp: number, base: number, freq: number): Texture {
+  const width = w - 2 * HILL_LEFT;
+  const height = HILL_ABOVE + 3000;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(width / HILL_SCALE);
+  c.height = Math.ceil(height / HILL_SCALE);
+  const ctx = c.getContext('2d')!;
+  ctx.scale(1 / HILL_SCALE, 1 / HILL_SCALE);
+  ctx.translate(-HILL_LEFT, -(h - HILL_ABOVE));
+  ctx.beginPath();
+  ctx.moveTo(HILL_LEFT, h + 3000);
+  for (let x = HILL_LEFT; x <= w - HILL_LEFT; x += 25) {
+    ctx.lineTo(x, base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4);
+  }
+  ctx.lineTo(w - HILL_LEFT, h + 3000);
+  ctx.closePath();
+  ctx.fillStyle = hex(color);
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = hex(PALETTE.outline);
+  ctx.globalAlpha = 0.25;
+  ctx.stroke();
+  return Texture.from(c);
 }
 
 function makeSkyTexture(theme: ArenaTheme): Texture {

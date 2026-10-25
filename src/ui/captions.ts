@@ -14,7 +14,7 @@ export function captionFor(e: SimEvent): string | null {
     case 'fire': return t('🚀 {weapon} fired', { weapon: WEAPONS[e.weapon] ? t(WEAPONS[e.weapon].name) : t('Shot') });
     case 'shot': return t('🔫 Bang');
     case 'splash': return t('🌊 Splash');
-    case 'teleport': return t('✨ Zap');
+    case 'teleport': case 'respawn': return t('✨ Zap');
     case 'mineArmed': return t('⚠️ Mine ticking');
     case 'dud': return t('🙄 Dud mine');
     case 'crateDrop': return t('📦 Crate on its way down');

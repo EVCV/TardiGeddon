@@ -102,16 +102,30 @@ export function generateMap(o: MapOptions): Terrain {
     if (style !== 'sky' && style !== 'caverns' && rngFloat(rng) < 0.35) floatingTier(o, t, rng, o.h * 0.22, 1, 3);
   }
   if (o.ceiling) {
-    // A bumpy roof to swing from, high enough to leave a clear course.
+    // A bumpy roof to swing from: about ROOF_GAP above the highest ground (or
+    // the water) nearby, so wherever a tardi stands the Silk Rope (ROPE_MAX,
+    // 320) can reach it, and high enough to leave a clear course.
     const roof = lattice1D(rng, o.w, 160);
     const bumps = lattice1D(rng, o.w, 40);
+    const top = new Int32Array(o.w);
     for (let x = 0; x < o.w; x++) {
-      const bottom = Math.floor(30 + sample1D(roof, x, 160) * 90 + sample1D(bumps, x, 40) * 25);
+      let y = 0;
+      while (y < o.waterY && !t.mask[y * o.w + x]) y++;
+      top[x] = y;
+    }
+    for (let x = 0; x < o.w; x++) {
+      let near = o.waterY;
+      for (let dx = -ROOF_SPAN; dx <= ROOF_SPAN; dx++) near = Math.min(near, top[Math.max(0, Math.min(o.w - 1, x + dx))]);
+      const bottom = Math.max(30, Math.floor(near - ROOF_GAP + sample1D(roof, x, 160) * 50 + sample1D(bumps, x, 40) * 25));
       for (let y = 0; y < bottom; y++) t.mask[y * o.w + x] = 1;
     }
   }
   return t;
 }
+
+/** Rope Race roof: about this far above the highest ground within ROOF_SPAN either side. */
+const ROOF_GAP = 230;
+const ROOF_SPAN = 20;
 
 /** Land never touches the map's sides, so tardis can fall off them. */
 const MARGIN = 60;

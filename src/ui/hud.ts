@@ -11,7 +11,9 @@ import type { InputCollector } from '../input/input';
 import { controls } from '../input/controls';
 import { hex, shown, teamSymbol } from '../render/palette';
 import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 import { weaponUse } from './weaponUse';
+import { accessSettings } from './access';
 
 export interface HudHooks {
   onQuit: () => void;
@@ -74,6 +76,27 @@ function statsTable(s: WorldState, stats: readonly TeamTally[]): HTMLElement {
   table.append(body);
   wrap.append(table);
   return wrap;
+}
+
+/** The weapons panel's sections, in order. */
+type PanelSection = 'thrown' | 'close' | 'drop' | 'sky' | 'about' | 'super';
+const PANEL_SECTIONS: [PanelSection, string][] = [
+  ['thrown', tk('💥 Thrown')],
+  ['close', tk('🎯 Shots and close up')],
+  ['drop', tk('⬇️ Drop and run')],
+  ['sky', tk('☁️ From the sky')],
+  ['about', tk('🧭 Getting about')],
+  ['super', tk('⭐ Superweapons: huge and rare (the match rules say how many)')],
+];
+
+function panelSection(w: WeaponDef): PanelSection {
+  if (w.super) return 'super';
+  const use = weaponUse(w).id;
+  if (use === 'move' || use === 'skip' || w.id === 'girder' || w.id === 'teleport') return 'about';
+  if (use === 'sky' || use === 'spot' || use === 'map') return 'sky';
+  if (use === 'drop' || use === 'walks') return 'drop';
+  if (use === 'straight' || use === 'close') return 'close';
+  return 'thrown';
 }
 
 export class Hud {
@@ -148,9 +171,19 @@ export class Hud {
   }
 
   private buildPanel(): void {
-    const grid = el('div', 'weapon-grid');
+    // In sections, so it's clear what's what (the superweapons especially).
+    const body = el('div', 'weapon-sections');
+    const grids = new Map<PanelSection, HTMLElement>();
+    for (const [id, label] of PANEL_SECTIONS) {
+      const section = el('section', `weapon-section section-${id}`);
+      const grid = el('div', 'weapon-grid');
+      section.append(el('h3', 'weapon-section-title', t(label)), grid);
+      grids.set(id, grid);
+      body.append(section);
+    }
     for (const w of PANEL_WEAPONS) {
-      const b = el('button', 'weapon-cell');
+      const grid = grids.get(panelSection(w))!;
+      const b = el('button', 'weapon-cell' + (w.super ? ' super' : ''));
       b.dataset.id = w.id;
       const use = weaponUse(w);
       b.innerHTML = `<span class="wi">${w.icon}</span><span class="wn">${t(w.name)}</span><span class="wu">${use.icon} ${t(use.label)}</span><span class="wa"></span>`;
@@ -166,14 +199,14 @@ export class Hud {
       };
       grid.append(b);
     }
-    grid.onmouseleave = () => this.showInfo(null);
+    body.onmouseleave = () => this.showInfo(null);
     const close = el('button', 'hud-btn panel-close', '✕');
     close.setAttribute('aria-label', t('Close'));
     close.onclick = () => this.togglePanel(false);
     // The ✕ sits in a header row of its own, clear of the weapons.
     const head = el('div', 'panel-head');
     head.append(el('h2', '', t('Weapons')), close);
-    this.panel.append(head, grid, this.info);
+    this.panel.append(head, body, this.info);
   }
 
   /** A tap or click anywhere but the panel (or its button) closes it, and does nothing else. */
@@ -430,25 +463,44 @@ export class Hud {
       cell.classList.toggle('selected', id === turn.weapon);
       cell.querySelector('.wa')!.textContent = a < 0 ? '∞' : `×${a}`;
     }
+    // A section whose weapons are all left out of this match (season weapons) goes too.
+    for (const sec of this.panel.querySelectorAll<HTMLElement>('.weapon-section')) {
+      sec.hidden = [...sec.querySelectorAll<HTMLButtonElement>('.weapon-cell')].every((c) => c.hidden);
+    }
 
     let hint = '';
-    const blurb = humanTurn && this.picked?.id === turn.weapon && def.blurb && !me?.rope ? `${def.icon} ${t(def.blurb)}` : '';
+    // Help prompts (Settings → Accessibility) can be switched off; who's thinking and the race count always show.
+    const help = accessSettings().hints;
+    const tap = this.touchMode;
+    const tapFire = controls().tapFire;
+    const blurb = help && humanTurn && this.picked?.id === turn.weapon && def.blurb && !me?.rope ? `${def.icon} ${t(def.blurb)}` : '';
     if (blurb) {
       hint = blurb;
-    } else if (humanTurn && turn.phase === 'aim' && me) {
+    } else if (humanTurn && turn.phase === 'aim' && me && s.race && !me.rope) {
+      hint = t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds });
+    } else if (help && humanTurn && turn.phase === 'aim' && me) {
       if (me.rope) hint = t('←/→ swing · ↑/↓ climb · Jump or Fire to let go');
-      else if (s.race) hint = t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds });
-      else if (def.kind === 'rope') hint = t('Aim, then Fire to shoot a silk line');
+      else if (def.kind === 'rope') hint = tap ? t('Drag from your tardigrade to aim, then Fire to shoot a silk line') : t('Aim, then Fire to shoot a silk line');
       else if (def.kind === 'parachute') hint = me.chute ? t('←/→ to steer') : me.airborne ? t('Fire to open the leaf!') : t('Jump off something, then Fire to open');
-      else if (def.girder) hint = !turn.target ? t('Tap / click where to build') : girderFits(s) ? t('↑/↓ rotate · Fire to build') : t('Won’t fit there — move or rotate it');
+      else if (def.girder) hint = !turn.target ? (tap ? t('Tap the map where to build') : t('Click the map where to build')) : girderFits(s) ? t('↑/↓ rotate · Fire to build') : t('Won’t fit there — move or rotate it');
+      else if (def.id === 'teleport') hint = turn.target ? t('Press Fire to teleport there') : tap ? t('Tap the map where to teleport to') : t('Click the map where to teleport to');
+      else if (def.strike || def.projectile?.crusher) hint = turn.target ? (tap ? t('Press Fire to drop it there, or tap somewhere else') : t('Press Fire to drop it there, or click somewhere else')) : tap ? t('Tap the map where it should fall') : t('Click the map where it should fall');
       else if (def.kind === 'target') hint = turn.target ? t('Press FIRE to confirm') : t('Tap / click the map to choose a target');
-      else if (def.projectile?.homing) hint = turn.target ? t('Aim, then hold Fire to launch') : t('Tap / click a target for the spore first');
+      else if (def.projectile?.homing) hint = turn.target ? t('Aim, then hold Fire to launch') : tap ? t('Tap the enemy for the spore to chase first') : t('Click the enemy for the spore to chase first');
       else if (def.kind === 'walker') hint = t('Fire to release the Rotifer Roller');
       else if (def.kind === 'drop') hint = t('Fire to drop it, then run!');
       else if (def.shower) hint = t('Fire to bring the slides crashing down!');
-      else if (this.touchMode && (def.kind === 'charge' || def.kind === 'hitscan') && !turn.charging) hint = t('Drag from your tardigrade to aim');
+      else if (def.kind === 'melee') hint = t('Walk right up to them, then Fire to punch');
+      else if (def.kind === 'hitscan') hint = tap ? t('Drag from your tardigrade to aim, then Fire') : t('Aim with ↑/↓, then Fire');
+      else if (def.kind === 'charge') {
+        if (turn.charging) hint = tapFire ? t('Tap Fire again to throw') : t('Let go of Fire to throw');
+        else if (tap) hint = tapFire ? t('Drag from your tardigrade to aim, then tap Fire to power up') : t('Drag from your tardigrade to aim, then hold Fire to power up');
+        else hint = tapFire ? t('Aim with ↑/↓, then tap Fire to power up') : t('Aim with ↑/↓, then hold Fire to power up');
+      }
     } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
       hint = t('Press Fire to set it off!');
+    } else if (help && humanTurn && turn.phase === 'retreat') {
+      hint = t('Run for cover!');
     } else if (!humanTurn && turn.phase === 'aim') {
       hint = t('{team} is thinking…', { team: teamLabel(team) });
     }

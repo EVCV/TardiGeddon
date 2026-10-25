@@ -3,7 +3,9 @@ name: Android app
 # Every push: a debug APK to try on an emulator or phone (docs/APPS.md).
 # On main (and when run by hand), once the upload key is in the repository's
 # secrets (docs/GOOGLE_PLAY.md): a signed .aab for Google Play, and a signed
-# APK that installs over the previous one.
+# APK that installs over the previous one. On main, once the Play service
+# account is in the secrets too, the .aab goes straight to Google Play's
+# internal testing track (fastlane, android/fastlane/), as iOS goes to TestFlight.
 on:
   push:
     paths:
@@ -43,10 +45,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # Uploads to Google Play only from main, and only once its key is set up.
+      UPLOAD_TO_PLAY: ${{ github.ref == 'refs/heads/main' && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - name: Upload key not set up yet
         if: env.HAS_KEY != 'true'
         run: echo "::notice::No ANDROID_KEYSTORE_BASE64 secret yet, so no signed build (see docs/GOOGLE_PLAY.md)."
+      - name: Google Play upload not set up yet
+        if: env.HAS_KEY == 'true' && env.UPLOAD_TO_PLAY != 'true' && github.ref == 'refs/heads/main'
+        run: echo "::notice::No PLAY_SERVICE_ACCOUNT_JSON secret yet, so the .aab isn't uploaded to Google Play (see docs/GOOGLE_PLAY.md §5)."
       - uses: actions/checkout@v5
         if: env.HAS_KEY == 'true'
       - uses: actions/setup-node@v5
@@ -91,3 +98,18 @@ jobs:
           path: |
             android/app/build/outputs/bundle/release/app-release.aab
             android/app/build/outputs/apk/release/app-release.apk
+      - uses: ruby/setup-ruby@v1
+        if: env.UPLOAD_TO_PLAY == 'true'
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: android
+      - name: Upload to Google Play (internal testing)
+        if: env.UPLOAD_TO_PLAY == 'true'
+        working-directory: android
+        env:
+          LC_ALL: en_US.UTF-8
+          LANG: en_US.UTF-8
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane internal

@@ -2,7 +2,7 @@
 // players spend coins and Slime on. Only shown to accounts listed in the
 // server's ADMIN_EMAILS (docs/ACCOUNTS.md); totals only, never who bought what.
 
-import { salesReport, type MeResponse, type SalesReport } from '../account/session';
+import { creators, payCreator, salesReport, saveCreator, type CreatorReport, type MeResponse, type SalesReport } from '../account/session';
 import { bundle, coinPack, formatNumber, packTotal, shopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
 import type { HubContext } from './hub';
@@ -13,10 +13,12 @@ export interface SalesState {
   /** The period `report` is for, or -1 while nothing has loaded. */
   loadedDays: number;
   error: string;
+  /** Creator codes (server/creators.ts), once loaded. */
+  creators: CreatorReport[] | null;
 }
 
 export function newSalesState(): SalesState {
-  return { days: 30, report: null, loadedDays: -1, error: '' };
+  return { days: 30, report: null, loadedDays: -1, error: '', creators: null };
 }
 
 const PERIODS: [number, string][] = [
@@ -144,6 +146,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   const refresh = el('button', 'hud-btn', '↻ Refresh');
   refresh.onclick = () => {
     state.loadedDays = -1;
+    state.creators = null;
     ctx.rerender();
   };
   const head = el('div', 'sales-head');
@@ -247,6 +250,76 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
         'Nobody owns anything yet.',
       ),
     ),
+    creatorsCard(ctx, state),
   );
   return page;
+}
+
+/**
+ * Creator codes (Terms 5.12): who has one, how many players joined with it,
+ * what those players paid, the creator's share of our estimated net, and
+ * what's been paid to them. You pay creators yourself (bank transfer,
+ * PayPal), then record it here.
+ */
+function creatorsCard(ctx: HubContext, state: SalesState): HTMLElement {
+  const box = el('div', 'creators');
+  const note = el('p', 'account-note');
+  const run = (job: Promise<CreatorReport[]>) =>
+    job
+      .then((list) => {
+        state.creators = list;
+        ctx.rerender();
+      })
+      .catch((e: unknown) => {
+        note.textContent = e instanceof Error ? e.message : String(e);
+      });
+  if (!state.creators) {
+    box.append(el('p', 'page-loading', 'Loading…'));
+    void run(creators());
+    return card('🎥 Creator codes', box);
+  }
+  if (!state.creators.length) box.append(el('p', 'account-note', 'No creators yet. Add one below: they share the code with their audience.'));
+  for (const c of state.creators) {
+    const row = el('div', 'creator-row');
+    const owed = c.totals.filter((x) => x.owed > 0);
+    row.append(
+      el('b', '', `${c.code}${c.active ? '' : ' (off)'}`),
+      el('span', '', ` ${c.name}${c.account ? ` · account: ${c.account}` : ''} · ${c.percent}% for ${c.months} months`),
+      el('p', 'account-note', `${c.players} joined · ${c.payers} paid · ` + (c.totals.length ? c.totals.map((x) => `earned ${money(x.earned, x.currency)}, paid ${money(x.paid, x.currency)}, owed ${money(x.owed, x.currency)}`).join(' · ') : 'nothing earned yet')),
+    );
+    if (c.byMonth.length) {
+      row.append(el('p', 'account-note', c.byMonth.slice(0, 6).map((m) => `${m.month}: players paid ${money(m.gross, m.currency)} → share ${money(m.earned, m.currency)}`).join(' · ')));
+    }
+    for (const o of owed) {
+      const pay = el('button', 'hud-btn', `Mark ${money(o.owed, o.currency)} paid`);
+      pay.onclick = () => {
+        if (confirm(`Record that you've paid ${c.name} ${money(o.owed, o.currency)}?`)) void run(payCreator(c.code, o.owed, o.currency, ''));
+      };
+      row.append(pay);
+    }
+    const toggle = el('button', 'link-btn', c.active ? 'Switch code off' : 'Switch code on');
+    toggle.onclick = () => void run(saveCreator({ code: c.code, name: c.name, percent: c.percent, months: c.months, active: !c.active }));
+    row.append(toggle);
+    box.append(row);
+  }
+  // Add one.
+  const form = el('div', 'creator-form');
+  const input = (placeholder: string, type = 'text') => {
+    const i = el('input', 'code-input');
+    i.placeholder = placeholder;
+    i.type = type;
+    return i;
+  };
+  const code = input('Code (e.g. NINJA)');
+  const name = input('Name');
+  const email = input('Their game account email (optional)', 'email');
+  const add = el('button', 'hud-btn', 'Add creator');
+  add.onclick = () => void run(saveCreator({ code: code.value, name: name.value, ...(email.value ? { email: email.value } : {}) }));
+  form.append(code, name, email, add);
+  box.append(
+    form,
+    note,
+    el('p', 'account-note', 'Shares are 10% for 12 months by default, of an estimate of what reaches you: prices less VAT and the store’s or Stripe’s cut. Refunded payments stop counting. Players type the code where a friend’s code goes (or open …/play/?invite=CODE) and get the friend-invite coins.'),
+  );
+  return card('🎥 Creator codes', box);
 }

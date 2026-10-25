@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 22 October 2026
-**Document Version:** v2.8
+**Last Modified:** 25 October 2026
+**Document Version:** v2.9
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -79,7 +79,10 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
 - if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it;
 - when your account was created and last updated, and whether you have confirmed your email address;
-- the items your account has unlocked, and how (with coins, Slime, a gift, a promotional code, or an earlier direct purchase);
+- the items your account has unlocked, and how (with coins, Slime, a gift, a promotional code, the Founder or Early Bird pack, or an earlier direct purchase);
+- invites (Terms of Service, Section 5.10): if you enter a friend's invite code, which account invited yours, when, and when the invite rewards were given. The player who invited you is not told who you are by us; the game only shows them how many of their invited friends have been rewarded or are still waiting. If you invite friends, we keep the same record on their side. Deleting either account removes it from that account's side;
+- creator codes (Terms of Service, Section 5.12): if you enter a creator's code, which code and when. We use it, with your purchase records, to work out the creator's share; the creator is only shown totals (how many players used their code, how many bought coins, and how much they earned), never who you are or what you bought. If you are a creator with a code, we keep your code, your name, the account it's linked to (if any), your share and what we have paid you;
+- whether your account has had the Founder or Early Bird pack (Terms of Service, Section 5.11), and when. If it has, other players in online games see a 🌱 Founder or 🐣 Early Bird badge beside your team. To know whether yours is among the first accounts, we compare when it was made with when the others were;
 - if you send or claim gifts: for each gift, the item, its price in coins, the preset message chosen, when it was bought, claimed or taken back, the account that bought it and the account that claimed it, and the last four characters of its code. We keep the full code only in scrambled ("hashed") form, so it cannot be read back from our records;
 - your coin and Slime balances, and how much Slime you have earned from games against the computer today (for the daily limit);
 - your control settings, if you change them on the Settings page while signed in (which keys, mouse buttons and touch buttons do what), so they follow you to any device;

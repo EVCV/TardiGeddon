@@ -4,6 +4,7 @@
 // only for this visit (sessionStorage). The server checks them with the same
 // sanitiseControls, so this file must stay free of DOM-only code at the top level.
 
+import type { ChargeStyle } from '../sim/types';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
@@ -42,6 +43,15 @@ export interface Controls {
   touchSwap: boolean;
   /** Charging a shot: tap Fire to start and tap again to let go, instead of holding it. */
   tapFire: boolean;
+  /** Charging a throw at half speed (easier to judge while learning). */
+  slowPower: boolean;
+  /** At full power the bar goes back down (and up again) instead of throwing by itself. */
+  powerBounce: boolean;
+}
+
+/** How this player's throws charge, for their team in a match (Team.charge in the sim). */
+export function chargeStyle(c: Controls): ChargeStyle {
+  return c.slowPower ? (c.powerBounce ? 'slowbounce' : 'slow') : c.powerBounce ? 'bounce' : 'normal';
 }
 
 export function defaultControls(): Controls {
@@ -63,6 +73,8 @@ export function defaultControls(): Controls {
     touchSize: 'm',
     touchSwap: false,
     tapFire: false,
+    slowPower: false,
+    powerBounce: false,
   };
 }
 
@@ -102,6 +114,8 @@ export function sanitiseControls(v: unknown): Controls | null {
   out.touchSize = o.touchSize === 's' || o.touchSize === 'l' ? o.touchSize : 'm';
   out.touchSwap = o.touchSwap === true;
   out.tapFire = o.tapFire === true;
+  out.slowPower = o.slowPower === true;
+  out.powerBounce = o.powerBounce === true;
   return out;
 }
 

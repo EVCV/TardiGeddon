@@ -150,6 +150,8 @@ export function buildLobby(
   onChallenge: () => void,
   onReplays: () => void,
   onMapEditor: () => void,
+  /** The shop, at the coin packs. */
+  onCoins: () => void = () => go('shop'),
 ): Lobby {
   const root = document.createElement('div');
   const saved = load();
@@ -161,12 +163,14 @@ export function buildLobby(
           <div class="mascot"></div>
           <button class="chip hero-edit">✎ ${t('Customise team')}</button>
           <button class="chip hero-looks" title="${t('The world you play in, your match music and sounds')}">🏞️ ${t('World: {name}', { name: '<span class="looks-now"></span>' })}</button>
+          <button class="chip hero-coins" hidden>${t('🪙 Get coins')}</button>
         </div>
         <div class="hero-text">
           <h1 class="title">Tardi<span>Geddon</span></h1>
           <p class="tagline">${t('Tiny. Indestructible. Armed.')}</p>
           <p class="hero-team"></p>
           <p class="hero-season" hidden></p>
+          <button class="hero-coins-banner" hidden><span>${t('🪙 Coin packs: new hats, skins, worlds and more for your team.')}</span> <b>${t('Get coins')} →</b></button>
         </div>
       </section>
       <section class="card lobby-setup">
@@ -446,6 +450,13 @@ export function buildLobby(
       b.onclick = () => go(tab);
       nav.append(b);
     };
+    // Coins first and in gold, where they can be bought here.
+    if (me?.shop) {
+      tile('shop', '🪙', t('Get coins'));
+      const coins = nav.lastElementChild as HTMLButtonElement;
+      coins.classList.add('nav-coins');
+      coins.onclick = onCoins;
+    }
     if (me) {
       tile('stats', '📊', t('Stats'));
       tile('shop', '🛍️', t('Shop'), me.user ? `🪙 ${me.wallet.coins} · 🟢 ${me.wallet.slime}` : '');
@@ -462,6 +473,12 @@ export function buildLobby(
     renderLooks();
     renderDashboard(dash, go);
     root.classList.toggle('solo', !account().me);
+    // Get coins: only where coins can be bought (the server's shop is on, and this app or browser can pay).
+    const shop = account().me?.shop === true;
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.hero-coins, .hero-coins-banner')) {
+      b.hidden = !shop;
+      b.onclick = onCoins;
+    }
     renderNav();
   };
   refreshAccountBits();

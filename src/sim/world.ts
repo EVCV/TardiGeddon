@@ -17,9 +17,11 @@ import {
   BTN_LEFT,
   BTN_RIGHT,
   BTN_UP,
+  CHARGE_STYLES,
   DEFAULT_SCHEME,
   PRESS_JUMP,
   TICK_RATE,
+  type ChargeStyle,
   type InputFrame,
   type MapObject,
   type ObjectKind,
@@ -100,6 +102,8 @@ export interface TeamConfig {
   dance?: string;
   grave?: string;
   emblem?: string;
+  /** How Fire charges throws for this team (Team.charge). */
+  charge?: ChargeStyle;
 }
 
 export interface WorldConfig {
@@ -182,6 +186,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         winner: -1,
         aimHeld: 0,
         fullHold: 0,
+        powerDir: 1,
       },
       nextId: 1,
       prevHeld: 0,
@@ -189,7 +194,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
       race: null,
       practice: null,
       realm: custom ? 'custom' : style,
-      weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7) },
+      weather: { kind: weather, rng: createRng(cfg.seed ^ 0x3ea7), tornadoDone: false },
     };
 
     cfg.teams.forEach((tc, ti) => {
@@ -203,7 +208,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
         if (practice && ti === 0 && !def.hidden) ammo[def.id] = -1;
         if (def.locked && !scheme.unlocked?.includes(def.id)) ammo[def.id] = 0;
       }
-      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', dance: tc.dance ?? 'classic', grave: tc.grave ?? 'classic', emblem: tc.emblem ?? '', ammo };
+      const team: Team = { id: ti, name: tc.name, color: tc.color, cpu: tc.cpu, tardiIds: [], nextIdx: 0, weapon: 'bazooka', hat: tc.hat ?? 'beanie', skin: tc.skin ?? 'classic', aim: tc.aim ?? 'classic', fx: tc.fx ?? 'classic', dance: tc.dance ?? 'classic', grave: tc.grave ?? 'classic', emblem: tc.emblem ?? '', charge: tc.charge && CHARGE_STYLES.includes(tc.charge) ? tc.charge : 'normal', ammo };
       s.teams.push(team);
     });
     // Interleave spawns so teams are mixed across the map (practice: you, then the targets).
@@ -228,6 +233,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
           facing: rngInt(rng, 0, 1) ? 1 : -1,
           airborne: false,
           knocked: false,
+          thrown: false,
           fallStartY: p.y,
           rope: null,
           chute: false,
@@ -315,6 +321,8 @@ function findSpawns(
   waterY: number,
   count: number,
   rng: WorldState['rng'],
+  /** Keep this far from each of these (e.g. mines). */
+  avoid: { x: number; y: number }[] = [],
 ): { x: number; y: number }[] | null {
   const spots: { x: number; y: number }[] = [];
   for (let tries = 0; tries < 2000 + count * 200 && spots.length < count; tries++) {
@@ -325,6 +333,7 @@ function findSpawns(
     if (circleCollides(terrain, x, y, TARDI_R)) continue;
     if (!circleCollides(terrain, x, y + 2, TARDI_R)) continue;
     if (spots.some((p) => Math.abs(p.x - x) < 50 && Math.abs(p.y - y) < 50)) continue;
+    if (avoid.some((p) => Math.abs(p.x - x) < 60 && Math.abs(p.y - y) < 60)) continue;
     spots.push({ x, y });
   }
   return spots.length === count ? spots : null;
@@ -536,11 +545,26 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
         turn.charging = true;
         turn.power = 0;
         turn.fullHold = 0;
+        turn.powerDir = 1;
       }
       if (turn.charging) {
+        // Half speed, and/or back down from full power (Team.charge) for players learning to aim.
+        const step = team.charge === 'slow' || team.charge === 'slowbounce' ? POWER_STEP / 2 : POWER_STEP;
+        const bounce = team.charge === 'bounce' || team.charge === 'slowbounce';
         if ((held & BTN_FIRE) !== 0) {
-          if (turn.power >= POWER_MAX) turn.fullHold++;
-          turn.power = Math.min(POWER_MAX, turn.power + POWER_STEP);
+          if (bounce) {
+            turn.power += step * turn.powerDir;
+            if (turn.power >= POWER_MAX) {
+              turn.power = POWER_MAX;
+              turn.powerDir = -1;
+            } else if (turn.power <= step) {
+              turn.power = step;
+              turn.powerDir = 1;
+            }
+          } else {
+            if (turn.power >= POWER_MAX) turn.fullHold++;
+            turn.power = Math.min(POWER_MAX, turn.power + step);
+          }
         }
         if (fireReleased || turn.fullHold >= FULL_HOLD_TICKS) {
           fireProjectile(s, t, def, events);
@@ -1137,6 +1161,7 @@ export function explode(
     t.vy += ny * imp - imp * 0.35;
     t.airborne = true;
     t.knocked = true;
+    t.thrown = false;
     t.rope = null;
     t.chute = false;
     t.pendingDmg += dmg;
@@ -1285,6 +1310,30 @@ function safeGroundNear(s: WorldState, x0: number): { x: number; y: number } | n
   return null;
 }
 
+/** The tutorial (Scheme.respawn): the player's popped or drowned tardigrades come back on dry ground nearby, as good as new. */
+function respawn(s: WorldState, events: SimEvent[]): void {
+  for (const t of s.tardis) {
+    if (t.alive || t.team !== 0) continue;
+    const spot = safeGroundNear(s, Math.round(Math.max(40, Math.min(s.terrain.w - 40, t.x))));
+    if (!spot) continue;
+    t.alive = true;
+    t.hp = s.scheme.startHp;
+    t.pendingDmg = 0;
+    t.poison = false;
+    t.x = spot.x;
+    t.y = spot.y;
+    t.vx = 0;
+    t.vy = 0;
+    t.airborne = false;
+    t.knocked = false;
+    t.thrown = false;
+    t.fallStartY = spot.y;
+    t.rope = null;
+    t.chute = false;
+    events.push({ t: 'respawn', id: t.id, x: spot.x, y: spot.y });
+  }
+}
+
 function endlessPractice(s: WorldState): boolean {
   return s.practice !== null && s.scheme.practiceEndless === true;
 }
@@ -1318,6 +1367,7 @@ function refillTargets(s: WorldState, events: SimEvent[]): void {
         alive: true,
         airborne: false,
         knocked: false,
+        thrown: false,
         fallStartY: y,
         rope: null,
         chute: false,
@@ -1716,7 +1766,7 @@ function wrapRope(terrain: Terrain, t: Tardi, rope: NonNullable<Tardi['rope']>):
 
 function land(s: WorldState, t: Tardi): void {
   t.chute = false;
-  if (!t.knocked && s.scheme.fallDamage) {
+  if (!t.knocked && !t.thrown && s.scheme.fallDamage) {
     const fall = t.y - t.fallStartY;
     if (fall > SAFE_FALL) {
       t.pendingDmg += Math.min(50, Math.round((fall - SAFE_FALL) / 3));
@@ -1725,6 +1775,7 @@ function land(s: WorldState, t: Tardi): void {
   }
   t.airborne = false;
   t.knocked = false;
+  t.thrown = false;
   t.vx = 0;
   t.vy = 0;
 }
@@ -1777,6 +1828,8 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     return;
   }
 
+  if (s.scheme.respawn) respawn(s, events);
+
   if (s.race && turn.turnNumber >= s.teams.length * s.scheme.raceRounds) {
     // Rope Race over: the fastest best time wins; a tie for fastest is a draw.
     const times = s.race.best.filter((b) => b >= 0);
@@ -1795,6 +1848,14 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     turn.winner = alive.length === 1 ? alive[0].id : -1;
     events.push({ t: 'gameover', winner: turn.winner });
     return;
+  }
+  // Between turns, once everything is still: very rarely, a tornado (once a match at most).
+  if (s.scheme.weather && !s.race && !s.practice && !s.weather.tornadoDone) {
+    const odds = s.weather.kind === 'storm' ? TORNADO_ODDS_STORM : TORNADO_ODDS;
+    if (rngNext(s.weather.rng) % odds === 0 && tornado(s, events)) {
+      turn.settleTimer = 0;
+      return; // the next turn starts once everyone has landed
+    }
   }
   let next = turn.teamIdx;
   do {
@@ -1862,16 +1923,16 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
     events.push({ t: 'waterRise', y: s.waterY });
   }
   if (turn.turnNumber > 1 && rngFloat(s.rng) < s.scheme.crateChance) dropCrate(s, events);
-  if (turn.turnNumber > 1 && s.scheme.weather && !s.race && !s.practice) {
-    const odds = s.weather.kind === 'storm' ? TORNADO_ODDS_STORM : TORNADO_ODDS;
-    if (rngNext(s.weather.rng) % odds === 0) tornado(s, events);
-  }
 }
 
-/** One turn in this many brings a tornado (a rare surprise)... */
-export const TORNADO_ODDS = 5000;
-/** ...or one in this many when the weather is stormy. */
-export const TORNADO_ODDS_STORM = 60;
+/**
+ * A tornado is a once-in-a-blue-moon surprise (an easter egg: eggs.ts), so
+ * only a few players a day ever see one. A match has about 30 turn ends, so
+ * one turn in this many brings it in about 1 match in 1,000...
+ */
+export const TORNADO_ODDS = 30000;
+/** ...and one in this many, about 1 stormy match in 50 (storms are 1 match in 20). */
+export const TORNADO_ODDS_STORM = 1500;
 
 /** How often each kind of weather comes up, out of 100 matches. */
 const WEATHER_ODDS: [WeatherKind, number][] = [
@@ -1893,14 +1954,70 @@ export function pickWeather(seed: number, scheme: Scheme): WeatherKind {
   return 'clear';
 }
 
-/** A tornado: every tardigrade still in the game is picked up and set down somewhere new. */
-function tornado(s: WorldState, events: SimEvent[]): void {
+/** How high above the start or the landing spot (whichever is higher) the tornado throws them: the lowest that clears. */
+const TORNADO_LIFTS = [140, 240, 360, 520, 700];
+
+/** The throw from (x0, y0) up to `lift` above the higher end, landing on (x1, y1). Null if it can't be done. */
+function tornadoThrow(x0: number, y0: number, x1: number, y1: number, lift: number): { vx: number; vy: number } | null {
+  const top = Math.min(y0, y1) - lift;
+  // Straight up to the top (each tick adds gravity, then moves)...
+  const vy = -Math.sqrt(2 * GRAVITY * (y0 - top));
+  // ...then count the ticks until it's back down at the landing spot, as the
+  // sim flies it (falling no faster than tardis fall), so it lands where meant.
+  let y = y0;
+  let v = vy;
+  for (let n = 1; n < 50 * TICK_RATE; n++) {
+    v = Math.min(MAX_FALL_SPEED, v + GRAVITY);
+    y += v;
+    if (v > 0 && y >= y1) return { vx: (x1 - x0) / n, vy };
+  }
+  return null;
+}
+
+/** Does a tardigrade thrown this way fly clear of the ground until it's nearly down at landY? */
+function arcClear(terrain: Terrain, x: number, y: number, vx: number, vy: number, landY: number): boolean {
+  for (let i = 0; i < 50 * TICK_RATE; i++) {
+    vy = Math.min(MAX_FALL_SPEED, vy + GRAVITY);
+    x += vx;
+    y += vy;
+    if (vy > 0 && y > landY - 2 * TARDI_R) return true; // the landing itself
+    if (circleCollides(terrain, x, y, TARDI_R + 1)) return false;
+  }
+  return false;
+}
+
+/**
+ * A tornado: every tardigrade still in the game is thrown up into the air and
+ * comes down somewhere new, on dry land (rarely set straight down, when no throw
+ * clears the hills). The landing doesn't hurt (Tardi.thrown).
+ * Returns false when there was nowhere to put them.
+ */
+function tornado(s: WorldState, events: SimEvent[]): boolean {
   const alive = s.tardis.filter((t) => t.alive);
-  const spots = findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng);
-  if (!spots) return;
+  // Not next to a mine or a drum: a tornado's surprise shouldn't come with an explosion.
+  const hazards = s.objects.filter((o) => o.kind === 'mine' || o.kind === 'drum');
+  const spots = findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng, hazards) ?? findSpawns(s.terrain, s.waterY, alive.length, s.weather.rng);
+  if (!spots) return false;
+  s.weather.tornadoDone = true;
   events.push({ t: 'tornado' });
   alive.forEach((t, i) => {
     const p = spots[i];
+    // The lowest throw whose arc clears the ground on the way (spots are open to
+    // the sky, so higher is clearer); with none clear, it's set straight down there.
+    for (const lift of TORNADO_LIFTS) {
+      const v = tornadoThrow(t.x, t.y, p.x, p.y, lift);
+      if (!v || !arcClear(s.terrain, t.x, t.y - 2, v.vx, v.vy, p.y)) continue;
+      t.vx = v.vx;
+      t.vy = v.vy;
+      t.y -= 2; // off the ground first, so the first tick moves it rather than lands it
+      t.airborne = true;
+      t.knocked = false;
+      t.thrown = true;
+      t.fallStartY = t.y;
+      t.rope = null;
+      t.chute = false;
+      return;
+    }
     t.x = p.x;
     t.y = p.y;
     t.vx = 0;
@@ -1912,6 +2029,7 @@ function tornado(s: WorldState, events: SimEvent[]): void {
     t.chute = false;
     events.push({ t: 'teleport', id: t.id, x: p.x, y: p.y });
   });
+  return true;
 }
 
 // ---------------------------------------------------------------- hashing
@@ -1937,11 +2055,12 @@ export function hashWorld(s: WorldState): number {
   mix(s.tick);
   mixInt(s.rng.a);
   mixInt(s.weather.rng.a);
+  mixInt(s.weather.tornadoDone ? 1 : 0);
   mix(s.wind);
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
-    mix(t.knocked ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
+    mix(t.knocked ? 1 : 0); mix(t.thrown ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
     if (t.rope) {
       mix(t.rope.x); mix(t.rope.y); mix(t.rope.len);
       for (const b of t.rope.bends) { mix(b.x); mix(b.y); mix(b.side); }
@@ -1966,7 +2085,7 @@ export function hashWorld(s: WorldState): number {
     mix(s.practice.popped);
   }
   const tr = s.turn;
-  mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power);
+  mix(tr.timer); mix(tr.teamIdx); mix(tr.activeTardi); mix(tr.aim); mix(tr.power); mix(tr.powerDir);
   const m = s.terrain.mask;
   for (let i = 0; i < m.length; i += 4) {
     mixInt(m[i] | (m[i + 1] << 8) | (m[i + 2] << 16) | (m[i + 3] << 24));

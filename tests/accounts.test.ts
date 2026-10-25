@@ -11,10 +11,12 @@ import { ChallengeRun, challengeDay, challengeWorld } from '../src/challenge/dai
 import { createWorld, tick } from '../src/sim/world';
 import { CpuPlayer } from '../src/ai/cpu';
 import type { SimEvent } from '../src/sim/types';
-import type { GiftSent, SalesReport } from '../src/account/session';
+import type { CreatorReport, GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
+import { earlyBirdRule, founderRule, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
+import { EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
@@ -125,10 +127,10 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', FOUNDER_UNTIL: '2000-01-01', FOUNDER_EMAILS: 'Founder@example.com', EARLY_BIRD_UNTIL: '2000-01-01', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
       { stripe, mailer, play, appStore },
     );
-    await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
+    await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM creator_payout; DELETE FROM creator_player; DELETE FROM creator; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
     await new Promise<void>((r) => server.listen(0, r));
     base = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -677,6 +679,176 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     });
     expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
     expect((await post('/api/stats/match', { won: true })).status).toBe(401);
+  });
+
+  it('rewards inviting a friend once they confirm their email and play 3 matches: both get coins, once', async () => {
+    const a = await signUp('inviter@example.com');
+    await new Promise((r) => setTimeout(r, 5)); // b's account is newer
+    const b = await signUp('invited@example.com');
+    const code = (await me(a.cookie)).invite!.code;
+    expect((await me(b.cookie)).invite).toMatchObject({ invited: 'no', canEnter: true });
+    const invite = async (cookie: string, c: string) => ((await (await post('/api/invite', { code: c }, cookie)).json()) as { result: string }).result;
+    expect(await invite(b.cookie, (await me(b.cookie)).invite!.code)).toBe('self');
+    expect(await invite(a.cookie, (await me(b.cookie)).invite!.code)).toBe('newer'); // a newer account can't have invited an older one
+    expect(await invite(b.cookie, 'ZZZZZZZZ')).toBe('unknown');
+    expect(await invite(b.cookie, code.toLowerCase())).toBe('ok');
+    expect(await invite(b.cookie, code)).toBe('already');
+    expect((await me(a.cookie)).invite).toMatchObject({ rewarded: 0, waiting: 1 });
+    // Three matches, but the email isn't confirmed yet: nothing.
+    const match = async () => {
+      accounts.resetLimits();
+      expect((await post('/api/stats/match', { won: false }, b.cookie)).status).toBe(200);
+    };
+    for (let i = 0; i < 3; i++) await match();
+    expect((await me(b.cookie)).wallet.coins).toBe(0);
+    // Confirmed: paid on the next look, to both, once.
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [b.id]);
+    expect((await me(b.cookie)).wallet.coins).toBe(INVITE_COINS);
+    expect((await me(b.cookie)).wallet.coins).toBe(INVITE_COINS);
+    expect((await me(b.cookie)).invite).toMatchObject({ invited: 'rewarded', canEnter: false });
+    const am = await me(a.cookie);
+    expect(am.wallet.coins).toBe(INVITE_COINS);
+    expect(am.invite).toMatchObject({ rewarded: 1, rewardedEver: 1, waiting: 0 });
+    // Free coins: never counted as paid ones (Japan's figure, refunds).
+    const lots = await accounts.db.query('SELECT paid, coins FROM coin_lot WHERE user_id = ANY($1)', [[a.id, b.id]]);
+    expect(lots.rows.every((l) => l.paid === false)).toBe(true);
+
+    // Too late: codes only go in during the first days.
+    const late = await signUp('late@example.com');
+    await accounts.db.query(`UPDATE "user" SET "createdAt" = now() - interval '30 days' WHERE id = $1`, [late.id]);
+    expect((await me(late.cookie)).invite!.canEnter).toBe(false);
+    expect(await invite(late.cookie, code)).toBe('late');
+
+    // The inviter is only paid for INVITE_MAX friends a month; the friends still are.
+    // (Ten from last month don't count.)
+    for (let i = 0; i < INVITE_MAX; i++) {
+      const old = await signUp(`lastmonth${i}@example.com`);
+      await accounts.db.query(`INSERT INTO invite (user_id, inviter_id, rewarded_at, inviter_paid) VALUES ($1, $2, date_trunc('month', now()) - interval '1 day', true)`, [old.id, a.id]);
+    }
+    expect((await me(a.cookie)).invite).toMatchObject({ rewarded: 1, rewardedEver: 1 + INVITE_MAX });
+    for (let i = 0; i < INVITE_MAX - 1; i++) {
+      const filler = await signUp(`filler${i}@example.com`);
+      await accounts.db.query(`INSERT INTO invite (user_id, inviter_id, rewarded_at, inviter_paid) VALUES ($1, $2, now(), true)`, [filler.id, a.id]);
+    }
+    {
+      const c = await signUp('eleventh@example.com');
+      expect(await invite(c.cookie, code)).toBe('ok');
+      await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [c.id]);
+      for (let i = 0; i < 3; i++) {
+        accounts.resetLimits();
+        await post('/api/stats/match', { won: false }, c.cookie);
+      }
+      expect((await me(c.cookie)).wallet.coins).toBe(INVITE_COINS);
+      expect((await me(a.cookie)).wallet.coins).toBe(INVITE_COINS);
+    }
+  });
+
+  it('gives the Early bird pack to the first accounts made in time', async () => {
+    const older = await signUp('earlierbird@example.com');
+    const one = await signUp('earlybird@example.com');
+    const created = (await me(one.cookie)).user!.createdAt;
+    const n = await signupNumber(accounts.db, one.id);
+    expect(await signupNumber(accounts.db, older.id)).toBeLessThan(n);
+    const user = { id: one.id, createdAt: created };
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(n) }), user)).toBe(true);
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(n - 1) }), user)).toBe(false); // too late: the first N are taken
+    // An older account deleted doesn't move anyone up the queue.
+    await accounts.db.query('DELETE FROM "user" WHERE id = $1', [older.id]);
+    expect(await signupNumber(accounts.db, one.id)).toBe(n);
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: String(n - 1) }), user)).toBe(false);
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2099-12-31', EARLY_BIRD_MAX: '0' }), user)).toBe(true); // no limit
+    expect(await isEarlyBird(accounts.db, earlyBirdRule({ EARLY_BIRD_UNTIL: '2000-01-01' }), user)).toBe(false);
+    expect(earlyBirdRule({}).max).toBe(EARLY_BIRD_MAX);
+    // Here the Early bird date is long past: no pack.
+    expect((await me(one.cookie)).earlyBird).toBeUndefined();
+  });
+
+  it('gives the Founder pack to early accounts and listed testers, once, with a badge seen online', async () => {
+    // By the date: accounts made up to the end of FOUNDER_UNTIL.
+    const rule = founderRule({ FOUNDER_UNTIL: '2026-12-31', FOUNDER_EMAILS: 'Helper@example.com' });
+    expect(isFounder(rule, { email: 'x@example.com', createdAt: '2026-12-31T23:59:00Z' })).toBe(true);
+    expect(isFounder(rule, { email: 'x@example.com', createdAt: '2027-01-01T00:00:01Z' })).toBe(false);
+    // A listed email, only once it's confirmed (or anyone could sign up as it).
+    expect(isFounder(rule, { email: 'helper@example.com', createdAt: '2030-01-01T00:00:00Z' })).toBe(false);
+    expect(isFounder(rule, { email: 'helper@example.com', emailVerified: true, createdAt: '2030-01-01T00:00:00Z' })).toBe(true);
+
+    // Here (FOUNDER_UNTIL is long past): only the listed email, once confirmed.
+    const f = await signUp('founder@example.com');
+    const other = await signUp('notfounder@example.com');
+    expect((await me(f.cookie)).founder).toBeUndefined();
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = ANY($1)', [[f.id, other.id]]);
+    const first = await me(f.cookie);
+    // Founders get the Early bird pack too.
+    expect(first.founderNew).toBe(true);
+    expect(first.earlyBirdNew).toBe(true);
+    expect(first.founder).toBe(true);
+    expect(first.earlyBird).toBe(true);
+    expect(first.owned).toEqual(expect.arrayContaining([...FOUNDER_ITEMS, ...EARLY_BIRD_ITEMS]));
+    expect(first.wallet.coins).toBe(FOUNDER_COINS + EARLY_BIRD_COINS);
+    const again = await me(f.cookie);
+    expect(again.founderNew).toBeUndefined();
+    expect(again.earlyBirdNew).toBeUndefined();
+    expect(again.founder).toBe(true);
+    expect(again.wallet.coins).toBe(FOUNDER_COINS + EARLY_BIRD_COINS);
+    expect((await me(other.cookie)).founder).toBeUndefined();
+    // Online, others see the badge (and the looks are theirs to wear).
+    const p = await accounts.playerFor({ cookie: f.cookie });
+    expect(p.badge).toBe('founder');
+    expect(p.owned).toEqual(expect.arrayContaining(FOUNDER_ITEMS));
+    expect((await accounts.playerFor({ cookie: other.cookie })).badge).toBeUndefined();
+  });
+
+  it('gives creators a code: their players get the invite coins, and the creator a share of what they spend, which the owner pays', async () => {
+    const signInAs = async (email: string) => {
+      const r = await post('/api/auth/sign-in/email', { email, password: 'correct horse' });
+      return r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    };
+    const boss = await signInAs('boss@example.com'); // the owner (the sales test confirmed their email)
+    const streamer = await signUp('streamer@example.com');
+    const admin = (path: string, body?: unknown, cookie = boss) =>
+      body === undefined ? fetch(base + path, { headers: { cookie } }) : post(path, body, cookie);
+    // Only the owner.
+    expect((await admin('/api/admin/creators', undefined, streamer.cookie)).status).toBe(404);
+    expect((await admin('/api/admin/creators', { code: 'NINJA', name: 'Ninja' }, streamer.cookie)).status).toBe(404);
+    expect((await admin('/api/admin/creators', { code: 'ninja', name: 'Ninja', email: 'nobody@example.com' })).status).toBe(400);
+    expect((await admin('/api/admin/creators', { code: 'ninja', name: 'Ninja', email: 'streamer@example.com' })).status).toBe(200);
+
+    const fan = await signUp('fan@example.com');
+    const r = await post('/api/invite', { code: 'ninja' }, fan.cookie);
+    expect(((await r.json()) as { result: string }).result).toBe('ok');
+    expect(((await (await post('/api/invite', { code: 'ninja' }, fan.cookie)).json()) as { result: string }).result).toBe('already');
+    // The usual invite reward for the fan (the creator gets money, not coins).
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [fan.id]);
+    for (let i = 0; i < 3; i++) {
+      accounts.resetLimits();
+      await post('/api/stats/match', { won: false }, fan.cookie);
+    }
+    expect((await me(fan.cookie)).wallet.coins).toBe(INVITE_COINS);
+    expect((await me(streamer.cookie)).wallet.coins).toBe(0);
+
+    // The fan buys coins (£1.99): the creator's share is 10% of the estimated net (less VAT and fees).
+    expect(await sendWebhook('checkout.session.completed', { ...paid('cs_fan1', fan.id, 'coins:200'), amount_total: 1200 })).toBe(200);
+    const share = Math.floor((1200 * (0.95 / 1.2) * 10) / 100);
+    let list = (await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] };
+    let ninja = list.creators.find((c) => c.code === 'NINJA')!;
+    expect(ninja).toMatchObject({ name: 'Ninja', account: 'Tester', percent: 10, months: 12, players: 1, payers: 1 });
+    expect(ninja.totals).toEqual([{ currency: 'gbp', earned: share, paid: 0, owed: share }]);
+    // The creator sees their own numbers (totals only).
+    expect((await me(streamer.cookie)).creator).toMatchObject({ code: 'NINJA', players: 1, payers: 1, totals: [{ currency: 'gbp', earned: share, owed: share }] });
+    expect(JSON.stringify((await me(streamer.cookie)).creator)).not.toMatch(/fan|@/i);
+    // Paid by hand, recorded here.
+    list = (await (await admin('/api/admin/creators/paid', { code: 'NINJA', amount: share, currency: 'gbp' })).json()) as { creators: CreatorReport[] };
+    expect(list.creators.find((c) => c.code === 'NINJA')!.totals[0]).toMatchObject({ paid: share, owed: 0 });
+    // A refund stops it counting (owed goes below zero: taken off the next payout).
+    await sendWebhook('charge.refunded', { id: 'ch_fan1', refunded: true, payment_intent: 'pi_cs_fan1' });
+    ninja = ((await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] }).creators.find((c) => c.code === 'NINJA')!;
+    expect(ninja.totals[0]).toMatchObject({ earned: 0, paid: share, owed: -share });
+    // Switched off (as the Sales page does it: no email): the code stops working, and the account stays linked.
+    await admin('/api/admin/creators', { code: 'NINJA', name: 'Ninja', active: false });
+    ninja = ((await (await admin('/api/admin/creators')).json()) as { creators: CreatorReport[] }).creators.find((c) => c.code === 'NINJA')!;
+    expect(ninja).toMatchObject({ active: false, account: 'Tester' });
+    const late = await signUp('latefan@example.com');
+    expect(((await (await post('/api/invite', { code: 'NINJA' }, late.cookie)).json()) as { result: string }).result).toBe('unknown');
   });
 
   it("explains Stripe's refusal when using test keys", async () => {

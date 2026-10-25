@@ -47,7 +47,7 @@ export function normaliseFriendCode(v: unknown): string | null {
   return c.length === 8 && [...c].every((ch) => GIFT_ALPHABET.includes(ch)) ? c : null;
 }
 
-async function userByCode(db: Pool, code: string): Promise<string | null> {
+export async function userByCode(db: Pool, code: string): Promise<string | null> {
   const r = await db.query('SELECT user_id FROM friend_code WHERE code = $1', [code]);
   return (r.rows[0]?.user_id as string | undefined) ?? null;
 }

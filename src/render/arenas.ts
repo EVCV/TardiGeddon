@@ -282,6 +282,33 @@ export const ARENAS: ArenaTheme[] = [
     grass: [0xa87a2a, 0xf6d88a, 0xfff2c0],
     soil: [0x5a3a1a, 0xe8c07a, 0xd0a45a, 0xfff0c0],
   },
+  // Never sold: the Early bird and Founder packs (src/shop/rewards.ts).
+  {
+    id: 'dawn',
+    name: 'Daybreak Meadow',
+    skyTop: '#ffb36b',
+    skyBottom: '#fff1c7',
+    hillFar: 0xf6c8a8,
+    hillNear: 0xe8a888,
+    water: 0x5aa0d8,
+    waterLight: 0xffe6b0,
+    grass: [0x3a6a1e, 0x8ad05a, 0xfff08a],
+    soil: [0x3e2a18, 0xa87848, 0x8a5e36, 0xffd8a0],
+    drift: { color: 0xfff2a8, up: true },
+  },
+  {
+    id: 'golden',
+    name: 'Golden Garden',
+    skyTop: '#ffcf5a',
+    skyBottom: '#fff6d8',
+    hillFar: 0xeacb72,
+    hillNear: 0xd2a848,
+    water: 0x3a9ac0,
+    waterLight: 0xfff0a0,
+    grass: [0x6a5a10, 0xd8b830, 0xfff08a],
+    soil: [0x4a3010, 0xb88a40, 0x9a6e2c, 0xffe08a],
+    drift: { color: 0xffe066, up: true },
+  },
 ];
 
 /** "Surprise me": a different free (or owned) arena every match. */

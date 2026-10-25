@@ -8,7 +8,9 @@ import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
 import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
-import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
+import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, enterInvite, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
+import { INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../shop/rewards';
+import { webGameUrl } from '../native';
 import type { HubContext } from './hub';
 import { itemArt } from './shop';
 import { lang, t } from '../i18n/i18n';
@@ -120,6 +122,11 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
     card.append(box);
   }
 
+  if (me.earlyBird) {
+    const f = el('p', 'account-founder', me.founder ? t('🌱 Founder: you were here from the start. Thank you!') : t('🐣 Early bird: you joined in the first months. Thank you!'));
+    card.append(f);
+  }
+
   const manage = el('section', 'card account-manage');
   manage.append(el('h2', 'card-title', t('Manage')));
   if (me.shop && me.receipts !== false) {
@@ -144,8 +151,86 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   const legal = el('p', 'account-note');
   legal.append(legalLink('terms-of-service', t('Terms')), ' · ', legalLink('privacy-policy', t('Privacy')), ' · ', legalLink('childrens-privacy', t("Children's privacy")));
   manage.append(out, del, legal);
-  page.append(card, manage);
+  page.append(card);
+  if (me.invite) page.append(inviteCard(me, me.invite, ctx));
+  page.append(manage);
   return page;
+}
+
+/** Invite friends: your code to share, a friend's code to type in (new players), and how it's going. */
+function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx: HubContext): HTMLElement {
+  const card = el('section', 'card account-invite');
+  card.append(el('h2', 'card-title', t('🎁 Invite friends')));
+  card.append(
+    el('p', '', t('Give a friend your code. When they’ve made an account with it, confirmed their email and played {matches} matches, you both get {coins} free coins (for up to {max} friends a month).', { matches: INVITE_MATCHES, coins: INVITE_COINS, max: INVITE_MAX })),
+  );
+  const note = el('p', 'account-note');
+  note.setAttribute('role', 'status');
+  const row = el('div', 'invite-row');
+  const link = `${webGameUrl()}?invite=${inv.code}`;
+  const share = el('button', 'hud-btn invite-share', t('Your code: {code} 📋', { code: inv.code }));
+  share.onclick = async () => {
+    const text = t('Play TardiGeddon with me! Use my code {code} when you make your account: {link}', { code: inv.code, link });
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        note.textContent = t('Copied: send it to a friend.');
+      }
+    } catch {
+      note.textContent = t('Your code is {code}.', { code: inv.code });
+    }
+  };
+  row.append(share);
+  card.append(row);
+  if (inv.rewardedEver || inv.waiting) {
+    card.append(el('p', 'account-note', t('Friends rewarded this month: {n} of {max} ({all} in all) · waiting for {w} to confirm their email and play', { n: inv.rewarded, max: INVITE_MAX, all: inv.rewardedEver, w: inv.waiting })));
+  }
+  if (inv.invited === 'waiting') {
+    card.append(el('p', 'account-note', me.user?.emailVerified === false ? t('Your friend’s code is in: confirm your email and play {matches} matches for your {coins} coins.', { matches: INVITE_MATCHES, coins: INVITE_COINS }) : t('Your friend’s code is in: play {matches} matches for your {coins} coins.', { matches: INVITE_MATCHES, coins: INVITE_COINS })));
+  } else if (inv.invited === 'rewarded') {
+    card.append(el('p', 'account-note', t('You joined with a friend’s code, and you both got your coins.')));
+  } else if (inv.canEnter) {
+    const add = el('div', 'join-row');
+    const input = el('input', 'code-input');
+    input.placeholder = t('Friend’s or creator’s code');
+    input.maxLength = 20;
+    input.autocapitalize = 'characters';
+    input.setAttribute('aria-label', t('Friend’s or creator’s code'));
+    const go = el('button', 'hud-btn', t('Add'));
+    go.disabled = ctx.busy;
+    go.onclick = () =>
+      ctx.run(async () => {
+        const r = await enterInvite(input.value);
+        await refreshAccount();
+        const said: Record<typeof r, string> = {
+          ok: t('Thanks! Your friend’s code is in.'),
+          unknown: t('No one has that code. Check it and try again.'),
+          self: t('That’s your own code: you need a friend’s.'),
+          already: t('You’ve already added a friend’s code.'),
+          late: t('Friend’s codes can only be added in your first {days} days.', { days: INVITE_DAYS }),
+          newer: t('That code belongs to a newer account than yours: only codes from players who were here first work.'),
+        };
+        ctx.notify(said[r]);
+      });
+    add.append(input, go);
+    card.append(el('p', 'account-note', t('Did a friend or a creator invite you? Add their code in your first {days} days:', { days: INVITE_DAYS })), add);
+  }
+  card.append(note);
+  if (me.creator) card.append(creatorBox(me.creator));
+  return card;
+}
+
+/** A creator's own numbers: their code, players who joined with it, and their share (totals only). */
+function creatorBox(c: NonNullable<MeResponse['creator']>): HTMLElement {
+  const box = el('div', 'account-verify');
+  box.append(el('p', '', t('🎥 Your creator code: {code}. Players who join with it get free coins, and you get {percent}% of what they spend for {months} months.', { code: c.code, percent: c.percent, months: c.months })));
+  box.append(el('p', 'account-note', t('{n} players joined with your code, and {p} have bought coins.', { n: c.players, p: c.payers })));
+  for (const x of c.totals) {
+    const money = (minor: number) => new Intl.NumberFormat(lang(), { style: 'currency', currency: x.currency.toUpperCase() }).format(minor / 100);
+    box.append(el('p', 'account-note', t('Earned {earned} · paid to you {paid} · still to come {owed}', { earned: money(x.earned), paid: money(x.paid), owed: money(x.owed) })));
+  }
+  return box;
 }
 
 function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLElement {

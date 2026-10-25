@@ -77,6 +77,12 @@ export class TardiView {
   private body = new Container();
   private legs = new Graphics();
   private label: Text;
+  /** Raised this far so it doesn't sit on top of a neighbour's name (set by the renderer each frame). */
+  labelLift = 0;
+  /** The name tag's width (for spotting overlaps). */
+  get labelWidth(): number {
+    return this.label.visible ? this.label.width : 0;
+  }
   private hpText: Text;
   private shownHp: number;
   private chute = new Graphics();
@@ -137,7 +143,8 @@ export class TardiView {
     // Breathing / bobbing
     const breathe = 1 + Math.sin(time * 3 + t.id) * 0.03;
     this.body.scale.y = breathe;
-    this.body.rotation = t.airborne && t.knocked ? Math.sin(time * 12 + t.id) * 0.6 : 0;
+    // Tumbling when blown up; spinning round when the tornado has it.
+    this.body.rotation = t.airborne && t.thrown ? time * 14 + t.id : t.airborne && t.knocked ? Math.sin(time * 12 + t.id) * 0.6 : 0;
 
     // Front legs, animated by walk position
     const phase = x * 0.5;
@@ -192,7 +199,7 @@ export class TardiView {
     this.hpText.visible = showLabels;
     this.armourText.visible = showLabels && t.armour > 0;
     const bounce = (active ? Math.abs(Math.sin(time * 4)) * 3 : 0) + (t.chute ? 34 : 0);
-    this.label.y = -30 - bounce;
+    this.label.y = -30 - bounce - this.labelLift;
     this.hpText.y = -17 - bounce;
     this.armourText.position.set(this.hpText.width / 2 + 2, -17.5 - bounce);
   }

@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 22 October 2026
-**Document Version:** v2.1
+**Last Modified:** 25 October 2026
+**Document Version:** v2.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -217,6 +217,30 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 5.9.2 A promotional code is claimed in the same way as a gift (Section 5.8.3), while signed in to an account, and each code can be used once per account. If your account already has the item, the code has nothing more to give.
 
 5.9.3 A promotional code may have an end date, shown where we publish it, and we may end a promotion earlier. Items you have already claimed stay yours on the same terms as any other item (Section 5.4). Promotional codes have no cash value and must not be sold; using automated means or extra accounts to collect items with them breaks these Terms (Section 4.1).
+
+### 5.10 Inviting Friends
+
+5.10.1 Every account has a friend code, which also works as an invite code. If a new player enters your code within the first 7 days after making their account (or opens your invite link before signing up), then once they have confirmed their email address and finished 3 matches (online or against the computer), you each get 100 free coins. You are rewarded for up to 10 friends in each calendar month (UTC); the friends you invite still get their coins after that. A code only works if its account was made before the new player's.
+
+5.10.2 Each new player can enter one friend's code, once. Coins from invites are free coins (Section 5.1.6): they have no cash value, are never refunded or exchanged for money (including under Section 5.5.4), and can only be spent in the shop like any other coins. No purchase is needed.
+
+5.10.3 Invite codes must not be sold or advertised in exchange for anything. Inviting yourself (for example with extra accounts), or using automated means to collect invite coins, breaks these Terms (Section 4.1); if we find it, we may take back the coins it gave, or the items bought with them, and close the accounts involved. We may change or end invite rewards at any time; rewards already given stay yours.
+
+### 5.11 Founder and Early Bird Packs
+
+5.11.1 To thank the players who were with us from the start, accounts made by the end of 31 October 2026 (UTC), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), the Founder's bow (a victory dance), the Golden Garden world, the Founders' Anthem (match music), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. Founders also get the Early Bird pack (Section 5.11.2).
+
+5.11.2 The first 1,000 accounts made by the end of 31 December 2026 (UTC) get the Early Bird pack: the Early bird eggshell (a hat), the Cracked egg (a gravestone), the Hatching dance, the Daybreak Meadow world, the Daybreak music, a 🐣 Early Bird badge (founders show 🌱 instead) and 100 free coins. We may extend either date or raise the number of accounts, and will say so in the game and on the Website.
+
+5.11.3 Each pack is given once per account, free, the first time you sign in after it applies to you. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4). Its coins are free coins, as in Section 5.10.2.
+
+### 5.12 Creator Codes
+
+5.12.1 Some content creators (for example streamers and video makers) have a creator code from us. If you enter one where a friend's code goes, within the first 7 days after making your account (or open the creator's invite link before signing up), you get the same reward as for a friend's invite (Section 5.10.1). A creator code takes the place of a friend's code: each account can use one or the other, once.
+
+5.12.2 When you use a creator's code, the creator receives a share of what you spend on coins for a time (at present, 10% of what reaches us after VAT and store or payment fees, for 12 months), paid by us out of our own share. It does not change what you pay or what you get. The creator only sees totals (how many players used their code and how much they earned), never who you are or what you bought.
+
+5.12.3 Creators are bound by a separate agreement with us, including a duty to make clear to their audience that they earn from their code. Creator codes must not be sold, and using one with extra accounts or automated means breaks these Terms (Section 4.1). We may change or end creator codes at any time.
 
 ## Section 6 — Intellectual Property
 

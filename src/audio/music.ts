@@ -129,6 +129,21 @@ export const TRACKS: Track[] = [
     pad: { wave: 'sawtooth', gain: 0.016, cutoff: 900, pattern: 'x' },
     drums: { kick: 'x.x...x.x.x...x.', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', gain: 0.45 },
   },
+  // Never sold: the Early bird and Founder packs (src/shop/rewards.ts).
+  {
+    id: 'daybreak', name: 'Daybreak', colors: ['#ffb36b', '#c86a2a'], bpm: 112, steps: 16, root: 62, scale: MAJOR, chords: [I, IV, vi, V], echo: 0.3,
+    lead: { wave: 'triangle', gain: 0.07, octave: 12, pattern: 'x.x-x...x.x.x-..' },
+    bass: { wave: 'triangle', gain: 0.13, pattern: 'x...x.o.x...x.o.' },
+    arp: { wave: 'sine', gain: 0.03, octave: 24, pattern: 'x.x.x.x.x.x.x.x.' },
+    drums: { kick: 'x.......x.......', snare: '....x.......x...', hat: '..x...x...x...x.', gain: 0.35 },
+  },
+  {
+    id: 'anthem', name: 'Founders’ Anthem', colors: ['#ffd84a', '#8a6a10'], bpm: 96, steps: 16, root: 60, scale: MAJOR, chords: [I, IV, V, I], echo: 0.36,
+    lead: { wave: 'square', gain: 0.035, cutoff: 2200, octave: 12, pattern: 'x--.x.x.x---x-x.' },
+    bass: { wave: 'sawtooth', gain: 0.07, cutoff: 700, pattern: 'x...x...x...x.x.' },
+    pad: { wave: 'sawtooth', gain: 0.02, cutoff: 1300, pattern: 'x' },
+    drums: { kick: 'x.......x.......', snare: '....x...x.x.x...', hat: 'x.x.x.x.x.x.x.x.', gain: 0.4 },
+  },
 ];
 
 export function musicTrack(id: string | null | undefined): Track {

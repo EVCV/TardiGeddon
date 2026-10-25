@@ -64,6 +64,8 @@ export interface Scheme {
   practiceTargets?: number;
   /** Practice: popped targets come back somewhere else, and it goes on until you quit. */
   practiceEndless?: boolean;
+  /** The tutorial: the player's (team 0's) tardigrade comes back after being popped or drowned, so it carries on. */
+  respawn?: boolean;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
   /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
@@ -126,6 +128,8 @@ export interface Tardi {
   airborne: boolean;
   /** Launched by an explosion (bounces, no fall damage). */
   knocked: boolean;
+  /** Thrown by the tornado: stops where it lands (no bounce), unhurt. */
+  thrown: boolean;
   fallStartY: number;
   /** Silk Rope while swinging: the pivot it swings from, the free length
    *  below that pivot, and earlier pivots where it wrapped round corners. */
@@ -225,6 +229,8 @@ export interface TurnState {
   aimHeld: number;
   /** Ticks Fire has been held at full power (the shot goes off by itself after FULL_HOLD_TICKS). */
   fullHold: number;
+  /** Charging up (1) or, with the up-and-down power bar (Team.charge), back down (-1). */
+  powerDir: number;
 }
 
 /** Rope Race course and results. */
@@ -256,8 +262,17 @@ export interface Team {
   dance: string;
   grave: string;
   emblem: string;
+  /**
+   * How Fire charges a throw for this team's players (Settings → Controls):
+   * at half speed ('slow'), and/or going back down from full power instead of
+   * firing by itself ('bounce'), to learn aiming more easily.
+   */
+  charge: ChargeStyle;
   ammo: Record<string, number>;
 }
+
+export type ChargeStyle = 'normal' | 'slow' | 'bounce' | 'slowbounce';
+export const CHARGE_STYLES: readonly ChargeStyle[] = ['normal', 'slow', 'bounce', 'slowbounce'];
 
 /** What the sky is doing. Only the tornado changes play; the rest is scenery. */
 export type WeatherKind = 'clear' | 'sunny' | 'rain' | 'snow' | 'fog' | 'storm';
@@ -266,6 +281,8 @@ export interface WeatherState {
   kind: WeatherKind;
   /** Its own random numbers, so weather never changes the wind, crates or anything else. */
   rng: RngState;
+  /** A tornado has been: there's only ever one a match. */
+  tornadoDone: boolean;
 }
 
 export interface WorldState {
@@ -307,6 +324,8 @@ export type SimEvent =
   | { t: 'death'; id: number }
   | { t: 'jump'; id: number }
   | { t: 'teleport'; id: number; x: number; y: number }
+  /** Back on its feet after being popped or drowned (Scheme.respawn). */
+  | { t: 'respawn'; id: number; x: number; y: number }
   | { t: 'bounce'; x: number; y: number }
   | { t: 'rope'; id: number; x: number; y: number }
   /** The Silk Rope caught nothing: it reached (x, y); the nearest rock that way is `beyond` further (-1 = none). */
@@ -320,7 +339,7 @@ export type SimEvent =
   | { t: 'crateDrop'; id: number }
   | { t: 'collect'; id: number; tardi: number; contents: string; amount: number }
   | { t: 'suddenDeath' }
-  /** A tornado swept through and set every tardigrade down somewhere new. */
+  /** A tornado swept through and threw every tardigrade somewhere new. */
   | { t: 'tornado' }
   /** Damage the armour soaked up. */
   | { t: 'armour'; id: number; amount: number }

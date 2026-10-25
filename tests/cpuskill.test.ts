@@ -8,7 +8,7 @@ import { createRng, rngFloat } from '../src/sim/math/prng';
 /** Total damage a CPU deals to a team that never moves, over a few turns on a few maps. */
 function damageDealt(skill: CpuSkill): number {
   let dealt = 0;
-  for (let seed = 1; seed <= 6; seed++) {
+  for (let seed = 1; seed <= 10; seed++) {
     const s = createWorld({
       seed,
       teams: [
@@ -17,7 +17,7 @@ function damageDealt(skill: CpuSkill): number {
       ],
       scheme: { ...presetScheme('standard'), mines: 0, drums: 0, crateChance: 0 },
     });
-    const cpu = new CpuPlayer(skill);
+    const cpu = new CpuPlayer(skill, Infinity);
     let turns = 0;
     while (turns < 4 && s.turn.phase !== 'gameover') {
       if (s.turn.phase === 'aim' && s.turn.teamIdx === 0) {
@@ -39,14 +39,23 @@ describe('CPU skill levels', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('miss more the easier they are', () => {
-    // Make the CPU's dice repeatable.
-    const rng = createRng(99);
-    vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
-    const easy = damageDealt('easy');
-    const hard = damageDealt('hard');
-    const perfect = damageDealt('perfect');
-    expect(easy).toBeLessThan(hard);
+    // Make the CPU's dice repeatable: the same for each skill.
+    const dealt = (skill: CpuSkill) => {
+      const rng = createRng(99);
+      vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
+      const d = damageDealt(skill);
+      vi.restoreAllMocks();
+      return d;
+    };
+    const easy = dealt('easy');
+    const normal = dealt('normal');
+    const hard = dealt('hard');
+    const perfect = dealt('perfect');
+    expect(easy).toBeLessThan(normal);
+    expect(normal).toBeLessThan(hard);
     expect(hard).toBeLessThan(perfect);
-    expect(easy).toBeLessThan(perfect * 0.6);
+    expect(easy).toBeLessThan(perfect * 0.35);
+    // Normal is a fair fight: nowhere near Expert's aim (players found it too good).
+    expect(normal).toBeLessThan(perfect * 0.5);
   }, 120_000);
 });

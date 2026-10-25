@@ -10,7 +10,7 @@ import { TurnRecorder } from './stats/replay';
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import { cloneWorld, createWorld, tick, type TeamConfig } from './sim/world';
-import { Coach, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
+import { Coach, TutorialDummy, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
 import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
 import { WEATHER_NAMES } from './render/weather';
@@ -29,7 +29,7 @@ import { showChallengeResult } from './ui/challenge';
 import { Banter } from './render/banter';
 import { loadProfiles, matchNames } from './ui/teams';
 import { InputCollector, attachKeyboard, doAction, type KeyboardHooks } from './input/input';
-import { actionFor, controls } from './input/controls';
+import { actionFor, chargeStyle, controls } from './input/controls';
 import { WEAPONS } from './sim/weapons';
 import { Hud } from './ui/hud';
 import { CpuPlayer } from './ai/cpu';
@@ -138,7 +138,7 @@ export class Match {
       const setup = mode.setup;
       const teams: TeamConfig[] = setup.players.map((cpu, i) => {
         const p = setup.teams[i];
-        return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, i), cpu };
+        return { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, i), cpu, ...(cpu ? {} : { charge: chargeStyle(controls()) }) };
       });
       // Season weapons this player has unlocked are switched on for everyone in the match.
       this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
@@ -147,14 +147,14 @@ export class Match {
       for (const tm of this.local.teams) if (tm.cpu) this.cpu.set(tm.id, new CpuPlayer(setup.cpuSkill));
     } else if (mode.kind === 'tutorial') {
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       this.local = createWorld(tutorialWorld(you));
-      this.cpu.set(1, dummyPlayer);
+      this.cpu.set(1, new TutorialDummy());
       this.coach = new Coach(touchMode, { onMenu, onAgain });
     } else if (mode.kind === 'challenge') {
       // Today's challenge: the same world for everyone; our team's looks are our own.
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       const day = challengeDay();
       this.challenge = new ChallengeRun(mode.challenge, day);
       this.local = createWorld(challengeWorld(mode.challenge, day, you));
@@ -165,7 +165,7 @@ export class Match {
     } else if (mode.kind === 'practice') {
       // Your first team's tardigrade (it can't be hurt), every weapon with unlimited ammo, and targets to pop.
       const p = loadProfiles()[0];
-      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
+      const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
       this.cpu.set(1, dummyPlayer);
     } else {
@@ -315,7 +315,7 @@ export class Match {
     const packed = run.packed();
     sfx.fanfare();
     setTimeout(() => {
-      if (!this.destroyed) showChallengeResult(this.ui, run.kind, run.day, result, packed, this.onAgain, this.onMenu);
+      if (!this.destroyed) showChallengeResult(this.ui, run.kind, run.day, result, packed, s.teams[0].charge, this.onAgain, this.onMenu);
     }, 1800);
   }
 
@@ -574,7 +574,7 @@ export class Match {
         case 'jump': sfx.jump(); break;
         case 'splash': sfx.splash(); break;
         case 'bounce': sfx.bounce(); break;
-        case 'teleport': sfx.teleport(); break;
+        case 'teleport': case 'respawn': sfx.teleport(); break;
         case 'rope': sfx.rope(); break;
         case 'chute': sfx.chute(); break;
         case 'punch': sfx.punch(); break;
@@ -665,6 +665,7 @@ export class Match {
     if (c?.kind === 'targets' && team.id === 0) this.hud.showBanner(t('Turn {n} of {total}', { n: Math.min(TARGET_TURNS, c.turns + 1), total: TARGET_TURNS }), 0xffffff);
     else if (who) this.hud.showBanner(t("{name}'s turn!", { name: tardiLabel(who) || teamLabel(team) }), shown(team.color));
     this.renderer.camera.manualUntil = 0;
+    this.renderer.camera.held = false;
   }
 
   private attachPointer(): void {
@@ -703,6 +704,7 @@ export class Match {
         this.pinchDist = d;
         p.moved = true;
         cam.manualUntil = performance.now() + 3000;
+        cam.held = true;
         return;
       }
       const dx = e.clientX - p.x;
@@ -718,6 +720,7 @@ export class Match {
         cam.x -= dx / cam.zoom;
         cam.y -= dy / cam.zoom;
         cam.manualUntil = performance.now() + 2500;
+        cam.held = true;
       }
     };
     const up = (e: PointerEvent) => {
