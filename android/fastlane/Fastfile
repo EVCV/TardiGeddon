@@ -1,0 +1,37 @@
+# Uploads the signed app to Google Play's internal testing track, made on every
+# merge to main (.github/workflows/android.yml, docs/GOOGLE_PLAY.md §5). Actions
+# run from android/; the Ruby here runs from android/fastlane/.
+require 'base64'
+
+default_platform(:android)
+
+platform :android do
+  desc 'Upload the signed .aab to the internal testing track'
+  lane :internal do
+    key = ENV.fetch('PLAY_SERVICE_ACCOUNT_JSON')
+    # The service account's JSON key, as is or base64-encoded.
+    key = Base64.decode64(key) unless key.strip.start_with?('{')
+    upload = lambda do |status|
+      upload_to_play_store(
+        json_key_data: key,
+        track: 'internal',
+        aab: 'app/build/outputs/bundle/release/app-release.aab',
+        release_status: status,
+        # Only the app: the store listing, pictures and notes are kept as the Play Console has them.
+        skip_upload_metadata: true,
+        skip_upload_changelogs: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+      )
+    end
+    begin
+      upload.call('completed')
+    rescue => e
+      # Until the app has been released once, Google only takes draft releases.
+      raise unless e.message =~ /draft app/i
+      UI.important('Google Play only takes draft releases until the app has been released once: uploading a draft.')
+      upload.call('draft')
+      UI.important('Play Console → Test and release → Internal testing → the draft release → Review release → Start rollout.')
+    end
+  end
+end

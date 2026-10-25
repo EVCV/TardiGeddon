@@ -248,6 +248,39 @@ Before going further, check on a real phone from Play: sign in (needs
 `TRUSTED_ORIGINS` on the server, `docs/APPS.md`), online play, the back
 button, the tutorial, and that links open in the browser.
 
+### Uploading every merge automatically
+
+Once set up, every merge to main uploads its signed `.aab` to internal
+testing by itself (the release job in `.github/workflows/android.yml` runs
+`android/fastlane/` lane `internal`), as iOS goes to TestFlight. Testers get
+the update from Google Play. Until a release has been rolled out from
+Play Console once, Google only accepts **draft** releases: the upload still happens,
+then roll it out by hand (Internal testing → the draft → **Review release →
+Start rollout**). After that, uploads roll out on their own.
+
+Setting it up (once):
+
+1. **Google Cloud console** (console.cloud.google.com, signed in as the
+   Play Console owner) → pick or create a project (e.g. "TardiGeddon") →
+   **APIs & Services → Library** → enable **Google Play Android Developer API**.
+2. **IAM & Admin → Service accounts → Create service account**: name
+   `play-releases`, no roles → Done. Open it → **Keys → Add key → Create new
+   key → JSON**. A `.json` file downloads: it's a password, keep it private.
+3. **Play Console → Users and permissions → Invite new users**: the service
+   account's email (`play-releases@….iam.gserviceaccount.com`) → **App
+   permissions → Add app → TardiGeddon** → tick **Release to testing tracks**
+   (and **View app information**) → Invite. No account-wide permissions.
+4. **GitHub → the repository → Settings → Secrets and variables → Actions →
+   New repository secret**: name `PLAY_SERVICE_ACCOUNT_JSON`, value: the whole
+   `.json` file's text (or it base64-encoded). Then delete the downloaded file.
+5. Run **Actions → Android app → Run workflow** on main: the release job
+   ends with "Upload to Google Play (internal testing)". If it says the
+   service account has no permission, wait an hour (Play takes a while to
+   pass on new users) and run it again.
+
+Each upload needs a higher version code: it's the workflow's run number, so
+it only goes up. A build uploaded by hand from Actions isn't needed any more.
+
 ## 6. Production
 
 When the internal build is good: **Production → Create new release**, use

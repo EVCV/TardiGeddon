@@ -1,0 +1,5 @@
+# fastlane uploads the signed Android app to Google Play's internal testing
+# track (docs/GOOGLE_PLAY.md §5). Run from android/: bundle exec fastlane internal
+source 'https://rubygems.org'
+
+gem 'fastlane', '~> 2.230'

@@ -1,0 +1,2 @@
+# The app on Google Play (capacitor.config.ts appId).
+package_name('com.tardigeddon.app')
