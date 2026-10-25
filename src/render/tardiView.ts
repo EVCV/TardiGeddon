@@ -77,6 +77,12 @@ export class TardiView {
   private body = new Container();
   private legs = new Graphics();
   private label: Text;
+  /** Raised this far so it doesn't sit on top of a neighbour's name (set by the renderer each frame). */
+  labelLift = 0;
+  /** The name tag's width (for spotting overlaps). */
+  get labelWidth(): number {
+    return this.label.visible ? this.label.width : 0;
+  }
   private hpText: Text;
   private shownHp: number;
   private chute = new Graphics();
@@ -193,7 +199,7 @@ export class TardiView {
     this.hpText.visible = showLabels;
     this.armourText.visible = showLabels && t.armour > 0;
     const bounce = (active ? Math.abs(Math.sin(time * 4)) * 3 : 0) + (t.chute ? 34 : 0);
-    this.label.y = -30 - bounce;
+    this.label.y = -30 - bounce - this.labelLift;
     this.hpText.y = -17 - bounce;
     this.armourText.position.set(this.hpText.width / 2 + 2, -17.5 - bounce);
   }

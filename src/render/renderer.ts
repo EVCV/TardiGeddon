@@ -383,6 +383,27 @@ export class GameRenderer {
     g.stroke({ width: 2, color: O });
   }
 
+  /**
+   * Tardigrades standing close together: their name tags would sit on top of
+   * each other (long names especially), so each one that would overlap one to
+   * its left is lifted a line higher.
+   */
+  private unstackLabels(): void {
+    const tags = [...this.tardiViews.values()]
+      .filter((v) => v.root.visible && v.labelWidth > 0)
+      .map((v) => ({ v, x: v.root.x, y: v.root.y, w: v.labelWidth, lift: 0 }))
+      .sort((a, b) => a.x - b.x);
+    for (let i = 0; i < tags.length; i++) {
+      const a = tags[i];
+      for (let tries = 0; tries < 4; tries++) {
+        const hit = tags.slice(0, i).some((b) => Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 4 && Math.abs(a.y - a.lift - (b.y - b.lift)) < 13);
+        if (!hit) break;
+        a.lift += 13;
+      }
+      a.v.labelLift = a.lift;
+    }
+  }
+
   /** End of a comedy death: pop, leave a husk. */
   private pop(id: number, x: number, y: number, color: number, grave = 'classic'): void {
     this.dying.delete(id);
@@ -551,6 +572,7 @@ export class GameRenderer {
       v.update(t, p.x, p.y, this.time, t.id === active?.id && s.turn.phase !== 'settle', dyingSince === undefined && !ghost);
       if (dyingSince !== undefined && v.dying >= 1) this.pop(t.id, p.x, p.y, shown(this.state.teams[t.team].color), this.state.teams[t.team].grave);
     }
+    this.unstackLabels();
     // Tardigrades taken out of the world (endless practice clears popped targets).
     if (this.tardiViews.size > s.tardis.length) {
       for (const [id, v] of this.tardiViews) {

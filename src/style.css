@@ -191,6 +191,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .team-row { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; }
 .team-row.active .team-name { text-decoration: underline; }
 .team-name { min-width: 84px; text-align: right; color: #fff; text-shadow: 0 0 3px var(--ink), 0 1px 0 var(--ink); }
+/* Long team names stay on one line (cut with …), so the bars keep their size. */
+.team-name { flex: none; width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) { .team-name { width: 100px; } }
+.hud-teams.many .team-name { width: 90px; }
 .team-bar { height: 12px; border: 2px solid var(--ink); border-radius: 6px; transition: width .6s; }
 .hud-tools { display: flex; gap: 6px; }
 .hud-weapon .wi { font-size: 18px; }
