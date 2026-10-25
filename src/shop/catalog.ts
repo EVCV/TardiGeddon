@@ -390,12 +390,14 @@ export function giftable(id: string): { coins: number; items: string[]; name: st
 }
 
 /**
- * Looks you can only get free, with a promotional code (Terms 5.9): never sold,
- * never in the shop, and locked like any other item until a code unlocks them.
- * No price: the server only ever grants them through a promo code.
+ * Looks you can only get free, with a promotional code (Terms 5.9) or in the
+ * Founder pack (src/shop/rewards.ts): never sold, never in the shop, and
+ * locked like any other item until the server grants them.
  */
 export const PROMO_ITEMS: ShopItem[] = [
   { id: 'hat:waterbear', kind: 'hat', ref: 'waterbear', name: 'Water Bear Ears', blurb: 'Free with a promo code. Tardigrades are water bears, after all.', rarity: 'epic' },
+  { id: 'hat:founder', kind: 'hat', ref: 'founder', name: 'Founder’s sprout crown', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
+  { id: 'grave:founder', kind: 'grave', ref: 'founder', name: 'Founder’s plaque', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
 ];
 
 export function promoItem(id: string): ShopItem | undefined {

@@ -16,6 +16,7 @@
 
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { enterInvite, founderRule, grantFounder, hasFounderPack, inviteStatus, isFounder, migrateRewards, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
@@ -75,6 +76,10 @@ export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv {
   JPY_PER_GBP?: string;
   /** Where the Japan coins alerts go (default support@tardigeddon.com). */
   JAPAN_ALERT_EMAIL?: string;
+  /** The Founder pack: accounts made up to this day (YYYY-MM-DD, UTC) get it (default src/shop/rewards.ts FOUNDER_UNTIL). */
+  FOUNDER_UNTIL?: string;
+  /** Comma-separated emails that get the Founder pack whenever they joined (testers and helpers; confirmed email only). */
+  FOUNDER_EMAILS?: string;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -239,7 +244,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   await migrate(db);
   await migrateChallenges(db);
   await migrateFriends(db);
+  await migrateRewards(db);
   const auth = betterAuth(options);
+  const founders = founderRule(env);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
   const purge = setInterval(() => void purgeExpired(db).catch((e) => console.error('purge failed', e)), 60 * 60_000);
@@ -484,8 +491,26 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       selfPopped: count(body.selfPopped, 40),
     };
     await recordResults(db, [result]);
-    json(res, 200, { ok: true, slime: await earnSlime(db, result) });
+    const slime = await earnSlime(db, result);
+    // That may have been the invited player's last match before their reward.
+    await settleInvite(db, user.id);
+    json(res, 200, { ok: true, slime });
   }
+
+  /** A new player says which friend invited them (by the friend's code). */
+  async function inviteApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const code = normaliseFriendCode((await readJson(req))?.code);
+    if (!code) return json(res, 400, { error: tk('Friend codes are 8 letters and numbers.') });
+    // Guessing codes: a few tries a minute is plenty for a real one.
+    const now = Date.now();
+    const recent = (inviteTries.get(user.id) ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= 5) return json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+    inviteTries.set(user.id, [...recent, now]);
+    json(res, 200, { result: await enterInvite(db, user.id, code) });
+  }
+  const inviteTries = new Map<string, number[]>();
 
   /** Spend coins or Slime on a shop item. */
   /** Who's online and where, from the game server (setPresence). */
@@ -1003,7 +1028,19 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             // Whether password reset and email confirmation work (an email service is set up).
             mail: mailer !== null,
           };
-          if (user) me.controls = await controlsOf(db, user.id);
+          if (user) {
+            me.controls = await controlsOf(db, user.id);
+            // The Founder pack, the first time a founder is seen (then the wallet below is out of date: read it again).
+            if (isFounder(founders, user) && (await grantFounder(db, user.id))) {
+              me.founderNew = true;
+              me.owned = await ownedItems(db, user.id);
+              me.wallet = await walletOf(db, user.id);
+            }
+            if (me.founderNew || (await hasFounderPack(db, user.id))) me.founder = true;
+            // An invite whose new player has just confirmed their email.
+            if (await settleInvite(db, user.id)) me.wallet = await walletOf(db, user.id);
+            me.invite = { code: await friendCode(db, user.id), ...(await inviteStatus(db, user.id, user.createdAt)) };
+          }
           // Coin packs can be bought in the Android app (Google Play Billing).
           if (play) me.playBilling = true;
           if (appStore) me.appStore = true;
@@ -1028,6 +1065,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
           await reportCpuMatch(req, res);
+        } else if (path === '/api/invite' && req.method === 'POST') {
+          await inviteApi(req, res);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
           await friendsApi(req, res, path);
         } else if (path === '/api/challenge/submit' && req.method === 'POST') {
@@ -1066,12 +1105,12 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number }> {
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; founder?: boolean }> {
       // The sign-in cookie (website, Android app), else a ticket (iOS app).
       const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
       if (!userId) return { owned: [] };
       const r = (await ratingsOf(db, [userId])).get(userId)!;
-      return { userId, owned: await ownedItems(db, userId), rating: r.rating };
+      return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...((await hasFounderPack(db, userId)) ? { founder: true } : {}) };
     },
     /** The game server says who's online and passes on invites. */
     setPresence(p: Presence): void {
@@ -1081,6 +1120,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     async recordResults(results: MatchResult[]): Promise<void> {
       await recordResults(db, results);
       for (const r of results) await earnSlime(db, r);
+      for (const r of results) await settleInvite(db, r.userId);
       if (results.length >= 2 && results.every((r) => r.ranked)) await rateMatch(db, results);
     },
     /** Tests only: forget the per-player rate limits. */
@@ -1090,6 +1130,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       friendAsks.clear();
       lastInvite.clear();
       redeemTries.clear();
+      inviteTries.clear();
     },
     async close(): Promise<void> {
       clearInterval(purge);

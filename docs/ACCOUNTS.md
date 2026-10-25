@@ -15,7 +15,7 @@ free without an account.
   `stripe_customer`, `purchase` (every payment), `gift`,
   `spend` (the Sales page's log, not linked to players), `done_once`,
   `challenge_score` (each player's best daily challenge run per day),
-  `friend_code` and `friend`.
+  `friend_code`, `friend`, `invite` and `founder`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -72,6 +72,22 @@ free without an account.
   (`PROMO_ITEMS`, e.g. the Water Bear Ears hat) aren't sold or shown locked in
   the shop. Never put coins, Slime or weapons in a promo. `until` (a date) ends
   a code after that day. The website's /promo-codes page shows the first code.
+- **Inviting friends** (Terms 5.10; `server/rewards.ts`, numbers in
+  `src/shop/rewards.ts`): a player's friend code is also their invite code.
+  A new player enters it (`POST /api/invite`, or an invite link
+  `…/play/?invite=CODE`, kept in local storage until they have an account)
+  within 7 days of signing up; the code's account must be older than theirs.
+  Once the new player has confirmed their email and finished 3 matches,
+  `settleInvite` gives both 100 free coins (free `coin_lot`s, so never counted
+  as paid), the inviter for up to 10 friends. It runs on `/api/me` and after
+  each match. Tries are limited to 5 a minute per player.
+- **Founder pack** (Terms 5.11): accounts made up to the end of
+  `FOUNDER_UNTIL` (a date, UTC; default in `src/shop/rewards.ts`), and
+  confirmed emails listed in `FOUNDER_EMAILS`, get the Founder's sprout
+  crown and plaque (`PROMO_ITEMS`, never sold), 250 free coins and a 🌱 badge,
+  once (`founder` table), on their next `/api/me`. Online, the badge travels
+  as `LobbySlot.founder` (from `playerFor`). Set the launch day when you know
+  it: `fly secrets set FOUNDER_UNTIL=2027-01-31 FOUNDER_EMAILS=tester@example.com,helper@example.com`.
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

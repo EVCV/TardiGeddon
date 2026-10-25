@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, packTotal, shopItem } from '../src/shop/catalog';
+import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, packTotal, promoItem, shopItem } from '../src/shop/catalog';
 import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
@@ -119,7 +119,11 @@ describe('explosion effects', () => {
 describe('victory dances, gravestones and emblems', () => {
   it('sells every dance and gravestone except the free ones, for coins', () => {
     for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id));
-    for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id));
+    // (The Founder pack's plaque is never sold: only ever given.)
+    for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id) && !promoItem(`grave:${g.id}`));
+    expect(promoItem('grave:founder')).toBeDefined();
+    expect(wearableTeam({ grave: 'founder' }, [])).toEqual({ grave: 'classic' });
+    expect(wearableTeam({ grave: 'founder' }, ['grave:founder'])).toEqual({ grave: 'founder' });
   });
 
   it('go online with the team, but only if the player owns them; emblems are free but must be real', () => {

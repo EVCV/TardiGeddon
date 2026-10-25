@@ -921,6 +921,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .account-form .link-btn { align-self: center; font-size: 14px; }
 .account-form .account-note { text-align: center; }
 .account-reset { grid-column: 1 / -1; justify-self: center; max-width: 440px; width: 100%; }
+.founder-badge { flex: none; margin-right: 4px; }
+.account-founder { margin: 12px 0 0; padding: 8px 12px; border: 3px solid var(--ink); border-radius: 14px; background: #dff5d0; font-weight: 800; }
+.account-invite p { margin: 0 0 10px; }
+.invite-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .account-verify { margin-top: 12px; padding: 10px 12px; border: 3px dashed var(--ink); border-radius: 14px; background: #fff3c4; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .account-verify p { margin: 0; font-size: 14px; font-weight: 700; }
 

@@ -15,6 +15,8 @@ import type { GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
 import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
+import { founderRule, isFounder } from '../server/rewards';
+import { FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
@@ -125,7 +127,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
 
   beforeAll(async () => {
     accounts = await createAccounts(
-      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
+      { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', FOUNDER_UNTIL: '2000-01-01', FOUNDER_EMAILS: 'Founder@example.com', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
       { stripe, mailer, play, appStore },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
@@ -677,6 +679,93 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     });
     expect(Date.parse(m.user!.createdAt)).toBeGreaterThan(0);
     expect((await post('/api/stats/match', { won: true })).status).toBe(401);
+  });
+
+  it('rewards inviting a friend once they confirm their email and play 3 matches: both get coins, once', async () => {
+    const a = await signUp('inviter@example.com');
+    await new Promise((r) => setTimeout(r, 5)); // b's account is newer
+    const b = await signUp('invited@example.com');
+    const code = (await me(a.cookie)).invite!.code;
+    expect((await me(b.cookie)).invite).toMatchObject({ invited: 'no', canEnter: true });
+    const invite = async (cookie: string, c: string) => ((await (await post('/api/invite', { code: c }, cookie)).json()) as { result: string }).result;
+    expect(await invite(b.cookie, (await me(b.cookie)).invite!.code)).toBe('self');
+    expect(await invite(a.cookie, (await me(b.cookie)).invite!.code)).toBe('newer'); // a newer account can't have invited an older one
+    expect(await invite(b.cookie, 'ZZZZZZZZ')).toBe('unknown');
+    expect(await invite(b.cookie, code.toLowerCase())).toBe('ok');
+    expect(await invite(b.cookie, code)).toBe('already');
+    expect((await me(a.cookie)).invite).toMatchObject({ rewarded: 0, waiting: 1 });
+    // Three matches, but the email isn't confirmed yet: nothing.
+    const match = async () => {
+      accounts.resetLimits();
+      expect((await post('/api/stats/match', { won: false }, b.cookie)).status).toBe(200);
+    };
+    for (let i = 0; i < 3; i++) await match();
+    expect((await me(b.cookie)).wallet.coins).toBe(0);
+    // Confirmed: paid on the next look, to both, once.
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [b.id]);
+    expect((await me(b.cookie)).wallet.coins).toBe(INVITE_COINS);
+    expect((await me(b.cookie)).wallet.coins).toBe(INVITE_COINS);
+    expect((await me(b.cookie)).invite).toMatchObject({ invited: 'rewarded', canEnter: false });
+    const am = await me(a.cookie);
+    expect(am.wallet.coins).toBe(INVITE_COINS);
+    expect(am.invite).toMatchObject({ rewarded: 1, waiting: 0 });
+    // Free coins: never counted as paid ones (Japan's figure, refunds).
+    const lots = await accounts.db.query('SELECT paid, coins FROM coin_lot WHERE user_id = ANY($1)', [[a.id, b.id]]);
+    expect(lots.rows.every((l) => l.paid === false)).toBe(true);
+
+    // Too late: codes only go in during the first days.
+    const late = await signUp('late@example.com');
+    await accounts.db.query(`UPDATE "user" SET "createdAt" = now() - interval '30 days' WHERE id = $1`, [late.id]);
+    expect((await me(late.cookie)).invite!.canEnter).toBe(false);
+    expect(await invite(late.cookie, code)).toBe('late');
+
+    // The inviter is only paid for INVITE_MAX friends; the friends still are.
+    for (let i = 0; i < INVITE_MAX - 1; i++) {
+      const filler = await signUp(`filler${i}@example.com`);
+      await accounts.db.query(`INSERT INTO invite (user_id, inviter_id, rewarded_at, inviter_paid) VALUES ($1, $2, now(), true)`, [filler.id, a.id]);
+    }
+    {
+      const c = await signUp('eleventh@example.com');
+      expect(await invite(c.cookie, code)).toBe('ok');
+      await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [c.id]);
+      for (let i = 0; i < 3; i++) {
+        accounts.resetLimits();
+        await post('/api/stats/match', { won: false }, c.cookie);
+      }
+      expect((await me(c.cookie)).wallet.coins).toBe(INVITE_COINS);
+      expect((await me(a.cookie)).wallet.coins).toBe(INVITE_COINS);
+    }
+  });
+
+  it('gives the Founder pack to early accounts and listed testers, once, with a badge seen online', async () => {
+    // By the date: accounts made up to the end of FOUNDER_UNTIL.
+    const rule = founderRule({ FOUNDER_UNTIL: '2026-12-31', FOUNDER_EMAILS: 'Helper@example.com' });
+    expect(isFounder(rule, { email: 'x@example.com', createdAt: '2026-12-31T23:59:00Z' })).toBe(true);
+    expect(isFounder(rule, { email: 'x@example.com', createdAt: '2027-01-01T00:00:01Z' })).toBe(false);
+    // A listed email, only once it's confirmed (or anyone could sign up as it).
+    expect(isFounder(rule, { email: 'helper@example.com', createdAt: '2030-01-01T00:00:00Z' })).toBe(false);
+    expect(isFounder(rule, { email: 'helper@example.com', emailVerified: true, createdAt: '2030-01-01T00:00:00Z' })).toBe(true);
+
+    // Here (FOUNDER_UNTIL is long past): only the listed email, once confirmed.
+    const f = await signUp('founder@example.com');
+    const other = await signUp('notfounder@example.com');
+    expect((await me(f.cookie)).founder).toBeUndefined();
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = ANY($1)', [[f.id, other.id]]);
+    const first = await me(f.cookie);
+    expect(first.founderNew).toBe(true);
+    expect(first.founder).toBe(true);
+    expect(first.owned).toEqual(expect.arrayContaining(FOUNDER_ITEMS));
+    expect(first.wallet.coins).toBe(FOUNDER_COINS);
+    const again = await me(f.cookie);
+    expect(again.founderNew).toBeUndefined();
+    expect(again.founder).toBe(true);
+    expect(again.wallet.coins).toBe(FOUNDER_COINS);
+    expect((await me(other.cookie)).founder).toBeUndefined();
+    // Online, others see the badge (and the looks are theirs to wear).
+    const p = await accounts.playerFor({ cookie: f.cookie });
+    expect(p.founder).toBe(true);
+    expect(p.owned).toEqual(expect.arrayContaining(FOUNDER_ITEMS));
+    expect((await accounts.playerFor({ cookie: other.cookie })).founder).toBeUndefined();
   });
 
   it("explains Stripe's refusal when using test keys", async () => {

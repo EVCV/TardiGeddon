@@ -9,6 +9,7 @@ import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
+import { FOUNDER_COINS } from '../shop/rewards';
 import { newSalesState, renderSalesPage } from './sales';
 import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
@@ -53,6 +54,9 @@ const TABS: [HubTab, string, string][] = [
   // Not in the top bar: opened from the lobby and Settings.
   ['guide', '📖', tk('Guide')],
 ];
+
+/** The Founder pack's thank-you has been shown (for this visit: the menu is rebuilt after each match). */
+let founderThanked = false;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -180,6 +184,7 @@ export function showHub(
       };
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
+      if (me.founder) who.append(el('span', 'founder-badge', '🌱'));
       who.append(el('span', 'hub-me-name', me.user.name));
       who.onclick = () => go('account');
       right.append(coins, slime, who);
@@ -199,6 +204,11 @@ export function showHub(
     shell.dataset.tab = tab;
     renderBar();
 
+    // The Founder pack has just been given: say thank you (once: the server only says so once).
+    if (me?.founderNew && !founderThanked) {
+      founderThanked = true;
+      status = t('🌱 Thanks for being here from the start! Your Founder pack is in: the Founder’s sprout crown, the Founder’s plaque and {coins} coins.', { coins: FOUNDER_COINS });
+    }
     notice.innerHTML = '';
     const shown = status || (me?.preview && !previewDismissed ? t("Preview build: accounts and payments aren't connected here, so signing in and buying won't work.") : '');
     notice.classList.toggle('hidden', !shown);

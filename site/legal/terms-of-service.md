@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 22 October 2026
-**Document Version:** v2.1
+**Last Modified:** 25 October 2026
+**Document Version:** v2.2
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -217,6 +217,18 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 5.9.2 A promotional code is claimed in the same way as a gift (Section 5.8.3), while signed in to an account, and each code can be used once per account. If your account already has the item, the code has nothing more to give.
 
 5.9.3 A promotional code may have an end date, shown where we publish it, and we may end a promotion earlier. Items you have already claimed stay yours on the same terms as any other item (Section 5.4). Promotional codes have no cash value and must not be sold; using automated means or extra accounts to collect items with them breaks these Terms (Section 4.1).
+
+### 5.10 Inviting Friends
+
+5.10.1 Every account has a friend code, which also works as an invite code. If a new player enters your code within the first 7 days after making their account (or opens your invite link before signing up), then once they have confirmed their email address and finished 3 matches (online or against the computer), you each get 100 free coins. You are rewarded for up to 10 friends; the friends you invite still get their coins after that. A code only works if its account was made before the new player's.
+
+5.10.2 Each new player can enter one friend's code, once. Coins from invites are free coins (Section 5.1.6): they have no cash value, are never refunded or exchanged for money (including under Section 5.5.4), and can only be spent in the shop like any other coins. No purchase is needed.
+
+5.10.3 Invite codes must not be sold or advertised in exchange for anything. Inviting yourself (for example with extra accounts), or using automated means to collect invite coins, breaks these Terms (Section 4.1); if we find it, we may take back the coins it gave, or the items bought with them, and close the accounts involved. We may change or end invite rewards at any time; rewards already given stay yours.
+
+### 5.11 Founder Pack
+
+5.11.1 To thank the players who were with us from the start, accounts made before our launch date (announced in the game and on the Website), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. It is given once per account, free, the first time you sign in after it applies to you. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4). Its coins are free coins, as in Section 5.10.2.
 
 ## Section 6 — Intellectual Property
 

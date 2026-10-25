@@ -451,6 +451,17 @@ export async function walletOf(db: Pool, userId: string): Promise<Wallet> {
 }
 
 /** Add (or with a negative amount, take) coins or Slime. Only for the user if they still exist. */
+/** Free coins (an invite reward, the Founder pack): a lot that cost nothing, spent before paid ones. */
+export async function grantFreeCoins(c: PoolClient, userId: string, coins: number): Promise<void> {
+  await credit(c, userId, coins, 0);
+  await c.query(
+    `INSERT INTO coin_lot (user_id, paid, coins, value, left_coins) SELECT $1, false, $2::int, 0, $2::int WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)`,
+    [userId, coins],
+  );
+  // A wallet below zero (after a refund) pays that back from these first.
+  await settleLots(c, userId);
+}
+
 async function credit(c: Pool | PoolClient, userId: string, coins: number, slime: number): Promise<void> {
   await c.query(
     `INSERT INTO wallet (user_id, coins, slime) SELECT $1, $2::int, $3::int WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1)

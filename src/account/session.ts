@@ -45,6 +45,12 @@ export interface MeResponse {
   appStore?: boolean;
   /** The player's control settings, if they've saved any (input/controls.ts). */
   controls?: unknown;
+  /** Has the Founder pack (src/shop/rewards.ts): shows the 🌱 badge. */
+  founder?: boolean;
+  /** The Founder pack was given just now: say thank you. */
+  founderNew?: boolean;
+  /** Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand. */
+  invite?: { code: string; rewarded: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean };
 }
 
 /** The owner's sales page: totals only, never who bought what. */
@@ -322,7 +328,45 @@ export async function refreshAccount(): Promise<MeResponse | null> {
   } catch {
     set(isPreviewBuild() ? previewMe() : null);
   }
+  // Came from a friend's invite link (?invite=CODE): say who invited them, once signed up.
+  const invite = savedInvite();
+  if (me?.invite?.canEnter && invite) {
+    saveInvite(null);
+    try {
+      await enterInvite(invite);
+      return await refreshAccount();
+    } catch {
+      /* a bad or old code: they can type one in on the Account page */
+    }
+  } else if (me?.invite && !me.invite.canEnter && invite) saveInvite(null);
   return me;
+}
+
+const INVITE_KEY = 'tardigeddon.invite';
+
+/** A friend's invite code from an invite link, kept until the player has an account to use it with. */
+export function savedInvite(): string | null {
+  try {
+    return localStorage.getItem(INVITE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveInvite(code: string | null): void {
+  try {
+    if (code) localStorage.setItem(INVITE_KEY, code);
+    else localStorage.removeItem(INVITE_KEY);
+  } catch {
+    /* storage blocked: they can type the code in instead */
+  }
+}
+
+export type InviteResult = 'ok' | 'unknown' | 'self' | 'already' | 'late' | 'newer';
+
+/** Say which friend invited this player (src/shop/rewards.ts). */
+export async function enterInvite(code: string): Promise<InviteResult> {
+  return (await call<{ result: InviteResult }>('/api/invite', { code })).result;
 }
 
 /**

@@ -6,7 +6,7 @@ import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
 import { loadLang, t } from './i18n/i18n';
-import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount } from './account/session';
+import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount, saveInvite } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
 import { choosePractice } from './ui/learn';
@@ -172,6 +172,13 @@ async function boot(): Promise<void> {
   const verify = params.get('verify');
   if (reset || verify) history.replaceState(null, '', location.pathname);
   if (reset) hub?.resetPassword(reset);
+
+  // A friend's invite link (?invite=CODE): kept until the player has an account (refreshAccount uses it).
+  const invite = params.get('invite');
+  if (invite && /^[A-Za-z0-9-]{8,9}$/.test(invite)) {
+    saveInvite(invite);
+    history.replaceState(null, '', location.pathname);
+  }
 
   // Who's signed in (and what they own); the menu updates when this lands.
   const before = (await refreshAccount())?.wallet.coins ?? 0;

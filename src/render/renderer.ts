@@ -1275,6 +1275,13 @@ function makeGrave(x: number, y: number, color: number, id: string): Graphics {
       g.moveTo(0, -24).lineTo(-3, 20).moveTo(0, -24).lineTo(3, 20).moveTo(-10, -4).lineTo(10, -4).stroke({ width: 1.2, color: 0x6ab0d8 });
       g.circle(0, -4, 3).fill({ color, alpha: 0.8 });
       break;
+    case 'founder':
+      g.moveTo(0, -8).lineTo(0, -20).stroke({ width: 2.5, color: 0x3a8a28 });
+      g.ellipse(-5, -20, 5, 3).fill(0x5aa83a).stroke({ width: 1.5, color: O }).ellipse(5, -23, 5, 3).fill(0x5aa83a).stroke({ width: 1.5, color: O });
+      g.roundRect(-14, -8, 28, 28, 4).fill(0xffd84a).stroke({ width: 2.5, color: O });
+      g.roundRect(-9, -3, 18, 10, 2).fill(0xf0b400);
+      g.roundRect(-8, 12, 16, 4, 2).fill(color);
+      break;
   }
   g.scale.set(s);
   g.position.set(x, y + 9 - 20 * s);

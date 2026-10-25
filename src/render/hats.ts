@@ -502,6 +502,20 @@ export const HATS: HatDef[] = [
       { k: 'poly', pts: [-1.05, 0.1, -0.95, -0.22, 0.95, -0.22, 1.05, 0.1], fill: 'team' },
     ],
   },
+  {
+    // The Founder pack's (never sold): a gold crown with a sprout growing out of it.
+    id: 'founder',
+    name: 'Founder’s sprout crown',
+    shapes: [
+      { k: 'poly', pts: [-0.06, -0.9, 0.06, -0.9, 0.08, -1.62, -0.08, -1.62], fill: 'green' },
+      { k: 'circle', x: -0.3, y: -1.62, r: 0.26, fill: 'green' },
+      { k: 'circle', x: 0.3, y: -1.74, r: 0.26, fill: 'green' },
+      { k: 'poly', pts: [-0.95, 0.1, -0.95, -0.5, -0.66, -0.98, -0.36, -0.5, 0, -1.08, 0.36, -0.5, 0.66, -0.98, 0.95, -0.5, 0.95, 0.1], fill: 'gold' },
+      { k: 'circle', x: 0, y: -0.24, r: 0.17, fill: 'team' },
+      { k: 'circle', x: -0.56, y: -0.22, r: 0.11, fill: 'green' },
+      { k: 'circle', x: 0.56, y: -0.22, r: 0.11, fill: 'green' },
+    ],
+  },
 ];
 
 export function hatById(id: string): HatDef {

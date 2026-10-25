@@ -33,6 +33,7 @@ export const GRAVES: GraveDef[] = [
   { id: 'trophy', name: 'Trophy' },
   { id: 'rocket', name: 'Rocket' },
   { id: 'crystal', name: 'Crystal' },
+  { id: 'founder', name: 'Founder’s plaque' },
 ];
 
 export function danceById(id: string | undefined): DanceDef {

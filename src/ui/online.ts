@@ -325,7 +325,14 @@ export function showOnline(
       if (i === room.you && !s.cpu) tag.textContent = s.host ? t('👑 You') : t('You');
       const badge = el('span', 'team-emblem');
       badge.innerHTML = emblemSvg(s.team.emblem, t('{name} emblem', { name: slotName(s) }));
-      row.append(pic, badge, name, tag);
+      row.append(pic, badge, name);
+      if (s.founder) {
+        const f = el('span', 'founder-badge', '🌱');
+        f.title = t('Founder: here from the start');
+        f.setAttribute('aria-label', f.title);
+        row.append(f);
+      }
+      row.append(tag);
       if (otherPlayer(s, i, room.you)) row.append(playerActions(root, s, (reason) => client?.report(i, reason), () => renderLobby(client?.room ?? room)));
       if (isHost && s.cpu) {
         const rm = el('button', 'slot-edit', '✕');
