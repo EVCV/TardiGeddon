@@ -7,8 +7,17 @@ share: names, the bios, the voice and the rules.
 | Platform | Account | Status | Guide |
 |---|---|---|---|
 | Discord | developer@tardigeddon.com, server "TardiGeddon" (ID `1563291030382706768`), [tardigeddon.com/discord](https://tardigeddon.com/discord) | Live (set up by `scripts/discord-setup.ts`) | [DISCORD.md](DISCORD.md) |
-| YouTube | [@TardiGeddon](https://www.youtube.com/@TardiGeddon) | Setting up | [YOUTUBE.md](YOUTUBE.md) |
-| TikTok, Instagram, X, Bluesky, Reddit, Threads, Facebook | | Later, one at a time | |
+| YouTube | [@TardiGeddon](https://www.youtube.com/@TardiGeddon) | Live | [YOUTUBE.md](YOUTUBE.md) |
+| TikTok | [@tardigeddon](https://www.tiktok.com/@tardigeddon) | Live | [TIKTOK.md](TIKTOK.md) |
+| Bluesky | [@tardigeddon.com](https://bsky.app/profile/tardigeddon.com) | Live | [BLUESKY.md](BLUESKY.md) |
+| Instagram | [@tardigeddon](https://www.instagram.com/tardigeddon) | Live | |
+| Facebook | [facebook.com/tardigeddon](https://www.facebook.com/tardigeddon) | Live | |
+| Threads | [@tardigeddon](https://www.threads.net/@tardigeddon) | Live | |
+| X | [@TardiGeddon](https://x.com/TardiGeddon) | Live | |
+| Twitch | [tardigeddon](https://www.twitch.tv/tardigeddon) | Live | |
+| Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Live (posting plan in progress) | |
+| itch.io | [tardigeddon.itch.io/tardigeddon](https://tardigeddon.itch.io/tardigeddon) | Live (links out to the game) | |
+| IGDB | [igdb.com/games/tardigeddon](https://www.igdb.com/games/tardigeddon) | Submitted | |
 
 Pictures for every platform: `npx tsx scripts/social-images.ts` writes them
 to `store/social/` (see the table at the end). They're drawn from the game's
@@ -79,8 +88,8 @@ heroes; explosions are cartoon. Write the way the game's own text reads
 
 ## After each platform goes live
 
-1. Add it to `sameAs` on the Organization in `site/src/seo.ts` and to the
-   "Game" links in the site footer (`site/src/components/Layout.tsx`).
+1. Add it to `SOCIAL` in `site/src/social.ts`: that's the footer's "Follow"
+   links and the Organization's `sameAs` for search engines.
 2. Link it from the other platforms' link lists.
 3. Update the status in the table above.
 
@@ -94,6 +103,16 @@ heroes; explosions are cartoon. Write the way the game's own text reads
 | `youtube-thumb-trailer.png` | 1280×720 | Thumbnail for the trailer |
 | `youtube-thumb-template.png` | 1280×720 | Layout to copy for gameplay thumbnails |
 | `shorts/teaser.mp4` | 1080×1920, 25 s | First YouTube Short (also suits TikTok, Reels) |
+| `bluesky-banner.png` | 3000×1000 | Bluesky profile banner (avatar covers the bottom-left) |
+| `reddit-banner.png` | 1920×384 | r/TardiGeddon banner (phones crop the sides) |
+| `reddit-profile-banner.png` | 1600×500 | Reddit profile banner (the profile shows about 3.2:1) |
+| `reddit-icon.png` | 256×256 | r/TardiGeddon community icon |
+| `facebook-cover.png` | 1640×624 | Facebook Page cover (phones show only the middle; the profile picture covers the bottom-left) |
+| `twitch-banner.png` | 1200×480 | Twitch profile banner |
+| `twitch-offline.png` | 1920×1080 | Twitch video player banner when not live |
+| `twitch-panel-*.png` | 320×100 | Twitch About panels: About, Play free, Discord, Schedule |
+| `game-cover.png` | 1200×1700 | Box-style game cover: IGDB and game directories |
+| `itch-cover.png` | 1260×1000 | itch.io cover (shown at 630×500) |
 | `discord-server-icon.png` | 512×512 | Discord server icon |
 | `discord-server-banner.png` | 960×540 | Discord server banner (Boost level 2) |
 | `discord-invite-splash.png` | 1920×1080 | Discord invite background (Boost level 1) |
