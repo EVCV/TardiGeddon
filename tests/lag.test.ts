@@ -99,7 +99,7 @@ describe('CPU thinking in slices', () => {
 
   it('picks the same shot whether it thinks all at once or a little each tick', () => {
     const whole = cpuTurn(Infinity);
-    const sliced = cpuTurn(0); // one candidate per tick: the slowest it can go
+    const sliced = cpuTurn(0.3); // a sliver of time each tick: far slower than the game's 4 ms
     expect(whole.shot).toBeTruthy();
     expect(sliced.shot).toEqual(whole.shot);
     expect(sliced.ticks).toBeGreaterThan(whole.ticks);

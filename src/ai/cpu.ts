@@ -28,7 +28,7 @@ interface SkillDef {
   /** Shaky hands: typical power error (power runs 0..1000) and aim error (aim steps). */
   powerErr: number;
   aimErr: number;
-  /** Chance of a wild, hopeful shot instead of an aimed one. */
+  /** Chance of a shot that misses by a lot (still aimed at someone). */
   wild: number;
   /** Chance it walks somewhere better when it has no good shot from where it is. */
   moves: number;
@@ -39,8 +39,8 @@ interface SkillDef {
 // Tuned with the damage they do to a team that never moves (tests/cpuskill.test.ts):
 // Normal should land roughly one shot in three, like a fair player.
 const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
-  easy: { spread: 280, windSense: 0.2, powerErr: 70, aimErr: 2, wild: 0.2, moves: 0.4, human: true },
-  normal: { spread: 95, windSense: 0.55, powerErr: 35, aimErr: 1, wild: 0.06, moves: 0.8, human: true },
+  easy: { spread: 330, windSense: 0.2, powerErr: 70, aimErr: 2, wild: 0.2, moves: 0.4, human: true },
+  normal: { spread: 120, windSense: 0.55, powerErr: 35, aimErr: 1, wild: 0.06, moves: 0.8, human: true },
   hard: { spread: 40, windSense: 0.9, powerErr: 12, aimErr: 0, wild: 0, moves: 1, human: true },
   perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0, moves: 1, human: false },
 };
@@ -227,6 +227,15 @@ interface ShotSearch {
   bestAt: Candidate | null;
 }
 
+/**
+ * Thrown weapons the CPU can plan by simulating the throw: every ordinary one
+ * in the weapons panel (not the ones that steer, burrow, walk or drop from
+ * the sky, which it plans in their own ways or not at all).
+ */
+const THROWN = Object.values(WEAPONS)
+  .filter((d) => d.kind === 'charge' && !d.hidden && d.projectile && !d.projectile.homing && !d.projectile.drill && !d.projectile.walker && !d.projectile.crusher)
+  .map((d) => d.id);
+
 /** Aims across the whole range, a `step` apart, on the grid of the turn's start aim (`from`). */
 function aims(from: number, step: number): number[] {
   const out: number[] = [];
@@ -256,7 +265,7 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
   // that fly alike (bazooka and mortar, grenade and cluster) land in the same
   // place, so each throw is worked out once for both.
   const landed = new Map<string, { x: number; y: number } | null>();
-  const thrown = coarse ? ['bazooka', 'grenade'] : ['bazooka', 'grenade', 'cluster', 'mortar', 'holywater'];
+  const thrown = coarse ? ['bazooka', 'grenade'] : THROWN;
   for (const weapon of thrown.filter(usable)) {
     const spec = WEAPONS[weapon].projectile!;
     const flight = flightKey(weapon);
@@ -312,8 +321,26 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
   const sim = cloneWorld(s);
   sim.wind = s.wind * skill.windSense;
   const found = yield* searchShots(s, skill);
-  const { cands, bestAt } = found;
-  let { best, bestScore } = found;
+  const { cands } = found;
+  let { best, bestScore, bestAt } = found;
+  // Below Expert it doesn't always reach for the same weapon: any that would
+  // do nearly as well might get picked, the better ones more often.
+  if (skill.spread > 0 && bestAt) {
+    const byWeapon = new Map<string, Candidate>();
+    for (const c of cands) {
+      const was = byWeapon.get(c.plan.weapon);
+      if (!c.ownGoal && c.score > 0 && (!was || c.score > was.score)) byWeapon.set(c.plan.weapon, c);
+    }
+    const good = [...byWeapon.values()].filter((c) => c.score >= bestScore * 0.6);
+    let roll = Math.random() * good.reduce((sum, c) => sum + c.score, 0);
+    for (const c of good) {
+      roll -= c.score;
+      if (roll > 0) continue;
+      best = c.plan;
+      bestAt = c;
+      break;
+    }
+  }
   const ammo = s.teams[me.team].ammo;
   const usable = (w: string) => ammo[w] !== 0;
   // Concrete Tun: dropped straight onto an enemy, slamming it several times.
@@ -409,18 +436,18 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
 
   const safe = cands.filter((c) => !c.ownGoal);
   let pick: Candidate | undefined;
-  if (Math.random() < skill.wild) {
-    // "That'll do": a hopeful shot at nothing in particular.
-    pick = safe[Math.floor(Math.random() * safe.length)];
-  } else if (bestAt) {
+  if (bestAt) {
     // Pick the victim its best shot was going for, then aim for a spot
-    // near them; how near depends on skill.
+    // near them; how near depends on skill. It always looks like it's trying:
+    // now and then (`wild`) it just misses by a lot.
+    const at = bestAt;
     const victim = s.tardis
       .filter((t) => t.alive && t.team !== me.team)
-      .sort((a, b) => Math.hypot(a.x - bestAt.x, a.y - bestAt.y) - Math.hypot(b.x - bestAt.x, b.y - bestAt.y))[0];
+      .sort((a, b) => Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y))[0];
     if (victim) {
-      const tx = victim.x + gauss() * skill.spread;
-      const ty = victim.y + gauss() * skill.spread * 0.3;
+      const spread = skill.spread * (Math.random() < skill.wild ? 3 : 1);
+      const tx = victim.x + gauss() * spread;
+      const ty = victim.y + gauss() * spread * 0.3;
       let bestD = Infinity;
       for (const c of safe) {
         if (c.plan.weapon !== best.weapon) continue; // stick with the weapon it chose
