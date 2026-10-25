@@ -708,7 +708,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(b.cookie)).invite).toMatchObject({ invited: 'rewarded', canEnter: false });
     const am = await me(a.cookie);
     expect(am.wallet.coins).toBe(INVITE_COINS);
-    expect(am.invite).toMatchObject({ rewarded: 1, waiting: 0 });
+    expect(am.invite).toMatchObject({ rewarded: 1, rewardedEver: 1, waiting: 0 });
     // Free coins: never counted as paid ones (Japan's figure, refunds).
     const lots = await accounts.db.query('SELECT paid, coins FROM coin_lot WHERE user_id = ANY($1)', [[a.id, b.id]]);
     expect(lots.rows.every((l) => l.paid === false)).toBe(true);
@@ -719,7 +719,13 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(late.cookie)).invite!.canEnter).toBe(false);
     expect(await invite(late.cookie, code)).toBe('late');
 
-    // The inviter is only paid for INVITE_MAX friends; the friends still are.
+    // The inviter is only paid for INVITE_MAX friends a month; the friends still are.
+    // (Ten from last month don't count.)
+    for (let i = 0; i < INVITE_MAX; i++) {
+      const old = await signUp(`lastmonth${i}@example.com`);
+      await accounts.db.query(`INSERT INTO invite (user_id, inviter_id, rewarded_at, inviter_paid) VALUES ($1, $2, date_trunc('month', now()) - interval '1 day', true)`, [old.id, a.id]);
+    }
+    expect((await me(a.cookie)).invite).toMatchObject({ rewarded: 1, rewardedEver: 1 + INVITE_MAX });
     for (let i = 0; i < INVITE_MAX - 1; i++) {
       const filler = await signUp(`filler${i}@example.com`);
       await accounts.db.query(`INSERT INTO invite (user_id, inviter_id, rewarded_at, inviter_paid) VALUES ($1, $2, now(), true)`, [filler.id, a.id]);

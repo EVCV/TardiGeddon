@@ -4,7 +4,7 @@
 
 /** Coins each side gets when an invited friend has confirmed their email and played a few matches. */
 export const INVITE_COINS = 100;
-/** Most invited friends one player is rewarded for. */
+/** Most invited friends one player is rewarded for in a calendar month (UTC). */
 export const INVITE_MAX = 10;
 /** Matches (online or against the CPU) the invited friend plays before the reward. */
 export const INVITE_MATCHES = 3;
@@ -19,4 +19,4 @@ export const FOUNDER_COINS = 250;
  * server's FOUNDER_UNTIL says another day. Emails in FOUNDER_EMAILS (testers
  * and helpers) are founders whenever they joined.
  */
-export const FOUNDER_UNTIL = '2026-12-31';
+export const FOUNDER_UNTIL = '2026-10-31';

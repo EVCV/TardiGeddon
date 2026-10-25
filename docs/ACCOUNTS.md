@@ -79,7 +79,7 @@ free without an account.
   within 7 days of signing up; the code's account must be older than theirs.
   Once the new player has confirmed their email and finished 3 matches,
   `settleInvite` gives both 100 free coins (free `coin_lot`s, so never counted
-  as paid), the inviter for up to 10 friends. It runs on `/api/me` and after
+  as paid), the inviter for up to 10 friends a calendar month (UTC). It runs on `/api/me` and after
   each match. Tries are limited to 5 a minute per player.
 - **Founder pack** (Terms 5.11): accounts made up to the end of
   `FOUNDER_UNTIL` (a date, UTC; default in `src/shop/rewards.ts`), and
@@ -87,7 +87,7 @@ free without an account.
   crown and plaque (`PROMO_ITEMS`, never sold), 250 free coins and a 🌱 badge,
   once (`founder` table), on their next `/api/me`. Online, the badge travels
   as `LobbySlot.founder` (from `playerFor`). Set the launch day when you know
-  it: `fly secrets set FOUNDER_UNTIL=2027-01-31 FOUNDER_EMAILS=tester@example.com,helper@example.com`.
+  it: `fly secrets set FOUNDER_UNTIL=2026-10-31 FOUNDER_EMAILS=tester@example.com,helper@example.com`.
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

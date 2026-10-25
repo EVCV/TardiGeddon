@@ -3,7 +3,7 @@
 // Invites: a new player types a friend's code (their friend code) within a
 // few days of making their account. Once the new player has confirmed their
 // email and played a few matches, both get coins, once: the friend for up to
-// INVITE_MAX invites. The friend's account must be older than the new one, so
+// INVITE_MAX invites a calendar month. The friend's account must be older than the new one, so
 // two new accounts can't invite each other.
 //
 // The Founder pack: accounts made before the launch (FOUNDER_UNTIL), and the
@@ -23,7 +23,7 @@ export async function migrateRewards(db: Pool): Promise<void> {
       inviter_id  text REFERENCES "user"(id) ON DELETE SET NULL,
       at          timestamptz NOT NULL DEFAULT now(),
       rewarded_at timestamptz,
-      -- The inviter was already at INVITE_MAX: only the new player got coins.
+      -- Whether the inviter got coins too (not once at INVITE_MAX for that month).
       inviter_paid boolean NOT NULL DEFAULT false
     );
     CREATE INDEX IF NOT EXISTS invite_by_inviter ON invite (inviter_id);
@@ -84,7 +84,10 @@ export async function settleInvite(db: Pool, userId: string): Promise<number> {
     if (inviter) {
       // One at a time per inviter, so two friends finishing at once can't both be the tenth.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`invite:${inviter}`]);
-      const paid = await c.query<{ n: number }>('SELECT count(*)::int AS n FROM invite WHERE inviter_id = $1 AND inviter_paid', [inviter]);
+      const paid = await c.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM invite WHERE inviter_id = $1 AND inviter_paid AND rewarded_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,
+        [inviter],
+      );
       if (paid.rows[0].n < INVITE_MAX) {
         await grantFreeCoins(c, inviter, INVITE_COINS);
         await c.query('UPDATE invite SET inviter_paid = true WHERE user_id = $1', [userId]);
@@ -102,8 +105,10 @@ export async function settleInvite(db: Pool, userId: string): Promise<number> {
 
 /** What the Account page shows about invites. */
 export interface InviteStatus {
-  /** Friends who joined with this player's code and have been rewarded (coins paid to this player). */
+  /** Friends who joined with this player's code and earned this player coins this month (UTC). */
   rewarded: number;
+  /** ...and in all. */
+  rewardedEver: number;
   /** Friends who joined with the code but haven't confirmed their email or played enough yet. */
   waiting: number;
   /** Whether this player was invited, and whether that's been rewarded yet. */
@@ -113,15 +118,17 @@ export interface InviteStatus {
 }
 
 export async function inviteStatus(db: Pool, userId: string, createdAt: string, now = Date.now()): Promise<InviteStatus> {
-  const mine = await db.query<{ rewarded: number; waiting: number }>(
-    `SELECT count(*) FILTER (WHERE inviter_paid)::int AS rewarded, count(*) FILTER (WHERE rewarded_at IS NULL)::int AS waiting
+  const mine = await db.query<{ rewarded: number; ever: number; waiting: number }>(
+    `SELECT count(*) FILTER (WHERE inviter_paid AND rewarded_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS rewarded,
+            count(*) FILTER (WHERE inviter_paid)::int AS ever,
+            count(*) FILTER (WHERE rewarded_at IS NULL)::int AS waiting
        FROM invite WHERE inviter_id = $1`,
     [userId],
   );
   const own = await db.query<{ rewarded_at: Date | null }>('SELECT rewarded_at FROM invite WHERE user_id = $1', [userId]);
   const invited = !own.rows[0] ? 'no' : own.rows[0].rewarded_at ? 'rewarded' : 'waiting';
   const young = now - new Date(createdAt).getTime() <= INVITE_DAYS * 86_400_000;
-  return { rewarded: mine.rows[0].rewarded, waiting: mine.rows[0].waiting, invited, canEnter: invited === 'no' && young };
+  return { rewarded: mine.rows[0].rewarded, rewardedEver: mine.rows[0].ever, waiting: mine.rows[0].waiting, invited, canEnter: invited === 'no' && young };
 }
 
 /** Who gets the Founder pack: the day accounts must be made by (UTC, inclusive) and the emails always in. */

@@ -220,7 +220,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.10 Inviting Friends
 
-5.10.1 Every account has a friend code, which also works as an invite code. If a new player enters your code within the first 7 days after making their account (or opens your invite link before signing up), then once they have confirmed their email address and finished 3 matches (online or against the computer), you each get 100 free coins. You are rewarded for up to 10 friends; the friends you invite still get their coins after that. A code only works if its account was made before the new player's.
+5.10.1 Every account has a friend code, which also works as an invite code. If a new player enters your code within the first 7 days after making their account (or opens your invite link before signing up), then once they have confirmed their email address and finished 3 matches (online or against the computer), you each get 100 free coins. You are rewarded for up to 10 friends in each calendar month (UTC); the friends you invite still get their coins after that. A code only works if its account was made before the new player's.
 
 5.10.2 Each new player can enter one friend's code, once. Coins from invites are free coins (Section 5.1.6): they have no cash value, are never refunded or exchanged for money (including under Section 5.5.4), and can only be spent in the shop like any other coins. No purchase is needed.
 

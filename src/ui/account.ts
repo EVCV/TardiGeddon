@@ -162,7 +162,7 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
   const card = el('section', 'card account-invite');
   card.append(el('h2', 'card-title', t('🎁 Invite friends')));
   card.append(
-    el('p', '', t('Give a friend your code. When they’ve made an account with it, confirmed their email and played {matches} matches, you both get {coins} free coins (for up to {max} friends).', { matches: INVITE_MATCHES, coins: INVITE_COINS, max: INVITE_MAX })),
+    el('p', '', t('Give a friend your code. When they’ve made an account with it, confirmed their email and played {matches} matches, you both get {coins} free coins (for up to {max} friends a month).', { matches: INVITE_MATCHES, coins: INVITE_COINS, max: INVITE_MAX })),
   );
   const note = el('p', 'account-note');
   note.setAttribute('role', 'status');
@@ -183,8 +183,8 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
   };
   row.append(share);
   card.append(row);
-  if (inv.rewarded || inv.waiting) {
-    card.append(el('p', 'account-note', t('Friends rewarded: {n} of {max} · waiting for {w} to confirm their email and play', { n: inv.rewarded, max: INVITE_MAX, w: inv.waiting })));
+  if (inv.rewardedEver || inv.waiting) {
+    card.append(el('p', 'account-note', t('Friends rewarded this month: {n} of {max} ({all} in all) · waiting for {w} to confirm their email and play', { n: inv.rewarded, max: INVITE_MAX, all: inv.rewardedEver, w: inv.waiting })));
   }
   if (inv.invited === 'waiting') {
     card.append(el('p', 'account-note', me.user?.emailVerified === false ? t('Your friend’s code is in: confirm your email and play {matches} matches for your {coins} coins.', { matches: INVITE_MATCHES, coins: INVITE_COINS }) : t('Your friend’s code is in: play {matches} matches for your {coins} coins.', { matches: INVITE_MATCHES, coins: INVITE_COINS })));
