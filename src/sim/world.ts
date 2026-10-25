@@ -1905,10 +1905,14 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
   if (turn.turnNumber > 1 && rngFloat(s.rng) < s.scheme.crateChance) dropCrate(s, events);
 }
 
-/** One turn in this many brings a tornado (a rare surprise)... */
-export const TORNADO_ODDS = 5000;
-/** ...or one in this many when the weather is stormy. */
-export const TORNADO_ODDS_STORM = 60;
+/**
+ * A tornado is a once-in-a-blue-moon surprise (an easter egg: eggs.ts), so
+ * only a few players a day ever see one. A match has about 30 turn ends, so
+ * one turn in this many brings it in about 1 match in 1,000...
+ */
+export const TORNADO_ODDS = 30000;
+/** ...and one in this many, about 1 stormy match in 50 (storms are 1 match in 20). */
+export const TORNADO_ODDS_STORM = 1500;
 
 /** How often each kind of weather comes up, out of 100 matches. */
 const WEATHER_ODDS: [WeatherKind, number][] = [
@@ -1931,20 +1935,23 @@ export function pickWeather(seed: number, scheme: Scheme): WeatherKind {
 }
 
 /** How high above the start or the landing spot (whichever is higher) the tornado throws them: the lowest that clears. */
-const TORNADO_LIFTS = [140, 240, 360];
+const TORNADO_LIFTS = [140, 240, 360, 520, 700];
 
 /** The throw from (x0, y0) up to `lift` above the higher end, landing on (x1, y1). Null if it can't be done. */
 function tornadoThrow(x0: number, y0: number, x1: number, y1: number, lift: number): { vx: number; vy: number } | null {
-  // Never faster on the way down than tardis can fall, or they'd overshoot.
-  const maxDrop = (MAX_FALL_SPEED * MAX_FALL_SPEED) / (2 * GRAVITY) - 20;
   const top = Math.min(y0, y1) - lift;
-  if (y1 - top > maxDrop) return null;
-  // Each tick adds gravity, then moves: after n ticks y = y0 + n*vy + g*n(n+1)/2.
-  // Up to the top, then down to the landing spot after n ticks.
+  // Straight up to the top (each tick adds gravity, then moves)...
   const vy = -Math.sqrt(2 * GRAVITY * (y0 - top));
-  const b = vy + GRAVITY / 2;
-  const n = Math.max(1, (-b + Math.sqrt(b * b - 2 * GRAVITY * (y0 - y1))) / GRAVITY);
-  return { vx: (x1 - x0) / n, vy };
+  // ...then count the ticks until it's back down at the landing spot, as the
+  // sim flies it (falling no faster than tardis fall), so it lands where meant.
+  let y = y0;
+  let v = vy;
+  for (let n = 1; n < 50 * TICK_RATE; n++) {
+    v = Math.min(MAX_FALL_SPEED, v + GRAVITY);
+    y += v;
+    if (v > 0 && y >= y1) return { vx: (x1 - x0) / n, vy };
+  }
+  return null;
 }
 
 /** Does a tardigrade thrown this way fly clear of the ground until it's nearly down at landY? */
