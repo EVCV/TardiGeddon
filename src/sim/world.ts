@@ -144,7 +144,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
   const h = custom?.h ?? cfg.mapH ?? size.h;
   const waterY = h - 70;
 
-  // Rope Race courses are always the classic islands under a ceiling.
+  // Rope Race courses are their own cave (terrain/generate.ts raceCourse).
   const style: MapStyle = scheme.race ? 'islands' : isMapStyle(scheme.mapStyle) ? scheme.mapStyle : randomMapStyle(cfg.seed);
   const weather = pickWeather(cfg.seed, scheme);
 
@@ -1447,6 +1447,7 @@ function placeAtStart(s: WorldState, t: Tardi): void {
   t.airborne = true;
   t.knocked = false;
   t.fallStartY = r.startY;
+  t.facing = 1; // the flag is to the right
 }
 
 /** Rope Race: has the active tardi reached the flag? */
@@ -1899,6 +1900,8 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
     // Every attempt starts from the start line.
     const t = getTardi(s, tardiId);
     if (t) placeAtStart(s, t);
+    // Aimed up the course, where the first rope catches.
+    turn.aim = (AIM_MAX * 5) >> 3;
   }
   s.wind = (rngInt(s.rng, -100, 100) / 100) * s.scheme.windMax;
   events.push({ t: 'turnStart', team: team.id, tardi: tardiId });

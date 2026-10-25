@@ -17,3 +17,26 @@ test('menu loads and a CPU match can be played', async ({ page }) => {
   });
   expect(errors).toEqual([]);
 });
+
+test('on a big screen the lobby\'s first card keeps every part in its place', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'big screens');
+  for (const viewport of [{ width: 2000, height: 1000 }, { width: 1600, height: 760 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await page.waitForSelector('.lobby-hero');
+    // Signed in with the shop on, all of these show.
+    await page.evaluate(() => {
+      for (const e of document.querySelectorAll<HTMLElement>('.hero-coins, .hero-coins-banner, .hero-season')) e.hidden = false;
+      document.querySelector('.hero-season')!.textContent = 'A seasonal event';
+    });
+    const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+    const art = await box('.lobby-hero .hero-art');
+    const tagline = await box('.lobby-hero .tagline');
+    const banner = await box('.lobby-hero .hero-coins-banner');
+    // The team picture and the words sit side by side, the coins banner across the bottom.
+    expect(tagline.x).toBeGreaterThan(art.x + art.width);
+    expect(tagline.width).toBeGreaterThan(150);
+    expect(banner.y).toBeGreaterThan(art.y + art.height - 1);
+    expect(banner.width).toBeGreaterThan(art.width);
+  }
+});
