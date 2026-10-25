@@ -331,6 +331,7 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
     t('Sound captions'),
     t('Short words at the bottom of the screen for what the sounds are saying (“💥 Boom”, “⚠️ Mine ticking”, “🔔 Next turn”), so nothing is missed with the sound off.'),
   );
+  toggle('hints', t('Help prompts'), t('A line at the bottom of the screen in a match saying what to do next with the weapon in hand (“Tap the map where it should fall”).'));
   toggle('calm', t('Calmer effects'), t('No lightning flashes or other sudden flashes, and less movement in the menus. On by itself if your device asks for reduced motion.'));
   card.append(el('p', 'account-note', t('Only changes what you see on this device, never the match. Kept on this device.')));
   return card;

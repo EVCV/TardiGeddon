@@ -12,6 +12,8 @@ export interface AccessSettings {
   calm: boolean;
   /** Words on screen for the game's sounds (ui/captions.ts). */
   captions: boolean;
+  /** Prompts in a match saying what to do next with the weapon in hand (ui/hud.ts). */
+  hints: boolean;
 }
 
 const KEY = 'tardigeddon.access';
@@ -47,6 +49,7 @@ export function accessSettings(): AccessSettings {
     highContrast: typeof saved.highContrast === 'boolean' ? saved.highContrast : deviceWantsContrast(),
     calm: typeof saved.calm === 'boolean' ? saved.calm : deviceWantsCalm(),
     captions: saved.captions === true,
+    hints: saved.hints !== false,
   };
   return current;
 }

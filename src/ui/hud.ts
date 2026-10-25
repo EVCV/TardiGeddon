@@ -12,6 +12,7 @@ import { controls } from '../input/controls';
 import { hex, shown, teamSymbol } from '../render/palette';
 import { t } from '../i18n/i18n';
 import { weaponUse } from './weaponUse';
+import { accessSettings } from './access';
 
 export interface HudHooks {
   onQuit: () => void;
@@ -432,23 +433,38 @@ export class Hud {
     }
 
     let hint = '';
-    const blurb = humanTurn && this.picked?.id === turn.weapon && def.blurb && !me?.rope ? `${def.icon} ${t(def.blurb)}` : '';
+    // Help prompts (Settings → Accessibility) can be switched off; who's thinking and the race count always show.
+    const help = accessSettings().hints;
+    const tap = this.touchMode;
+    const tapFire = controls().tapFire;
+    const blurb = help && humanTurn && this.picked?.id === turn.weapon && def.blurb && !me?.rope ? `${def.icon} ${t(def.blurb)}` : '';
     if (blurb) {
       hint = blurb;
-    } else if (humanTurn && turn.phase === 'aim' && me) {
+    } else if (humanTurn && turn.phase === 'aim' && me && s.race && !me.rope) {
+      hint = t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds });
+    } else if (help && humanTurn && turn.phase === 'aim' && me) {
       if (me.rope) hint = t('←/→ swing · ↑/↓ climb · Jump or Fire to let go');
-      else if (s.race) hint = t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds });
-      else if (def.kind === 'rope') hint = t('Aim, then Fire to shoot a silk line');
+      else if (def.kind === 'rope') hint = tap ? t('Drag from your tardigrade to aim, then Fire to shoot a silk line') : t('Aim, then Fire to shoot a silk line');
       else if (def.kind === 'parachute') hint = me.chute ? t('←/→ to steer') : me.airborne ? t('Fire to open the leaf!') : t('Jump off something, then Fire to open');
-      else if (def.girder) hint = !turn.target ? t('Tap / click where to build') : girderFits(s) ? t('↑/↓ rotate · Fire to build') : t('Won’t fit there — move or rotate it');
+      else if (def.girder) hint = !turn.target ? (tap ? t('Tap the map where to build') : t('Click the map where to build')) : girderFits(s) ? t('↑/↓ rotate · Fire to build') : t('Won’t fit there — move or rotate it');
+      else if (def.id === 'teleport') hint = turn.target ? t('Press Fire to teleport there') : tap ? t('Tap the map where to teleport to') : t('Click the map where to teleport to');
+      else if (def.strike || def.projectile?.crusher) hint = turn.target ? (tap ? t('Press Fire to drop it there, or tap somewhere else') : t('Press Fire to drop it there, or click somewhere else')) : tap ? t('Tap the map where it should fall') : t('Click the map where it should fall');
       else if (def.kind === 'target') hint = turn.target ? t('Press FIRE to confirm') : t('Tap / click the map to choose a target');
-      else if (def.projectile?.homing) hint = turn.target ? t('Aim, then hold Fire to launch') : t('Tap / click a target for the spore first');
+      else if (def.projectile?.homing) hint = turn.target ? t('Aim, then hold Fire to launch') : tap ? t('Tap the enemy for the spore to chase first') : t('Click the enemy for the spore to chase first');
       else if (def.kind === 'walker') hint = t('Fire to release the Rotifer Roller');
       else if (def.kind === 'drop') hint = t('Fire to drop it, then run!');
       else if (def.shower) hint = t('Fire to bring the slides crashing down!');
-      else if (this.touchMode && (def.kind === 'charge' || def.kind === 'hitscan') && !turn.charging) hint = t('Drag from your tardigrade to aim');
+      else if (def.kind === 'melee') hint = t('Walk right up to them, then Fire to punch');
+      else if (def.kind === 'hitscan') hint = tap ? t('Drag from your tardigrade to aim, then Fire') : t('Aim with ↑/↓, then Fire');
+      else if (def.kind === 'charge') {
+        if (turn.charging) hint = tapFire ? t('Tap Fire again to throw') : t('Let go of Fire to throw');
+        else if (tap) hint = tapFire ? t('Drag from your tardigrade to aim, then tap Fire to power up') : t('Drag from your tardigrade to aim, then hold Fire to power up');
+        else hint = tapFire ? t('Aim with ↑/↓, then tap Fire to power up') : t('Aim with ↑/↓, then hold Fire to power up');
+      }
     } else if (humanTurn && turn.phase === 'retreat' && s.projectiles.some((p) => p.dir !== 0)) {
       hint = t('Press Fire to set it off!');
+    } else if (help && humanTurn && turn.phase === 'retreat') {
+      hint = t('Run for cover!');
     } else if (!humanTurn && turn.phase === 'aim') {
       hint = t('{team} is thinking…', { team: teamLabel(team) });
     }
