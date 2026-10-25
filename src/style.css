@@ -254,6 +254,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .panel-head { position: sticky; top: -12px; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -12px -12px 10px; padding: 12px 12px 6px; background: var(--paper); }
 .weapon-panel h2 { font-family: var(--title); margin: 0; font-weight: normal; letter-spacing: 1px; }
 .panel-close { flex: none; }
+.weapon-sections { display: flex; flex-direction: column; gap: 10px; }
+.weapon-section[hidden] { display: none; }
+.weapon-section-title { margin: 0 0 6px; font-size: 13px; font-weight: 800; letter-spacing: .3px; opacity: .8; }
+.section-super { padding: 8px; border: 3px solid #e0a920; border-radius: 14px; background: #fff6c8; }
+.section-super .weapon-section-title { opacity: 1; color: #8a5a00; }
+.weapon-cell.super { border-color: #c08a00; background: #fffbe6; }
 .weapon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .weapon-cell {
   display: flex;

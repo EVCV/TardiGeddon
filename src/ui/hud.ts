@@ -11,6 +11,7 @@ import type { InputCollector } from '../input/input';
 import { controls } from '../input/controls';
 import { hex, shown, teamSymbol } from '../render/palette';
 import { t } from '../i18n/i18n';
+import { tk } from '../i18n/tk';
 import { weaponUse } from './weaponUse';
 import { accessSettings } from './access';
 
@@ -75,6 +76,27 @@ function statsTable(s: WorldState, stats: readonly TeamTally[]): HTMLElement {
   table.append(body);
   wrap.append(table);
   return wrap;
+}
+
+/** The weapons panel's sections, in order. */
+type PanelSection = 'thrown' | 'close' | 'drop' | 'sky' | 'about' | 'super';
+const PANEL_SECTIONS: [PanelSection, string][] = [
+  ['thrown', tk('💥 Thrown')],
+  ['close', tk('🎯 Shots and close up')],
+  ['drop', tk('⬇️ Drop and run')],
+  ['sky', tk('☁️ From the sky')],
+  ['about', tk('🧭 Getting about')],
+  ['super', tk('⭐ Superweapons: huge and rare (the match rules say how many)')],
+];
+
+function panelSection(w: WeaponDef): PanelSection {
+  if (w.super) return 'super';
+  const use = weaponUse(w).id;
+  if (use === 'move' || use === 'skip' || w.id === 'girder' || w.id === 'teleport') return 'about';
+  if (use === 'sky' || use === 'spot' || use === 'map') return 'sky';
+  if (use === 'drop' || use === 'walks') return 'drop';
+  if (use === 'straight' || use === 'close') return 'close';
+  return 'thrown';
 }
 
 export class Hud {
@@ -149,9 +171,19 @@ export class Hud {
   }
 
   private buildPanel(): void {
-    const grid = el('div', 'weapon-grid');
+    // In sections, so it's clear what's what (the superweapons especially).
+    const body = el('div', 'weapon-sections');
+    const grids = new Map<PanelSection, HTMLElement>();
+    for (const [id, label] of PANEL_SECTIONS) {
+      const section = el('section', `weapon-section section-${id}`);
+      const grid = el('div', 'weapon-grid');
+      section.append(el('h3', 'weapon-section-title', t(label)), grid);
+      grids.set(id, grid);
+      body.append(section);
+    }
     for (const w of PANEL_WEAPONS) {
-      const b = el('button', 'weapon-cell');
+      const grid = grids.get(panelSection(w))!;
+      const b = el('button', 'weapon-cell' + (w.super ? ' super' : ''));
       b.dataset.id = w.id;
       const use = weaponUse(w);
       b.innerHTML = `<span class="wi">${w.icon}</span><span class="wn">${t(w.name)}</span><span class="wu">${use.icon} ${t(use.label)}</span><span class="wa"></span>`;
@@ -167,14 +199,14 @@ export class Hud {
       };
       grid.append(b);
     }
-    grid.onmouseleave = () => this.showInfo(null);
+    body.onmouseleave = () => this.showInfo(null);
     const close = el('button', 'hud-btn panel-close', '✕');
     close.setAttribute('aria-label', t('Close'));
     close.onclick = () => this.togglePanel(false);
     // The ✕ sits in a header row of its own, clear of the weapons.
     const head = el('div', 'panel-head');
     head.append(el('h2', '', t('Weapons')), close);
-    this.panel.append(head, grid, this.info);
+    this.panel.append(head, body, this.info);
   }
 
   /** A tap or click anywhere but the panel (or its button) closes it, and does nothing else. */
@@ -430,6 +462,10 @@ export class Hud {
       cell.hidden = !!WEAPONS[id]?.locked && !s.scheme.unlocked?.includes(id);
       cell.classList.toggle('selected', id === turn.weapon);
       cell.querySelector('.wa')!.textContent = a < 0 ? '∞' : `×${a}`;
+    }
+    // A section whose weapons are all left out of this match (season weapons) goes too.
+    for (const sec of this.panel.querySelectorAll<HTMLElement>('.weapon-section')) {
+      sec.hidden = [...sec.querySelectorAll<HTMLButtonElement>('.weapon-cell')].every((c) => c.hidden);
     }
 
     let hint = '';
