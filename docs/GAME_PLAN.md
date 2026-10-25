@@ -409,7 +409,8 @@ TardiGeddon/
   **simulate on a cloned world** (cheap thanks to the deterministic sim),
   score by enemy damage − self/friendly damage − risk of drowning.
 - Difficulty = search breadth + random aim error.
-- Movement before firing: with no good shot where it stands, it tries walking (hopping steps) each way on a copy of the world and goes where the best shot (or a crate) is (`planMove` in `src/ai/cpu.ts`). Later: rope/teleport use.
+- Movement before firing: with no good shot where it stands, it tries walking (hopping steps), hopping along and swinging on the Silk Rope each way on a copy of the world, and goes where the best shot (or a crate) is; with a good shot it sometimes wanders to a spot about as good, so it doesn't stand still all match. It opens the Leaf Parachute when a fall would hurt, teleports when nothing is in reach, and sometimes builds a Twig Girder wall to hide behind (`planMove`, `Rehearsal`, `shieldPlan` in `src/ai/cpu.ts`).
+- Below Expert it only takes shots a person would: facing the way the shot lands, never fired steeply into the ground (`humanShot`). Normal lands about one shot in three on a team that stands still (`tests/cpuskill.test.ts`).
 
 ### 7.7 Controls
 

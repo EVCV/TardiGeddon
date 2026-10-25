@@ -43,10 +43,14 @@ describe('CPU skill levels', () => {
     const rng = createRng(99);
     vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
     const easy = damageDealt('easy');
+    const normal = damageDealt('normal');
     const hard = damageDealt('hard');
     const perfect = damageDealt('perfect');
-    expect(easy).toBeLessThan(hard);
+    expect(easy).toBeLessThan(normal);
+    expect(normal).toBeLessThan(hard);
     expect(hard).toBeLessThan(perfect);
-    expect(easy).toBeLessThan(perfect * 0.6);
+    expect(easy).toBeLessThan(perfect * 0.35);
+    // Normal is a fair fight: nowhere near Expert's aim (players found it too good).
+    expect(normal).toBeLessThan(perfect * 0.5);
   }, 120_000);
 });
