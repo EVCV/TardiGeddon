@@ -122,8 +122,8 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
     card.append(box);
   }
 
-  if (me.founder) {
-    const f = el('p', 'account-founder', t('🌱 Founder: you were here from the start. Thank you!'));
+  if (me.earlyBird) {
+    const f = el('p', 'account-founder', me.founder ? t('🌱 Founder: you were here from the start. Thank you!') : t('🐣 Early bird: you joined in the first months. Thank you!'));
     card.append(f);
   }
 

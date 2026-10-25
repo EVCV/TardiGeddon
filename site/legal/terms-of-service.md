@@ -226,9 +226,13 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 5.10.3 Invite codes must not be sold or advertised in exchange for anything. Inviting yourself (for example with extra accounts), or using automated means to collect invite coins, breaks these Terms (Section 4.1); if we find it, we may take back the coins it gave, or the items bought with them, and close the accounts involved. We may change or end invite rewards at any time; rewards already given stay yours.
 
-### 5.11 Founder Pack
+### 5.11 Founder and Early Bird Packs
 
-5.11.1 To thank the players who were with us from the start, accounts made before our launch date (announced in the game and on the Website), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. It is given once per account, free, the first time you sign in after it applies to you. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4). Its coins are free coins, as in Section 5.10.2.
+5.11.1 To thank the players who were with us from the start, accounts made by the end of 31 October 2026 (UTC), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), the Founder's bow (a victory dance), the Golden Garden world, the Founders' Anthem (match music), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. Founders also get the Early Bird pack (Section 5.11.2).
+
+5.11.2 The first 1,000 accounts made by the end of 31 December 2026 (UTC) get the Early Bird pack: the Early bird eggshell (a hat), the Cracked egg (a gravestone), the Hatching dance, the Daybreak Meadow world, the Daybreak music, a 🐣 Early Bird badge (founders show 🌱 instead) and 100 free coins. We may extend either date or raise the number of accounts, and will say so in the game and on the Website.
+
+5.11.3 Each pack is given once per account, free, the first time you sign in after it applies to you. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4). Its coins are free coins, as in Section 5.10.2.
 
 ## Section 6 — Intellectual Property
 

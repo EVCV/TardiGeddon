@@ -326,9 +326,9 @@ export function showOnline(
       const badge = el('span', 'team-emblem');
       badge.innerHTML = emblemSvg(s.team.emblem, t('{name} emblem', { name: slotName(s) }));
       row.append(pic, badge, name);
-      if (s.founder) {
-        const f = el('span', 'founder-badge', '🌱');
-        f.title = t('Founder: here from the start');
+      if (s.badge) {
+        const f = el('span', 'founder-badge', s.badge === 'founder' ? '🌱' : '🐣');
+        f.title = s.badge === 'founder' ? t('Founder: here from the start') : t('Early bird: joined in the first months');
         f.setAttribute('aria-label', f.title);
         row.append(f);
       }

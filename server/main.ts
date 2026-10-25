@@ -269,7 +269,7 @@ wss.on('connection', (ws: WebSocket, req) => {
     // (Not if they've already gone while we looked them up.)
     if (ws.readyState === ws.OPEN) connected.add(member);
     member.rating = 'rating' in p ? p.rating : undefined;
-    member.founder = 'founder' in p && p.founder === true;
+    member.badge = 'badge' in p ? p.badge : undefined;
     return p.owned;
   });
   // Messages are handled in order, once we know what the player owns.

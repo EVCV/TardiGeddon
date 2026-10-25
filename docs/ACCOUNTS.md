@@ -15,7 +15,7 @@ free without an account.
   `stripe_customer`, `purchase` (every payment), `gift`,
   `spend` (the Sales page's log, not linked to players), `done_once`,
   `challenge_score` (each player's best daily challenge run per day),
-  `friend_code`, `friend`, `invite` and `founder`.
+  `friend_code`, `friend`, `invite`, `founder` and `early_bird`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -81,13 +81,19 @@ free without an account.
   `settleInvite` gives both 100 free coins (free `coin_lot`s, so never counted
   as paid), the inviter for up to 10 friends a calendar month (UTC). It runs on `/api/me` and after
   each match. Tries are limited to 5 a minute per player.
-- **Founder pack** (Terms 5.11): accounts made up to the end of
-  `FOUNDER_UNTIL` (a date, UTC; default in `src/shop/rewards.ts`), and
-  confirmed emails listed in `FOUNDER_EMAILS`, get the Founder's sprout
-  crown and plaque (`PROMO_ITEMS`, never sold), 250 free coins and a 🌱 badge,
-  once (`founder` table), on their next `/api/me`. Online, the badge travels
-  as `LobbySlot.founder` (from `playerFor`). Set the launch day when you know
-  it: `fly secrets set FOUNDER_UNTIL=2026-10-31 FOUNDER_EMAILS=tester@example.com,helper@example.com`.
+- **Founder and Early bird packs** (Terms 5.11; `server/rewards.ts`,
+  contents in `src/shop/rewards.ts`): looks never sold (`PROMO_ITEMS`: a hat,
+  gravestone, dance, world and music track each), free coins and a badge,
+  each given once (`founder` and `early_bird` tables) on the player's next
+  `/api/me`, with a thank-you. **Founders** (🌱, 250 coins): accounts made up
+  to the end of `FOUNDER_UNTIL` (default 2026-10-31) and confirmed emails in
+  `FOUNDER_EMAILS`; they get the Early bird pack too. **Early birds** (🐣, 100
+  coins): the first `EARLY_BIRD_MAX` accounts (default 1000; 0 = no limit,
+  ranked by when they were made) up to the end of `EARLY_BIRD_UNTIL` (default
+  2026-12-31). Online, the badge travels as `LobbySlot.badge` (from
+  `playerFor`). Change them without a deploy, e.g.
+  `fly secrets set FOUNDER_EMAILS=tester@example.com,helper@example.com EARLY_BIRD_MAX=5000`
+  (and say so in the game: Terms 5.11.2 names the dates and the number).
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

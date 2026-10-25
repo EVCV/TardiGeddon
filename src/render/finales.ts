@@ -17,6 +17,9 @@ export const DANCES: DanceDef[] = [
   { id: 'floss', name: 'Floss' },
   { id: 'helicopter', name: 'Helicopter' },
   { id: 'worm', name: 'The worm' },
+  // Never sold: the Early bird and Founder packs (src/shop/rewards.ts).
+  { id: 'hatch', name: 'Hatching' },
+  { id: 'bow', name: 'Founder’s bow' },
 ];
 
 export interface GraveDef {
@@ -34,6 +37,7 @@ export const GRAVES: GraveDef[] = [
   { id: 'rocket', name: 'Rocket' },
   { id: 'crystal', name: 'Crystal' },
   { id: 'founder', name: 'Founder’s plaque' },
+  { id: 'egg', name: 'Cracked egg' },
 ];
 
 export function danceById(id: string | undefined): DanceDef {
@@ -66,6 +70,20 @@ export function dancePose(id: string, t: number, seed: number): { lift: number; 
       return { lift: Math.abs(Math.sin(p * 10)) * 2, rot: Math.sin(p * 10) * 0.35, face: 0, squash: 1, slide: Math.sin(p * 10) * 4 };
     case 'helicopter':
       return { lift: 10 + Math.sin(p * 3) * 4, rot: p * 9, face: 0, squash: 1, slide: 0 };
+    case 'hatch': {
+      // Curled up shaking like an egg about to hatch, then out it pops.
+      const k = (p % 1.4) / 1.4;
+      return k < 0.55
+        ? { lift: 0, rot: Math.sin(p * 40) * 0.12, face: 0, squash: 0.75, slide: 0 }
+        : { lift: Math.sin(((k - 0.55) / 0.45) * Math.PI) * 14, rot: 0, face: 0, squash: 1.12, slide: 0 };
+    }
+    case 'bow': {
+      // A slow, grand bow, then a little hop.
+      const k = (p % 2) / 2;
+      return k < 0.6
+        ? { lift: 0, rot: Math.sin((k / 0.6) * Math.PI) * 0.7, face: 0, squash: 1, slide: 0 }
+        : { lift: Math.sin(((k - 0.6) / 0.4) * Math.PI) * 6, rot: 0, face: 0, squash: 1, slide: 0 };
+    }
     case 'worm':
       return { lift: Math.max(0, Math.sin(p * 6)) * 5, rot: Math.sin(p * 6) * 0.2, face: 0, squash: 1 - Math.sin(p * 6) * 0.25, slide: 0 };
     default:

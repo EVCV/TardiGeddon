@@ -8,12 +8,14 @@
 //
 // The Founder pack: accounts made before the launch (FOUNDER_UNTIL), and the
 // testers and helpers listed in FOUNDER_EMAILS, get looks that are never sold
-// and some coins, the first time they're seen after that.
+// and some coins, the first time they're seen after that. The Early bird pack
+// is the same for the first EARLY_BIRD_MAX accounts made up to
+// EARLY_BIRD_UNTIL; founders get both.
 
 import type { Pool } from 'pg';
 import { userByCode } from './friends';
 import { grantFreeCoins } from './store';
-import { FOUNDER_COINS, FOUNDER_ITEMS, FOUNDER_UNTIL, INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../src/shop/rewards';
+import { EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, EARLY_BIRD_UNTIL, FOUNDER_COINS, FOUNDER_ITEMS, FOUNDER_UNTIL, INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../src/shop/rewards';
 
 export async function migrateRewards(db: Pool): Promise<void> {
   await db.query(`
@@ -27,8 +29,12 @@ export async function migrateRewards(db: Pool): Promise<void> {
       inviter_paid boolean NOT NULL DEFAULT false
     );
     CREATE INDEX IF NOT EXISTS invite_by_inviter ON invite (inviter_id);
-    -- Founder packs given (once each).
+    -- Founder and Early bird packs given (once each).
     CREATE TABLE IF NOT EXISTS founder (
+      user_id text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+      at      timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS early_bird (
       user_id text PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
       at      timestamptz NOT NULL DEFAULT now()
     );
@@ -149,20 +155,40 @@ export function isFounder(rule: FounderRule, user: { email: string; emailVerifie
   return new Date(user.createdAt).getTime() < Date.parse(rule.until) + 86_400_000;
 }
 
-/** Give a founder their pack, once. True if it was given just now. */
-export async function grantFounder(db: Pool, userId: string): Promise<boolean> {
+/** Who gets the Early bird pack: accounts made up to this day (UTC, inclusive), and only the first `max` of them (0: no limit). */
+export interface EarlyBirdRule {
+  until: string;
+  max: number;
+}
+
+export function earlyBirdRule(env: { EARLY_BIRD_UNTIL?: string; EARLY_BIRD_MAX?: string }): EarlyBirdRule {
+  const until = env.EARLY_BIRD_UNTIL && /^\d{4}-\d{2}-\d{2}$/.test(env.EARLY_BIRD_UNTIL) ? env.EARLY_BIRD_UNTIL : EARLY_BIRD_UNTIL;
+  const n = Number(env.EARLY_BIRD_MAX);
+  return { until, max: env.EARLY_BIRD_MAX !== undefined && Number.isInteger(n) && n >= 0 ? n : EARLY_BIRD_MAX };
+}
+
+/** Is this account an early bird: made in time, and among the first `max` accounts ever made? */
+export async function isEarlyBird(db: Pool, rule: EarlyBirdRule, user: { id: string; createdAt: string }): Promise<boolean> {
+  if (new Date(user.createdAt).getTime() >= Date.parse(rule.until) + 86_400_000) return false;
+  if (!rule.max) return true;
+  const r = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM "user" WHERE "createdAt" < $1', [new Date(user.createdAt)]);
+  return r.rows[0].n < rule.max;
+}
+
+/** Give a pack (its looks and free coins) once, recorded in `table`. True if it was given just now. */
+async function grantPack(db: Pool, table: 'founder' | 'early_bird', userId: string, items: string[], coins: number): Promise<boolean> {
   const c = await db.connect();
   try {
     await c.query('BEGIN');
-    const r = await c.query('INSERT INTO founder (user_id) SELECT $1 WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1) ON CONFLICT DO NOTHING', [userId]);
+    const r = await c.query(`INSERT INTO ${table} (user_id) SELECT $1 WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1) ON CONFLICT DO NOTHING`, [userId]);
     if (r.rowCount !== 1) {
       await c.query('ROLLBACK');
       return false;
     }
-    for (const item of FOUNDER_ITEMS) {
-      await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, 'founder') ON CONFLICT DO NOTHING`, [userId, item]);
+    for (const item of items) {
+      await c.query(`INSERT INTO inventory (user_id, item, source) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, [userId, item, table === 'founder' ? 'founder' : 'earlybird']);
     }
-    await grantFreeCoins(c, userId, FOUNDER_COINS);
+    await grantFreeCoins(c, userId, coins);
     await c.query('COMMIT');
     return true;
   } catch (e) {
@@ -173,7 +199,21 @@ export async function grantFounder(db: Pool, userId: string): Promise<boolean> {
   }
 }
 
-/** Has this account had its Founder pack? (For the badge.) */
-export async function hasFounderPack(db: Pool, userId: string): Promise<boolean> {
-  return !!(await db.query('SELECT 1 FROM founder WHERE user_id = $1', [userId])).rows[0];
+/** Give a founder their pack, once. True if it was given just now. */
+export function grantFounder(db: Pool, userId: string): Promise<boolean> {
+  return grantPack(db, 'founder', userId, FOUNDER_ITEMS, FOUNDER_COINS);
+}
+
+/** Give an early bird (or a founder) the Early bird pack, once. True if it was given just now. */
+export function grantEarlyBird(db: Pool, userId: string): Promise<boolean> {
+  return grantPack(db, 'early_bird', userId, EARLY_BIRD_ITEMS, EARLY_BIRD_COINS);
+}
+
+/** The badge an account shows: 🌱 founder, else 🐣 early bird. */
+export async function packBadge(db: Pool, userId: string): Promise<'founder' | 'earlybird' | null> {
+  const r = await db.query<{ f: boolean; e: boolean }>(
+    'SELECT EXISTS (SELECT 1 FROM founder WHERE user_id = $1) AS f, EXISTS (SELECT 1 FROM early_bird WHERE user_id = $1) AS e',
+    [userId],
+  );
+  return r.rows[0].f ? 'founder' : r.rows[0].e ? 'earlybird' : null;
 }

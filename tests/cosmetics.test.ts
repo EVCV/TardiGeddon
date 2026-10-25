@@ -80,6 +80,8 @@ describe('shop catalogue', () => {
       if (a.free) expect([shopItem(`arena:${a.id}`), a.stars, a.drift], a.id).toEqual([undefined, undefined, undefined]);
       // Seasonal worlds are free while their event is on, never sold.
       else if (a.season) expect([shopItem(`arena:${a.id}`), SEASONS.find((x) => x.id === a.season)?.arena], a.id).toEqual([undefined, a.id]);
+      // The Early bird and Founder packs' worlds are never sold, only given.
+      else if (promoItem(`arena:${a.id}`)) expect(shopItem(`arena:${a.id}`), a.id).toBeUndefined();
       else expect(shopItem(`arena:${a.id}`), a.id).toBeDefined();
     }
     expect(ARENAS.filter((a) => a.free).map((a) => a.id)).toEqual(['classic', 'spring', 'moor', 'cove', 'bog']);
@@ -118,7 +120,7 @@ describe('explosion effects', () => {
 
 describe('victory dances, gravestones and emblems', () => {
   it('sells every dance and gravestone except the free ones, for coins', () => {
-    for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id));
+    for (const d of DANCES) expect(!!shopItem(`dance:${d.id}`), d.id).toBe(!['classic', 'wiggle'].includes(d.id) && !promoItem(`dance:${d.id}`));
     // (The Founder pack's plaque is never sold: only ever given.)
     for (const g of GRAVES) expect(!!shopItem(`grave:${g.id}`), g.id).toBe(!['classic', 'stone'].includes(g.id) && !promoItem(`grave:${g.id}`));
     expect(promoItem('grave:founder')).toBeDefined();

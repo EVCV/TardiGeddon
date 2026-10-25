@@ -503,6 +503,18 @@ export const HATS: HatDef[] = [
     ],
   },
   {
+    // The Early bird pack's (never sold): an eggshell cap with the chick that hatched from it.
+    id: 'earlybird',
+    name: 'Early bird eggshell',
+    shapes: [
+      { k: 'dome', x: 0, y: 0, r: 0.95, fill: 'white' },
+      { k: 'poly', pts: [-0.95, 0.02, -0.7, -0.22, -0.45, 0.02, -0.2, -0.22, 0.05, 0.02, 0.3, -0.22, 0.55, 0.02, 0.8, -0.22, 0.95, 0.02], fill: 'white' },
+      { k: 'circle', x: 0, y: -1.2, r: 0.45, fill: 'gold' },
+      { k: 'poly', pts: [0.36, -1.3, 0.74, -1.18, 0.36, -1.06], fill: 'orange' },
+      { k: 'circle', x: 0.14, y: -1.34, r: 0.08, fill: 'ink' },
+    ],
+  },
+  {
     // The Founder pack's (never sold): a gold crown with a sprout growing out of it.
     id: 'founder',
     name: 'Founder’s sprout crown',

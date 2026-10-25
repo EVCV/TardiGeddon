@@ -35,8 +35,8 @@ export interface LobbySlot {
   connected: boolean;
   /** The player's id for blocking and reporting (humans only). */
   pid?: string;
-  /** Has the Founder pack (shown as a 🌱 badge). */
-  founder?: boolean;
+  /** The Founder (🌱) or Early bird (🐣) badge. */
+  badge?: 'founder' | 'earlybird';
 }
 
 /** A frame on the wire: 0 for "nothing pressed", else [held, pressed, cmd?]. */

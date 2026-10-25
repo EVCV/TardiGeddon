@@ -47,8 +47,8 @@ export interface Member {
   owned?: string[];
   /** Quick-play rating (signed in), for matching players of a similar level. */
   rating?: number;
-  /** Has the Founder pack: others see the 🌱 badge by their name. */
-  founder?: boolean;
+  /** The Founder (🌱) or Early bird (🐣) badge others see by their name. */
+  badge?: 'founder' | 'earlybird';
 }
 
 export type { MatchResult };
@@ -87,7 +87,7 @@ interface Slot {
   userId?: string;
   unlocked?: string[];
   owned?: string[];
-  founder?: boolean;
+  badge?: 'founder' | 'earlybird';
   token: string;
   queue: InputFrame[];
   held: number;
@@ -277,7 +277,7 @@ export class Room {
     slot.userId = member.userId;
     slot.unlocked = member.unlocked;
     slot.owned = member.owned;
-    slot.founder = member.founder;
+    slot.badge = member.badge;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
     this.broadcastRoom();
@@ -516,7 +516,7 @@ export class Room {
   }
 
   private lobbySlots(): LobbySlot[] {
-    return this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}), ...(s.founder ? { founder: true } : {}) }));
+    return this.slots.map((s, i) => ({ team: s.team, cpu: s.cpu, host: i === this.host, connected: s.cpu || s.member !== null, ...(s.pid ? { pid: s.pid } : {}), ...(s.badge ? { badge: s.badge } : {}) }));
   }
 
   private broadcastRoom(): void {

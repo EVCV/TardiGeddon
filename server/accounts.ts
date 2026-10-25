@@ -16,7 +16,7 @@
 
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
-import { enterInvite, founderRule, grantFounder, hasFounderPack, inviteStatus, isFounder, migrateRewards, settleInvite } from './rewards';
+import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteStatus, isEarlyBird, isFounder, migrateRewards, packBadge, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
@@ -80,6 +80,10 @@ export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv {
   FOUNDER_UNTIL?: string;
   /** Comma-separated emails that get the Founder pack whenever they joined (testers and helpers; confirmed email only). */
   FOUNDER_EMAILS?: string;
+  /** The Early bird pack: accounts made up to this day (YYYY-MM-DD, UTC; default src/shop/rewards.ts EARLY_BIRD_UNTIL)... */
+  EARLY_BIRD_UNTIL?: string;
+  /** ...and only the first this many accounts ever made (0: no limit; default EARLY_BIRD_MAX). */
+  EARLY_BIRD_MAX?: string;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -247,6 +251,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   await migrateRewards(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
+  const earlyBirds = earlyBirdRule(env);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
   const purge = setInterval(() => void purgeExpired(db).catch((e) => console.error('purge failed', e)), 60 * 60_000);
@@ -1030,13 +1035,18 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           };
           if (user) {
             me.controls = await controlsOf(db, user.id);
-            // The Founder pack, the first time a founder is seen (then the wallet below is out of date: read it again).
-            if (isFounder(founders, user) && (await grantFounder(db, user.id))) {
-              me.founderNew = true;
+            // The Founder and Early bird packs, the first time a founder or early bird is
+            // seen (founders get both; then what they own is out of date: read it again).
+            const founder = isFounder(founders, user);
+            if ((founder || (await isEarlyBird(db, earlyBirds, user))) && (await grantEarlyBird(db, user.id))) me.earlyBirdNew = true;
+            if (founder && (await grantFounder(db, user.id))) me.founderNew = true;
+            if (me.earlyBirdNew || me.founderNew) {
               me.owned = await ownedItems(db, user.id);
               me.wallet = await walletOf(db, user.id);
             }
-            if (me.founderNew || (await hasFounderPack(db, user.id))) me.founder = true;
+            const badge = await packBadge(db, user.id);
+            if (badge === 'founder') me.founder = true;
+            if (badge) me.earlyBird = true;
             // An invite whose new player has just confirmed their email.
             if (await settleInvite(db, user.id)) me.wallet = await walletOf(db, user.id);
             me.invite = { code: await friendCode(db, user.id), ...(await inviteStatus(db, user.id, user.createdAt)) };
@@ -1105,12 +1115,13 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; founder?: boolean }> {
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' }> {
       // The sign-in cookie (website, Android app), else a ticket (iOS app).
       const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
       if (!userId) return { owned: [] };
       const r = (await ratingsOf(db, [userId])).get(userId)!;
-      return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...((await hasFounderPack(db, userId)) ? { founder: true } : {}) };
+      const badge = await packBadge(db, userId);
+      return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...(badge ? { badge } : {}) };
     },
     /** The game server says who's online and passes on invites. */
     setPresence(p: Presence): void {

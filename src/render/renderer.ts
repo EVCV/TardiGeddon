@@ -1282,6 +1282,11 @@ function makeGrave(x: number, y: number, color: number, id: string): Graphics {
       g.roundRect(-9, -3, 18, 10, 2).fill(0xf0b400);
       g.roundRect(-8, 12, 16, 4, 2).fill(color);
       break;
+    case 'egg':
+      g.ellipse(0, 2, 13, 18).fill(0xfff6e0).stroke({ width: 2.5, color: O });
+      g.moveTo(-12, -2).lineTo(-6, 3).lineTo(-1, -3).lineTo(4, 3).lineTo(8, -2).lineTo(12, 1).stroke({ width: 2, color: O });
+      g.roundRect(-8, 12, 16, 4, 2).fill(color);
+      break;
   }
   g.scale.set(s);
   g.position.set(x, y + 9 - 20 * s);

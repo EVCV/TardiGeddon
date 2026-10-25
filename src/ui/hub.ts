@@ -9,7 +9,7 @@ import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
-import { FOUNDER_COINS } from '../shop/rewards';
+import { EARLY_BIRD_COINS, FOUNDER_COINS } from '../shop/rewards';
 import { newSalesState, renderSalesPage } from './sales';
 import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
@@ -184,7 +184,7 @@ export function showHub(
       };
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
-      if (me.founder) who.append(el('span', 'founder-badge', '🌱'));
+      if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
       who.append(el('span', 'hub-me-name', me.user.name));
       who.onclick = () => go('account');
       right.append(coins, slime, who);
@@ -205,9 +205,11 @@ export function showHub(
     renderBar();
 
     // The Founder pack has just been given: say thank you (once: the server only says so once).
-    if (me?.founderNew && !founderThanked) {
+    if ((me?.founderNew || me?.earlyBirdNew) && !founderThanked) {
       founderThanked = true;
-      status = t('🌱 Thanks for being here from the start! Your Founder pack is in: the Founder’s sprout crown, the Founder’s plaque and {coins} coins.', { coins: FOUNDER_COINS });
+      status = me.founderNew
+        ? t('🌱 Thanks for being here from the start! Your Founder and Early bird packs are in: two worlds, two music tracks, two dances, two hats, two gravestones and {coins} coins. Find them in ✎ Customise team and the World button.', { coins: FOUNDER_COINS + EARLY_BIRD_COINS })
+        : t('🐣 Thanks for joining early! Your Early bird pack is in: a world, a music track, a dance, a hat, a gravestone and {coins} coins. Find them in ✎ Customise team and the World button.', { coins: EARLY_BIRD_COINS });
     }
     notice.innerHTML = '';
     const shown = status || (me?.preview && !previewDismissed ? t("Preview build: accounts and payments aren't connected here, so signing in and buying won't work.") : '');

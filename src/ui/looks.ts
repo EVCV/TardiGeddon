@@ -7,7 +7,7 @@ import { ARENAS, SURPRISE_ARENA, arenaTheme } from '../render/arenas';
 import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS } from '../audio/sfx';
-import { canUse, itemFor, type ItemKind } from '../shop/catalog';
+import { canUse, itemFor, promoItem, type ItemKind } from '../shop/catalog';
 import { account, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, ownedItems } from '../account/session';
 import { arenaSvg, musicSvg, soundSvg } from './cosmeticArt';
 import { priceLabel } from './shop';
@@ -58,8 +58,9 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
       const shopOn = account().me !== null;
       for (const o of list) {
         const locked = o.id !== SURPRISE_ARENA && !canUse(kind, o.id, owned);
-        if (locked && !shopOn) continue;
         const item = itemFor(kind, o.id);
+        // Looks only given away (promo codes, the Early bird and Founder packs) aren't in the shop: they only show once you have them.
+        if (locked && (!shopOn || promoItem(item?.id ?? ''))) continue;
         const b = el('button', 'hat-btn' + (o.id === current() ? ' on' : '') + (locked ? ' locked' : ''));
         b.innerHTML = o.art;
         b.append(el('span', '', locked && item ? `🔒 ${priceLabel(item)}` : o.name));

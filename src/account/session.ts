@@ -49,6 +49,10 @@ export interface MeResponse {
   founder?: boolean;
   /** The Founder pack was given just now: say thank you. */
   founderNew?: boolean;
+  /** Has the Early bird pack (founders too): shows the 🐣 badge (🌱 for founders). */
+  earlyBird?: boolean;
+  /** The Early bird pack was given just now. */
+  earlyBirdNew?: boolean;
   /** Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand. */
   invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean };
 }

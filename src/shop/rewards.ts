@@ -11,8 +11,18 @@ export const INVITE_MATCHES = 3;
 /** How long after making an account a friend's invite code can still be entered. */
 export const INVITE_DAYS = 7;
 
-/** The Founder pack: looks never sold, and some coins. */
-export const FOUNDER_ITEMS = ['hat:founder', 'grave:founder'];
+/**
+ * The Early bird pack: looks never sold, a 🐣 badge and some coins, for the
+ * first EARLY_BIRD_MAX accounts made up to EARLY_BIRD_UNTIL (the server's
+ * settings of the same names can change both).
+ */
+export const EARLY_BIRD_ITEMS = ['hat:earlybird', 'grave:egg', 'dance:hatch', 'arena:dawn', 'music:daybreak'];
+export const EARLY_BIRD_COINS = 100;
+export const EARLY_BIRD_UNTIL = '2026-12-31';
+export const EARLY_BIRD_MAX = 1000;
+
+/** The Founder pack (founders get the Early bird pack too): looks never sold, a 🌱 badge, and some coins. */
+export const FOUNDER_ITEMS = ['hat:founder', 'grave:founder', 'dance:bow', 'arena:golden', 'music:anthem'];
 export const FOUNDER_COINS = 250;
 /**
  * Accounts made up to the end of this day (UTC) are founders, unless the
