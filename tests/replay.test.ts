@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRng, rngFloat } from '../src/sim/math/prng';
 import { cloneWorld, createWorld, hashWorld, tick } from '../src/sim/world';
 import { MatchRecorder, isReplay } from '../src/stats/matchReplay';
 import { decodeWorld } from '../src/net/snapshot';
@@ -8,6 +9,15 @@ import { CpuPlayer } from '../src/ai/cpu';
 import type { SimEvent } from '../src/sim/types';
 import { TurnRecorder } from '../src/stats/replay';
 import { MatchTally } from '../src/stats/tally';
+
+// The CPU rolls dice (where to wander, which way to look first) and works out
+// its moves a slice at a time: seeded dice and thinking all at once keep these
+// matches the same on every run, however busy the machine is.
+beforeEach(() => {
+  const rng = createRng(7);
+  vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
+});
+afterEach(() => vi.restoreAllMocks());
 
 describe('winning-shot replay and match stats', () => {
   it('replays the deciding turn from its start to the very same ending, and counts everyone’s numbers', () => {
@@ -19,7 +29,7 @@ describe('winning-shot replay and match stats', () => {
       ],
       scheme: { tardisPerTeam: 2, mapStyle: 'islands', startHp: 40 },
     });
-    const cpus = [new CpuPlayer('perfect'), new CpuPlayer('perfect')];
+    const cpus = [new CpuPlayer('perfect', Infinity), new CpuPlayer('perfect', Infinity)];
     const rec = new TurnRecorder();
     const stats = new MatchTally(2);
     const ev: SimEvent[] = [];
@@ -61,7 +71,7 @@ describe('whole-match replays', () => {
       ],
       scheme: { tardisPerTeam: 2, startHp: 40 },
     });
-    const cpus = [new CpuPlayer('normal'), new CpuPlayer('normal')];
+    const cpus = [new CpuPlayer('normal', Infinity), new CpuPlayer('normal', Infinity)];
     const rec = new MatchRecorder();
     rec.begin(s);
     const ev: SimEvent[] = [];

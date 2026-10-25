@@ -308,7 +308,12 @@ export class GameRenderer {
           }
           this.floatText(tr(tk('POW!')), e.x, e.y - 24, 0xff9a3b);
           break;
+        case 'respawn':
         case 'teleport':
+          if (e.t === 'respawn') {
+            this.floatText(tr(tk('Back again!')), e.x, e.y - 30, 0xffffff);
+            this.watchAt(e.x, e.y, WATCH_HOLD);
+          }
           for (let i = 0; i < 20; i++) {
             const a = Math.random() * Math.PI * 2;
             this.particles.push({
@@ -526,6 +531,11 @@ export class GameRenderer {
         this.entities.addChild(v.root);
       }
       if (!v) continue;
+      if (this.dying.has(t.id) && t.alive) {
+        // Back again (the tutorial) before it finished curling up: pop where it lay; a fresh view comes next frame.
+        this.pop(t.id, v.root.x, v.root.y, shown(s.teams[t.team].color), s.teams[t.team].grave);
+        continue;
+      }
       if (!t.alive && t.y > s.waterY) {
         v.root.visible = false;
         continue;

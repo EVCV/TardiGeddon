@@ -1290,6 +1290,30 @@ function safeGroundNear(s: WorldState, x0: number): { x: number; y: number } | n
   return null;
 }
 
+/** The tutorial (Scheme.respawn): the player's popped or drowned tardigrades come back on dry ground nearby, as good as new. */
+function respawn(s: WorldState, events: SimEvent[]): void {
+  for (const t of s.tardis) {
+    if (t.alive || t.team !== 0) continue;
+    const spot = safeGroundNear(s, Math.round(Math.max(40, Math.min(s.terrain.w - 40, t.x))));
+    if (!spot) continue;
+    t.alive = true;
+    t.hp = s.scheme.startHp;
+    t.pendingDmg = 0;
+    t.poison = false;
+    t.x = spot.x;
+    t.y = spot.y;
+    t.vx = 0;
+    t.vy = 0;
+    t.airborne = false;
+    t.knocked = false;
+    t.thrown = false;
+    t.fallStartY = spot.y;
+    t.rope = null;
+    t.chute = false;
+    events.push({ t: 'respawn', id: t.id, x: spot.x, y: spot.y });
+  }
+}
+
 function endlessPractice(s: WorldState): boolean {
   return s.practice !== null && s.scheme.practiceEndless === true;
 }
@@ -1783,6 +1807,8 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
     turn.settleTimer = 0;
     return;
   }
+
+  if (s.scheme.respawn) respawn(s, events);
 
   if (s.race && turn.turnNumber >= s.teams.length * s.scheme.raceRounds) {
     // Rope Race over: the fastest best time wins; a tie for fastest is a draw.

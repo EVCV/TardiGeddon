@@ -64,6 +64,8 @@ export interface Scheme {
   practiceTargets?: number;
   /** Practice: popped targets come back somewhere else, and it goes on until you quit. */
   practiceEndless?: boolean;
+  /** The tutorial: the player's (team 0's) tardigrade comes back after being popped or drowned, so it carries on. */
+  respawn?: boolean;
   /** If set, the only weapons available and their starting ammo (-1 = unlimited). */
   weapons?: Record<string, number>;
   /** Season weapons switched on for this match (WeaponDef.locked); all teams get them. */
@@ -311,6 +313,8 @@ export type SimEvent =
   | { t: 'death'; id: number }
   | { t: 'jump'; id: number }
   | { t: 'teleport'; id: number; x: number; y: number }
+  /** Back on its feet after being popped or drowned (Scheme.respawn). */
+  | { t: 'respawn'; id: number; x: number; y: number }
   | { t: 'bounce'; x: number; y: number }
   | { t: 'rope'; id: number; x: number; y: number }
   /** The Silk Rope caught nothing: it reached (x, y); the nearest rock that way is `beyond` further (-1 = none). */

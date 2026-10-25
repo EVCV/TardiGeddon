@@ -10,7 +10,7 @@ import { TurnRecorder } from './stats/replay';
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import { cloneWorld, createWorld, tick, type TeamConfig } from './sim/world';
-import { Coach, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
+import { Coach, TutorialDummy, dummyPlayer, practiceWorld, tutorialWorld } from './ui/tutorial';
 import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from './sim/types';
 import { GameRenderer } from './render/renderer';
 import { WEATHER_NAMES } from './render/weather';
@@ -149,7 +149,7 @@ export class Match {
       const p = loadProfiles()[0];
       const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false };
       this.local = createWorld(tutorialWorld(you));
-      this.cpu.set(1, dummyPlayer);
+      this.cpu.set(1, new TutorialDummy());
       this.coach = new Coach(touchMode, { onMenu, onAgain });
     } else if (mode.kind === 'challenge') {
       // Today's challenge: the same world for everyone; our team's looks are our own.
@@ -574,7 +574,7 @@ export class Match {
         case 'jump': sfx.jump(); break;
         case 'splash': sfx.splash(); break;
         case 'bounce': sfx.bounce(); break;
-        case 'teleport': sfx.teleport(); break;
+        case 'teleport': case 'respawn': sfx.teleport(); break;
         case 'rope': sfx.rope(); break;
         case 'chute': sfx.chute(); break;
         case 'punch': sfx.punch(); break;

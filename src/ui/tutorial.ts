@@ -7,7 +7,8 @@
 import { PRACTICE_TARGETS, markTutorialSeen } from './learn';
 export { PRACTICE_TARGETS, choosePractice, tutorialSeen } from './learn';
 import { EMPTY_INPUT, type InputFrame, type SimEvent, type WorldState } from '../sim/types';
-import { AIM_MAX, type TeamConfig, type WorldConfig } from '../sim/world';
+import { AIM_MAX, activeTardi, type TeamConfig, type WorldConfig } from '../sim/world';
+import { hopTo, walkTo } from '../ai/cpu';
 import { WEAPONS } from '../sim/weapons';
 import { presetScheme } from '../sim/schemes';
 import { actionFor, bindingText, controls, type Action } from '../input/controls';
@@ -35,6 +36,8 @@ export function tutorialWorld(player: TeamConfig): WorldConfig {
       // The lessons are written for this map: always the classic islands, and no weather.
       mapStyle: 'islands',
       weather: false,
+      // Popped or drowned? Back you come, and the lesson carries on.
+      respawn: true,
     },
   };
 }
@@ -78,12 +81,58 @@ export function practiceWorld(player: TeamConfig, unlocked: string[], seed: numb
 }
 
 
-/** The dummy's "CPU": ends its turn straight away. */
+/** The practice targets' "CPU": ends its turn straight away. */
 export const dummyPlayer = {
   next(): InputFrame {
     return { ...EMPTY_INPUT, cmd: { t: 'skip' } };
   },
 };
+
+/** How far the tutorial's dummy strays from where it started (so the lessons still find it). */
+const DUMMY_ROAM = 110;
+
+/**
+ * The tutorial's dummy: on its turn it has a look round, takes a short walk
+ * or a hop or two (never far from where it started, never into the water),
+ * then ends its turn. It never fights back. Works out its moves like the CPU
+ * does, on a copy of the world.
+ */
+export class TutorialDummy {
+  private turn = -1;
+  private home: number | null = null;
+  private frames: InputFrame[] = [];
+
+  next(s: WorldState): InputFrame {
+    if (s.turn.phase !== 'aim') return EMPTY_INPUT;
+    const me = activeTardi(s);
+    if (!me) return { ...EMPTY_INPUT, cmd: { t: 'skip' } };
+    if (this.turn !== s.turn.turnNumber) {
+      this.turn = s.turn.turnNumber;
+      this.home ??= me.x;
+      this.frames = this.plan(s, this.home);
+    }
+    return this.frames.shift() ?? { ...EMPTY_INPUT, cmd: { t: 'skip' } };
+  }
+
+  private plan(s: WorldState, home: number): InputFrame[] {
+    const wait = (n: number) => Array.from({ length: n }, () => EMPTY_INPUT);
+    // A look round first: the crosshair up, then down a little.
+    const me = activeTardi(s)!;
+    const look: InputFrame[] = [
+      ...wait(25),
+      { ...EMPTY_INPUT, cmd: { t: 'aim', facing: me.facing, aim: Math.round(AIM_MAX * 0.6) } },
+      ...wait(20),
+      { ...EMPTY_INPUT, cmd: { t: 'aim', facing: me.facing, aim: 0 } },
+      ...wait(15),
+    ];
+    const moves = [walkTo(s, -1, 40), walkTo(s, 1, 40), hopTo(s, -1, 1), hopTo(s, 1, 1), hopTo(s, -1, 2), hopTo(s, 1, 2)].filter(
+      (m) => m && Math.abs(activeTardi(m.end)!.x - home) < DUMMY_ROAM && m.hurt === 0,
+    );
+    const move = moves[Math.floor(Math.random() * moves.length)];
+    // (The look round doesn't move it, so the walk plays out as worked out.)
+    return [...look, ...(move?.frames ?? []), ...wait(40)];
+  }
+}
 
 /** What the coach can see each frame. */
 export interface CoachView {
@@ -181,6 +230,8 @@ export class Coach {
   /** A bazooka shot since the current step began. */
   firedThisStep = false;
   hitDummy = false;
+  /** Until when to say "Oops" (the player's tardigrade was popped or drowned, and comes back). */
+  private oopsUntil = 0;
   startX = 0;
   startAim = 0;
   startZoom = 1;
@@ -201,6 +252,8 @@ export class Coach {
     if (this.finished) return;
     const dummy = v.state.tardis.find((x) => x.team === 1);
     for (const e of v.events) {
+      const mine = (id: number) => v.state.tardis.find((x) => x.id === id)?.team === 0;
+      if ((e.t === 'death' || e.t === 'drown') && mine(e.id)) this.oopsUntil = performance.now() + 5000;
       if (e.t === 'jump') this.seen.add('jump');
       else if (e.t === 'fire' && e.weapon === 'bazooka') this.firedBazooka = this.firedThisStep = true;
       else if (e.t === 'fire' && e.weapon === 'airstrike') this.seen.add('strike');
@@ -227,7 +280,12 @@ export class Coach {
     // Only this tutorial's local world is touched, never an online match.
     const wind = STEPS[this.step].wind;
     if (wind !== undefined && v.humanTurn) v.state.wind = wind;
-    const text = v.humanTurn ? STEPS[this.step].text(this.touch) : t('The dummy’s turn: it just skips it. Yours is next!');
+    const text =
+      performance.now() < this.oopsUntil
+        ? t('Oops! That one got you. Don’t worry: in the tutorial you come straight back. Carry on from where you were.')
+        : v.humanTurn
+          ? STEPS[this.step].text(this.touch)
+          : t('The dummy’s turn: it wanders about a bit, but never fights back. Yours is next!');
     this.show(`<div class="coach-step">${t('Step {n} of {total}', { n: this.step + 1, total: STEPS.length })}</div><p class="coach-text"></p>`, text);
   }
 

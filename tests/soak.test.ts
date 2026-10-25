@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRng, rngFloat } from '../src/sim/math/prng';
 import { createWorld, tick } from '../src/sim/world';
 import { CpuPlayer } from '../src/ai/cpu';
 import type { SimEvent } from '../src/sim/types';
 import { MAP_STYLES } from '../src/sim/terrain/generate';
+
+// The CPU rolls dice (where to wander, which way to look first) and works out
+// its moves a slice at a time: seeded dice and thinking all at once keep these
+// matches the same on every run, however busy the machine is.
+beforeEach(() => {
+  const rng = createRng(7);
+  vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
+});
+afterEach(() => vi.restoreAllMocks());
 
 // CPU vs CPU matches across several seeds: turns must keep flowing and
 // games must end. Catches soft-locks (e.g. tardis that never come to rest).
@@ -17,7 +27,7 @@ describe('cpu soak', () => {
         ],
         scheme: { tardisPerTeam: 2 },
       });
-      const cpus = [new CpuPlayer('perfect'), new CpuPlayer('perfect')];
+      const cpus = [new CpuPlayer('perfect', Infinity), new CpuPlayer('perfect', Infinity)];
       const events: SimEvent[] = [];
       let lastTurn = s.turn.turnNumber;
       let sinceTurn = 0;
@@ -49,7 +59,7 @@ describe('cpu soak on every map style', () => {
         scheme: { tardisPerTeam: 2, mapStyle: m.id, armour: m.id === 'sky' ? 30 : 0 },
       });
       expect(s.realm).toBe(m.id);
-      const cpus = [new CpuPlayer('perfect'), new CpuPlayer('perfect')];
+      const cpus = [new CpuPlayer('perfect', Infinity), new CpuPlayer('perfect', Infinity)];
       const events: SimEvent[] = [];
       let lastTurn = s.turn.turnNumber;
       let sinceTurn = 0;
