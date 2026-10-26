@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AIM_MAX, TARDI_R, activeTardi, createWorld, ropeTrace, tick } from '../src/sim/world';
-import { BTN_DOWN, BTN_FIRE, BTN_RIGHT, BTN_UP, EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState } from '../src/sim/types';
+import { BTN_DOWN, BTN_FIRE, BTN_RIGHT, BTN_UP, EMPTY_INPUT, PRESS_JUMP, TICK_RATE, type Command, type InputFrame, type SimEvent, type Tardi, type WorldState } from '../src/sim/types';
 import { presetScheme } from '../src/sim/schemes';
 import { isSolid } from '../src/sim/terrain/terrain';
 import { makeWorld, run, runUntilPhase } from './helpers';
@@ -162,9 +162,23 @@ describe('Rope Race courses', () => {
       else times.push(time);
     }
     // The bot is crude (a person aims better when caught in a pit), but it
-    // still gets round almost every course in a fraction of the 60 seconds.
+    // still gets round almost every course well inside the 60 seconds.
     expect(stuck).toBeLessThanOrEqual(3);
-    expect(times.reduce((a, b) => a + b, 0) / times.length).toBeLessThan(15);
+    expect(times.reduce((a, b) => a + b, 0) / times.length).toBeLessThan(25);
+    // Some courses are quick, some take a lot longer: a mix of easy and hard.
+    expect(Math.max(...times)).toBeGreaterThan(3 * Math.min(...times));
+  });
+
+  it('have the odd skylight: a gap in the roof to fly across', () => {
+    let withSkylight = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = race(seed * 7919);
+      let open = false;
+      for (let x = 300; x < s.terrain.w - 300 && !open; x += 10) open = !isSolid(s.terrain, x, 2);
+      if (open) withSkylight++;
+    }
+    expect(withSkylight).toBeGreaterThan(5);
+    expect(withSkylight).toBeLessThan(40);
   });
 
   it('are closed at both ends, so you can\'t fly off past the flag', () => {
@@ -172,6 +186,18 @@ describe('Rope Race courses', () => {
     for (const x of [5, s.terrain.w - 5]) for (let y = 0; y < s.waterY; y += 20) expect(isSolid(s.terrain, x, y)).toBe(true);
   });
 });
+
+/** Caught somewhere: rope to the nearest bit of roof well overhead, ahead if there is one. */
+function unstick(s: WorldState, t: Tardi): Command {
+  for (const facing of [1, -1] as const) {
+    for (const a of [1, 0.85, 0.7, 0.55]) {
+      const aim = Math.round(AIM_MAX * a);
+      const r = ropeTrace(s.terrain, t.x, t.y, facing, aim);
+      if (r.hit && t.y - r.y > 100) return { t: 'aim', aim, facing };
+    }
+  }
+  return { t: 'aim', aim: AIM_MAX, facing: 1 };
+}
 
 /**
  * Swings to the flag: ropes ahead at a fixed angle, swings forward, lets go on
@@ -198,6 +224,9 @@ function ropeBot(seed: number): number {
     const onPad = t.x > s.race!.goalX - 180;
     if (onPad && !t.airborne) {
       input = { ...EMPTY_INPUT, held: BTN_RIGHT };
+    } else if (stuck && !t.airborne && !t.rope && i % 120 < 60) {
+      // Caught on a ledge: walk and hop on a bit, as a person would.
+      input = { ...EMPTY_INPUT, held: BTN_RIGHT, pressed: i % 30 === 0 ? PRESS_JUMP : 0 };
     } else if (t.rope) {
       let held = BTN_RIGHT;
       if (t.rope.len > 170) held |= BTN_UP;
@@ -205,7 +234,7 @@ function ropeBot(seed: number): number {
       if ((upswing || onPad || since > 250 || (stuck && since > 60)) && !prevFire) held |= BTN_FIRE;
       input = { ...EMPTY_INPUT, held };
     } else if (!prevFire && (since > 6 || !t.airborne)) {
-      input = { ...EMPTY_INPUT, held: BTN_FIRE, cmd: { t: 'aim', aim: stuck ? AIM_MAX : Math.round(AIM_MAX * 0.62), facing: 1 } };
+      input = { ...EMPTY_INPUT, held: BTN_FIRE, cmd: stuck ? unstick(s, t) : { t: 'aim', aim: Math.round(AIM_MAX * 0.62), facing: 1 } };
       since = 0;
     }
     prevFire = (input.held & BTN_FIRE) !== 0;

@@ -9,7 +9,7 @@ import type { ChargeStyle, Command, InputFrame, Scheme } from '../sim/types';
 import { isWeaponId } from '../sim/weapons';
 import type { TeamConfig } from '../sim/world';
 
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 
 /** A player's team as shown in the lobby. */
 export interface LobbyTeam {
