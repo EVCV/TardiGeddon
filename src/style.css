@@ -2080,6 +2080,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gameover-stats td.top { font-weight: 900; }
 .gameover-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
 .gameover-note { font-size: 13px; }
+.gameover-review { display: block; margin: 10px auto 0; font-weight: 800; font-size: 15px; color: var(--ink); }
 .gameover-go { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .gameover-go .big-btn { flex: 1 1 180px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

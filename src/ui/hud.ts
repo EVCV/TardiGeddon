@@ -301,7 +301,7 @@ export class Hud {
     onAgain: () => void,
     onMenu: () => void,
     labels: readonly [string, string] = [t('Play again'), t('Main menu')],
-    extra: { stats?: readonly TeamTally[]; onReplay?: () => void; onShare?: () => Promise<string> } = {},
+    extra: { stats?: readonly TeamTally[]; onReplay?: () => void; onShare?: () => Promise<string>; reviewUrl?: string } = {},
   ): void {
     const w = s.turn.winner;
     this.gameOver.innerHTML = '';
@@ -331,6 +331,13 @@ export class Hud {
       tools.append(share, note);
     }
     if (tools.childElementCount) box.append(tools);
+    if (extra.reviewUrl) {
+      const review = el('a', 'gameover-review', t('⭐ Enjoying TardiGeddon? Leave us a review'));
+      review.setAttribute('href', extra.reviewUrl);
+      review.setAttribute('target', '_blank');
+      review.setAttribute('rel', 'noopener');
+      box.append(review);
+    }
     const again = el('button', 'big-btn', labels[0]);
     again.onclick = onAgain;
     const menu = el('button', 'big-btn secondary', labels[1]);

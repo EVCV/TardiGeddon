@@ -7,6 +7,7 @@ class GameViewController: CAPBridgeViewController {
         // Our own plugins (Capacitor finds the npm ones by itself).
         bridge?.registerPluginInstance(AuthTokenPlugin())
         bridge?.registerPluginInstance(AppStorePlugin())
+        bridge?.registerPluginInstance(ReviewPlugin())
     }
 
     // A swipe in from an edge (aiming, scrolling the map) needs a second swipe to

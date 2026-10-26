@@ -45,6 +45,7 @@ import { Lockstep, SeenInput, connectionState } from './net/lockstep';
 import { toWire, type ServerMsg } from './net/protocol';
 import { ANGLE_FULL } from './sim/math/trig';
 import { t } from './i18n/i18n';
+import { noteMatchForReview } from './review';
 
 const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
@@ -327,7 +328,17 @@ export class Match {
       stats,
       onReplay: this.recorder.winningShot() ? () => this.startReplay() : undefined,
       onShare: stats ? () => shareMatch(this.state, stats) : undefined,
+      reviewUrl: this.reviewAsk() ?? undefined,
     });
+  }
+
+  /** Now and then, after a win, ask for a review (src/review.ts). Not when only watching, or in practice. */
+  private reviewAsk(): string | null {
+    const s = this.state;
+    if (s.practice || (this.net && this.net.ls.you < 0)) return null;
+    const w = s.turn.winner;
+    const won = w >= 0 && (this.net ? w === this.net.ls.you : !s.teams[w].cpu);
+    return noteMatchForReview(won);
   }
 
   private newRenderer(s: WorldState): void {
