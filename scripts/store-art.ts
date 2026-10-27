@@ -202,7 +202,7 @@ body { font-family: 'Nunito', 'IPAPGothic', sans-serif; font-weight: 800; color:
 .mascot svg { width: 100%; height: auto; display: block; }
 .burst { position: absolute; }
 /* Japanese: the title font has no kana, so a heavier gothic with a lighter outline. */
-.ja .head { font-family: 'IPAPGothic', sans-serif; font-weight: 900; -webkit-text-stroke: .05em #2b1b24; text-shadow: 0 .07em 0 #2b1b24; letter-spacing: 0; }
+.ja .head { font-family: 'IPAPGothic', sans-serif; font-weight: 900; -webkit-text-stroke: .05em #2b1b24; text-shadow: 0 .07em 0 #2b1b24; letter-spacing: 0; word-break: keep-all; }
 `;
 
 /** A star burst behind the mascot, in the picture's light colour. */
@@ -248,7 +248,7 @@ function compose(lang: Lang, size: Size, bg: [string, string], head: string, sub
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body class="${lang}">
   <div class="card" style="width:${w}px;height:${h}px;background:linear-gradient(160deg, ${bg[0]}, ${bg[1]})">
     <div class="dots"></div>
-    <div class="head" style="${headBox}">${head}</div>
+    <div class="head" style="${headBox}">${lang === 'ja' ? head.replaceAll('。', '。<wbr>') : head}</div>
     <div class="sub" style="${subBox}">${sub}</div>
     <div class="frame" style="left:${frame.x}px;top:${frame.y}px;width:${frame.w}px;height:${frame.h}px;transform:rotate(${frame.rot}deg)"><img src="${img}"></div>
     <div class="burst" style="left:${mascot.x - mascot.w * 0.25}px;top:${mascot.y - mascot.w * 0.35}px;width:${mascot.w * 1.5}px">${burst(bg[1])}</div>
