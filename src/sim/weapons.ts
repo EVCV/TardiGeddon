@@ -463,7 +463,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     ammo: 0,
     shots: 1,
     super: true,
-    blurb: 'Superweapon: glass shards rain down all over the map.',
+    blurb: 'Superweapon: glass shards rain down at random all over the map. Anyone can be hit, you too.',
     icon: '🔬',
     shower: { per1000: 8, weapon: 'shard' },
   },

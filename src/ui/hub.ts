@@ -195,7 +195,15 @@ export function showHub(
     }
   };
 
+  let drawnTab: HubTab | null = null;
   const render = () => {
+    // Redrawing the same page (a setting changed): stay where you were in it.
+    const kept = drawnTab === tab ? scrolled(page) : [];
+    draw();
+    drawnTab = tab;
+    for (const { path, left, top } of kept) path.reduce<Element | undefined>((at, i) => at?.children[i], page)?.scrollTo(left, top);
+  };
+  const draw = () => {
     if (!shell.isConnected) return off();
     const { me, loaded } = account();
     // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
@@ -302,4 +310,15 @@ function footer(): HTMLElement {
     el('span', 'hub-version', `v${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev'}`),
   );
   return f;
+}
+
+/** Where each scrolled box inside `root` is (its path of child indices, and how far across and down). */
+function scrolled(root: HTMLElement): { path: number[]; left: number; top: number }[] {
+  const out: { path: number[]; left: number; top: number }[] = [];
+  const walk = (e: Element, path: number[]) => {
+    if (e.scrollTop > 0 || e.scrollLeft > 0) out.push({ path, left: e.scrollLeft, top: e.scrollTop });
+    for (let i = 0; i < e.children.length; i++) walk(e.children[i], [...path, i]);
+  };
+  walk(root, []);
+  return out;
 }

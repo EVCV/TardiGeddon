@@ -94,6 +94,9 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     // Shop items are only advertised when accounts are on.
     const shopOn = account().me !== null;
     const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
+      // Redrawn after every pick: the row stays scrolled where it was, not back at the start.
+      const { scrollLeft, scrollTop } = box;
+      queueMicrotask(() => box.scrollTo(scrollLeft, scrollTop));
       box.innerHTML = '';
       for (const it of list) {
         const locked = !canUse(kind, it.id, owned);

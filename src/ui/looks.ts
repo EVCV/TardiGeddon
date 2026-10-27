@@ -52,6 +52,9 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
   const section = (title: string, hint: string, kind: ItemKind, list: Option[], current: () => string, choose: (id: string) => void) => {
     const grid = el('div', 'editor-hats');
     const draw = () => {
+      // Redrawn after every pick: the row stays scrolled where it was, not back at the start.
+      const { scrollLeft, scrollTop } = grid;
+      queueMicrotask(() => grid.scrollTo(scrollLeft, scrollTop));
       grid.innerHTML = '';
       const owned = ownedItems();
       // Shop looks are only advertised when accounts are on.

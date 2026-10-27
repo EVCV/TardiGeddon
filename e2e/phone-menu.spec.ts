@@ -74,3 +74,16 @@ for (const lang of ['es', 'pt-BR', 'de', 'fr', 'ja']) {
     await page.screenshot({ path: `test-results/lang-${lang}-match.png` });
   });
 }
+
+test('picking something further down a menu keeps your place in it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phones only');
+  await page.setViewportSize({ width: 800, height: 400 });
+  await page.goto('/');
+  await page.locator('.lobby-nav button').filter({ hasText: /Settings/ }).first().click();
+  const list = page.locator('.settings-menu');
+  await list.evaluate((e) => (e.scrollTop = 1000));
+  const before = await list.evaluate((e) => e.scrollTop);
+  expect(before).toBeGreaterThan(0);
+  await list.locator('button').last().click();
+  await expect.poll(() => list.evaluate((e) => e.scrollTop)).toBe(before);
+});
