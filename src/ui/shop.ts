@@ -24,6 +24,7 @@ import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
+import { usage } from '../usage/usage';
 
 type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
 
@@ -130,6 +131,7 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
     if (c === 'coins' && !me.shop) continue;
     const b = el('button', 'seg-btn' + (state.category === c ? ' on' : ''), t(label));
     b.onclick = () => {
+      if (c === 'coins' && state.category !== 'coins') usage('coinstap', { from: 'tab' });
       state.category = c;
       ctx.rerender();
     };
@@ -258,6 +260,7 @@ function stage(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {
       if (me.shop) {
         const get = el('button', 'big-btn', t('Get coins'));
         get.onclick = () => {
+          usage('coinstap', { from: 'item' });
           state.category = 'coins';
           ctx.rerender();
         };
@@ -433,6 +436,7 @@ function bundleStage(b: Bundle, me: MeResponse, ctx: HubContext, state: ShopStat
     if (me.shop) {
       const get = el('button', 'big-btn', t('Get coins'));
       get.onclick = () => {
+        usage('coinstap', { from: 'bundle' });
         state.category = 'coins';
         ctx.rerender();
       };
@@ -600,6 +604,7 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
  * outside closes it; focus goes back to the pack.
  */
 function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTMLElement): void {
+  usage('coinspack', { pack: pack.id });
   const host = document.getElementById('ui') ?? document.body;
   const look = PACK_LOOKS[pack.id] ?? { art: 'pouch', name: tk('Coins') };
   const total = packTotal(pack);
@@ -690,12 +695,17 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
         pay.textContent = payLabel;
         update();
       };
+      // Anonymous counts of how far buying gets (docs/USAGE.md): the store and the step, nothing else.
+      const store = !inApp() ? 'stripe' : apple() ? 'appstore' : 'play';
+      usage('checkout', { store, step: 'start' });
       try {
         if (!inApp()) {
+          // (Done or cancelled is counted when Stripe sends the player back.)
           await buyCoins(pack.id, tick.checked, adultTick.checked);
           return;
         }
         const r = await buyCoinsInApp(pack.id);
+        usage('checkout', { store, step: r.result === 'cancelled' ? 'cancel' : r.result });
         if (r.result === 'cancelled') return again();
         close();
         ctx.notify(
@@ -706,6 +716,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
               : t('Thanks! Your payment is still going through: the coins will appear as soon as Google Play confirms it.'),
         );
       } catch (e) {
+        usage('checkout', { store, step: 'fail' });
         error.textContent = t(e instanceof Error ? e.message : String(e));
         again();
       }

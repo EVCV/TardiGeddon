@@ -427,8 +427,11 @@ review; external testers need a short beta review.
   name, user id, gameplay data, purchase history, user content (team names).
   All **linked to the user**, **no tracking**, purpose App Functionality.
   Plus **Usage Data → Product Interaction** (the anonymous play counts,
-  `docs/USAGE.md`): **not linked to the user**, no tracking, purpose
-  **Analytics**. No tracking means no App Tracking Transparency prompt. Keep it in step with
+  `docs/USAGE.md`), and **Diagnostics → Crash Data** (error counts by kind
+  and place, never the message), **Diagnostics → Performance Data** (loading
+  times in bands) and **Diagnostics → Other Diagnostic Data** (online
+  desyncs, graphics or sound failing): all **not linked to the user**, no
+  tracking, purpose **Analytics**. No tracking means no App Tracking Transparency prompt. Keep it in step with
   `site/legal/` (`CLAUDE.md`). Sign in with Apple adds nothing new (name,
   email).
 - **Privacy manifest** `ios/App/App/PrivacyInfo.xcprivacy`: no tracking,

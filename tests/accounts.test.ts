@@ -295,7 +295,20 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     await accounts.db.query('DELETE FROM usage_day');
     const send = (body: unknown, origin = new URL(GAME).origin) =>
       fetch(`${base}/api/usage`, { method: 'POST', headers: { origin, 'content-type': 'text/plain' }, body: typeof body === 'string' ? body : JSON.stringify(body) });
-    const counts = { v: 1, entries: [{ e: 'page', d: 'page=shop', n: 2 }, { e: 'page', d: 'page=Sam', n: 1 }] };
+    const counts = {
+      v: 1,
+      entries: [
+        { e: 'page', d: 'page=shop', n: 2 },
+        { e: 'page', d: 'page=Sam', n: 1 },
+        // An older game's combined open: kept only as its three separate counts.
+        { e: 'open', d: 'platform=ios&device=tablet&lang=ja', n: 1 },
+        // An error's message never gets in.
+        { e: 'error', d: 'kind=error&where=menu', n: 1 },
+        { e: 'error', d: 'kind=Sam is not defined&where=menu', n: 1 },
+      ],
+    };
+    // What the server counts itself (online play).
+    accounts.countUsage('quick', { wait: '5-10s', end: 'matched' });
     expect((await send(counts)).status).toBe(204);
     expect((await send(counts, 'https://elsewhere.example')).status).toBe(403);
     expect((await send('not json{')).status).toBe(400);
@@ -318,6 +331,12 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const usage = (await (await fetch(`${base}/api/admin/usage?days=7`, { headers: { cookie: boss.cookie } })).json()) as { rows: { event: string; detail: string; count: number }[] };
     expect(usage.rows).toContainEqual({ event: 'page', detail: 'page=shop', count: 2 });
     expect(usage.rows.some((x) => x.detail.includes('Sam'))).toBe(false);
+    expect(usage.rows).toContainEqual({ event: 'app', detail: 'platform=ios', count: 1 });
+    expect(usage.rows).toContainEqual({ event: 'device', detail: 'device=tablet', count: 1 });
+    expect(usage.rows).toContainEqual({ event: 'lang', detail: 'lang=ja', count: 1 });
+    expect(usage.rows.some((x) => x.event === 'open')).toBe(false);
+    expect(usage.rows).toContainEqual({ event: 'error', detail: 'kind=error&where=menu', count: 1 });
+    expect(usage.rows).toContainEqual({ event: 'quick', detail: 'wait=5-10s&end=matched', count: 1 });
     const r = await sales(boss.cookie);
     expect(r.status).toBe(200);
     const report = (await r.json()) as SalesReport;

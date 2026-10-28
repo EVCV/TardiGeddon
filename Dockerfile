@@ -13,4 +13,5 @@ ENV NODE_ENV=production
 EXPOSE 8787
 # Not root: if the server were ever broken into, the attacker couldn't change the image's files.
 USER node
-CMD ["npx", "tsx", "server/main.ts"]
+# Node itself, not npx, so it gets the stop signal on a deploy and can save first.
+CMD ["node", "--import", "tsx", "server/main.ts"]

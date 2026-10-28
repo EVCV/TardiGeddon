@@ -6,51 +6,25 @@
 // Off when the player turns it off in Settings, or their browser asks sites
 // not to track (Global Privacy Control, Do Not Track).
 
-import { USAGE_BATCH, lengthBucket, usageDetail, usageMax, type UsageDetail, type UsageEntry, type UsageEvent } from './catalog';
+import { USAGE_BATCH, USAGE_ERRORS_PER_VISIT, lengthBucket, loadBucket, usageDetail, usageMax, type USAGE_ERRORS, type USAGE_PLACES, type UsageDetail, type UsageEntry, type UsageEvent } from './catalog';
 import { serverUrl } from '../net/client';
+import { storeUsageSetting, usageAllowed } from './consent';
 
-const KEY = 'tardigeddon.shareUsage';
 const FLUSH_MS = 60_000;
 
 /** Waiting to be sent, by event and details. */
 const queue = new Map<string, UsageEntry>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 
-/** The browser asks sites not to track. */
-function browserSaysNo(): boolean {
-  if (typeof navigator === 'undefined') return true;
-  const n = navigator as Navigator & { globalPrivacyControl?: boolean };
-  return n.globalPrivacyControl === true || n.doNotTrack === '1';
-}
-
-/** The player's choice in Settings (on unless turned off). */
-export function usageSetting(): boolean {
-  try {
-    return localStorage.getItem(KEY) !== 'off';
-  } catch {
-    return true;
-  }
-}
-
-/** Whether the browser asks not to be tracked, so nothing is sent whatever the setting. */
-export function usageBlockedByBrowser(): boolean {
-  return browserSaysNo();
-}
+export { usageBlockedByBrowser, usageSetting } from './consent';
 
 export function setUsageSetting(on: boolean): void {
-  try {
-    if (on) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, 'off');
-  } catch {
-    // Storage blocked: the choice lasts until the page closes.
-    memoryOff = !on;
-  }
+  storeUsageSetting(on);
   if (!on) queue.clear();
 }
-let memoryOff = false;
 
 function sharing(): boolean {
-  return !memoryOff && usageSetting() && !browserSaysNo() && endpoint() !== null;
+  return usageAllowed() && endpoint() !== null;
 }
 
 function endpoint(): string | null {
@@ -97,13 +71,23 @@ export function flushUsage(): void {
   }
 }
 
-/** The game opened: count it with its platform, kind of device and language, then time how long it's on screen. */
-export function startUsage(platform: 'web' | 'android' | 'ios', lang: string): void {
-  if (typeof document === 'undefined') return;
+/** The kind of device, from its screen size and touch only. */
+export function deviceClass(): 'phone' | 'tablet' | 'desktop' {
   const short = Math.min(screen.width, screen.height);
   const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  const device = short < 600 ? 'phone' : touch ? 'tablet' : 'desktop';
-  usage('open', { platform, device, lang });
+  return short < 600 ? 'phone' : touch ? 'tablet' : 'desktop';
+}
+
+/**
+ * The game opened: count its app, kind of device and language (each on its
+ * own, never together), watch for errors, then time how long it's on screen.
+ */
+export function startUsage(platform: 'web' | 'android' | 'ios', lang: string): void {
+  if (typeof document === 'undefined') return;
+  usage('app', { platform });
+  usage('device', { device: deviceClass() });
+  usage('lang', { lang });
+  watchErrors();
   let shownAt = document.visibilityState === 'visible' ? performance.now() : -1;
   const hidden = () => {
     if (shownAt < 0) return;
@@ -118,4 +102,36 @@ export function startUsage(platform: 'web' | 'android' | 'ios', lang: string): v
     else hidden();
   });
   addEventListener('pagehide', hidden);
+}
+
+/** Where the game is now: the menus, or a match's mode (for errors). */
+let place: (typeof USAGE_PLACES)[number] = 'menu';
+let errors = 0;
+
+export function setUsagePlace(where: (typeof USAGE_PLACES)[number]): void {
+  place = where;
+}
+
+/**
+ * Count something going wrong: only its kind and where, never the message or
+ * the stack (they can hold player names). At most a few per visit.
+ */
+export function usageError(kind: (typeof USAGE_ERRORS)[number]): void {
+  if (errors >= USAGE_ERRORS_PER_VISIT) return;
+  errors++;
+  usage('error', { kind, where: place });
+}
+
+function watchErrors(): void {
+  addEventListener('error', (e) => {
+    // A script error, not a picture or sound that failed to load (those don't bubble here as ErrorEvents).
+    if (e instanceof ErrorEvent) usageError('error');
+  });
+  addEventListener('unhandledrejection', () => usageError('promise'));
+}
+
+/** Count how long something took to load (from `since`, a performance.now() time; 0 = opening the page). */
+export function usageLoad(what: 'menu' | 'match', since: number): void {
+  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return; // a tab opened in the background waits, so its time says nothing
+  usage('load', { what, time: loadBucket(performance.now() - since), device: deviceClass() });
 }
