@@ -46,6 +46,7 @@ import { toWire, type ServerMsg } from './net/protocol';
 import { ANGLE_FULL } from './sim/math/trig';
 import { t } from './i18n/i18n';
 import { noteMatchForReview } from './review';
+import { cpuForm, noteCpuResult } from './ai/form';
 
 const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
@@ -145,7 +146,9 @@ export class Match {
       this.local = createWorld({ seed: setup.seed, teams, scheme: { ...setup.scheme, unlocked: myUnlockedWeapons() } });
       // Only one human (the player's own team, slot 0) against the CPU counts for their stats.
       if (!setup.players[0] && setup.players.slice(1).every(Boolean) && !this.local.race) this.tally = new MatchTally(teams.length);
-      for (const tm of this.local.teams) if (tm.cpu) this.cpu.set(tm.id, new CpuPlayer(setup.cpuSkill));
+      // Against the CPU on your own, it keeps the games close (src/ai/form.ts).
+      const form = this.tally ? cpuForm() : 0;
+      for (const tm of this.local.teams) if (tm.cpu) this.cpu.set(tm.id, new CpuPlayer(setup.cpuSkill, undefined, form));
     } else if (mode.kind === 'tutorial') {
       const p = loadProfiles()[0];
       const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
@@ -634,6 +637,7 @@ export class Match {
             const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
             if (youLost && !(this.net && this.net.ls.you < 0)) sfx.wahwah();
             if (this.tally) {
+              noteCpuResult(e.winner === 0);
               void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] }).then((slime) => {
                 if (slime > 0 && !this.destroyed) this.hud.showBanner(t('+{n} Slime 🟢', { n: slime }), 0x5aa83a, 3);
               });

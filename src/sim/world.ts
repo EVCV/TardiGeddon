@@ -1258,6 +1258,8 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(t.vx), Math.abs(t.vy))));
   const sx = t.vx / steps;
   const sy = t.vy / steps;
+  const x0 = t.x;
+  const y0 = t.y;
   for (let i = 0; i < steps; i++) {
     const nx = t.x + sx;
     const ny = t.y + sy;
@@ -1288,6 +1290,14 @@ function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
     }
     if (floor) t.vx *= 0.7;
     break;
+  }
+  // Caught between two lumps of land, touching both sides with nothing flat
+  // underneath, it can't move at all: it slips straight down if it can, and
+  // otherwise has come to rest there (else it "falls" forever, and its turn
+  // can't go on).
+  if (t.airborne && t.x === x0 && t.y === y0 && t.vy >= 0) {
+    if (!circleCollides(terrain, t.x, t.y + 1, TARDI_R)) t.y += 1;
+    else land(s, t);
   }
 
   checkOutOfBounds(s, t, events);
