@@ -88,6 +88,11 @@ signing key; we keep the upload key).
 
 ## 3. Store listing (Grow → Store presence → Main store listing)
 
+**The launch listing is in `docs/STORE_LISTING.md`**: the words in six
+languages and the designed screenshots and feature graphic
+(`store/listing/`). It replaces the text and pictures below, which are kept
+for reference.
+
 **App name:** TardiGeddon
 
 **Short description** (80 characters max):

@@ -3,6 +3,7 @@
 // page rather than a pop-up. Stats, Shop and Account only appear when the
 // server has accounts turned on (docs/ACCOUNTS.md).
 
+import { keepPlace } from './scroll';
 import { renderGuidePage } from './guide';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
@@ -195,7 +196,15 @@ export function showHub(
     }
   };
 
+  let drawnTab: HubTab | null = null;
   const render = () => {
+    // Redrawing the same page (a setting changed): stay where you were in it.
+    const putBack = drawnTab === tab ? keepPlace(page) : null;
+    draw();
+    drawnTab = tab;
+    putBack?.();
+  };
+  const draw = () => {
     if (!shell.isConnected) return off();
     const { me, loaded } = account();
     // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
@@ -303,3 +312,4 @@ function footer(): HTMLElement {
   );
   return f;
 }
+

@@ -421,7 +421,8 @@ review; external testers need a short beta review.
     specifications. Sending them early earns the "optimized for iPhone Duo"
     badge on the product page.
 
-  Add these to `scripts/store-images.mjs`, output in `store/app-store/`.
+  **Made**: `store/listing/<lang>/app-store/` by `scripts/store-art.ts`, with
+  the listing text, in `docs/STORE_LISTING.md`.
 - **App Privacy** labels: the same facts as Google's Data safety: email,
   name, user id, gameplay data, purchase history, user content (team names).
   All **linked to the user**, **no tracking**, purpose App Functionality. No

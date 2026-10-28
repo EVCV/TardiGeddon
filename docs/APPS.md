@@ -65,6 +65,11 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   background.
 - **Pausing:** sound stops when the app goes to the background.
 - **Invite links** point at the web game (`VITE_WEB_URL`), which anyone can open.
+- **Reviews:** now and then, after a win (5+ matches over 3+ days, then not
+  again for 60 days), the app asks the store to show its own rating pop-up
+  (`src/review.ts`, `ReviewPlugin.java` / `ReviewPlugin.swift`). The store
+  decides whether it shows: never in TestFlight or a test APK. No reward for
+  reviewing, and no "enjoying it?" question first: both stores forbid them.
 - **Coins through Google Play:** Google requires its own billing for digital
   items, so the Android app sells coin packs with Google Play Billing instead of
   Stripe (`docs/GOOGLE_PLAY.md` §7). Coins bought on the website still spend

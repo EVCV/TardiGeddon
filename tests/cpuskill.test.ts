@@ -47,15 +47,19 @@ describe('CPU skill levels', () => {
       vi.restoreAllMocks();
       return d;
     };
+    const beginner = dealt('beginner');
     const easy = dealt('easy');
     const normal = dealt('normal');
     const hard = dealt('hard');
     const perfect = dealt('perfect');
+    expect(beginner).toBeLessThan(easy * 0.6);
     expect(easy).toBeLessThan(normal);
     expect(normal).toBeLessThan(hard);
     expect(hard).toBeLessThan(perfect);
     expect(easy).toBeLessThan(perfect * 0.35);
-    // Normal is a fair fight: nowhere near Expert's aim (players found it too good).
-    expect(normal).toBeLessThan(perfect * 0.5);
+    // Normal is a real fight (players found the gentler one too easy), but short of Expert's aim;
+    // Easy and Super easy are for learning.
+    expect(normal).toBeGreaterThan(easy * 2);
+    expect(normal).toBeLessThan(perfect * 0.7);
   }, 120_000);
 });

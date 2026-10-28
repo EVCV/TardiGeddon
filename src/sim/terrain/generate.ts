@@ -112,7 +112,7 @@ export function generateMap(o: MapOptions): Terrain {
  * A Rope Race course: a long cave. Gently rolling ground broken by pits down
  * to the water, under a bumpy roof that's never more than ROOF_GAP (plus a
  * little) above it, so from anywhere on the course the Silk Rope (ROPE_MAX,
- * 320) catches it ahead of you.
+ * 320) catches it ahead of you, and stretches that make each course its own.
  * Wide flat ground at the start and the flag, and a wall at each end.
  */
 function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
@@ -126,7 +126,7 @@ function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
   let x = MARGIN + RACE_PAD;
   ground.fill(1, MARGIN, x);
   while (x < end - RACE_PAD) {
-    x += rngInt(rng, 90, 190); // a pit
+    x += rngFloat(rng) < 0.2 ? rngInt(rng, 200, 250) : rngInt(rng, 90, 190); // a pit, now and then a wide one
     let to = Math.min(x + rngInt(rng, 130, 320), end);
     if (to > end - RACE_PAD - 90) to = end; // no room for another pit: run on to the finish
     ground.fill(1, Math.min(x, end), to);
@@ -139,9 +139,30 @@ function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
   for (let x = MARGIN; x < end; x++) {
     if (ground[x]) fillDown(o, t, x, height(x) + (sample1D(small, x, 60) - 0.5) * 24 * flat(x), null, 1);
   }
+  // Stretches with a twist, a different mix on every course: skylights (no
+  // roof: fly across), high vaults where the rope only just reaches, low
+  // squeezes, the odd stalactite, and plain stretches. Each is short enough
+  // that the rope always catches something nearby.
+  const lift = new Float64Array(o.w); // raises (+) or lowers (-) the roof
+  const open = new Uint8Array(o.w);
+  for (let fx = MARGIN + RACE_PAD + 80; ; ) {
+    fx += rngInt(rng, 60, 260);
+    const kind = rngInt(rng, 0, 4);
+    const w = kind === 0 ? rngInt(rng, 100, 200) : kind === 3 ? rngInt(rng, 30, 50) : rngInt(rng, 160, 320);
+    if (fx + w > end - RACE_PAD - 80) break;
+    for (let x = fx; x < fx + w; x++) {
+      const ease = smooth(Math.min(1, Math.min(x - fx, fx + w - x) / 30));
+      if (kind === 0) open[x] = 1;
+      else if (kind === 1) lift[x] = 55 * ease;
+      else if (kind === 2) lift[x] = -90 * ease;
+      else if (kind === 3) lift[x] = -70 * smooth(1 - Math.abs((2 * (x - fx)) / w - 1));
+    }
+    fx += w;
+  }
   // The roof.
   for (let x = 0; x < o.w; x++) {
-    let bottom = height(Math.max(MARGIN, Math.min(end - 1, x))) - ROOF_GAP + (sample1D(bumps, x, 50) - 0.5) * 40;
+    let bottom = height(Math.max(MARGIN, Math.min(end - 1, x))) - ROOF_GAP - lift[x] + (sample1D(bumps, x, 50) - 0.5) * 40;
+    if (open[x]) bottom = 0;
     // Rock walls close the cave at both ends: no flying off past the flag.
     if (x < MARGIN + 10 || x >= end - 10) bottom = o.h;
     for (let y = 0; y < Math.floor(bottom); y++) t.mask[y * o.w + x] = 1;

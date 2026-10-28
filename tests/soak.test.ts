@@ -72,7 +72,8 @@ describe('cpu soak on every map style', () => {
         }
         expect(++sinceTurn).toBeLessThan(50 * 75);
       }
-      expect(s.turn.turnNumber).toBeGreaterThan(3);
+      // Played out: a winner (sky realms can be quick: falling off is easy), or plenty of turns.
+      expect(s.turn.phase === 'gameover' || s.turn.turnNumber > 3, `turn ${s.turn.turnNumber}, ${s.turn.phase}`).toBe(true);
     }, 60_000);
   }
 });

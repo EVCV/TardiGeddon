@@ -30,6 +30,10 @@ interface SkillDef {
   aimErr: number;
   /** Chance of a shot that misses by a lot (still aimed at someone). */
   wild: number;
+  /** It always aims at least this far (px) to one side of its victim: near misses, for beginners. */
+  minMiss?: number;
+  /** The only weapons it fires (unset: any). Beginners stick to the basics. */
+  arsenal?: string[];
   /** Chance it walks somewhere better when it has no good shot from where it is. */
   moves: number;
   /** Only shots a person would think of: facing the way it lands, never fired steeply into the ground. */
@@ -37,22 +41,27 @@ interface SkillDef {
 }
 
 // Tuned with the damage they do to a team that never moves (tests/cpuskill.test.ts):
-// Normal should land roughly one shot in three, like a fair player.
+// Normal is a real fight (players found a gentler one too easy); Super easy and
+// Easy are for learning.
 const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
+  beginner: { spread: 330, minMiss: 140, windSense: 0.5, powerErr: 70, aimErr: 2, wild: 0.3, moves: 0.3, human: true, arsenal: ['bazooka', 'grenade', 'cluster'] },
   easy: { spread: 330, windSense: 0.2, powerErr: 70, aimErr: 2, wild: 0.2, moves: 0.4, human: true },
-  normal: { spread: 120, windSense: 0.55, powerErr: 35, aimErr: 1, wild: 0.06, moves: 0.8, human: true },
-  hard: { spread: 40, windSense: 0.9, powerErr: 12, aimErr: 0, wild: 0, moves: 1, human: true },
+  normal: { spread: 45, windSense: 0.85, powerErr: 8, aimErr: 0, wild: 0.03, moves: 0.9, human: true },
+  hard: { spread: 25, windSense: 0.95, powerErr: 4, aimErr: 0, wild: 0, moves: 1, human: true },
   perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0, moves: 1, human: false },
 };
 
 /**
  * Would a person fire this? A shot landing behind the tardi it's facing away
  * from, or one aimed steeply down at the ground in front of it (bounced off a
- * wall, or dropped down a pit), looks like the CPU aiming the wrong way.
+ * wall, or dropped down a pit), looks like the CPU aiming the wrong way; so
+ * does skimming a grenade off the ground (players lob them).
  */
 function humanShot(me: Tardi, plan: Plan, x: number, y: number): boolean {
   const dx = x - me.x;
   if (dx * plan.facing < -40) return false;
+  // Bouncers (the Pebble Grenade and friends) are lobbed, not skimmed off the ground in front.
+  if (WEAPONS[plan.weapon].projectile?.bounce && plan.aim < AIM_MAX / 8) return false;
   return plan.aim >= -AIM_MAX / 2 || y - me.y > Math.abs(dx);
 }
 
@@ -86,6 +95,8 @@ export class CpuPlayer {
   private think = 0;
   private step: 'face' | 'weapon' | 'aim' | 'fuse' | 'charge' | 'done' = 'face';
   private tapped = false;
+  /** The weapons it used last (newest first): it likes a change. */
+  private recent: string[] = [];
 
   private readonly skill: SkillDef;
 
@@ -113,8 +124,8 @@ export class CpuPlayer {
       // First: is there a better place to shoot from? (Only with time to get there.)
       const mayMove = s.scheme.movement && turn.timer > MOVE_MIN_TICKS && Math.random() < this.skill.moves;
       this.moving = mayMove ? planMove(s, this.skill) : null;
-      if (!this.moving) this.planning = choosePlan(s, this.skill);
-      this.think = 40;
+      if (!this.moving) this.planning = choosePlan(s, this.skill, this.recent);
+      this.think = this.skill.human ? 50 + Math.floor(Math.random() * 40) : 40;
       this.step = 'face';
     }
     if (this.moving) {
@@ -125,7 +136,7 @@ export class CpuPlayer {
           this.moving = null;
           this.walkFrames = r.value;
           // Nowhere better: work out the shot from here.
-          if (!this.walkFrames) this.planning = choosePlan(s, this.skill);
+          if (!this.walkFrames) this.planning = choosePlan(s, this.skill, this.recent);
           break;
         }
         if (performance.now() >= end) break;
@@ -137,8 +148,8 @@ export class CpuPlayer {
       const f = this.walkFrames.shift();
       if (f) return f;
       this.walkFrames = null;
-      this.planning = choosePlan(s, this.skill);
-      this.think = 15;
+      this.planning = choosePlan(s, this.skill, this.recent);
+      this.think = this.skill.human ? 25 + Math.floor(Math.random() * 25) : 15;
     }
     if (this.planning) {
       const end = performance.now() + this.sliceMs;
@@ -147,6 +158,7 @@ export class CpuPlayer {
         if (r.done) {
           this.plan = r.value;
           this.planning = null;
+          if (r.value) this.recent = [r.value.weapon, ...this.recent].slice(0, 2);
           break;
         }
         if (performance.now() >= end) break;
@@ -160,13 +172,20 @@ export class CpuPlayer {
     const p = this.plan;
     if (!p) return { held: 0, pressed: 0, cmd: { t: 'skip' } };
 
+    // Below Expert it takes its time like a person: a moment between turning
+    // round, picking the weapon, aiming and firing.
+    const pause = () => {
+      if (this.skill.human) this.think = 8 + Math.floor(Math.random() * 18);
+    };
     switch (this.step) {
       case 'face':
         this.step = 'weapon';
+        pause();
         if (t.facing !== p.facing) return { held: p.facing === 1 ? BTN_RIGHT : BTN_LEFT, pressed: 0 };
         return EMPTY_INPUT;
       case 'weapon':
         this.step = 'aim';
+        pause();
         if (turn.weapon !== p.weapon) return { held: 0, pressed: 0, cmd: { t: 'weapon', id: p.weapon } };
         return { held: 0, pressed: 0, cmd: { t: 'fuse', s: p.fuse } };
       case 'aim': {
@@ -174,6 +193,7 @@ export class CpuPlayer {
         const diff = p.aim - turn.aim;
         if (Math.abs(diff) > AIM_STEP * 2) return { held: diff > 0 ? BTN_UP : BTN_DOWN, pressed: 0 };
         this.step = 'fuse';
+        pause();
         return { held: 0, pressed: 0, cmd: { t: 'aim', facing: p.facing, aim: p.aim } };
       }
       case 'fuse':
@@ -260,7 +280,7 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
   };
 
   const ammo = s.teams[me.team].ammo;
-  const usable = (w: string) => ammo[w] !== 0;
+  const usable = (w: string) => ammo[w] !== 0 && (!skill.arsenal || skill.arsenal.includes(w));
   // Thrown weapons the CPU can plan: simulate each candidate throw. Weapons
   // that fly alike (bazooka and mortar, grenade and cluster) land in the same
   // place, so each throw is worked out once for both.
@@ -312,7 +332,7 @@ function* searchShots(s: WorldState, skill: SkillDef, coarse = false): Generator
 }
 
 /** Work out a shot, yielding between candidate throws so it can be spread over ticks. */
-function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | null> {
+function* choosePlan(live: WorldState, skill: SkillDef, recent: readonly string[] = []): Generator<void, Plan | null> {
   // The world as it was when the turn began: the live one moves on while we think.
   const s = cloneWorld(live);
   const me = activeTardi(s);
@@ -324,17 +344,19 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
   const { cands } = found;
   let { best, bestScore, bestAt } = found;
   // Below Expert it doesn't always reach for the same weapon: any that would
-  // do nearly as well might get picked, the better ones more often.
+  // do nearly as well might get picked, the better ones more often, and the
+  // ones it just used less often.
   if (skill.spread > 0 && bestAt) {
     const byWeapon = new Map<string, Candidate>();
     for (const c of cands) {
       const was = byWeapon.get(c.plan.weapon);
       if (!c.ownGoal && c.score > 0 && (!was || c.score > was.score)) byWeapon.set(c.plan.weapon, c);
     }
-    const good = [...byWeapon.values()].filter((c) => c.score >= bestScore * 0.6);
-    let roll = Math.random() * good.reduce((sum, c) => sum + c.score, 0);
+    const good = [...byWeapon.values()].filter((c) => c.score >= bestScore * 0.5);
+    const weight = (c: Candidate) => c.score * (recent.includes(c.plan.weapon) ? 0.3 : 1);
+    let roll = Math.random() * good.reduce((sum, c) => sum + weight(c), 0);
     for (const c of good) {
-      roll -= c.score;
+      roll -= weight(c);
       if (roll > 0) continue;
       best = c.plan;
       bestAt = c;
@@ -342,7 +364,7 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
     }
   }
   const ammo = s.teams[me.team].ammo;
-  const usable = (w: string) => ammo[w] !== 0;
+  const usable = (w: string) => ammo[w] !== 0 && (!skill.arsenal || skill.arsenal.includes(w));
   // Concrete Tun: dropped straight onto an enemy, slamming it several times.
   if (usable('tun')) {
     const spec = WEAPONS.tun.projectile!;
@@ -407,7 +429,8 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
   }
   // Targets picked by a CPU that isn't perfect are a little off, like its throws.
   if (best?.target && skill.spread > 0 && best.weapon !== 'teleport') {
-    best = { ...best, target: { x: Math.round(best.target.x + gauss() * skill.spread * 0.4), y: best.target.y } };
+    const off = gauss() * skill.spread * 0.4;
+    best = { ...best, target: { x: Math.round(best.target.x + off + Math.sign(off || 1) * (skill.minMiss ?? 0)), y: best.target.y } };
   }
   // Nothing in reach (walled off in a cave, or behind a spire): rather than
   // skip, lob one as close to the nearest enemy as it can, blasting a way through.
@@ -446,7 +469,8 @@ function* choosePlan(live: WorldState, skill: SkillDef): Generator<void, Plan | 
       .sort((a, b) => Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y))[0];
     if (victim) {
       const spread = skill.spread * (Math.random() < skill.wild ? 3 : 1);
-      const tx = victim.x + gauss() * spread;
+      const off = gauss() * spread;
+      const tx = victim.x + off + Math.sign(off || 1) * (skill.minMiss ?? 0);
       const ty = victim.y + gauss() * spread * 0.3;
       let bestD = Infinity;
       for (const c of safe) {
@@ -600,7 +624,7 @@ const SAFE_FALL = 80;
 const ROPE_AIMS = [AIM_MAX * 0.25, AIM_MAX * 0.45, AIM_MAX * 0.7, AIM_MAX * 0.88];
 const ROPE_SWINGS = [40, 90];
 /** Chance (times its skill's `moves`) it strolls somewhere else even with a good shot, so it doesn't stand like a statue. */
-const WANDER = 0.35;
+const WANDER = 0.7;
 
 /** A way of getting somewhere: the frames to press, and how things stand afterwards. */
 interface Move {
@@ -627,7 +651,7 @@ function* planMove(live: WorldState, skill: SkillDef): Generator<void, InputFram
   if (wander && Math.random() >= WANDER) return null;
   let best: InputFrame[] | null = null;
   // Moving has to be clearly worth it, or (wandering) cost little of the shot.
-  let bestScore = wander ? here.bestScore * 0.85 : here.bestScore + 8;
+  let bestScore = wander ? here.bestScore * 0.75 : here.bestScore + 8;
   const consider = function* (m: Move | null): Generator<void, void> {
     yield;
     if (!m) return;
@@ -640,7 +664,7 @@ function* planMove(live: WorldState, skill: SkillDef): Generator<void, InputFram
   };
   const dirs: (1 | -1)[] = Math.random() < 0.5 ? [-1, 1] : [1, -1];
   for (const dir of dirs) {
-    for (const ticks of wander ? [WALKS[0]] : WALKS) yield* consider(walkTo(s, dir, ticks));
+    for (const ticks of wander ? WALKS.slice(0, 2) : WALKS) yield* consider(walkTo(s, dir, ticks));
     for (const hops of wander ? [HOPS[0]] : HOPS) yield* consider(hopTo(s, dir, hops));
   }
   // The rope: when walking won't do, or sometimes just because it's fun.

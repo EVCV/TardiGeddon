@@ -1,5 +1,6 @@
 // Team editor: team name, colour, hat and tardi names, with a live preview.
 
+import { keepPlaceAfter } from './scroll';
 import { MAX_NUMBERS, NAME_PROBLEM_TEXT, nameProblem, numbersIn } from '../names';
 import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
@@ -77,6 +78,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   });
 
   const refresh = () => {
+    // Redrawn after every pick: everything stays scrolled where it was.
+    keepPlaceAfter(overlay);
     preview.innerHTML = mascotSvg(draft.color, draft.hat, draft.skin);
     title.style.color = hex(draft.color);
     colours.innerHTML = '';

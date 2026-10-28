@@ -54,6 +54,8 @@ export class Camera {
   manualUntil = 0;
   /** The player has moved the view this turn (dragged or pinched). */
   held = false;
+  /** Where their tardi stood when they did: the view stays put until it moves (or a shot flies). */
+  heldAt: { x: number; y: number } | null = null;
 }
 
 export class GameRenderer {
@@ -966,7 +968,14 @@ export class GameRenderer {
   private updateCamera(s: WorldState, dt: number, alpha: number): void {
     const cam = this.camera;
     const now = performance.now();
-    if (now > cam.manualUntil) {
+    // Moved the view to line up a shot: it stays there while they aim, until
+    // their tardi moves or something is fired, not just for a few seconds.
+    const me = activeTardi(s);
+    if (!cam.held) cam.heldAt = null;
+    else if (!cam.heldAt && me) cam.heldAt = { x: me.x, y: me.y };
+    const lookingAround =
+      cam.held && cam.heldAt && me && s.turn.phase === 'aim' && s.projectiles.length === 0 && !me.airborne && Math.abs(me.x - cam.heldAt.x) + Math.abs(me.y - cam.heldAt.y) < 6;
+    if (now > cam.manualUntil && !lookingAround) {
       let target: { x: number; y: number } | null = null;
       const champ = s.turn.phase === 'gameover' ? s.tardis.find((t) => t.alive && t.team === s.turn.winner) : undefined;
       if (champ) {
@@ -1010,10 +1019,14 @@ export class GameRenderer {
     cam.zoom = Math.max(cam.zoom, this.minZoom());
     const halfW = width / 2 / cam.zoom;
     const halfH = height / 2 / cam.zoom;
-    cam.x = clamp(cam.x, -VIEW_MARGIN_X + halfW, s.terrain.w + VIEW_MARGIN_X - halfW, s.terrain.w / 2);
+    // The view can go a little past the map's sides and below the waterline, so
+    // a tardi at the very edge can still be brought out from under the touch
+    // controls (in the corners) to where it can be seen and aimed.
+    const pastX = VIEW_MARGIN_X + halfW * 0.5;
+    cam.x = clamp(cam.x, -pastX + halfW, s.terrain.w + pastX - halfW, s.terrain.w / 2);
     // A view taller than the map (tall phone screens) centres it, with sky
     // above and deep sea below (drawWater reaches far enough down).
-    cam.y = clamp(cam.y, -300 + halfH, s.waterY + 60 - halfH, (s.waterY - 240) / 2);
+    cam.y = clamp(cam.y, -300 + halfH, s.waterY + 60 + halfH * 0.7 - halfH, (s.waterY - 240) / 2);
     this.world.scale.set(cam.zoom);
     this.world.position.set(width / 2 - cam.x * cam.zoom, height / 2 - cam.y * cam.zoom);
     // Parallax: background hills move slower than the world.

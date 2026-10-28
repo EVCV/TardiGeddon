@@ -7,3 +7,6 @@ playwright-report/
 *.tmp.mjs
 dist-site/
 dist-ssr
+# Store pictures: English is kept; the other languages come from Actions → Store images.
+/store/listing/*/
+!/store/listing/en/

@@ -31,6 +31,8 @@ Check: `tardigeddon.com` appears under **Websites** in the dashboard.
 3. **Environment variables** (Production):
    - `NODE_VERSION` = `22`
    - `VITE_SERVER_URL` = `wss://server.tardigeddon.com`
+   - `VITE_REVIEW_URL` = the review page (one form for several review sites).
+     Optional: without it the web game never asks for a review (`src/review.ts`)
 4. **Save and Deploy**.
 
 Check: the `*.pages.dev` address Cloudflare gives you shows the website, and

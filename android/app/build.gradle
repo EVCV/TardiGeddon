@@ -67,6 +67,8 @@ dependencies {
     implementation "com.android.billingclient:billing:8.0.0"
     // The player's age band from Google Play, for Brazil's Digital ECA (AgeSignalsPlugin.java).
     implementation "com.google.android.play:age-signals:0.0.4"
+    // Google Play's own "rate this game" card (ReviewPlugin.java).
+    implementation "com.google.android.play:review:2.0.2"
     // Google sign-in with Android's account picker, and Apple's in a Custom Tab (SocialSignInPlugin.java).
     implementation "androidx.credentials:credentials:1.5.0"
     implementation "androidx.credentials:credentials-play-services-auth:1.5.0"
