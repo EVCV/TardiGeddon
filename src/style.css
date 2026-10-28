@@ -669,6 +669,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
   /* The same sky as the online screen and the game. */
   background: radial-gradient(circle at 50% 30%, #d9f3ff 0%, var(--sky) 60%, #4fb3e0 100%);
 }
+/* A seasonal event's decorations (src/ui/seasonSky.ts), behind the menu. */
+.season-sky { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.season-sky span { position: absolute; top: -40px; opacity: .85; animation: season-fall linear infinite; will-change: transform; }
+.season-sky.up span { top: auto; bottom: -40px; animation-name: season-rise; }
+@keyframes season-fall { from { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(24px, 55vh) rotate(160deg); } to { transform: translate(-12px, 112vh) rotate(320deg); } }
+@keyframes season-rise { from { transform: translate(0, 0); } 50% { transform: translate(-18px, -55vh); } to { transform: translate(10px, -112vh); } }
+/* Without motion: a few, still, scattered down the sky. */
+@media (prefers-reduced-motion: reduce) {
+  .season-sky span { animation: none; top: auto; }
+  .season-sky span:nth-child(3n) { top: 20%; }
+  .season-sky span:nth-child(3n + 1) { top: 55%; }
+  .season-sky span:nth-child(3n + 2) { top: 85%; }
+  .season-sky span:nth-child(n + 10) { display: none; }
+}
 .big-btn:disabled { opacity: .5; }
 
 /* Top bar */

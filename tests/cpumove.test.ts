@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createRng, rngFloat } from '../src/sim/math/prng';
 import { activeTardi, AIM_MAX, TARDI_R, tick } from '../src/sim/world';
 import type { WorldState } from '../src/sim/types';
 import { CpuPlayer, hopTo, ropeTo, walkTo } from '../src/ai/cpu';
@@ -93,12 +94,17 @@ describe('CPU up close', () => {
       if (o !== me && o !== foe) o.x = 150 + o.id * 30;
     });
     me.facing = 1;
+    // Only the choice of weapon is being tested: no walking off first, and the same dice every time.
+    s.scheme.movement = false;
+    const rng = createRng(3);
+    vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
     const cpu = new CpuPlayer('normal', Infinity);
     let weapon = '';
     for (let i = 0; i < 2000 && s.turn.phase === 'aim'; i++) {
       tick(s, cpu.next(s), []);
       weapon = s.turn.weapon;
     }
+    vi.restoreAllMocks();
     expect(weapon).toBe('firepunch');
     expect(foe.airborne || foe.pendingDmg > 0 || foe.hp < 100).toBe(true);
   });

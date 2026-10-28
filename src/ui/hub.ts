@@ -5,6 +5,7 @@
 
 import { keepPlace } from './scroll';
 import { closeNewThing, newThing, newThingSeen } from './drops';
+import { seasonSky } from './seasonSky';
 import { renderGuidePage } from './guide';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
@@ -99,6 +100,7 @@ export function showHub(
   const news = el('div', 'hub-news hidden');
   const page = el('main', 'hub-page');
   shell.append(bar, notice, news, page, footer());
+  seasonSky(shell);
   root.append(shell);
   // The menu's own theme (it starts after the first tap or key press: browsers block sound before that).
   playMusic('menu');
