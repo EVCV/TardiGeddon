@@ -1742,6 +1742,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .setup-btn.phone-only { display: block; }
   .lobby[data-view] .lobby-learn { margin-top: 8px; }
   .lobby[data-view] .lobby-learn .hud-btn { flex: 1; }
+  /* News is a tile in the bottom menu on phones (ui/menu.ts renderNav). */
+  .lobby[data-view] .lobby-learn .news-btn { display: none; }
   .lobby[data-view] .controls-btn { display: none; }
   .lobby-nav.phone-only { grid-area: nav; display: flex; gap: 8px; }
   .nav-tile {
@@ -2065,6 +2067,31 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .menu.hub .page-guide { height: 100%; max-width: none; overflow-y: auto; gap: 10px; align-content: start; }
   .guide-list { font-size: 13px; gap: 5px; }
   .guide-box { max-height: 86vh; }
+}
+
+/* ---- News (ui/news.ts) ---- */
+.page-news { display: flex; flex-direction: column; gap: 16px; max-width: 760px; margin: 0 auto; }
+.news-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.news-head .card-title { margin: 0; }
+.news-pills { flex-wrap: wrap; }
+.news-post { text-align: left; }
+.news-post .card-title { margin: 2px 0 6px; }
+.news-date { margin: 0; font-size: 13px; font-weight: 800; opacity: 0.7; }
+.news-post[data-kind='issue'] .news-date { color: #b5481c; opacity: 1; }
+.news-post[data-kind='fixed'] .news-date { color: #2f7d32; opacity: 1; }
+.news-text { margin: 6px 0; font-size: 15px; line-height: 1.45; }
+.news-list { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.45; }
+.news-foot { text-align: center; }
+.news-btn, .nav-news { position: relative; }
+.news-dot { position: absolute; top: 3px; right: 3px; width: 12px; height: 12px; border-radius: 50%; background: #e04848; border: 2px solid var(--ink); }
+.news-dot[hidden] { display: none; }
+/* Phones: the news scrolls inside the page, so the page still fits the screen. */
+@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
+  .menu.hub .page-news { height: 100%; max-width: none; overflow-y: auto; gap: 10px; }
+  /* (The top bar already says News.) */
+  .menu.hub .news-head .card-title { display: none; }
+  .news-head { justify-content: center; }
+  .news-text, .news-list { font-size: 13px; }
 }
 
 /* ---- Practice: which kind (ui/tutorial.ts choosePractice) ---- */

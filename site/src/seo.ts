@@ -59,6 +59,12 @@ export const PAGES: Record<string, PageMeta> = {
     ...HOME_IMAGE,
     crumb: 'Leaderboards',
   },
+  '/news': {
+    title: 'TardiGeddon News: Updates, Coming Soon and Fixes',
+    description: 'What’s new in TardiGeddon: release notes for every update, what’s coming next, and known problems we’re fixing.',
+    ...HOME_IMAGE,
+    crumb: 'News',
+  },
   '/support': {
     title: 'TardiGeddon Help and FAQ: Accounts, Coins, Safety',
     description: 'Answers about playing TardiGeddon: what you need, accounts, coins and refunds, staying safe online, reporting players and deleting your account.',

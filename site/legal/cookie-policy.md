@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 28 October 2026
-**Document Version:** v1.7
+**Document Version:** v1.8
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -72,6 +72,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.access` | Local storage | TardiGeddon (first party) | Your accessibility settings (colour-blind friendly colours, high contrast, sound captions, help prompts, calmer effects) | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.cpuForm` | Local storage | TardiGeddon (first party) | How your recent matches against the computer player went (a run of wins or losses, as one number), so it can keep games close | Strictly necessary | Until you clear site data |
 | `tardigeddon.newSeen` | Local storage | TardiGeddon (first party) | Which "new" banners in the menu you have closed, so they stay closed | Strictly necessary | Until you clear site data |
+| `tardigeddon.newsSeen` | Local storage | TardiGeddon (first party) | The newest News post you have seen, so the News button only shows its dot for news you haven't read | Strictly necessary | Until you clear site data |
 | `tardigeddon.eggs` | Local storage | TardiGeddon (first party) | Which hidden surprises in the game you have found, for the Guide | Strictly necessary | Until you clear site data |
 | `tardigeddon.review` | Local storage | TardiGeddon (first party) | How many matches you have played, on how many days, and when the game last suggested leaving a review, so it asks rarely | Strictly necessary | Until you clear site data |
 | `tardigeddon.invite` | Local storage | TardiGeddon (first party) | A friend's invite code from a link you opened, until you have an account to use it with | Strictly necessary | Until it is used or you clear site data |

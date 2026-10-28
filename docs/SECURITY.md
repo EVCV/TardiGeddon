@@ -89,7 +89,11 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   `pixi.js/unsafe-eval`), connections only to us and the game server.
 - No other site may put ours in a frame (no clickjacking of the shop or
   account pages); HTTPS only (HSTS); no MIME sniffing.
-- Everything players type is shown with `textContent`, never as HTML.
+- Everything players type is shown with `textContent`, never as HTML. So
+  is the news (`/news.json`), which the game also checks before showing
+  (`src/news/feed.ts`). It's the one file any site may read
+  (`Access-Control-Allow-Origin: *`), because the phone apps fetch it; it
+  only holds the public news posts.
 
 Adding anything third-party (a font, a script, an embed, a new API host)?
 Add its host to the Content-Security-Policy in `site/public/_headers`, or the

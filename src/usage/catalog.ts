@@ -21,7 +21,7 @@ export const USAGE_EVENTS = {
   /** Seconds the game was on screen (the count is the seconds). */
   seconds: {},
   /** A menu page opened. */
-  page: { page: ['lobby', 'stats', 'shop', 'account', 'settings', 'sales', 'guide', 'looks', 'team', 'practice', 'online'] },
+  page: { page: ['lobby', 'stats', 'shop', 'account', 'settings', 'sales', 'guide', 'looks', 'team', 'practice', 'online', 'news'] },
   /** A match started. */
   match: { mode: USAGE_MODES, skill: USAGE_SKILLS },
   /** A match ended: how it went for the player, or left before the end. */

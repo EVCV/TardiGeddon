@@ -11,6 +11,7 @@ import { Weapons } from './pages/Weapons';
 import { Support } from './pages/Support';
 import { Press } from './pages/Press';
 import { PromoCodes } from './pages/PromoCodes';
+import { News } from './pages/News';
 
 export function PageFor({ path }: { path: string }) {
   if (path === '/') return <Home />;
@@ -21,6 +22,7 @@ export function PageFor({ path }: { path: string }) {
   if (path === '/support') return <Support />;
   if (path === '/press') return <Press />;
   if (path === '/promo-codes') return <PromoCodes />;
+  if (path === '/news') return <News />;
   const legal = /^\/legal\/([a-z-]+)$/.exec(path);
   if (legal) return <Legal slug={legal[1]} />;
   return <NotFound />;

@@ -29,7 +29,7 @@ Object.assign(globalThis, {
 globalThis.location ??= new URL('https://tardigeddon.com/');
 
 const ssr = await import(pathToFileURL(join(ssrDir, 'entry-server.js')).href);
-const { render, pageMeta, pageSchema, INDEXED_PATHS, LEGAL } = ssr;
+const { render, pageMeta, pageSchema, INDEXED_PATHS, LEGAL, NEWS, newsDay } = ssr;
 const SITE = 'https://tardigeddon.com';
 
 const template = readFileSync(join(out, 'index.html'), 'utf8');
@@ -69,6 +69,7 @@ function head(path, meta, schema) {
     `<meta name="twitter:title" content="${esc(meta.title)}" />`,
     `<meta name="twitter:description" content="${esc(meta.description)}" />`,
     `<meta name="twitter:image" content="${esc(SITE + meta.image)}" />`,
+    `<link rel="alternate" type="application/rss+xml" title="TardiGeddon news" href="${SITE}/news.xml" />`,
     // Not run (it's data), so the Content-Security-Policy doesn't apply; "<" is
     // escaped so no text in it can close the tag.
     `<script type="application/ld+json" id="ld-json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`,
@@ -112,7 +113,38 @@ ${INDEXED_PATHS.map((p) => `  <url><loc>${SITE}${p}</loc><lastmod>${today}</last
 </urlset>
 `,
 );
+// The news (src/news/news.ts): every post in every language for the game and
+// the apps, which fetch it so new posts show without an app update
+// (src/news/feed.ts), and an RSS feed in English.
+write('news.json', JSON.stringify({ v: 1, posts: NEWS }));
+const KIND = { update: 'Update', coming: 'Coming soon', issue: 'Known problem' };
+const rss = NEWS.map((p) => {
+  const t = p.text.en;
+  const label = p.kind === 'issue' && p.fixed ? 'Fixed' : KIND[p.kind];
+  const body = [p.kind === 'coming' ? `Expected ${newsDay(p.date)}.` : '', ...t.body].filter(Boolean).join('\n');
+  return `  <item>
+    <title>${esc(`${label}: ${t.title}`)}</title>
+    <link>${SITE}/news#${p.id}</link>
+    <guid isPermaLink="false">${esc(p.id)}</guid>
+    <pubDate>${new Date(`${p.date}T12:00:00Z`).toUTCString()}</pubDate>
+    <description>${esc(body)}</description>
+  </item>`;
+});
+write(
+  'news.xml',
+  `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>TardiGeddon news</title>
+  <link>${SITE}/news</link>
+  <description>Updates, what's coming and fixes for TardiGeddon.</description>
+  <language>en-gb</language>
+${rss.join('\n')}
+</channel>
+</rss>
+`,
+);
 write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
 rmSync(ssrDir, { recursive: true, force: true });
-console.log(`prerender: ${INDEXED_PATHS.length} pages, ${LEGAL.length} legal pages, 404, sitemap.xml, robots.txt`);
+console.log(`prerender: ${INDEXED_PATHS.length} pages, ${LEGAL.length} legal pages, 404, sitemap.xml, robots.txt, news.json, news.xml`);

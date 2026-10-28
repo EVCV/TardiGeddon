@@ -9,6 +9,13 @@
 /play/sw.js
   Cache-Control: no-cache
 
+# The news (src/news/news.ts): the phone apps fetch it from here (their pages
+# aren't on tardigeddon.com), so any site may read it. Public, and checked
+# for changes each time, so new posts show at once.
+/news.json
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-cache
+
 # Security headers for every page, the game at /play/ included.
 # - CSP: only our own scripts (plus Cloudflare's analytics beacon), no inline
 #   scripts or eval, connections only to us and the game server, and nobody may

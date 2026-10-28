@@ -604,6 +604,18 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
 .egg-no { font-family: var(--title); font-size: 22px; }
 .egg-riddles p { margin: 6px 0 0; font-size: 17px; }
 
+/* ---------- News ---------- */
+.news-section { margin: 0 0 28px; }
+.news-section > h2 { font-size: 34px; margin: 0 0 12px; }
+.news-post { padding: 16px 20px; margin: 0 0 14px; }
+.news-post h3 { margin: 2px 0 6px; font-size: 22px; }
+.news-post p { margin: 6px 0; }
+.news-date { font-size: 14px; font-weight: 800; opacity: 0.75; }
+.news-post[data-kind='issue'] .news-date { color: #b5481c; opacity: 1; }
+.news-post[data-kind='fixed'] .news-date { color: #2f7d32; opacity: 1; }
+.news-list { margin: 6px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.news-empty { padding: 14px 20px; margin: 0; }
+
 /* Phones: three of the default teams, so their names fit. */
 @media (max-width: 560px) {
   .feature .squad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
