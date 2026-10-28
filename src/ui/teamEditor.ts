@@ -1,5 +1,6 @@
 // Team editor: team name, colour, hat and tardi names, with a live preview.
 
+import { keepPlaceAfter } from './scroll';
 import { MAX_NUMBERS, NAME_PROBLEM_TEXT, nameProblem, numbersIn } from '../names';
 import { mascotSvg } from './mascot';
 import { HATS } from '../render/hats';
@@ -77,6 +78,8 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   });
 
   const refresh = () => {
+    // Redrawn after every pick: everything stays scrolled where it was.
+    keepPlaceAfter(overlay);
     preview.innerHTML = mascotSvg(draft.color, draft.hat, draft.skin);
     title.style.color = hex(draft.color);
     colours.innerHTML = '';
@@ -94,9 +97,6 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
     // Shop items are only advertised when accounts are on.
     const shopOn = account().me !== null;
     const pick = (box: HTMLElement, kind: 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave', list: { id: string; name: string }[], current: string, set: (id: string) => void) => {
-      // Redrawn after every pick: the row stays scrolled where it was, not back at the start.
-      const { scrollLeft, scrollTop } = box;
-      queueMicrotask(() => box.scrollTo(scrollLeft, scrollTop));
       box.innerHTML = '';
       for (const it of list) {
         const locked = !canUse(kind, it.id, owned);

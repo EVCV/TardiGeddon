@@ -2,6 +2,7 @@
 // match setup (teams, CPU skill, game style plus a Customise panel), the
 // Play buttons and the career panel.
 
+import { keepPlaceAfter } from './scroll';
 import { mascotSvg } from './mascot';
 import { emblemSvg } from '../render/emblems';
 import { CPU_SKILLS, type CpuSkill } from '../ai/skills';
@@ -237,6 +238,7 @@ export function buildLobby(
 
   let profiles = loadProfiles();
   const renderSlots = () => {
+    keepPlaceAfter(root);
     slots.innerHTML = '';
     players.forEach((cpu, i) => {
       const p = profiles[i];
@@ -324,6 +326,7 @@ export function buildLobby(
 
   const renderPanel = () => {
     const sc = current();
+    keepPlaceAfter(root);
     panel.innerHTML = '';
     for (const base of FIELDS) {
       const label = document.createElement('label');
@@ -521,3 +524,4 @@ export function buildLobby(
     },
   };
 }
+

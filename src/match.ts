@@ -677,6 +677,7 @@ export class Match {
     else if (who) this.hud.showBanner(t("{name}'s turn!", { name: tardiLabel(who) || teamLabel(team) }), shown(team.color));
     this.renderer.camera.manualUntil = 0;
     this.renderer.camera.held = false;
+    this.renderer.camera.heldAt = null;
   }
 
   private attachPointer(): void {

@@ -3,6 +3,7 @@
 // this player sees or hears them. Free looks and owned ones can be chosen;
 // shop ones show their price and open the Shop.
 
+import { keepPlaceAfter } from './scroll';
 import { ARENAS, SURPRISE_ARENA, arenaTheme } from '../render/arenas';
 import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import { TRACKS } from '../audio/music';
@@ -52,9 +53,8 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
   const section = (title: string, hint: string, kind: ItemKind, list: Option[], current: () => string, choose: (id: string) => void) => {
     const grid = el('div', 'editor-hats');
     const draw = () => {
-      // Redrawn after every pick: the row stays scrolled where it was, not back at the start.
-      const { scrollLeft, scrollTop } = grid;
-      queueMicrotask(() => grid.scrollTo(scrollLeft, scrollTop));
+      // Redrawn after every pick: everything stays scrolled where it was.
+      keepPlaceAfter(overlay);
       grid.innerHTML = '';
       const owned = ownedItems();
       // Shop looks are only advertised when accounts are on.
