@@ -37,6 +37,7 @@ The iOS app plan: `docs/IOS.md`.
 - `server/accounts.ts` + `src/account/` + `src/shop/` — optional accounts (Better Auth on Neon Postgres) and the
   Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
 - `src/native.ts` — what differs in the phone apps (back button, no Stripe in-app). Coins in the Android app: Google Play Billing (`src/shop/playBilling.ts` + `android/.../PlayBillingPlugin.java`; the server checks and grants each purchase in `server/googlePlay.ts`, never the app). See `docs/GOOGLE_PLAY.md` §7. Coins in the iOS app: Apple's in-app purchase (`src/shop/appStore.ts` + `ios/.../AppStorePlugin.swift`; the server checks Apple's signature and grants in `server/appStore.ts`); `src/shop/storeBilling.ts` fronts both stores. See `docs/IOS.md` §3.
+- `src/usage/` + `server/usage.ts` — anonymous play statistics (daily totals, no IDs, no cookies; Settings → Privacy turns them off). Only values from `src/usage/catalog.ts`, never free text; keep `site/legal/` and the store answers in step. See `docs/USAGE.md`.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
   Runs on one machine only (host), so it may use non-deterministic code.
 - Weapons are data in `src/sim/weapons.ts`.

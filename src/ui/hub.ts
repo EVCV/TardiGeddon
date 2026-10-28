@@ -4,6 +4,7 @@
 // server has accounts turned on (docs/ACCOUNTS.md).
 
 import { keepPlace } from './scroll';
+import { usage } from '../usage/usage';
 import { closeNewThing, newThing, newThingSeen } from './drops';
 import { seasonSky } from './seasonSky';
 import { renderGuidePage } from './guide';
@@ -142,6 +143,7 @@ export function showHub(
     if (!shell.isConnected) return;
     tab = to;
     status = msg;
+    usage('page', { page: to });
     // A track being tried in the shop stops when you leave it.
     if (to !== 'shop') previewMusic(null);
     if (to === 'lobby') lobby = null; // rebuilt fresh

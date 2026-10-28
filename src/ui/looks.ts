@@ -3,6 +3,7 @@
 // this player sees or hears them. Free looks and owned ones can be chosen;
 // shop ones show their price and open the Shop.
 
+import { usage } from '../usage/usage';
 import { keepPlaceAfter } from './scroll';
 import { ARENAS, SURPRISE_ARENA, arenaTheme } from '../render/arenas';
 import { currentSeason, seasonArenaOpen } from '../render/seasons';
@@ -43,6 +44,7 @@ export function arenaLabel(): string {
 
 /** Open the picker. `onShop` leaves for the Shop, `onCoins` for its coin packs; `onChange` redraws the lobby. */
 export function openLooks(host: HTMLElement, onShop: () => void, onChange: () => void, onCoins: () => void = onShop): void {
+  usage('page', { page: 'looks' });
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor looks');
   box.setAttribute('role', 'dialog');

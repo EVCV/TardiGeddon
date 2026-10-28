@@ -47,6 +47,8 @@ import { ANGLE_FULL } from './sim/math/trig';
 import { t } from './i18n/i18n';
 import { noteMatchForReview } from './review';
 import { cpuForm, noteCpuResult } from './ai/form';
+import { flushUsage, usage } from './usage/usage';
+import type { USAGE_MODES } from './usage/catalog';
 
 const TICK_MS = 1000 / TICK_RATE;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
@@ -108,6 +110,11 @@ export class Match {
   private pinchDist = 0;
   private over = false;
   private destroyed = false;
+  /** Anonymous statistics (docs/USAGE.md): how this match counts (null: not counted, e.g. a replay), its CPU skill, when it began, and the player's shots per weapon. */
+  private usageMode: (typeof USAGE_MODES)[number] | null = null;
+  private usageSkill = '-';
+  private startedAt = performance.now();
+  private shots = new Map<string, number>();
   private tickerFn = () => this.frame();
   private keyHooks: KeyboardHooks = {
     onWeaponPanel: () => this.hud.togglePanel(),
@@ -149,12 +156,16 @@ export class Match {
       // Against the CPU on your own, it keeps the games close (src/ai/form.ts).
       const form = this.tally ? cpuForm() : 0;
       for (const tm of this.local.teams) if (tm.cpu) this.cpu.set(tm.id, new CpuPlayer(setup.cpuSkill, undefined, form));
+      const vsCpu = setup.players.some(Boolean);
+      this.usageMode = this.local.race ? 'race' : vsCpu ? 'cpu' : 'hotseat';
+      if (vsCpu) this.usageSkill = setup.cpuSkill;
     } else if (mode.kind === 'tutorial') {
       const p = loadProfiles()[0];
       const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       this.local = createWorld(tutorialWorld(you));
       this.cpu.set(1, new TutorialDummy());
       this.coach = new Coach(touchMode, { onMenu, onAgain });
+      this.usageMode = 'tutorial';
     } else if (mode.kind === 'challenge') {
       // Today's challenge: the same world for everyone; our team's looks are our own.
       const p = loadProfiles()[0];
@@ -162,6 +173,7 @@ export class Match {
       const day = challengeDay();
       this.challenge = new ChallengeRun(mode.challenge, day);
       this.local = createWorld(challengeWorld(mode.challenge, day, you));
+      this.usageMode = mode.challenge;
     } else if (mode.kind === 'replay') {
       // Watching a replay: the world as it began, and the frames played on it (checked, as they may come from a file).
       this.local = decodeWorld(mode.replay.start);
@@ -172,11 +184,14 @@ export class Match {
       const you: TeamConfig = { name: p.name, color: p.color, ...wornLooks(p), names: matchNames(p, 0), cpu: false, charge: chargeStyle(controls()) };
       this.local = createWorld(practiceWorld(you, myUnlockedWeapons(), (Math.random() * 1e9) | 0, mode.endless));
       this.cpu.set(1, dummyPlayer);
+      this.usageMode = 'practice';
     } else {
       this.net = { client: mode.client, ls: mode.ls };
       this.listenNet();
+      if (mode.ls.you >= 0) this.usageMode = 'online';
     }
 
+    if (this.usageMode) usage('match', { mode: this.usageMode, skill: this.usageSkill });
     // Chosen once: "Surprise me" must not change the world when the view is rebuilt mid-match.
     // Online, the host may have picked the world for everyone.
     this.theme = arenaTheme(this.state.scheme.arena ?? wearArena());
@@ -442,6 +457,7 @@ export class Match {
         tick(s, input, this.events);
         const fresh = this.events.slice(from);
         this.recorder.after(fresh);
+        if (human && !pb) this.countShots(fresh);
         this.tally?.add(s, fresh);
         this.statsFor(s).add(s, fresh);
         if (this.challenge && this.challenge.played(s, input, fresh)) this.finishChallenge(s);
@@ -517,6 +533,7 @@ export class Match {
   /** Online: play one frame from the server, recording it and counting its events. */
   private netStep(ls: Lockstep): void {
     const from = this.events.length;
+    const mine = ls.myTurn;
     ls.onFrame = (st, f) => {
       this.recorder.before(st, f);
       this.matchRec.frame(f);
@@ -524,7 +541,25 @@ export class Match {
     ls.step(this.events);
     const fresh = this.events.slice(from);
     this.recorder.after(fresh);
+    if (mine) this.countShots(fresh);
     this.statsFor(ls.state).add(ls.state, fresh);
+  }
+
+  /** The player's own shots, by weapon (anonymous statistics). */
+  private countShots(fresh: SimEvent[]): void {
+    for (const e of fresh) if (e.t === 'fire') this.shots.set(e.weapon, (this.shots.get(e.weapon) ?? 0) + 1);
+  }
+
+  /** The match is over, or being left: count how it went, how long it took and the shots (docs/USAGE.md). Once. */
+  private usageEnd(outcome: 'won' | 'lost' | 'draw' | 'done' | 'left'): void {
+    const mode = this.usageMode;
+    if (!mode) return;
+    this.usageMode = null;
+    usage('result', { mode, skill: this.usageSkill, outcome });
+    const secs = (performance.now() - this.startedAt) / 1000;
+    if (secs >= 1) usage('playtime', { mode }, secs);
+    for (const [weapon, n] of this.shots) usage('weapon', { weapon }, n);
+    flushUsage();
   }
 
   /** Online: send our inputs on our turn, and play the frames the server sends. */
@@ -636,6 +671,9 @@ export class Match {
             // A sad trombone when you lost: a draw, a CPU win, or (online) someone else won.
             const youLost = e.winner < 0 || (this.net ? e.winner !== this.net.ls.you : this.state.teams[e.winner].cpu);
             if (youLost && !(this.net && this.net.ls.you < 0)) sfx.wahwah();
+            // Only matches against someone have a winner for the player; the rest are just done.
+            const m = this.usageMode;
+            this.usageEnd(m !== 'cpu' && m !== 'online' ? 'done' : e.winner < 0 ? 'draw' : youLost ? 'lost' : 'won');
             if (this.tally) {
               noteCpuResult(e.winner === 0);
               void reportCpuMatch({ won: e.winner === 0, ...this.tally.teams[0] }).then((slime) => {
@@ -825,6 +863,7 @@ export class Match {
 
   destroy(): void {
     this.destroyed = true;
+    this.usageEnd('left');
     onEggFound(null);
     this.offNet?.();
     if (this.net) this.net.client.onDrop = null;

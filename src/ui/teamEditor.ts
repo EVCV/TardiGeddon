@@ -1,5 +1,6 @@
 // Team editor: team name, colour, hat and tardi names, with a live preview.
 
+import { usage } from '../usage/usage';
 import { keepPlaceAfter } from './scroll';
 import { MAX_NUMBERS, NAME_PROBLEM_TEXT, nameProblem, numbersIn } from '../names';
 import { mascotSvg } from './mascot';
@@ -35,6 +36,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
  * closing without saving changes nothing.
  */
 export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfile, onSave: (p: TeamProfile) => void): void {
+  usage('page', { page: 'team' });
   let draft: TeamProfile = { ...start, names: [...start.names] };
   if (!canUse('hat', draft.hat, ownedItems())) draft.hat = 'beanie';
   if (!canUse('skin', draft.skin, ownedItems())) draft.skin = 'classic';

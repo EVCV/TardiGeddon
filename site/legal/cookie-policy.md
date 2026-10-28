@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 22 October 2026
-**Document Version:** v1.6
+**Last Modified:** 28 October 2026
+**Document Version:** v1.7
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to EVCV Limited and, wher
 
 ## Introduction
 
-This policy explains what cookies and similar technologies are, and how TardiGeddon uses them. The short version: we do not use advertising trackers, and our visit statistics (Cloudflare Web Analytics) use no cookies and store nothing on your device. The game uses your browser's local storage to remember the settings you choose, and, only if you sign in to an account, a cookie that keeps you signed in. All of this is strictly necessary for features you ask for, so it does not need a consent banner.
+This policy explains what cookies and similar technologies are, and how TardiGeddon uses them. The short version: we do not use advertising trackers, and our visit statistics (Cloudflare Web Analytics) and the game's anonymous play statistics use no cookies and store nothing on your device. The game uses your browser's local storage to remember the settings you choose, and, only if you sign in to an account, a cookie that keeps you signed in. All of this is strictly necessary for features you ask for, so it does not need a consent banner.
 
 ---
 
@@ -47,7 +47,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 2.1 Performance, Analytics, Targeting and Advertising
 
-2.1.1 We do not use performance, analytics, targeting, or advertising cookies or similar technologies. We count visits with Cloudflare Web Analytics, which does not set cookies or use your browser's storage (see our Privacy Policy, Section 2.4), so there is nothing for it in the table below.
+2.1.1 We do not use performance, analytics, targeting, or advertising cookies or similar technologies. We count visits with Cloudflare Web Analytics, which does not set cookies or use your browser's storage (see our Privacy Policy, Section 2.4), so there is nothing for it in the table below. The game also sends anonymous play statistics to our own server (Privacy Policy, Sections 2.4.3 to 2.4.5). They use no cookies and store nothing on your device; the only storage involved is your choice, if you turn them off in Settings → Privacy (`tardigeddon.shareUsage` below), so that we respect it.
 
 ## Section 3 — Specific Storage We Use
 
@@ -69,6 +69,14 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.lang` | Local storage | TardiGeddon (first party) | The language you chose in Settings (only set if you pick one rather than your device's) | Strictly necessary | Until you change it or clear site data |
 | `tardigeddon.replays` | Local storage | TardiGeddon (first party) | Your last few matches (the rules, team looks and moves), so you can watch them again in Replays | Strictly necessary | Until you delete them or clear site data |
 | `tardigeddon.maps` | Local storage | TardiGeddon (first party) | The maps you saved in the map editor | Strictly necessary | Until you delete them or clear site data |
+| `tardigeddon.access` | Local storage | TardiGeddon (first party) | Your accessibility settings (colour-blind friendly colours, high contrast, sound captions, help prompts, calmer effects) | Strictly necessary | Until you change it or clear site data |
+| `tardigeddon.cpuForm` | Local storage | TardiGeddon (first party) | How your recent matches against the computer player went (a run of wins or losses, as one number), so it can keep games close | Strictly necessary | Until you clear site data |
+| `tardigeddon.newSeen` | Local storage | TardiGeddon (first party) | Which "new" banners in the menu you have closed, so they stay closed | Strictly necessary | Until you clear site data |
+| `tardigeddon.eggs` | Local storage | TardiGeddon (first party) | Which hidden surprises in the game you have found, for the Guide | Strictly necessary | Until you clear site data |
+| `tardigeddon.review` | Local storage | TardiGeddon (first party) | How many matches you have played, on how many days, and when the game last suggested leaving a review, so it asks rarely | Strictly necessary | Until you clear site data |
+| `tardigeddon.invite` | Local storage | TardiGeddon (first party) | A friend's invite code from a link you opened, until you have an account to use it with | Strictly necessary | Until it is used or you clear site data |
+| `tardigeddon.appSignIn` | Local storage | TardiGeddon (first party) | In our apps, a one-use code that checks a sign-in in your phone's browser came back to the app that started it | Strictly necessary | Until the sign-in finishes |
+| `tardigeddon.shareUsage` | Local storage | TardiGeddon (first party) | That you turned off "Share anonymous statistics" in Settings, so the game sends none. Only set if you turn them off | Strictly necessary | Until you turn them back on or clear site data |
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
 | `__Secure-better-auth.session_token` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Keeps you signed in to your account. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
 | `__Secure-better-auth.state` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Protects sign-in with Google or Apple from forgery. Only set while you sign in with them | Strictly necessary | 5 minutes |
@@ -98,7 +106,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 5.2 Do Not Track Signals
 
-5.2.1 Some browsers offer a "Do Not Track" (DNT) signal. As we do not track you, there is nothing for this signal to switch off. If you would rather not be counted in our visit statistics at all, browser privacy settings or extensions that block cloudflareinsights.com will stop it; the game works the same either way.
+5.2.1 Some browsers offer a "Do Not Track" (DNT) or "Global Privacy Control" (GPC) signal. We do not track you, but we respect both: while your browser sends either, the game sends no play statistics at all. If you would rather not be counted in our visit statistics at all, browser privacy settings or extensions that block cloudflareinsights.com will stop it; the game works the same either way.
 
 ## Section 6 — Legal Basis
 

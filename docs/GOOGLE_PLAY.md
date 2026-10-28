@@ -224,6 +224,13 @@ account), purpose **App functionality** and **Account management**:
 | App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites and creator codes (which account invited which, or which creator's code a player used, for the rewards and the creator's share), the Founder or Early bird badge (seen by other players online), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
+Also tick **App activity → App interactions** for the anonymous play counts
+(`docs/USAGE.md`: pages opened, matches and how long, shots per weapon, as
+daily totals with no IDs): collected, not shared, **not** ephemeral (daily
+totals are kept 25 months), **optional** (Settings → Privacy turns them
+off), purpose **Analytics**. Not linked to an account, but Google's form
+has no "anonymous" box, so declare them rather than leave them out.
+
 Also tick **App activity → Other user-generated content** (team and
 tardigrade names shown to other players in online play, and a map from the
 map editor when a host plays it online; the server keeps a map only for that

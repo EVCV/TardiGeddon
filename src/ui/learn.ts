@@ -1,6 +1,7 @@
 // Light bits of the tutorial and practice for the menu: whether the tutorial
 // was seen, and the practice chooser (the matches themselves are in tutorial.ts).
 
+import { usage } from '../usage/usage';
 import { t } from '../i18n/i18n';
 
 const DONE_KEY = 'tardigeddon.tutorial';
@@ -30,6 +31,7 @@ export const PRACTICE_TARGETS = 10;
  * targets that keep coming back until you quit. Shown over the menu.
  */
 export function choosePractice(host: HTMLElement, onPick: (endless: boolean) => void): void {
+  usage('page', { page: 'practice' });
   const overlay = document.createElement('div');
   overlay.className = 'editor-overlay';
   const box = document.createElement('div');

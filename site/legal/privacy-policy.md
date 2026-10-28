@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 25 October 2026
-**Document Version:** v2.9
+**Last Modified:** 28 October 2026
+**Document Version:** v2.10
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -25,7 +25,7 @@ Any reference in this document to "the Company" refers to EVCV Limited and, wher
 
 ## Introduction
 
-This Privacy Policy explains what information TardiGeddon uses, why, and the rights you have. In short: there are no adverts and no tracking, we count visits only in a privacy-friendly way that uses no cookies, and you can play everything without an account. The game remembers your settings on your own device, and our online game server only uses what it needs to run the match you are playing, then forgets it. If you choose to create an account, we keep your email address and player name so your shop items follow you to any device, and if you buy something we keep a record of the purchase. Accounts and the shop are being introduced; this Policy describes how they work once they are available.
+This Privacy Policy explains what information TardiGeddon uses, why, and the rights you have. In short: there are no adverts and no tracking, we count visits and how the game is played only as anonymous totals that use no cookies (and you can turn the game's counts off), and you can play everything without an account. The game remembers your settings on your own device, and our online game server only uses what it needs to run the match you are playing, then forgets it. If you choose to create an account, we keep your email address and player name so your shop items follow you to any device, and if you buy something we keep a record of the purchase. Accounts and the shop are being introduced; this Policy describes how they work once they are available.
 
 ---
 
@@ -110,11 +110,17 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.3.5 With your account we also keep a record of where the coins in your wallet came from: which purchase (or bonus) each batch of coins came from, its country and what it cost, and how many of those coins you have not spent yet. We use it to keep your wallet correct when a purchase is refunded or a gift is cancelled, and to meet the law in countries that treat unspent paid coins as prepaid credit, such as Japan's Payment Services Act, which requires us to know the value of unspent coins bought by players in Japan. It is deleted with your account.
 
-### 2.4 Visit Statistics
+### 2.4 Visit and Play Statistics
 
 2.4.1 We use Cloudflare Web Analytics to count how many people visit the Website and the game, which pages they open, roughly which country they are in, what kind of device and browser they use, which website (if any) sent them to us, and how quickly pages load. When a page loads, a small script from Cloudflare sends these details, together with your device's IP address as part of the connection, to Cloudflare.
 
 2.4.2 Cloudflare Web Analytics does not use cookies or store anything on your device, and does not follow you between visits or across other websites. We only see totals (for example, "200 visits from the UK today"); we cannot see who you are or pick out any one person's visits.
+
+2.4.3 The game itself (on the Website and in our apps) also counts how it is played, so that we can improve it: that it was opened, with the kind of app (Website, Android app or iOS app), the kind of device (phone, tablet or computer) and the game's language; how long it stays on screen at a time; which menu pages are opened; which kinds of match are started, how long they last and how they end (won, lost, a draw, finished, or left early), with the computer player's skill level; and how many shots are fired with each weapon.
+
+2.4.4 These counts only ever contain values from a fixed list, which our server checks. They never include your name, your team or tardigrade names, your account, the exact time, or any identifier for you or your device. The game sends them to our own game server about once a minute, and when you leave the game, without cookies, and it stores nothing on your device to do so. Our server adds them straight away to totals for the day (for example, "40 matches against the Normal computer player today, 21 won by the player") and does not record the IP address they came from. So we cannot see who you are, pick out any one player's counts, follow a player from one day to the next, or link the counts to an account.
+
+2.4.5 You can turn the game's counts off at any time in Settings → Privacy → "Share anonymous statistics". They are also never sent while your browser sends a Global Privacy Control or Do Not Track signal. If you turn them off, the game remembers that choice on your device (see our Cookie & Storage Policy).
 
 ### 2.5 Information You Send Us
 
@@ -122,7 +128,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 ### 2.6 Information We Do Not Collect
 
-2.6.1 We do not use advertising or tracking technologies, and the only analytics we use are the cookie-free visit statistics described in Section 2.4. The only cookies we use are the strictly necessary sign-in cookies described in our Cookie & Storage Policy, and only if you sign in. We do not ask for your age, location, or contact list, and you can play without giving us your name or email address. The game's fonts and code are served from our own Website, so playing does not send your data to font or analytics services.
+2.6.1 We do not use advertising or tracking technologies, and the only analytics we use are the cookie-free visit and play statistics described in Section 2.4. The only cookies we use are the strictly necessary sign-in cookies described in our Cookie & Storage Policy, and only if you sign in. We do not ask for your age, location, or contact list, and you can play without giving us your name or email address. The game's fonts and code are served from our own Website, so playing does not send your data to font or analytics services.
 
 2.6.2 We do not intentionally collect special category personal data (such as data concerning health, religion, or sexual orientation), and you should not include any in your Team Details or messages to us.
 
@@ -138,7 +144,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 3.0.4 To respond to your emails and requests.
 
-3.0.5 To understand, in total, how many people visit the Website and play the game and how well pages load, so that we can improve them (Section 2.4).
+3.0.5 To understand, in total, how many people visit the Website and play the game, how the game is played (for example, which features are used, how long matches last and whether the computer player is too easy or too hard) and how well pages load, so that we can improve them (Section 2.4).
 
 3.0.6 If you create an account: to sign you in, keep your account secure, keep track of the shop items you own on every device, and let you delete your account.
 
@@ -150,7 +156,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 3.1.1 Performance of a contract: providing the game and the online matches you ask to play, your account if you create one, and the items you buy (Sections 3.0.1, 3.0.2, 3.0.6 and 3.0.7).
 
-3.1.2 Legitimate interests: keeping the Services and accounts secure and fair, preventing payment fraud, answering your messages, and counting visits so we can improve the Services (Sections 3.0.3, 3.0.4, 3.0.5 and 3.0.7). These interests do not override your rights, because we use very little data and keep it only as long as described in Section 5.
+3.1.2 Legitimate interests: keeping the Services and accounts secure and fair, preventing payment fraud, answering your messages, and counting visits and how the game is played so we can improve the Services (Sections 3.0.3, 3.0.4, 3.0.5 and 3.0.7). You can object to the game's play statistics at any time by turning them off (Section 2.4.5). These interests do not override your rights, because we use very little data and keep it only as long as described in Section 5.
 
 3.1.3 Legal obligation: where we must keep or disclose information by law, including keeping records of sales for tax purposes (Section 3.0.8).
 
@@ -162,7 +168,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 4.0.1 Other players in your online match, who see your Team Details and the effects of your moves.
 
-4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files, and provides our visit statistics), Fly.io, Inc. (which runs the online game server in its London region) and Neon (which hosts our account database in London, on Amazon Web Services). They process data such as IP addresses and, for Neon, the account and purchase data described in Sections 2.2 and 2.3, to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
+4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files, and provides our visit statistics), Fly.io, Inc. (which runs the online game server in its London region, which also receives the game's play statistics) and Neon (which hosts our account database, and the daily totals of play statistics, in London, on Amazon Web Services). They process data such as IP addresses and, for Neon, the account and purchase data described in Sections 2.2 and 2.3, to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
 
 4.0.3 20i Limited, a UK company, acting as our processor, which sends the account emails described in Section 2.2.5 on our behalf from its mail servers in the United Kingdom. It receives your email address, your player name and the content of the email, and keeps delivery logs for a limited time under its own policies.
 
@@ -206,7 +212,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, and Google for purchases in the Android app, keep their own records under their privacy policies.
 
-5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies.
+5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies. The game's play statistics are only ever kept as daily totals, which are deleted after 25 months.
 
 5.1.8 Player reports (Section 2.1.6): for up to 24 months after we have dealt with them, so we can spot repeated problems, unless the law requires longer.
 

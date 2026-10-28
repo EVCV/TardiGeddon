@@ -40,6 +40,7 @@ import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 export type { MeResponse };
 import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
 import { sanitiseControls } from '../src/input/controls';
+import { migrateUsage, usageCounter } from './usage';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
 import { appStoreAccountToken, appStoreApi, REVOKED_NOTIFICATIONS, type AppStoreApi, type AppStoreEnv } from './appStore';
 
@@ -247,6 +248,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
   const { runMigrations } = await getMigrations(options);
   await runMigrations();
   await migrate(db);
+  await migrateUsage(db);
+  // Anonymous play statistics (docs/USAGE.md).
+  const usage = usageCounter(db);
   await migrateChallenges(db);
   await migrateFriends(db);
   await migrateCreators(db);
@@ -369,6 +373,25 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const origin = req.headers.origin;
     const type = req.headers['content-type'] ?? '';
     return typeof origin === 'string' && origins.has(origin) && type.startsWith('application/json');
+  }
+
+  /**
+   * Anonymous counts from the game (docs/USAGE.md). Sent as plain text, so the
+   * browser needs no preflight; only from the game's own pages. Nothing about
+   * the sender is read: not the cookie, the account or the address.
+   */
+  async function usageReport(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const origin = req.headers.origin;
+    if (typeof origin !== 'string' || !origins.has(origin)) return json(res, 403, { error: tk('Please use the game at tardigeddon.com.') });
+    let body: unknown;
+    try {
+      body = JSON.parse((await readBody(req)).toString('utf8'));
+    } catch {
+      return json(res, 400, { error: tk('Bad request.') });
+    }
+    usage.add(body);
+    res.writeHead(204, { 'cache-control': 'no-store' });
+    res.end();
   }
 
   function json(res: ServerResponse, status: number, body: unknown): void {
@@ -1028,6 +1051,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
         if (req.method === 'OPTIONS') {
           res.writeHead(204);
           res.end();
+        } else if (path === '/api/usage' && req.method === 'POST') {
+          await usageReport(req, res);
         } else if (req.method === 'POST' && !path.startsWith('/api/auth/') && !fromGame(req)) {
           // Our own POSTs (shop, stats) only from the game's own pages, as JSON: a page on
           // another site, even one on a sibling subdomain, can't spend a player's coins.
@@ -1112,6 +1137,10 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
           const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
           if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: tk('Not found.') });
           else json(res, 200, await salesReport(db, [1, 7, 30, 365].includes(days) ? days : 0, jpyPerGbp));
+        } else if (path === '/api/admin/usage' && req.method === 'GET') {
+          const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
+          if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: tk('Not found.') });
+          else json(res, 200, await usage.report([1, 7, 30, 365].includes(days) ? days : 0));
         } else if (path === '/api/settings' && req.method === 'POST') {
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
@@ -1190,6 +1219,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       clearInterval(purge);
       clearInterval(voidedTimer);
       clearInterval(japanTimer);
+      usage.close();
+      await usage.save().catch((e) => console.error('usage save failed', e));
       await db.end();
     },
   };
