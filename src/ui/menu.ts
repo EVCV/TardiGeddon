@@ -140,6 +140,8 @@ export interface Lobby {
   refresh: () => void;
   /** Phones: back from a sub-screen (match setup) to the lobby's home screen; false if already there. */
   back: () => boolean;
+  /** Open the World, music and sounds picker. */
+  looks: () => void;
 }
 
 export function buildLobby(
@@ -428,7 +430,8 @@ export function buildLobby(
     const ends = lang() === 'en' ? seasonEnds(season) : new Date(2000, season.to[0] - 1, season.to[1]).toLocaleDateString(lang(), { day: 'numeric', month: 'short' });
     p.textContent = `${season.emoji} ${t('{season}! The {world} world is free until {date}.', { season: t(season.name), world: t(arenaTheme(season.arena).name), date: ends })}`;
   }
-  root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = () => openLooks(overlayHost(root), () => go('shop'), renderLooks, onCoins);
+  const looks = () => openLooks(overlayHost(root), () => go('shop'), renderLooks, onCoins);
+  root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = looks;
   const nav = root.querySelector<HTMLElement>('.lobby-nav')!;
   const renderNav = () => {
     const { me } = account();
@@ -522,6 +525,7 @@ export function buildLobby(
       show('home');
       return true;
     },
+    looks,
   };
 }
 

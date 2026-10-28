@@ -4,6 +4,7 @@
 // server has accounts turned on (docs/ACCOUNTS.md).
 
 import { keepPlace } from './scroll';
+import { closeNewThing, newThing, newThingSeen } from './drops';
 import { renderGuidePage } from './guide';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
@@ -94,8 +95,10 @@ export function showHub(
   bar.append(barInner);
   const notice = el('div', 'hub-notice hidden');
   notice.setAttribute('role', 'status');
+  // Something new (a seasonal world, new looks in the Shop): until it's closed.
+  const news = el('div', 'hub-news hidden');
   const page = el('main', 'hub-page');
-  shell.append(bar, notice, page, footer());
+  shell.append(bar, notice, news, page, footer());
   root.append(shell);
   // The menu's own theme (it starts after the first tap or key press: browsers block sound before that).
   playMusic('menu');
@@ -232,6 +235,27 @@ export function showHub(
         ctx.notify('');
       };
       notice.append(x);
+    }
+
+    const fresh = tab === 'lobby' ? newThing() : null;
+    news.innerHTML = '';
+    news.classList.toggle('hidden', !fresh || newThingSeen(fresh.id));
+    shell.classList.toggle('has-news', !news.classList.contains('hidden'));
+    if (fresh && !newThingSeen(fresh.id)) {
+      const look = el('button', 'hud-btn hub-news-go', t('Take a look'));
+      look.onclick = () => {
+        closeNewThing(fresh.id);
+        if (fresh.open === 'looks') lobby?.looks();
+        else go('shop');
+        render();
+      };
+      const x = el('button', 'hub-notice-x', '×');
+      x.setAttribute('aria-label', t('Dismiss'));
+      x.onclick = () => {
+        closeNewThing(fresh.id);
+        render();
+      };
+      news.append(el('span', '', fresh.text), look, x);
     }
 
     if (tab === 'lobby') {
