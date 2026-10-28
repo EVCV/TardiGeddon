@@ -164,3 +164,22 @@ test('counts the way to Get coins: the button tapped and the pack chosen, nothin
   expect(entries.some((x) => x.e === 'coinstap' && /^from=(banner|nav)$/.test(x.d))).toBe(true);
   expect(entries).toContainEqual({ e: 'coinspack', d: 'pack=coins:200', n: 1 });
 });
+
+test("a load that spent time in the background isn't timed", async ({ page }) => {
+  const sent = await catchReports(page);
+  // Hidden while the game starts, then shown again before the menu appears.
+  await page.addInitScript(() => {
+    let state: DocumentVisibilityState = 'hidden';
+    Object.defineProperty(document, 'visibilityState', { get: () => state });
+    // (Once the game's code has loaded, but before the menu is up.)
+    document.addEventListener('DOMContentLoaded', () => {
+      state = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  });
+  await page.goto('/');
+  await expect(page.locator('.hub')).toBeVisible();
+  await leave(page);
+  await expect.poll(() => sent.length).toBeGreaterThan(0);
+  expect(entriesOf(sent).some((x) => x.e === 'load')).toBe(false);
+});

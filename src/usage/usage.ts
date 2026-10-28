@@ -130,8 +130,27 @@ function watchErrors(): void {
   addEventListener('unhandledrejection', () => usageError('promise'));
 }
 
-/** Count how long something took to load (from `since`, a performance.now() time; 0 = opening the page). */
+/** When the page was last hidden (performance.now() time), so loads that spent time in the background aren't timed. */
+let lastHidden = -1;
+if (typeof document !== 'undefined') {
+  if (document.visibilityState !== 'visible') lastHidden = performance.now();
+  // Hidden before this code loaded: the browser's own record, where it keeps one (not Safari).
+  try {
+    for (const e of performance.getEntriesByType('visibility-state')) if (e.name === 'hidden') lastHidden = Math.max(lastHidden, e.startTime);
+  } catch {
+    // No such record here.
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') lastHidden = performance.now();
+  });
+}
+
+/**
+ * Count how long something took to load (from `since`, a performance.now()
+ * time; 0 = opening the page). Not if the page was hidden at any point
+ * meanwhile: a tab in the background waits, so its time says nothing.
+ */
 export function usageLoad(what: 'menu' | 'match', since: number): void {
-  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return; // a tab opened in the background waits, so its time says nothing
+  if (typeof document === 'undefined' || document.visibilityState !== 'visible' || lastHidden >= since) return;
   usage('load', { what, time: loadBucket(performance.now() - since), device: deviceClass() });
 }
