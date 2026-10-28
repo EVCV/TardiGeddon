@@ -425,8 +425,10 @@ review; external testers need a short beta review.
   the listing text, in `docs/STORE_LISTING.md`.
 - **App Privacy** labels: the same facts as Google's Data safety: email,
   name, user id, gameplay data, purchase history, user content (team names).
-  All **linked to the user**, **no tracking**, purpose App Functionality. No
-  tracking means no App Tracking Transparency prompt. Keep it in step with
+  All **linked to the user**, **no tracking**, purpose App Functionality.
+  Plus **Usage Data → Product Interaction** (the anonymous play counts,
+  `docs/USAGE.md`): **not linked to the user**, no tracking, purpose
+  **Analytics**. No tracking means no App Tracking Transparency prompt. Keep it in step with
   `site/legal/` (`CLAUDE.md`). Sign in with Apple adds nothing new (name,
   email).
 - **Privacy manifest** `ios/App/App/PrivacyInfo.xcprivacy`: no tracking,

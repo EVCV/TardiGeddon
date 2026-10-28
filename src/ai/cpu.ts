@@ -46,8 +46,8 @@ interface SkillDef {
 const SKILL_DEFS: Record<CpuSkill, SkillDef> = {
   beginner: { spread: 330, minMiss: 140, windSense: 0.5, powerErr: 70, aimErr: 2, wild: 0.3, moves: 0.3, human: true, arsenal: ['bazooka', 'grenade', 'cluster'] },
   easy: { spread: 330, windSense: 0.2, powerErr: 70, aimErr: 2, wild: 0.2, moves: 0.4, human: true },
-  normal: { spread: 45, windSense: 0.85, powerErr: 8, aimErr: 0, wild: 0.03, moves: 0.9, human: true },
-  hard: { spread: 25, windSense: 0.95, powerErr: 4, aimErr: 0, wild: 0, moves: 1, human: true },
+  normal: { spread: 34, windSense: 0.9, powerErr: 5, aimErr: 0, wild: 0, moves: 0.9, human: true },
+  hard: { spread: 20, windSense: 0.96, powerErr: 3, aimErr: 0, wild: 0, moves: 1, human: true },
   perfect: { spread: 0, windSense: 1, powerErr: 0, aimErr: 0, wild: 0, moves: 1, human: false },
 };
 
@@ -98,14 +98,31 @@ export class CpuPlayer {
   /** The weapons it used last (newest first): it likes a change. */
   private recent: string[] = [];
 
-  private readonly skill: SkillDef;
+  private readonly base: SkillDef;
+  private skill: SkillDef;
 
   constructor(
     skill: CpuSkill = 'normal',
     /** Time per tick for working out the shot (Infinity: all at once). */
     private sliceMs = SLICE_MS,
+    /**
+     * How the player has been doing against the CPU lately: +n after n wins in
+     * a row, -n after n losses. Now and then (more often the longer the run)
+     * it plays a turn a bit better, or a bit worse, to keep things close.
+     */
+    private form = 0,
   ) {
-    this.skill = SKILL_DEFS[skill] ?? SKILL_DEFS.normal;
+    this.base = SKILL_DEFS[skill] ?? SKILL_DEFS.normal;
+    this.skill = this.base;
+  }
+
+  /** This turn's skill: usually as chosen, sometimes nudged by the player's form. */
+  private turnSkill(): SkillDef {
+    const b = this.base;
+    if (!b.human || this.form === 0 || Math.random() >= Math.min(0.6, Math.abs(this.form) * 0.15)) return b;
+    return this.form > 0
+      ? { ...b, spread: b.spread * 0.55, windSense: Math.min(1, b.windSense + 0.08), powerErr: b.powerErr * 0.5 }
+      : { ...b, spread: b.spread * 1.7, windSense: b.windSense * 0.75, powerErr: b.powerErr * 1.5 };
   }
 
   next(s: WorldState): InputFrame {
@@ -118,6 +135,7 @@ export class CpuPlayer {
 
     if (this.planTurn !== turn.turnNumber) {
       this.planTurn = turn.turnNumber;
+      this.skill = this.turnSkill();
       this.plan = null;
       this.planning = null;
       this.walkFrames = null;
@@ -125,7 +143,8 @@ export class CpuPlayer {
       const mayMove = s.scheme.movement && turn.timer > MOVE_MIN_TICKS && Math.random() < this.skill.moves;
       this.moving = mayMove ? planMove(s, this.skill) : null;
       if (!this.moving) this.planning = choosePlan(s, this.skill, this.recent);
-      this.think = this.skill.human ? 50 + Math.floor(Math.random() * 40) : 40;
+      // A person looks round first: a couple of seconds before doing anything.
+      this.think = this.skill.human ? 90 + Math.floor(Math.random() * 70) : 40;
       this.step = 'face';
     }
     if (this.moving) {
@@ -149,7 +168,7 @@ export class CpuPlayer {
       if (f) return f;
       this.walkFrames = null;
       this.planning = choosePlan(s, this.skill, this.recent);
-      this.think = this.skill.human ? 25 + Math.floor(Math.random() * 25) : 15;
+      this.think = this.skill.human ? 45 + Math.floor(Math.random() * 40) : 15;
     }
     if (this.planning) {
       const end = performance.now() + this.sliceMs;
@@ -174,18 +193,18 @@ export class CpuPlayer {
 
     // Below Expert it takes its time like a person: a moment between turning
     // round, picking the weapon, aiming and firing.
-    const pause = () => {
-      if (this.skill.human) this.think = 8 + Math.floor(Math.random() * 18);
+    const pause = (min: number, more: number) => {
+      if (this.skill.human) this.think = min + Math.floor(Math.random() * more);
     };
     switch (this.step) {
       case 'face':
         this.step = 'weapon';
-        pause();
+        pause(25, 30); // then makes up its mind which weapon
         if (t.facing !== p.facing) return { held: p.facing === 1 ? BTN_RIGHT : BTN_LEFT, pressed: 0 };
         return EMPTY_INPUT;
       case 'weapon':
         this.step = 'aim';
-        pause();
+        pause(35, 45); // weapon in hand: lines up the shot
         if (turn.weapon !== p.weapon) return { held: 0, pressed: 0, cmd: { t: 'weapon', id: p.weapon } };
         return { held: 0, pressed: 0, cmd: { t: 'fuse', s: p.fuse } };
       case 'aim': {
@@ -193,7 +212,7 @@ export class CpuPlayer {
         const diff = p.aim - turn.aim;
         if (Math.abs(diff) > AIM_STEP * 2) return { held: diff > 0 ? BTN_UP : BTN_DOWN, pressed: 0 };
         this.step = 'fuse';
-        pause();
+        pause(20, 35); // a last look before firing
         return { held: 0, pressed: 0, cmd: { t: 'aim', facing: p.facing, aim: p.aim } };
       }
       case 'fuse':
@@ -214,7 +233,7 @@ export class CpuPlayer {
         if (WEAPONS[p.weapon].projectile?.homing && p.target && !turn.target) {
           return { held: 0, pressed: 0, cmd: { t: 'target', x: p.target.x, y: p.target.y } };
         }
-        if (WEAPONS[p.weapon].kind === 'instant') {
+        if (WEAPONS[p.weapon].kind === 'instant' || WEAPONS[p.weapon].kind === 'melee') {
           this.step = 'done';
           return { held: BTN_FIRE, pressed: 0 };
         }
@@ -386,6 +405,23 @@ function* choosePlan(live: WorldState, skill: SkillDef, recent: readonly string[
       best = { weapon: 'slideslam', facing: me.facing === 1 ? 1 : -1, aim: s.turn.aim, power: 0, fuse: 3 };
     }
   }
+  // Fire Punch: someone right beside it. A person would punch, not walk up
+  // and then fire across the map.
+  if (usable('firepunch')) {
+    const m = WEAPONS.firepunch.melee!;
+    for (const facing of [1, -1] as const) {
+      let score = 0;
+      for (const o of s.tardis) {
+        if (!o.alive || o.id === me.id) continue;
+        const ahead = (o.x - me.x) * facing;
+        if (ahead > -4 && ahead < m.reach && Math.abs(o.y - me.y) < 16) score += o.team === me.team ? -60 : scoreHit(s, o.x, o.y, 0, m.damage, me.team) + 15;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = { weapon: 'firepunch', facing, aim: s.turn.aim, power: 0, fuse: 3 };
+      }
+    }
+  }
   const enemies = s.tardis
     .filter((t) => t.alive && t.team !== me.team)
     .sort((a, b) => Math.hypot(a.x - me.x, a.y - me.y) - Math.hypot(b.x - me.x, b.y - me.y));
@@ -455,7 +491,7 @@ function* choosePlan(live: WorldState, skill: SkillDef, recent: readonly string[
     return best;
   }
   // Perfect play, and superweapon plans, go as chosen.
-  if (skill.spread === 0 || best.target || WEAPONS[best.weapon].kind === 'instant') return best;
+  if (skill.spread === 0 || best.target || WEAPONS[best.weapon].kind === 'instant' || WEAPONS[best.weapon].kind === 'melee') return best;
 
   const safe = cands.filter((c) => !c.ownGoal);
   let pick: Candidate | undefined;

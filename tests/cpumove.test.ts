@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { activeTardi, AIM_MAX, TARDI_R } from '../src/sim/world';
+import { describe, expect, it, vi } from 'vitest';
+import { createRng, rngFloat } from '../src/sim/math/prng';
+import { activeTardi, AIM_MAX, TARDI_R, tick } from '../src/sim/world';
 import type { WorldState } from '../src/sim/types';
-import { hopTo, ropeTo, walkTo } from '../src/ai/cpu';
+import { CpuPlayer, hopTo, ropeTo, walkTo } from '../src/ai/cpu';
 import { makeWorld, runUntilPhase } from './helpers';
 
 /** A flat floor at y=600 from x=100 to 1500 (water beyond), a 12px step at x=1150, the active tardi at x=1000. */
@@ -79,5 +80,32 @@ describe('CPU walking', () => {
     expect(w!.frames.some((f) => f.cmd?.t === 'weapon' && f.cmd.id === 'parachute')).toBe(true);
     expect(w!.hurt).toBe(0);
     expect(activeTardi(w!.end)!.y).toBeGreaterThan(550);
+  });
+});
+
+describe('CPU up close', () => {
+  it('punches an enemy standing right beside it, rather than firing across the map', () => {
+    const s = arena();
+    const me = activeTardi(s)!;
+    // An enemy just in front of it, everyone else far away.
+    const foe = s.tardis.find((o) => o.team !== me.team)!;
+    foe.x = me.x + 14;
+    s.tardis.forEach((o) => {
+      if (o !== me && o !== foe) o.x = 150 + o.id * 30;
+    });
+    me.facing = 1;
+    // Only the choice of weapon is being tested: no walking off first, and the same dice every time.
+    s.scheme.movement = false;
+    const rng = createRng(3);
+    vi.spyOn(Math, 'random').mockImplementation(() => rngFloat(rng));
+    const cpu = new CpuPlayer('normal', Infinity);
+    let weapon = '';
+    for (let i = 0; i < 2000 && s.turn.phase === 'aim'; i++) {
+      tick(s, cpu.next(s), []);
+      weapon = s.turn.weapon;
+    }
+    vi.restoreAllMocks();
+    expect(weapon).toBe('firepunch');
+    expect(foe.airborne || foe.pendingDmg > 0 || foe.hp < 100).toBe(true);
   });
 });

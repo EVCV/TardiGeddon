@@ -5,7 +5,8 @@ import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
-import { loadLang, t } from './i18n/i18n';
+import { lang, loadLang, t } from './i18n/i18n';
+import { startUsage, usage } from './usage/usage';
 import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount, saveInvite } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
@@ -18,7 +19,7 @@ import { loadProfiles } from './ui/teams';
 import type { CpuSkill } from './ai/skills';
 import { audioRunning, pauseAudio, unlockAudio } from './audio/mixer';
 import { refreshMusic } from './audio/music';
-import { attachNative, isNativeApp } from './native';
+import { attachNative, isNativeApp, platform } from './native';
 import { onStorePurchasesUpdated } from './shop/storeBilling';
 import type { MatchSetup } from './ui/menu';
 import type { ServerMsg } from './net/protocol';
@@ -41,6 +42,8 @@ async function boot(): Promise<void> {
     /* fall back to system font */
   }
   await langReady;
+  // Anonymous counts of what's used (docs/USAGE.md).
+  startUsage(platform(), lang());
 
   // Browsers only allow sound after a tap or key press: start the menu music on the first one.
   // A touch only counts once the finger lifts (pointerup / touchend / click), not on pointerdown,
@@ -101,6 +104,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     hub = null;
+    usage('page', { page: 'online' });
     const { showOnline } = await import('./ui/online');
     if (mine !== screen) return;
     onlineScreen = showOnline(ui, { onBack: menu, onStart: (c, ls) => void startOnline(c, ls) }, opts);

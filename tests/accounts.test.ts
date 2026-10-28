@@ -291,6 +291,19 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await post('/api/shop/unlock', { item: 'bundle:nope' }, cookie)).status).toBe(400);
   });
 
+  it('takes anonymous play counts from the game only, and shows their totals to the owner only', async () => {
+    await accounts.db.query('DELETE FROM usage_day');
+    const send = (body: unknown, origin = new URL(GAME).origin) =>
+      fetch(`${base}/api/usage`, { method: 'POST', headers: { origin, 'content-type': 'text/plain' }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+    const counts = { v: 1, entries: [{ e: 'page', d: 'page=shop', n: 2 }, { e: 'page', d: 'page=Sam', n: 1 }] };
+    expect((await send(counts)).status).toBe(204);
+    expect((await send(counts, 'https://elsewhere.example')).status).toBe(403);
+    expect((await send('not json{')).status).toBe(400);
+    // Only the owner sees the totals (checked with the sales page below).
+    const { cookie: someone } = await signUp('nosy@example.com');
+    expect((await fetch(`${base}/api/admin/usage?days=7`, { headers: { cookie: someone } })).status).toBe(404);
+  });
+
   it('shows the sales page to the owner only, once their email is confirmed', async () => {
     const sales = (cookie: string, days = 30) => fetch(`${base}/api/admin/sales?days=${days}`, { headers: { cookie } });
     const { cookie: someone } = await signUp('someone@example.com');
@@ -301,6 +314,10 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await sales(boss.cookie)).status).toBe(404);
     await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [boss.id]);
     expect((await me(boss.cookie)).admin).toBe(true);
+    // The anonymous play counts sent in the test above: the real page counted, the made-up one not.
+    const usage = (await (await fetch(`${base}/api/admin/usage?days=7`, { headers: { cookie: boss.cookie } })).json()) as { rows: { event: string; detail: string; count: number }[] };
+    expect(usage.rows).toContainEqual({ event: 'page', detail: 'page=shop', count: 2 });
+    expect(usage.rows.some((x) => x.detail.includes('Sam'))).toBe(false);
     const r = await sales(boss.cookie);
     expect(r.status).toBe(200);
     const report = (await r.json()) as SalesReport;

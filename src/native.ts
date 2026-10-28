@@ -9,6 +9,12 @@ export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform();
 }
 
+/** Which app this is: the website, or the Android or iOS app. */
+export function platform(): 'web' | 'android' | 'ios' {
+  const p = Capacitor.getPlatform();
+  return p === 'android' || p === 'ios' ? p : 'web';
+}
+
 /**
  * The web game's address, for links meant for other people (room invites).
  * The app's own address only exists inside the phone.

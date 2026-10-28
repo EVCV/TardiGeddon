@@ -15,6 +15,7 @@ import { TEXT_SIZES, deviceTextScale, maxScaleHere, setTextSize, textSize, uiSca
 import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
+import { setUsageSetting, usageBlockedByBrowser, usageSetting } from '../usage/usage';
 import { accessSettings, saveAccessSettings, type AccessSettings } from './access';
 import { TEAM_SYMBOLS } from '../render/palette';
 import { LANGS, isLang, lang, langSetting, setLangSetting, t } from '../i18n/i18n';
@@ -41,7 +42,7 @@ export interface SettingsState {
   section: Section | null;
 }
 
-type Section = 'language' | 'text' | 'access' | 'sound' | 'touch' | 'keys' | 'blocked' | 'about';
+type Section = 'language' | 'text' | 'access' | 'sound' | 'touch' | 'keys' | 'blocked' | 'privacy' | 'about';
 /** Icon and name (English: shown with t()). */
 const SECTIONS: [Section, string, string][] = [
   ['language', '🌐', tk('Language')],
@@ -51,6 +52,7 @@ const SECTIONS: [Section, string, string][] = [
   ['text', '🔤', tk('Text size')],
   ['access', '👁️', tk('Accessibility')],
   ['blocked', '🚫', tk('Blocked players')],
+  ['privacy', '🔒', tk('Privacy')],
   // Phones only: on bigger screens the hub's footer has these links.
   ['about', 'ℹ️', tk('About & legal')],
 ];
@@ -175,7 +177,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
   }
 
   const langCard = languageSettings();
-  root.append(status, langCard, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx, save), blockedSettings(ctx));
+  root.append(status, langCard, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx, save), blockedSettings(ctx), privacySettings(ctx));
 
   // One section at a time, beside the list of them (on a touch screen, touch controls first).
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -337,6 +339,41 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
   toggle('hints', t('Help prompts'), t('A line at the bottom of the screen in a match saying what to do next with the weapon in hand (“Tap the map where it should fall”).'));
   toggle('calm', t('Calmer effects'), t('No lightning flashes or other sudden flashes, and less movement in the menus. On by itself if your device asks for reduced motion.'));
   card.append(el('p', 'account-note', t('Only changes what you see on this device, never the match. Kept on this device.')));
+  return card;
+}
+
+/** Anonymous statistics (docs/USAGE.md): on unless turned off here, and never sent when the browser asks not to be tracked. */
+function privacySettings(ctx: HubContext): HTMLElement {
+  const card = el('section', 'card settings-privacy');
+  card.dataset.section = 'privacy';
+  card.append(el('h2', 'card-title', `🔒 ${t('Privacy')}`));
+  const blocked = usageBlockedByBrowser();
+  const on = usageSetting() && !blocked;
+  const row = el('div', 'access-row');
+  const b = el('button', 'seg-btn' + (on ? ' on' : ''), on ? t('On') : t('Off'));
+  b.setAttribute('role', 'switch');
+  b.setAttribute('aria-checked', String(on));
+  b.disabled = blocked;
+  const name = el('b', '', t('Share anonymous statistics'));
+  name.id = 'privacy-usage';
+  b.setAttribute('aria-labelledby', name.id);
+  const label = el('div', 'access-text');
+  label.append(
+    name,
+    el('span', 'account-note', t('Counts of what gets used, like how long matches last, which pages are opened and which weapons are fired, to help us improve the game. Never who you are: no account, no ID and no cookie, and nothing is kept on your device.')),
+  );
+  b.onclick = () => {
+    setUsageSetting(!on);
+    ctx.rerender();
+  };
+  row.append(label, b);
+  card.append(row);
+  if (blocked) card.append(el('p', 'account-note', t('Your browser asks websites not to track you, so nothing is sent.')));
+  const more = el('a', 'link-btn', t('How we use them (Privacy Policy)'));
+  more.href = LEGAL + 'privacy-policy';
+  more.target = '_blank';
+  more.rel = 'noopener';
+  card.append(more);
   return card;
 }
 

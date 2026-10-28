@@ -5,6 +5,7 @@
 import { creators, payCreator, salesReport, saveCreator, type CreatorReport, type MeResponse, type SalesReport } from '../account/session';
 import { bundle, coinPack, formatNumber, packTotal, shopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
+import { newUsageState, usageCards, type UsageState } from './usageReport';
 import type { HubContext } from './hub';
 
 export interface SalesState {
@@ -15,10 +16,12 @@ export interface SalesState {
   error: string;
   /** Creator codes (server/creators.ts), once loaded. */
   creators: CreatorReport[] | null;
+  /** Anonymous play statistics (ui/usageReport.ts). */
+  usage: UsageState;
 }
 
 export function newSalesState(): SalesState {
-  return { days: 30, report: null, loadedDays: -1, error: '', creators: null };
+  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState() };
 }
 
 const PERIODS: [number, string][] = [
@@ -147,6 +150,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   refresh.onclick = () => {
     state.loadedDays = -1;
     state.creators = null;
+    state.usage.loadedDays = -1;
     ctx.rerender();
   };
   const head = el('div', 'sales-head');
@@ -251,6 +255,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
       ),
     ),
     creatorsCard(ctx, state),
+    ...usageCards(ctx, state.usage, state.days),
   );
   return page;
 }

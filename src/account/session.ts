@@ -6,6 +6,7 @@
 import { ARENAS, SURPRISE_ARENA } from '../render/arenas';
 import { currentSeason, seasonArenaOpen } from '../render/seasons';
 import type { UnspentRow } from '../shop/japan';
+import type { UsageReport } from '../usage/catalog';
 import { serverUrl, setTicketSource } from '../net/client';
 import { authToken, saveAuthToken, signsInWithToken } from './token';
 import { canUse, unlockedWeapons } from '../shop/catalog';
@@ -489,6 +490,11 @@ export async function payCreator(code: string, amount: number, currency: string,
 /** The owner's sales figures for the last `days` days (0 = all time). */
 export function salesReport(days: number): Promise<SalesReport> {
   return call<SalesReport>(`/api/admin/sales?days=${days}`);
+}
+
+/** The owner's anonymous play statistics for the last `days` days (0 = all kept; docs/USAGE.md). */
+export function usageReport(days: number): Promise<UsageReport> {
+  return call<UsageReport>(`/api/admin/usage?days=${days}`);
 }
 
 /** Spend coins on a gift for someone else; returns its one-use code. */

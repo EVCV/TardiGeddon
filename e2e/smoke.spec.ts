@@ -40,3 +40,16 @@ test('on a big screen the lobby\'s first card keeps every part in its place', as
     expect(banner.width).toBeGreaterThan(art.width);
   }
 });
+
+test('the banner for something new can be closed, and stays closed', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-28T12:00:00Z')); // Spooky season
+  await page.goto('/');
+  const news = page.locator('.hub-news');
+  await expect(news).toBeVisible();
+  await expect(news).toContainText('Pumpkin Patch');
+  await news.locator('.hub-notice-x').click();
+  await expect(news).toBeHidden();
+  await page.reload();
+  await expect(page.locator('.lobby-hero, .lobby-nav').first()).toBeVisible();
+  await expect(news).toBeHidden();
+});

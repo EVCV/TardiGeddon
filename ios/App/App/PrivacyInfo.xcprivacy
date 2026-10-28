@@ -3,7 +3,8 @@
 <!--
   What the app collects, for Apple (docs/IOS.md §6). The same facts as the App
   Store privacy answers, Google's Data safety form and site/legal/: only with
-  an account, linked to it, never for tracking. Keep them in step.
+  an account, linked to it, never for tracking; and anonymous play counts
+  (docs/USAGE.md), not linked to anyone, for analytics. Keep them in step.
 -->
 <plist version="1.0">
 <dict>
@@ -15,6 +16,18 @@
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeEmailAddress</string>

@@ -4,7 +4,9 @@ These are TardiGeddon's legal pages, written from the owner's own template
 pack. They describe what the game actually does:
 
 - no ads or tracking; visit counts only via Cloudflare Web Analytics (no
-  cookies or device storage); everything playable without an account
+  cookies or device storage), and the game's own anonymous play counts
+  (`docs/USAGE.md`: daily totals, no IDs, an off switch in Settings);
+  everything playable without an account
 - local storage for settings, teams and (if signed in) owned shop items
 - the online server keeps team names, room codes and inputs in memory only
 - optional accounts (13+, self-declared) and a cosmetic shop: account data
