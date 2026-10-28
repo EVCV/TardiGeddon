@@ -41,8 +41,8 @@ export function arenaLabel(): string {
   return id === SURPRISE_ARENA ? t('Surprise me') : t(arenaTheme(id).name);
 }
 
-/** Open the picker. `onShop` leaves for the Shop; `onChange` redraws the lobby. */
-export function openLooks(host: HTMLElement, onShop: () => void, onChange: () => void): void {
+/** Open the picker. `onShop` leaves for the Shop, `onCoins` for its coin packs; `onChange` redraws the lobby. */
+export function openLooks(host: HTMLElement, onShop: () => void, onChange: () => void, onCoins: () => void = onShop): void {
   const overlay = el('div', 'editor-overlay');
   const box = el('div', 'editor looks');
   box.setAttribute('role', 'dialog');
@@ -133,8 +133,19 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
   overlay.onclick = (e) => {
     if (e.target === overlay) close();
   };
+  // Beside the choices: where to get more of them (only where coins can be bought).
   const side = el('div', 'editor-side');
-  side.append(el('h2', 'editor-title', t('Looks')));
+  if (account().me?.shop) {
+    const promo = el('div', 'looks-promo');
+    promo.append(el('p', '', t('More worlds, music and sounds in the Shop.')));
+    const coins = el('button', 'chip hero-coins', t('🪙 Get coins'));
+    coins.onclick = () => {
+      close();
+      onCoins();
+    };
+    promo.append(coins);
+    side.append(promo);
+  }
   box.append(side, options, actions);
   overlay.append(box);
   host.append(overlay);

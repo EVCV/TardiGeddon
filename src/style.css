@@ -828,6 +828,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hero-coins-banner:hover { filter: brightness(1.04); }
 .hero-coins-banner:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
 .hero-coins[hidden], .hero-coins-banner[hidden] { display: none; }
+.looks-promo { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 3px 0 var(--ink); background: linear-gradient(#fff3b0, #ffd84a); text-align: center; }
+.looks-promo p { margin: 0; font-weight: 800; font-size: 14px; }
 .hero-season { margin: 8px 0 0; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 12px; background: #ffe9b8; font-weight: 800; font-size: 14px; }
 .looks-hint { margin: -4px 0 6px; font-size: 13px; opacity: .8; text-align: left; }
 .hero-text { min-width: 0; text-align: left; }

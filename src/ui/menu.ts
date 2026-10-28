@@ -428,7 +428,7 @@ export function buildLobby(
     const ends = lang() === 'en' ? seasonEnds(season) : new Date(2000, season.to[0] - 1, season.to[1]).toLocaleDateString(lang(), { day: 'numeric', month: 'short' });
     p.textContent = `${season.emoji} ${t('{season}! The {world} world is free until {date}.', { season: t(season.name), world: t(arenaTheme(season.arena).name), date: ends })}`;
   }
-  root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = () => openLooks(overlayHost(root), () => go('shop'), renderLooks);
+  root.querySelector<HTMLButtonElement>('.hero-looks')!.onclick = () => openLooks(overlayHost(root), () => go('shop'), renderLooks, onCoins);
   const nav = root.querySelector<HTMLElement>('.lobby-nav')!;
   const renderNav = () => {
     const { me } = account();
