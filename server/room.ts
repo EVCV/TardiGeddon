@@ -49,8 +49,12 @@ export interface Member {
   rating?: number;
   /** The Founder (🌱) or Early bird (🐣) badge others see by their name. */
   badge?: 'founder' | 'earlybird';
-  /** They turned off anonymous statistics: the server doesn't count what they do either. */
-  noStats?: boolean;
+  /**
+   * Their game said they allow anonymous statistics (docs/USAGE.md). Only then
+   * does the server count what they do: not if they turned them off, nor if
+   * their game is too old to say.
+   */
+  stats?: boolean;
 }
 
 export type { MatchResult };
@@ -492,7 +496,8 @@ export class Room {
       return;
     }
     this.cpus.clear();
-    this.onUsage?.(this.played++ ? 'rematch' : 'started', this.members);
+    // (The players, not anyone watching.)
+    this.onUsage?.(this.played++ ? 'rematch' : 'started', this.slots.flatMap((s) => (s.member ? [s.member] : [])));
     this.tally = new MatchTally(this.teams.length);
     for (const sl of this.slots) {
       sl.absent = 0;

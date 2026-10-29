@@ -16,7 +16,7 @@ quick play goes (waits, rooms, rematches). The owner sees them on the
 | Where it counts | `src/usage/usage.ts` (opened, time on screen, errors), `src/main.ts` (loading times, Stripe's return), `src/ui/hub.ts` and the pickers (pages), `src/match.ts` (matches, shots, WebGL lost, desyncs), `src/audio/mixer.ts` (sound failing), `src/ui/tutorial.ts` (steps), `src/ui/menu.ts`, `looks.ts`, `hub.ts`, `shop.ts` (Get coins) |
 | What the server counts itself | `server/main.ts` with `server/matchmaker.ts` and `server/room.ts`: quick-play waits and how they end, rooms made and joined, matches and rematches |
 | The server's side (checking, daily totals, deleting) | `server/usage.ts`, `POST /api/usage` in `server/accounts.ts` |
-| The player's choice, also told to the server | `src/usage/consent.ts`, sent as `noStats` with create/join/quick (`src/net/client.ts`) |
+| The player's choice, also told to the server | `src/usage/consent.ts`, sent as `stats: true/false` with create/join/quick (older games, which don't send it, aren't counted) (`src/net/client.ts`) |
 | The owner's view | `src/ui/usageReport.ts` (Sales page), `GET /api/admin/usage` |
 | The player's switch | Settings → Privacy → "Share anonymous statistics" |
 | Tests | `tests/usage.test.ts`, `e2e/usage.spec.ts` |
@@ -55,7 +55,7 @@ below.
 5. **Easy to refuse.** Settings → Privacy turns it off on that device. It's
    also off whenever the browser sends Global Privacy Control or Do Not
    Track (the switch then shows as off and can't be turned on). When it's
-   off, the game tells the online server (`noStats`), which then doesn't
+   off, the game tells the online server (`stats: false`), which then doesn't
    count that player's quick-play wait or rooms either (nor a match or
    rematch that player is in).
 6. **Kept 25 months**, then deleted (`server/usage.ts`, daily).

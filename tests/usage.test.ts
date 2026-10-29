@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { USAGE_ERRORS_PER_VISIT, USAGE_EVENTS, foldLegacy, lengthBucket, loadBucket, usageDetail, usageMax, validUsage, waitBucket } from '../src/usage/catalog';
 import { COIN_PACKS } from '../src/shop/catalog';
-import { usageCounter } from '../server/usage';
+import { mayCount, usageCounter } from '../server/usage';
 import { isWeaponId } from '../src/sim/weapons';
 import type { Pool } from 'pg';
 
@@ -187,6 +187,13 @@ describe('the server adds up counts', () => {
       [1, 1, 1, 1, 1],
     ]);
     c.close();
+  });
+
+  it("counts online play only for players whose game said yes: not those who said no, nor older games that don't say", () => {
+    expect(mayCount([{ stats: true }, { stats: true }])).toBe(true);
+    expect(mayCount([{ stats: true }, { stats: false }])).toBe(false);
+    expect(mayCount([{ stats: true }, {}])).toBe(false);
+    expect(mayCount([{}])).toBe(false);
   });
 
   it('takes at most a batch from one report', () => {

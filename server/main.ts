@@ -15,6 +15,7 @@ import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/pro
 import { TICK_RATE } from '../src/sim/types';
 import { tk } from '../src/i18n/tk';
 import { waitBucket, type UsageDetail, type UsageEvent } from '../src/usage/catalog';
+import { mayCount } from './usage';
 
 const PORT = Number(process.env.PORT) || 8787;
 /**
@@ -92,8 +93,7 @@ function closeRoom(room: Room): void {
  * only when accounts are on (the totals live in their database).
  */
 function count<E extends UsageEvent>(e: E, detail: UsageDetail<E>, who: Member[]): void {
-  // Not if anyone it's about turned the statistics off in their game.
-  if (who.some((m) => m.noStats)) return;
+  if (!mayCount(who)) return;
   accounts?.countUsage(e, detail);
 }
 
@@ -358,7 +358,8 @@ wss.on('connection', (ws: WebSocket, req) => {
       if (msg.v !== PROTOCOL_VERSION) return fail(tk('Please reload the page: the game has been updated.'));
       // Shop hats only for players who own them.
       msg.team = wearableTeam(msg.team, ownedItems);
-      member.noStats = msg.noStats === true;
+      // Counted only when the game says so: older games never say, so they aren't counted.
+      member.stats = msg.stats === true;
       if (msg.t === 'create' && !mayCreate()) return;
       // Quick play makes a room when it pairs players, so it counts towards the
       // address's room budget too (but not the per-connection cooldown, so

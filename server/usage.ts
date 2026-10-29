@@ -38,6 +38,15 @@ export async function migrateUsage(db: Pool): Promise<void> {
   `);
 }
 
+/**
+ * May the server count something about these players? Only if every one of
+ * them said, from their game, that they allow anonymous statistics: not if
+ * any turned them off, nor if any game is too old to say.
+ */
+export function mayCount(who: { stats?: boolean }[]): boolean {
+  return who.every((m) => m.stats === true);
+}
+
 /** Collects reports in memory and adds them to the day's totals once a minute. */
 export function usageCounter(db: Pool) {
   let pending = new Map<string, UsageEntry>();

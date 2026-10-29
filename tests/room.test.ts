@@ -234,12 +234,13 @@ describe('online room', () => {
     const b = new Client();
     room.join(a, team('Alpha'));
     room.join(b, team('Bravo'));
+    room.watch(new Client());
     expect(seen).toEqual(['joined:1']); // the maker of the room didn't join it
     room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
     for (const t of room.world!.tardis) if (t.team === 1) t.hp = 0, t.alive = false;
     for (let i = 0; i < 50 * 60 && room.started; i++) room.step();
     room.handle(a, { t: 'start', scheme: { tardisPerTeam: 1, turnTime: 10 } });
-    // (With everyone it's about, so a player who turned statistics off isn't counted.)
+    // (With the players it's about, not the watcher, so a player who turned statistics off isn't counted.)
     expect(seen).toEqual(['joined:1', 'started:2', 'rematch:2']);
   });
 

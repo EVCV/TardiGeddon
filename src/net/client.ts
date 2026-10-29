@@ -5,8 +5,8 @@ import { PROTOCOL_VERSION, type ClientMsg, type LobbyTeam, type ServerMsg } from
 import { blockedPlayers } from './blocked';
 import { usageAllowed } from '../usage/consent';
 
-/** Tell the server when the player turned off anonymous statistics, so it doesn't count them either (docs/USAGE.md). */
-const noStats = (): { noStats?: true } => (usageAllowed() ? {} : { noStats: true });
+/** Whether the server may count this player in its anonymous statistics (docs/USAGE.md): always said, either way. */
+const stats = (): { stats: boolean } => ({ stats: usageAllowed() });
 
 /** Where the game server lives, or null if online play isn't set up for this build. */
 export function serverUrl(): string | null {
@@ -86,12 +86,12 @@ export class NetClient {
   }
 
   create(team: LobbyTeam): void {
-    this.send({ t: 'create', v: PROTOCOL_VERSION, team, ...noStats() });
+    this.send({ t: 'create', v: PROTOCOL_VERSION, team, ...stats() });
   }
 
   quick(team: LobbyTeam): void {
     // Never matched with players we've blocked.
-    this.send({ t: 'quick', v: PROTOCOL_VERSION, team, blocks: blockedPlayers().map((b) => b.pid), ...noStats() });
+    this.send({ t: 'quick', v: PROTOCOL_VERSION, team, blocks: blockedPlayers().map((b) => b.pid), ...stats() });
   }
 
   /** Spectate a room by its code. */
@@ -100,7 +100,7 @@ export class NetClient {
   }
 
   join(code: string, team: LobbyTeam, token?: string): void {
-    this.send({ t: 'join', v: PROTOCOL_VERSION, code, team, token, ...noStats() });
+    this.send({ t: 'join', v: PROTOCOL_VERSION, code, team, token, ...stats() });
   }
 
   /** Report the player in this slot. */
