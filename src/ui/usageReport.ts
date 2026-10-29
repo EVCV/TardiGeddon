@@ -3,7 +3,8 @@
 // apart. English only, like the rest of the Sales page.
 
 import { usageReport } from '../account/session';
-import { USAGE_LENGTHS, type UsageReport } from '../usage/catalog';
+import { USAGE_COIN_TAPS, USAGE_DEVICES, USAGE_LENGTHS, USAGE_LOADS, USAGE_PLACES, USAGE_TUTORIAL, USAGE_WAITS, type UsageReport } from '../usage/catalog';
+import { COIN_PACKS, packTotal } from '../shop/catalog';
 import { formatNumber } from '../shop/catalog';
 import { CPU_SKILLS } from '../ai/skills';
 import { statTile } from './dashboard';
@@ -64,6 +65,13 @@ const PLATFORM_NAMES: Record<string, string> = { web: 'Browser', android: 'Andro
 const DEVICE_NAMES: Record<string, string> = { phone: 'Phone', tablet: 'Tablet', desktop: 'Computer' };
 const LANG_NAMES: Record<string, string> = { en: 'English', es: 'Spanish', 'pt-BR': 'Portuguese (Brazil)', de: 'German', fr: 'French', ja: 'Japanese' };
 
+const ERROR_NAMES: Record<string, string> = { error: 'Script error', promise: 'Unhandled promise', webgl: 'Graphics lost (WebGL)', audio: 'Sound failed', desync: 'Online out of step' };
+const PLACE_NAMES: Record<string, string> = { menu: 'Menus', ...MODE_NAMES, replay: 'Watching a replay', watch: 'Watching online' };
+const STEP_NAMES: Record<string, string> = { walk: '1 Walk', jump: '2 Jump', aim: '3 Aim', look: '4 Look around', weapons: '5 Open weapons', pick: '6 Pick the bazooka', fire: '7 Fire', hit: '8 Hit the dummy', strike: '9 Airstrike', wind: '10 Wind', done: '✓ Finished' };
+const TAP_NAMES: Record<string, string> = { banner: 'Lobby banner', hero: 'Lobby picture chip', nav: 'Lobby menu tile', wallet: 'Wallet chip (top bar)', looks: 'World picker card', tab: 'Shop tab', item: 'Shop item (short of coins)', bundle: 'Shop bundle (short of coins)' };
+const STORE_NAMES: Record<string, string> = { stripe: 'Stripe', play: 'Google Play', appstore: 'App Store' };
+const END_NAMES: Record<string, string> = { matched: 'Matched', cpu: 'Chose the CPU', gaveup: 'Gave up', error: 'Error (server full)', disconnected: 'Disconnected' };
+
 /** "mode=cpu&skill=normal" read back (values are plain: no escaping, and "60m+" keeps its plus). */
 function readDetail(detail: string): Map<string, string> {
   return new Map(detail ? detail.split('&').map((p) => p.split('=') as [string, string]) : []);
@@ -108,7 +116,7 @@ export function usageCards(ctx: HubContext, state: UsageState, days: number): HT
   if (!r) return [card('🎮 Play', state.error ? el('p', 'account-note', state.error) : el('p', 'page-loading', 'Loading…'), about)];
 
   const { sum, split } = totals(r);
-  const opens = sum('open');
+  const opens = sum('app');
   const visits = sum('visit');
   const onScreen = sum('seconds');
   const started = sum('match');
@@ -128,7 +136,7 @@ export function usageCards(ctx: HubContext, state: UsageState, days: number): HT
 
   const opened = (title: string, key: string, names: Record<string, string>) => [
     el('h3', 'usage-sub', title),
-    bars([...split('open', key)].map(([k, n]) => ({ label: names[k] ?? k, value: n, text: `${formatNumber(n)} · ${percent(n, opens)}` })), 'None yet.'),
+    bars([...split(key === 'platform' ? 'app' : key, key)].map(([k, n]) => ({ label: names[k] ?? k, value: n, text: `${formatNumber(n)} · ${percent(n, opens)}` })), 'None yet.'),
   ];
 
   const lengths = split('visit', 'length');
@@ -144,6 +152,63 @@ export function usageCards(ctx: HubContext, state: UsageState, days: number): HT
     const games = won + lost + (out.get('draw') ?? 0);
     return { label: name, value: games + left, text: `${formatNumber(games)} played · player won ${percent(won, won + lost)} · ${formatNumber(left)} left early` };
   });
+
+  // Errors: by kind, and where they happened.
+  const errorsBy = split('error', 'kind');
+  const errorPlaces = split('error', 'where');
+  const errorTotal = sum('error');
+
+  // The tutorial: how many reach each step, as a share of those who start it.
+  const steps = split('tutorial', 'step');
+  const began = steps.get('walk') ?? 0;
+
+  // Get coins, from the first tap to paying.
+  const taps = sum('coinstap');
+  const packs = sum('coinspack');
+  const checkout = split('checkout', 'step');
+  const paying = (step: string) => checkout.get(step) ?? 0;
+  const funnel = [
+    { label: 'Tapped Get coins', value: taps },
+    { label: 'Chose a pack', value: packs },
+    { label: 'Started paying', value: paying('start') },
+    { label: 'Completed', value: paying('done') },
+  ].map((x) => ({ ...x, text: `${formatNumber(x.value)} · ${percent(x.value, taps)}` }));
+  const byStore = [...split('checkout', 'store', (d) => d.get('step') === 'start')].map(([store, n]) => {
+    const step = split('checkout', 'step', (d) => d.get('store') === store);
+    const of = (k: string) => step.get(k) ?? 0;
+    const parts = [`${formatNumber(of('done'))} done`, ...(['cancel', 'fail', 'pending'] as const).filter((k) => of(k)).map((k) => `${formatNumber(of(k))} ${{ cancel: 'cancelled', fail: 'failed', pending: 'waiting' }[k]}`)];
+    return { label: STORE_NAMES[store] ?? store, value: n, text: `${formatNumber(n)} → ${parts.join(' · ')}` };
+  });
+  const packNames = new Map(COIN_PACKS.map((p) => [p.id, `🪙 ${formatNumber(packTotal(p))}`]));
+
+  // Loading time, by bucket, with the kinds of device in each.
+  const loading = (what: string) => {
+    const all = split('load', 'time', (d) => d.get('what') === what);
+    const total = [...all.values()].reduce((a, b) => a + b, 0);
+    return bars(
+      USAGE_LOADS.map((b) => {
+        const dev = split('load', 'device', (d) => d.get('what') === what && d.get('time') === b);
+        const n = all.get(b) ?? 0;
+        const by = USAGE_DEVICES.filter((k) => dev.get(k)).map((k) => `${DEVICE_NAMES[k]} ${formatNumber(dev.get(k) ?? 0)}`);
+        return { label: b, value: n, text: [percent(n, total), ...by].join(' · ') };
+      }),
+      'Nothing timed yet.',
+      true,
+    );
+  };
+
+  // Online quick play (counted by the server).
+  const waits = split('quick', 'wait');
+  const ends = split('quick', 'end');
+  const waitTotal = sum('quick');
+  const rooms = (kind: string, action: string) => sum('room', (d) => d.get('kind') === kind && d.get('action') === action);
+  const roomTiles = el('div', 'stats-grid sales-quad');
+  roomTiles.append(
+    statTile(formatNumber(rooms('private', 'created')), 'Private rooms made'),
+    statTile(formatNumber(rooms('private', 'joined')), 'Joined by code'),
+    statTile(formatNumber(rooms('private', 'started') + rooms('quick', 'started')), 'Online matches'),
+    statTile(formatNumber(rooms('private', 'rematch') + rooms('quick', 'rematch')), 'Rematches'),
+  );
 
   const daily = r.days.slice(-31).map((d) => ({ label: d.day, value: d.opens, text: `${formatNumber(d.opens)} opens · ${hours(d.minutes * 60)}` }));
 
@@ -165,6 +230,45 @@ export function usageCards(ctx: HubContext, state: UsageState, days: number): HT
     ),
     card('Against the CPU, by level', bars(cpu, 'No matches against the CPU yet.', true), el('p', 'account-note', 'Aim for Normal near 50%: the CPU sharpens up after a player\'s winning run and eases off after a losing one (src/ai/form.ts).')),
     card('Weapons fired by players', bars([...split('weapon', 'weapon')].map(([k, n]) => ({ label: k, value: n })).slice(0, 40), 'No shots yet.')),
+    card(
+      'Learn to play: how far players get',
+      bars(USAGE_TUTORIAL.map((k) => ({ label: STEP_NAMES[k] ?? k, value: steps.get(k) ?? 0, text: `${formatNumber(steps.get(k) ?? 0)} · ${percent(steps.get(k) ?? 0, began)}` })), 'Nobody has started the tutorial yet.', true),
+      el('p', 'account-note', 'Each step as a share of players who began. A big drop between two steps is where new players give up.'),
+    ),
+    card(
+      '🪙 Get coins: from tap to paid',
+      bars(funnel, 'Nobody has tapped Get coins yet.', true),
+      el('h3', 'usage-sub', 'By store: started → how it ended'),
+      bars(byStore, 'No checkouts yet.'),
+      el('h3', 'usage-sub', 'Where Get coins was tapped'),
+      bars(USAGE_COIN_TAPS.map((k) => ({ label: TAP_NAMES[k] ?? k, value: sum('coinstap', (d) => d.get('from') === k) })), 'No taps yet.'),
+      el('h3', 'usage-sub', 'Packs chosen'),
+      bars([...split('coinspack', 'pack')].map(([k, n]) => ({ label: packNames.get(k) ?? k, value: n, text: `${formatNumber(n)} · ${percent(n, packs)}` })), 'No packs chosen yet.'),
+      el('p', 'account-note', "Browser payments count as done when Stripe sends the player back; the money itself is in the sales above. \"Waiting\" is a store payment that hadn't gone through yet."),
+    ),
+    card(
+      'Loading time',
+      el('h3', 'usage-sub', 'Opening the game to the menu'),
+      loading('menu'),
+      el('h3', 'usage-sub', 'Play to the match running'),
+      loading('match'),
+      el('p', 'account-note', 'The first match of a visit includes downloading the game itself; later ones are quicker.'),
+    ),
+    card(
+      '🌐 Online quick play',
+      roomTiles,
+      el('h3', 'usage-sub', 'How the wait ended'),
+      bars([...ends].map(([k, n]) => ({ label: END_NAMES[k] ?? k, value: n, text: `${formatNumber(n)} · ${percent(n, waitTotal)}` })), 'Nobody has used quick play yet.'),
+      el('h3', 'usage-sub', 'How long players waited'),
+      bars(USAGE_WAITS.map((w) => ({ label: w, value: waits.get(w) ?? 0, text: `${formatNumber(waits.get(w) ?? 0)} · ${percent(waits.get(w) ?? 0, waitTotal)}` })), 'No waits yet.', true),
+    ),
+    card(
+      '⚠️ Errors',
+      bars([...errorsBy].map(([k, n]) => ({ label: ERROR_NAMES[k] ?? k, value: n, text: `${formatNumber(n)} · ${percent(n, errorTotal)}` })), 'No errors counted. 🎉'),
+      el('h3', 'usage-sub', 'Where'),
+      bars(USAGE_PLACES.map((k) => ({ label: PLACE_NAMES[k] ?? k, value: errorPlaces.get(k) ?? 0 })), 'Nowhere yet.'),
+      el('p', 'account-note', `Kinds and places only, never the message (it could hold a player's name). At most a few per visit, so one broken device can't fill this. ${opens ? `About ${(errorTotal / opens).toFixed(2)} per time opened.` : ''}`),
+    ),
     card('By day', bars(daily, 'No days yet.', true)),
   ];
 }

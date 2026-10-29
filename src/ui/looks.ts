@@ -142,6 +142,7 @@ export function openLooks(host: HTMLElement, onShop: () => void, onChange: () =>
     promo.append(el('p', '', t('More worlds, music and sounds in the Shop.')));
     const coins = el('button', 'chip hero-coins', t('🪙 Get coins'));
     coins.onclick = () => {
+      usage('coinstap', { from: 'looks' });
       close();
       onCoins();
     };

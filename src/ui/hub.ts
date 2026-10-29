@@ -185,7 +185,10 @@ export function showHub(
       const coins = el('button', 'chip chip-coins', `🪙 ${compact(me.wallet.coins)}`);
       coins.setAttribute('aria-label', t('{n} coins: open the shop', { n: me.wallet.coins }));
       coins.onclick = () => {
-        if (me.shop) shopState.category = 'coins';
+        if (me.shop) {
+          usage('coinstap', { from: 'wallet' });
+          shopState.category = 'coins';
+        }
         go('shop');
       };
       const slime = el('button', 'chip chip-slime', `🟢 ${compact(me.wallet.slime)}`);

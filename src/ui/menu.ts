@@ -25,6 +25,7 @@ import { myMaps } from './myMaps';
 import { lang, t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 import { newsUnread } from '../news/feed';
+import { usage } from '../usage/usage';
 
 export interface MatchSetup {
   /** One entry per team: true = CPU, false = human. */
@@ -463,7 +464,10 @@ export function buildLobby(
       tile('shop', '🪙', t('Get coins'));
       const coins = nav.lastElementChild as HTMLButtonElement;
       coins.classList.add('nav-coins');
-      coins.onclick = onCoins;
+      coins.onclick = () => {
+        usage('coinstap', { from: 'nav' });
+        onCoins();
+      };
     }
     if (me) {
       tile('stats', '📊', t('Stats'));
@@ -492,7 +496,10 @@ export function buildLobby(
     const shop = account().me?.shop === true;
     for (const b of root.querySelectorAll<HTMLButtonElement>('.hero-coins, .hero-coins-banner')) {
       b.hidden = !shop;
-      b.onclick = onCoins;
+      b.onclick = () => {
+        usage('coinstap', { from: b.classList.contains('hero-coins-banner') ? 'banner' : 'hero' });
+        onCoins();
+      };
     }
     renderNav();
     // News the player hasn't read yet: a dot on the News button (and on phones, its tile).

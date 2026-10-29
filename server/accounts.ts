@@ -1206,6 +1206,8 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
       for (const r of results) await settleInvite(db, r.userId);
       if (results.length >= 2 && results.every((r) => r.ranked)) await rateMatch(db, results);
     },
+    /** Count something for the anonymous play statistics (docs/USAGE.md): never who. */
+    countUsage: usage.count,
     /** Tests only: forget the per-player rate limits. */
     resetLimits(): void {
       lastReport.clear();

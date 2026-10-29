@@ -16,6 +16,49 @@ function setup() {
 }
 
 describe('quick play matchmaker', () => {
+  it('says how long each wait lasted and how it ended (for the play statistics)', () => {
+    const { mm, advance } = setup();
+    const ends: [number, string][] = [];
+    mm.onWaitEnd = (ms, how, who) => {
+      expect(who).toBeDefined(); // (so the server can skip a player who turned statistics off)
+      ends.push([ms, how]);
+    };
+    const [a, b, c, d, e] = Array.from({ length: 5 }, member);
+    mm.add(a, {});
+    mm.add(b, {});
+    advance(QUICK_FILL_MS);
+    mm.tick();
+    mm.add(c, {});
+    advance(1000);
+    mm.vsCpu(c);
+    mm.add(d, {});
+    mm.add(d, { name: 'again' }); // asking again keeps their place
+    advance(2000);
+    mm.remove(d);
+    mm.add(e, {});
+    mm.remove(e, 'disconnected');
+    mm.remove(e, 'disconnected'); // (not waiting any more: nothing)
+    expect(ends).toEqual([
+      [QUICK_FILL_MS, 'matched'],
+      [QUICK_FILL_MS, 'matched'],
+      [1000, 'cpu'],
+      [2000, 'gaveup'],
+      [0, 'disconnected'],
+    ]);
+  });
+
+  it("counts a match the server couldn't make as an error", () => {
+    let now = 0;
+    const mm = new Matchmaker(() => false, () => now);
+    const ends: string[] = [];
+    mm.onWaitEnd = (_ms, how) => ends.push(how);
+    mm.add(member(), {});
+    mm.add(member(), {});
+    now += QUICK_FILL_MS;
+    mm.tick();
+    expect(ends).toEqual(['error', 'error']);
+  });
+
   it('waits a few seconds for more players, then starts with whoever is there', () => {
     const { mm, matches, advance } = setup();
     const a = member();

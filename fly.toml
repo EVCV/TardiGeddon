@@ -2,6 +2,11 @@
 # Change `app` to the name you create with `fly launch`/`fly apps create`.
 app = "tardigeddon-server"
 primary_region = "lhr"
+# On a deploy or restart the server gets this signal, saves the last minute's
+# anonymous play counts, and exits (server/main.ts); after kill_timeout
+# seconds it is stopped regardless.
+kill_signal = "SIGTERM"
+kill_timeout = 10
 
 [build]
 
