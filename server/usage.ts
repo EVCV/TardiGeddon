@@ -5,7 +5,7 @@
 // dropped. Totals older than 25 months are deleted.
 
 import type { Pool } from 'pg';
-import { USAGE_BATCH, validUsage, type UsageEntry, type UsageReport } from '../src/usage/catalog';
+import { USAGE_BATCH, foldLegacy, usageDetail, usageMax, validUsage, type UsageDetail, type UsageEntry, type UsageEvent, type UsageReport } from '../src/usage/catalog';
 import { isWeaponId } from '../src/sim/weapons';
 
 /** Most entries counted in a minute from everyone together, so a flood can't fill the database. */
@@ -24,6 +24,27 @@ export async function migrateUsage(db: Pool): Promise<void> {
       PRIMARY KEY (day, event, detail)
     );
   `);
+  // The first games counted "open" with app, device and language together, which
+  // for a rare mix could point to one person: split any such totals into three.
+  await db.query(`
+    WITH old AS (DELETE FROM usage_day WHERE event = 'open' RETURNING day, detail, count),
+    parts AS (
+      SELECT day, e, d, sum(count) AS n FROM old,
+        LATERAL (VALUES ('app', split_part(detail, '&', 1)), ('device', split_part(detail, '&', 2)), ('lang', split_part(detail, '&', 3))) AS p(e, d)
+      GROUP BY day, e, d
+    )
+    INSERT INTO usage_day (day, event, detail, count) SELECT day, e, d, n FROM parts
+    ON CONFLICT (day, event, detail) DO UPDATE SET count = usage_day.count + EXCLUDED.count
+  `);
+}
+
+/**
+ * May the server count something about these players? Only if every one of
+ * them said, from their game, that they allow anonymous statistics: not if
+ * any turned them off, nor if any game is too old to say.
+ */
+export function mayCount(who: { stats?: boolean }[]): boolean {
+  return who.every((m) => m.stats === true);
 }
 
 /** Collects reports in memory and adds them to the day's totals once a minute. */
@@ -55,22 +76,35 @@ export function usageCounter(db: Pool) {
   daily.unref();
   void forget().catch((e) => console.error('usage forget failed', e));
 
+  const put = (x: UsageEntry) => {
+    const key = `${x.e}?${x.d}`;
+    const was = pending.get(key);
+    pending.set(key, { e: x.e, d: x.d, n: x.n + (was?.n ?? 0) });
+  };
+
   return {
-    /** Count a report's allowed entries; returns how many were counted. */
+    /**
+     * Count a report's allowed entries; returns how many were counted. An old
+     * game's combined "open" is split into its three counts (never kept whole).
+     */
     add(body: unknown): number {
       const entries = (body as { entries?: unknown } | null)?.entries;
       if (!Array.isArray(entries)) return 0;
       let counted = 0;
       for (const x of entries.slice(0, USAGE_BATCH)) {
         if (taken >= PER_MINUTE) break;
-        if (!validUsage(x, isWeaponId)) continue;
+        const parts = validUsage(x, isWeaponId) ? [x] : foldLegacy(x);
+        if (!parts) continue;
         taken++;
         counted++;
-        const key = `${x.e}?${x.d}`;
-        const was = pending.get(key);
-        pending.set(key, { e: x.e, d: x.d, n: x.n + (was?.n ?? 0) });
+        for (const p of parts) put(p);
       }
       return counted;
+    },
+    /** Count something the server saw itself (online play): from the catalogue only, and never who. */
+    count<E extends UsageEvent>(e: E, detail: UsageDetail<E>, n = 1): void {
+      const x = { e, d: usageDetail(e, detail as Record<string, string>), n: Math.min(usageMax(e), Math.round(n)) };
+      if (validUsage(x, isWeaponId)) put(x);
     },
     save,
     forget,
@@ -83,7 +117,7 @@ export function usageCounter(db: Pool) {
       );
       const perDay = await db.query<{ day: string; opens: string; seconds: string }>(
         `SELECT to_char(day, 'YYYY-MM-DD') AS day,
-                coalesce(sum(count) FILTER (WHERE event = 'open'), 0)::bigint AS opens,
+                coalesce(sum(count) FILTER (WHERE event = 'app'), 0)::bigint AS opens,
                 coalesce(sum(count) FILTER (WHERE event = 'seconds'), 0)::bigint AS seconds
            FROM usage_day ${since} GROUP BY day ORDER BY day`,
       );

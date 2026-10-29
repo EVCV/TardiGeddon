@@ -45,10 +45,12 @@ export interface LobbySlot {
 export type WireFrame = 0 | [number, number] | [number, number, Command];
 
 export type ClientMsg =
-  | { t: 'create'; v: number; team: LobbyTeam }
-  | { t: 'join'; v: number; code: string; team: LobbyTeam; token?: string }
+  // stats: the player allows anonymous statistics (docs/USAGE.md). Always sent; the server only
+  // counts a player who said true, so older games (which never send it) aren't counted.
+  | { t: 'create'; v: number; team: LobbyTeam; stats?: boolean }
+  | { t: 'join'; v: number; code: string; team: LobbyTeam; token?: string; stats?: boolean }
   /** Quick play: wait in the queue to be matched with other players (never with anyone in `blocks`, player ids). */
-  | { t: 'quick'; v: number; team: LobbyTeam; blocks?: string[] }
+  | { t: 'quick'; v: number; team: LobbyTeam; blocks?: string[]; stats?: boolean }
   /** Watch a room (spectate): no team, no say. */
   | { t: 'watch'; v: number; code: string }
   | { t: 'quickCancel' }

@@ -14,6 +14,8 @@ import { SCHEME_PRESETS } from '../src/sim/schemes';
 import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/protocol';
 import { TICK_RATE } from '../src/sim/types';
 import { tk } from '../src/i18n/tk';
+import { waitBucket, type UsageDetail, type UsageEvent } from '../src/usage/catalog';
+import { mayCount } from './usage';
 
 const PORT = Number(process.env.PORT) || 8787;
 /**
@@ -85,12 +87,22 @@ function closeRoom(room: Room): void {
   rooms.delete(room.code);
 }
 
+/**
+ * Anonymous play statistics (docs/USAGE.md) the server counts itself: quick
+ * play waits and rooms. Never with a player, room code or address. Counted
+ * only when accounts are on (the totals live in their database).
+ */
+function count<E extends UsageEvent>(e: E, detail: UsageDetail<E>, who: Member[]): void {
+  if (!mayCount(who)) return;
+  accounts?.countUsage(e, detail);
+}
+
 /** Quick play uses the short-turn style, which suits strangers on phones. */
 const QUICK_SCHEME = SCHEME_PRESETS.find((p) => p.id === 'quick')!.scheme;
 const matchmaker = new Matchmaker((players, cpu) => {
   if (rooms.size >= MAX_ROOMS) {
     for (const p of players) p.member.send({ t: 'error', msg: tk('The server is full right now. Please try again soon.') });
-    return;
+    return false;
   }
   const r = newRoom();
   // Strangers: made-up team names, never what anyone typed.
@@ -102,13 +114,16 @@ const matchmaker = new Matchmaker((players, cpu) => {
   }
   if (cpu) r.addCpu();
   r.start(QUICK_SCHEME);
+  return true;
 });
+matchmaker.onWaitEnd = (ms, end, member) => count('quick', { wait: waitBucket(ms), end }, [member]);
 
 /** A new room; finished matches count towards signed-in players' stats. */
 function newRoom(): Room {
   const r = new Room(newCode());
   r.onResult = (results) => void accounts?.recordResults(results).catch((e) => console.error('stats failed', e));
   r.onReport = (report) => void sendReport(report);
+  r.onUsage = (action, who) => count('room', { kind: r.quick ? 'quick' : 'private', action }, who);
   return r;
 }
 
@@ -192,7 +207,14 @@ const http = createServer(async (req, res) => {
   if (accounts && (await accounts.handle(req, res))) return;
   if (req.url?.startsWith('/api/')) {
     // The game asks /api/me (with cookies) on every load: answer "no accounts" quietly.
-    const me = req.url.split('?')[0] === '/api/me';
+    const path = req.url.split('?')[0];
+    const me = path === '/api/me';
+    // Anonymous counts aren't kept without a database: take them quietly (no error in the console).
+    if (path === '/api/usage') {
+      res.writeHead(req.method === 'OPTIONS' || req.method === 'POST' ? 204 : 405, { 'access-control-allow-origin': req.headers.origin ?? '*', 'cache-control': 'no-store', vary: 'origin' });
+      res.end();
+      return;
+    }
     res.writeHead(me ? 200 : 503, {
       'content-type': 'application/json',
       'access-control-allow-origin': req.headers.origin ?? '*',
@@ -336,13 +358,16 @@ wss.on('connection', (ws: WebSocket, req) => {
       if (msg.v !== PROTOCOL_VERSION) return fail(tk('Please reload the page: the game has been updated.'));
       // Shop hats only for players who own them.
       msg.team = wearableTeam(msg.team, ownedItems);
+      // Counted only when the game says so: older games never say, so they aren't counted.
+      member.stats = msg.stats === true;
       if (msg.t === 'create' && !mayCreate()) return;
       // Quick play makes a room when it pairs players, so it counts towards the
       // address's room budget too (but not the per-connection cooldown, so
       // "Play a CPU instead" straight after still works).
       if (msg.t === 'quick' && !mayQuick()) return;
       leaveRoom(member);
-      matchmaker.remove(member);
+      // (Asking for quick play again while waiting keeps their place.)
+      if (msg.t !== 'quick') matchmaker.remove(member);
       if (msg.t === 'quick') {
         matchmaker.add(member, msg.team, cleanBlocks(msg.blocks));
       } else if (msg.t === 'create') {
@@ -350,6 +375,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         rooms.set(r.code, r);
         r.join(member, msg.team);
         roomOf.set(member, r);
+        count('room', { kind: 'private', action: 'created' }, [member]);
       } else {
         const r = rooms.get(String(msg.code).toUpperCase().trim());
         if (!r) return fail(tk('No room with that code.'));
@@ -397,7 +423,7 @@ wss.on('connection', (ws: WebSocket, req) => {
     if (n > 0) connsByIp.set(ip, n);
     else connsByIp.delete(ip);
     clearInterval(refill);
-    matchmaker.remove(member);
+    matchmaker.remove(member, 'disconnected');
     leaveRoom(member);
   });
 });
@@ -429,3 +455,19 @@ setInterval(() => {
 }, 10);
 
 http.listen(PORT, () => console.log(`TardiGeddon server listening on :${PORT}`));
+
+// Stopping (a deploy, or Ctrl+C): keep the last minute's anonymous counts
+// (accounts.close() saves them), then go. Matches end with the process, as
+// they always have: players' games see the connection drop and offer to
+// reconnect. fly.toml gives this kill_timeout seconds before a hard stop.
+let stopping = false;
+async function stop(signal: string): Promise<void> {
+  if (stopping) return;
+  stopping = true;
+  console.log(`${signal}: saving and stopping`);
+  const done = accounts?.close().catch((e) => console.error('closing accounts failed', e));
+  await Promise.race([done, new Promise((r) => setTimeout(r, 4000))]);
+  process.exit(0);
+}
+process.on('SIGTERM', () => void stop('SIGTERM'));
+process.on('SIGINT', () => void stop('SIGINT'));

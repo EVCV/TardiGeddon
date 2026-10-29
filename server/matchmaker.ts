@@ -42,13 +42,18 @@ export const QUICK_MAX = 4;
 /** How long to wait for more players once two are ready. */
 export const QUICK_FILL_MS = 6000;
 
+/** How a wait in the queue ended. */
+export type WaitEnd = 'matched' | 'cpu' | 'gaveup' | 'error' | 'disconnected';
+
 export class Matchmaker {
   private queue: Waiting[] = [];
   private lastCount = -1;
+  /** Told how long each wait lasted and how it ended (for the anonymous play statistics). */
+  onWaitEnd: ((ms: number, how: WaitEnd, member: Member) => void) | null = null;
 
   constructor(
-    /** Create and start a match for these players (cpu: add a CPU opponent). */
-    private makeMatch: (players: Waiting[], cpu: boolean) => void,
+    /** Create and start a match for these players (cpu: add a CPU opponent); false if it couldn't. */
+    private makeMatch: (players: Waiting[], cpu: boolean) => unknown,
     private now: () => number = Date.now,
   ) {}
 
@@ -57,23 +62,38 @@ export class Matchmaker {
   }
 
   add(member: Member, team: unknown, blocks: Set<string> = new Set()): void {
-    if (this.queue.some((w) => w.member === member)) return;
+    const was = this.queue.find((w) => w.member === member);
+    if (was) {
+      // Asked again while waiting: the new team and blocks, same place in the queue.
+      was.team = team;
+      was.blocks = blocks;
+      return;
+    }
     this.queue.push({ member, team, since: this.now(), blocks });
     this.announce(true);
   }
 
-  remove(member: Member): void {
-    const before = this.queue.length;
-    this.queue = this.queue.filter((w) => w.member !== member);
-    if (this.queue.length !== before) this.announce(true);
+  /** Stop waiting: they gave up (or went), or disconnected. */
+  remove(member: Member, how: WaitEnd = 'gaveup'): void {
+    const w = this.queue.find((x) => x.member === member);
+    if (!w) return;
+    this.queue = this.queue.filter((x) => x !== w);
+    this.ended(w, how);
+    this.announce(true);
   }
 
   /** Stop waiting and play a CPU now. */
   vsCpu(member: Member): void {
     const w = this.queue.find((x) => x.member === member);
     if (!w) return;
-    this.remove(member);
-    this.makeMatch([w], true);
+    this.queue = this.queue.filter((x) => x !== w);
+    this.announce(true);
+    const ok = this.makeMatch([w], true) !== false;
+    this.ended(w, ok ? 'cpu' : 'error');
+  }
+
+  private ended(w: Waiting, how: WaitEnd): void {
+    this.onWaitEnd?.(this.now() - w.since, how, w.member);
   }
 
   /** Call regularly (a few times a second). */
@@ -104,7 +124,8 @@ export class Matchmaker {
 
   private take(g: Waiting[]): void {
     this.queue = this.queue.filter((w) => !g.includes(w));
-    this.makeMatch(g, false);
+    const ok = this.makeMatch(g, false) !== false;
+    for (const w of g) this.ended(w, ok ? 'matched' : 'error');
   }
 
   /** Tell everyone waiting how many are in the queue (when it changes, or when forced). */

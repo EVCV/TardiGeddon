@@ -225,11 +225,19 @@ account), purpose **App functionality** and **Account management**:
 | Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → App interactions** for the anonymous play counts
-(`docs/USAGE.md`: pages opened, matches and how long, shots per weapon, as
-daily totals with no IDs): collected, not shared, **not** ephemeral (daily
+(`docs/USAGE.md`: pages opened, matches and how long, shots per weapon,
+tutorial steps reached, the Get coins steps, quick-play waits, as daily
+totals with no IDs): collected, not shared, **not** ephemeral (daily
 totals are kept 25 months), **optional** (Settings → Privacy turns them
 off), purpose **Analytics**. Not linked to an account, but Google's form
 has no "anonymous" box, so declare them rather than leave them out.
+
+Tick **App info and performance → Crash logs** (counts of errors by kind
+and where: script errors, graphics or sound failing, online desyncs; never
+the message or stack) and **App info and performance → Diagnostics**
+(loading times, in bands, with the kind of device), with the same answers:
+collected, not shared, **not** ephemeral, **optional**, purpose
+**Analytics**.
 
 Also tick **App activity → Other user-generated content** (team and
 tardigrade names shown to other players in online play, and a map from the
@@ -242,8 +250,8 @@ and **Fraud prevention, security and compliance**. Add that purpose to
 **User IDs** too (reports carry account ids; blocking uses player ids).
 
 Not collected: location, contacts, photos, files, audio, health, payment
-info (cards etc.: Google keeps those), device IDs, crash logs,
-diagnostics, browsing history. Signing in with Google or Apple collects
+info (cards etc.: Google keeps those), device IDs, other app performance
+data, browsing history. Signing in with Google or Apple collects
 the same data types as above (email, name, user ID); the profile picture
 *link* they share is kept with the account but never shown or fetched.
 

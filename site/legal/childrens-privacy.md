@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 28 October 2026
-**Document Version:** v1.8
+**Document Version:** v1.9
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -33,7 +33,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.0 Designed to Collect as Little as Possible
 
-1.0.1 We recognise that TardiGeddon is likely to be played by children. We have therefore designed it so that players of every age share as little information as possible: there are no adverts, no tracking, no chat, and no analytics apart from cookie-free visit totals and anonymous counts of how the game is played, which cannot identify anyone and can be turned off in Settings → Privacy (see our Privacy Policy, Section 2.4), and nobody needs an account, or to give us a name, age, email address, photo, or location, to play any part of the game.
+1.0.1 We recognise that TardiGeddon is likely to be played by children. We have therefore designed it so that players of every age share as little information as possible: there are no adverts, no tracking, no chat, and no analytics apart from cookie-free visit totals and anonymous counts of how the game is played and how well it runs (for example how long it takes to load, and that an error happened, never what it said), which cannot identify anyone and can be turned off in Settings → Privacy (see our Privacy Policy, Section 2.4), and nobody needs an account, or to give us a name, age, email address, photo, or location, to play any part of the game.
 
 1.0.2 Without an account, the only information a player can enter is team and tardigrade names. These are stored on the player's own device and, in online matches, shown to the other players in that match. We encourage children (and all players) not to use their real name or anything else that could identify them.
 

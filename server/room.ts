@@ -49,6 +49,12 @@ export interface Member {
   rating?: number;
   /** The Founder (🌱) or Early bird (🐣) badge others see by their name. */
   badge?: 'founder' | 'earlybird';
+  /**
+   * Their game said they allow anonymous statistics (docs/USAGE.md). Only then
+   * does the server count what they do: not if they turned them off, nor if
+   * their game is too old to say.
+   */
+  stats?: boolean;
 }
 
 export type { MatchResult };
@@ -213,6 +219,10 @@ export class Room {
   onReport: ((r: PlayerReport) => void) | null = null;
   /** Quick play with strangers: every team gets a made-up name instead of what its player typed. */
   quick = false;
+  /** Told when someone new joins, and when a match (or a rematch) starts: for the anonymous play statistics. */
+  onUsage: ((what: 'joined' | 'started' | 'rematch', who: Member[]) => void) | null = null;
+  /** Matches started in this room. */
+  private played = 0;
 
   constructor(
     readonly code: string,
@@ -281,6 +291,8 @@ export class Room {
     slot.badge = member.badge;
     if (this.slots.length === 1 || !this.slots[this.host]?.member) this.host = this.slots.length - 1;
     this.emptySince = 0;
+    // (Whoever made a private room is in it first: they made it, they didn't join it.)
+    if (!this.quick && this.slots.length > 1) this.onUsage?.('joined', [member]);
     this.broadcastRoom();
     return true;
   }
@@ -484,6 +496,8 @@ export class Room {
       return;
     }
     this.cpus.clear();
+    // (The players, not anyone watching.)
+    this.onUsage?.(this.played++ ? 'rematch' : 'started', this.slots.flatMap((s) => (s.member ? [s.member] : [])));
     this.tally = new MatchTally(this.teams.length);
     for (const sl of this.slots) {
       sl.absent = 0;
