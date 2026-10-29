@@ -24,6 +24,7 @@ import { tutorialSeen } from './learn';
 import { myMaps } from './myMaps';
 import { lang, t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
+import { newsUnread } from '../news/feed';
 import { usage } from '../usage/usage';
 
 export interface MatchSetup {
@@ -218,6 +219,7 @@ export function buildLobby(
           <button class="hud-btn replays-btn">🎬 ${t('Replays')}</button>
           <button class="hud-btn mapeditor-btn">🗺️ ${t('Map editor')}</button>
           <button class="hud-btn guide-btn">📖 ${t('Guide')}</button>
+          <button class="hud-btn news-btn">📰 ${t('News')}<span class="news-dot" hidden></span></button>
           <button class="hud-btn controls-btn">⚙️ ${t('Controls')}</button>
         </div>
       </section>
@@ -472,6 +474,13 @@ export function buildLobby(
       tile('shop', '🛍️', t('Shop'), me.user ? `🪙 ${me.wallet.coins} · 🟢 ${me.wallet.slime}` : '');
       tile('account', '👤', me.user ? me.user.name : t('Sign in'));
     }
+    // News, with a dot for posts not yet read (on phones it's here, not with the buttons above).
+    tile('news', '📰', t('News'));
+    const news = nav.lastElementChild as HTMLButtonElement;
+    news.classList.add('nav-news');
+    const dot = document.createElement('span');
+    dot.className = 'news-dot';
+    news.append(dot);
     tile('settings', '⚙️', t('Settings'));
   };
   const dash = root.querySelector<HTMLElement>('.dash')!;
@@ -493,6 +502,8 @@ export function buildLobby(
       };
     }
     renderNav();
+    // News the player hasn't read yet: a dot on the News button (and on phones, its tile).
+    for (const d of root.querySelectorAll<HTMLElement>('.news-dot')) d.hidden = !newsUnread();
   };
   refreshAccountBits();
 
@@ -509,6 +520,8 @@ export function buildLobby(
   root.querySelector<HTMLButtonElement>('.replays-btn')!.onclick = onReplays;
   root.querySelector<HTMLButtonElement>('.mapeditor-btn')!.onclick = onMapEditor;
   root.querySelector<HTMLButtonElement>('.guide-btn')!.onclick = () => go('guide');
+  const newsBtn = root.querySelector<HTMLButtonElement>('.news-btn')!;
+  newsBtn.onclick = () => go('news');
   const onlineBtn = root.querySelector<HTMLButtonElement>('.online-btn')!;
   if (onOnline) onlineBtn.onclick = onOnline;
   else onlineBtn.remove();

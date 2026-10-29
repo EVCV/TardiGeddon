@@ -27,6 +27,7 @@ type OnlineModule = typeof import('./ui/online');
 import type { NetClient } from './net/client';
 import type { Lockstep } from './net/lockstep';
 import { presetScheme } from './sim/schemes';
+import { refreshNews } from './news/feed';
 
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
   void initTextSize();
@@ -178,6 +179,8 @@ async function boot(): Promise<void> {
   // The game itself downloads, and its renderer starts, as soon as the first
   // screen is up, so Play (or a match an invite link joins) starts at once.
   setTimeout(() => void loadGame().then((g) => g.gameApp()), 0);
+  // The newest news from the website (src/news/feed.ts): the apps get new posts without an update.
+  void refreshNews();
 
   // Links from our emails: ?reset=TOKEN (choose a new password), ?verify=TOKEN (confirm the email).
   // Taken out of the address bar straight away, so they don't linger in history.

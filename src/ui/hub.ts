@@ -8,6 +8,8 @@ import { usage } from '../usage/usage';
 import { closeNewThing, newThing, newThingSeen } from './drops';
 import { seasonSky } from './seasonSky';
 import { renderGuidePage } from './guide';
+import { newNewsState, renderNewsPage } from './news';
+import { onNews } from '../news/feed';
 import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
@@ -23,7 +25,7 @@ import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
-export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'settings' | 'sales' | 'guide';
+export type HubTab = 'lobby' | 'stats' | 'shop' | 'account' | 'settings' | 'sales' | 'guide' | 'news';
 
 /** What the pages get from the hub. */
 export interface HubContext {
@@ -57,6 +59,7 @@ const TABS: [HubTab, string, string][] = [
   ['sales', '📈', tk('Sales')],
   // Not in the top bar: opened from the lobby and Settings.
   ['guide', '📖', tk('Guide')],
+  ['news', '📰', tk('News')],
 ];
 
 /** The Founder pack's thank-you has been shown (for this visit: the menu is rebuilt after each match). */
@@ -112,6 +115,7 @@ export function showHub(
   const signInState = newSignInState();
   const salesState = newSalesState();
   const settingsState = newSettingsState();
+  const newsState = newNewsState();
   let lobby: Lobby | null = null;
 
   const ctx: HubContext = {
@@ -163,7 +167,7 @@ export function showHub(
     // Without accounts there's only the lobby and Settings.
     for (const [id, icon, label] of TABS) {
       if (id === 'sales' && !me?.admin) continue;
-      if (id === 'guide') continue;
+      if (id === 'guide' || id === 'news') continue;
       if (!me && id !== 'lobby' && id !== 'settings') continue;
       const b = el('button', 'seg-btn' + (tab === id ? ' on' : '') + (id === 'sales' ? ' tab-owner' : ''));
       b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', t(label)));
@@ -218,7 +222,7 @@ export function showHub(
     if (!shell.isConnected) return off();
     const { me, loaded } = account();
     // The tab may have gone (accounts off, or a failed load); until the account loads, it shows "Loading…".
-    if (loaded && !me && tab !== 'lobby' && tab !== 'settings' && tab !== 'guide') tab = 'lobby';
+    if (loaded && !me && tab !== 'lobby' && tab !== 'settings' && tab !== 'guide' && tab !== 'news') tab = 'lobby';
     if (loaded && tab === 'sales' && !me?.admin) tab = 'lobby';
     shell.dataset.tab = tab;
     renderBar();
@@ -284,6 +288,10 @@ export function showHub(
       page.replaceChildren(renderGuidePage(ctx, onTutorial, onPractice));
       return;
     }
+    if (tab === 'news') {
+      page.replaceChildren(renderNewsPage(ctx, newsState));
+      return;
+    }
     if (!loaded || !me) {
       page.replaceChildren(el('p', 'page-loading', t('Loading…')));
       return;
@@ -299,7 +307,13 @@ export function showHub(
     );
   };
 
-  const off = onAccountChange(render);
+  const offAccount = onAccountChange(render);
+  // The website's newest posts arrived (src/news/feed.ts): the News page and the lobby's dot.
+  const offNews = onNews(render);
+  const off = () => {
+    offAccount();
+    offNews();
+  };
   render();
   return {
     go,

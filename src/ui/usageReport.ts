@@ -60,7 +60,7 @@ const minsSecs = (secs: number) => (secs >= 60 ? `${Math.floor(secs / 60)}m ${Ma
 const percent = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '–');
 
 const MODE_NAMES: Record<string, string> = { cpu: 'vs CPU', hotseat: 'Same device', online: 'Online', tutorial: 'Tutorial', practice: 'Practice', targets: 'Daily targets', rope: 'Daily rope race', race: 'Rope Race' };
-const PAGE_NAMES: Record<string, string> = { lobby: '🏠 Lobby', stats: '📊 Stats', shop: '🛍️ Shop', account: '👤 Account', settings: '⚙️ Settings', sales: '📈 Sales', guide: '📖 Guide', looks: '🏞️ World picker', team: '✎ Team editor', practice: '🎯 Practice chooser', online: '🌐 Online' };
+const PAGE_NAMES: Record<string, string> = { lobby: '🏠 Lobby', stats: '📊 Stats', shop: '🛍️ Shop', account: '👤 Account', settings: '⚙️ Settings', sales: '📈 Sales', guide: '📖 Guide', looks: '🏞️ World picker', team: '✎ Team editor', practice: '🎯 Practice chooser', online: '🌐 Online', news: '📰 News' };
 const PLATFORM_NAMES: Record<string, string> = { web: 'Browser', android: 'Android app', ios: 'iOS app' };
 const DEVICE_NAMES: Record<string, string> = { phone: 'Phone', tablet: 'Tablet', desktop: 'Computer' };
 const LANG_NAMES: Record<string, string> = { en: 'English', es: 'Spanish', 'pt-BR': 'Portuguese (Brazil)', de: 'German', fr: 'French', ja: 'Japanese' };
