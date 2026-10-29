@@ -6,7 +6,7 @@ import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
 import { lang, loadLang, t } from './i18n/i18n';
-import { startUsage, usage } from './usage/usage';
+import { setUsagePlace, startUsage, usage, usageLoad } from './usage/usage';
 import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount, saveInvite } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
@@ -70,11 +70,13 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     onlineScreen = null;
+    setUsagePlace('menu');
     hub = showHub(ui, (setup) => start(setup), () => online(), () => tutorial(), () => choosePractice(ui, practice), () => chooseChallenge(ui, challenge), () => openReplays(ui, watch), () => void mapEditor());
   };
   /** Start a match, loading the game (renderer and all) the first time. */
   const play = async (mode: MatchMode, onMenu: () => void, onAgain: () => void): Promise<Match | null> => {
     const mine = ++screen;
+    const pressed = performance.now();
     current?.destroy();
     current = null;
     hub = onlineScreen = null;
@@ -85,6 +87,8 @@ async function boot(): Promise<void> {
     if (mine !== screen) return null; // they went somewhere else meanwhile
     ui.innerHTML = '';
     current = new Match(app, ui, mode, onMenu, onAgain);
+    // From pressing Play to the match running: the game's download (the first time) and its start.
+    usageLoad('match', pressed);
     return current;
   };
   const start = (setup: MatchSetup) => void play({ kind: 'local', setup }, menu, () => start({ ...setup, seed: (Math.random() * 1e9) | 0 }));
@@ -104,6 +108,7 @@ async function boot(): Promise<void> {
     current?.destroy();
     current = null;
     hub = null;
+    setUsagePlace('menu');
     usage('page', { page: 'online' });
     const { showOnline } = await import('./ui/online');
     if (mine !== screen) return;
@@ -164,7 +169,11 @@ async function boot(): Promise<void> {
   } else if (room) {
     // Invite link: ?room=CODE
     online({ code: room.toUpperCase() });
-  } else menu();
+  } else {
+    menu();
+    // From opening the page to the menu showing.
+    usageLoad('menu', 0);
+  }
 
   // The game itself downloads, and its renderer starts, as soon as the first
   // screen is up, so Play (or a match an invite link joins) starts at once.
@@ -203,6 +212,7 @@ async function boot(): Promise<void> {
   const shop = params.get('shop');
   if (shop) {
     history.replaceState(null, '', location.pathname);
+    if (shop === 'done' || shop === 'cancel') usage('checkout', { store: 'stripe', step: shop });
     if (shop === 'done') {
       hub?.go('shop', t('Thanks! Your coins will appear in your wallet in a moment.'));
       // Stripe tells the server a few seconds after paying, so check back a few times.

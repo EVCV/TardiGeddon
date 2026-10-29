@@ -2,7 +2,7 @@
 
 **Effective Date:** 9 October 2026
 **Last Modified:** 28 October 2026
-**Document Version:** v2.10
+**Document Version:** v2.11
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -116,11 +116,22 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.4.2 Cloudflare Web Analytics does not use cookies or store anything on your device, and does not follow you between visits or across other websites. We only see totals (for example, "200 visits from the UK today"); we cannot see who you are or pick out any one person's visits.
 
-2.4.3 The game itself (on the Website and in our apps) also counts how it is played, so that we can improve it: that it was opened, with the kind of app (Website, Android app or iOS app), the kind of device (phone, tablet or computer) and the game's language; how long it stays on screen at a time; which menu pages are opened; which kinds of match are started, how long they last and how they end (won, lost, a draw, finished, or left early), with the computer player's skill level; and how many shots are fired with each weapon.
+2.4.3 The game itself (on the Website and in our apps) also counts how it is played, so that we can improve it and fix problems:
+- that it was opened, with the kind of app (Website, Android app or iOS app), the kind of device (phone, tablet or computer) and the game's language, each counted separately and never together;
+- how long it stays on screen at a time;
+- which menu pages are opened;
+- which kinds of match are started, how long they last and how they end (won, lost, a draw, finished, or left early), with the computer player's skill level;
+- how many shots are fired with each weapon;
+- which steps of the "Learn to play" tutorial are reached;
+- buying coins: which "Get coins" button is tapped, which coin pack is chosen, and whether paying was started, cancelled, failed, is waiting on the store, or was completed, with the store used (Stripe, Google Play or the App Store). Never the price paid, your payment details or your account;
+- how long the game takes to load, from opening it to the menu and from pressing Play to the match starting, in bands (such as "1–2 seconds"), with the kind of device;
+- problems: that something went wrong, of which kind (a script error, the graphics or sound failing, or an online match falling out of step) and where (the menus, or the kind of match). Never the error's message or other details, which could contain names, and at most ten per visit.
 
-2.4.4 These counts only ever contain values from a fixed list, which our server checks. They never include your name, your team or tardigrade names, your account, the exact time, or any identifier for you or your device. The game sends them to our own game server about once a minute, and when you leave the game, without cookies, and it stores nothing on your device to do so. Our server adds them straight away to totals for the day (for example, "40 matches against the Normal computer player today, 21 won by the player") and does not record the IP address they came from. So we cannot see who you are, pick out any one player's counts, follow a player from one day to the next, or link the counts to an account.
+Our online game server counts in the same way, for online play: how long players wait for a quick-play match (in bands such as "10–20 seconds") and how the wait ends (matched, played the computer instead, gave up, disconnected, or an error), and how many private rooms are made and joined and how many online matches and rematches are started.
 
-2.4.5 You can turn the game's counts off at any time in Settings → Privacy → "Share anonymous statistics". They are also never sent while your browser sends a Global Privacy Control or Do Not Track signal. If you turn them off, the game remembers that choice on your device (see our Cookie & Storage Policy).
+2.4.4 These counts only ever contain values from a fixed list, which our server checks. They never include your name, your team or tardigrade names, your account, room codes, error messages, web addresses, the exact time or exact durations, or any identifier for you or your device. The game sends them to our own game server about once a minute, and when you leave the game, without cookies, and it stores nothing on your device to do so. Our server adds them straight away to totals for the day (for example, "40 matches against the Normal computer player today, 21 won by the player") and does not record the IP address they came from. So we cannot see who you are, pick out any one player's counts, follow a player from one day to the next, or link the counts to an account.
+
+2.4.5 You can turn the game's counts off at any time in Settings → Privacy → "Share anonymous statistics". They are also never sent while your browser sends a Global Privacy Control or Do Not Track signal. If you turn them off, the game remembers that choice on your device (see our Cookie & Storage Policy), and when you play online it tells our server, which then doesn't count your online play either.
 
 ### 2.5 Information You Send Us
 

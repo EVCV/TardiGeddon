@@ -13,6 +13,8 @@ import { WEAPONS } from '../sim/weapons';
 import { presetScheme } from '../sim/schemes';
 import { actionFor, bindingText, controls, type Action } from '../input/controls';
 import { t } from '../i18n/i18n';
+import { usage } from '../usage/usage';
+import type { USAGE_TUTORIAL } from '../usage/catalog';
 
 
 /** The practice match: you against one dummy, no wind, mines, crates or barrels, and plenty of time. */
@@ -146,6 +148,8 @@ export interface CoachView {
 }
 
 interface Step {
+  /** Its name in the anonymous play statistics (USAGE_TUTORIAL, in the same order), to see where players stop. */
+  id: (typeof USAGE_TUTORIAL)[number];
   /** Wind to blow during this step (the practice match has none otherwise). */
   wind?: number;
   /** What to do, for touch and for keyboard/mouse. */
@@ -166,6 +170,7 @@ function dragButton(): string {
 
 const STEPS: Step[] = [
   {
+    id: 'walk',
     text: (touch) => (touch ? t('Hold ◀ or ▶ to walk.') : t('Walk with {left} and {right}.', { left: keys('left'), right: keys('right') })),
     done: (v, c) => {
       const me = v.state.tardis.find((x) => x.team === 0);
@@ -173,37 +178,46 @@ const STEPS: Step[] = [
     },
   },
   {
+    id: 'jump',
     text: (touch) => (touch ? t('Tap JUMP to hop. Tap it twice, quickly, for a backflip.') : t('Press {key} to jump. Press it twice, quickly, for a backflip.', { key: keys('jump') })),
     done: (_v, c) => c.seen.has('jump'),
   },
   {
+    id: 'aim',
     text: (touch) =>
       touch ? t('Aim: drag from your tardigrade, or use ▲ and ▼. The crosshair shows where you’re pointing.') : t('Aim with {up} and {down}. The crosshair shows where you’re pointing.', { up: keys('up'), down: keys('down') }),
     done: (v, c) => Math.abs(v.state.turn.aim - c.startAim) > AIM_MAX / 6,
   },
   {
+    id: 'look',
     text: (touch) =>
       touch ? t('Drag the map to look around and find the target dummy. Pinch to zoom.') : t('Drag the map with {button} to look around and find the target dummy. The wheel zooms.', { button: dragButton() }),
     done: (v, c) => v.camera.manualUntil > performance.now() || v.camera.zoom !== c.startZoom,
-  },  {
+  },
+  {
+    id: 'weapons',
     text: (touch) => (touch ? t('Tap the weapon button (bottom right) to see your weapons.') : t('Press {key}, or click the weapon button (bottom right), to see your weapons.', { key: keys('weapons') })),
     done: (v) => v.panelOpen,
   },
   {
+    id: 'pick',
     text: () => t('Pick the {weapon}.', { weapon: `${WEAPONS.bazooka.icon} ${t(WEAPONS.bazooka.name)}` }),
     done: (v) => v.state.turn.weapon === 'bazooka' && !v.panelOpen,
   },
   {
+    id: 'fire',
     text: (touch) =>
       touch ? t('Hold FIRE to charge up, and let go to shoot. The longer you hold, the further it flies.') : t('Hold {key} to charge up, and let go to shoot. The longer you hold, the further it flies.', { key: keys('fire') }),
     done: (_v, c) => c.firedBazooka,
   },
   {
+    id: 'hit',
     text: () => t('Now hit the target dummy! Point at it, and try different amounts of power. There’s no wind in practice.'),
     done: (_v, c) => c.hitDummy,
   },
 
   {
+    id: 'strike',
     text: (touch) => {
       const weapon = `${WEAPONS.airstrike.icon} ${t(WEAPONS.airstrike.name)}`;
       return touch
@@ -213,6 +227,7 @@ const STEPS: Step[] = [
     done: (_v, c) => c.seen.has('strike'),
   },
   {
+    id: 'wind',
     wind: WIND_STEP,
     text: () =>
       t('The wind is blowing now! The bar at the top of the screen shows it: “WIND ▶▶” means it blows to the right, and more arrows mean stronger. It pushes shots and rain. Pick the {weapon} and fire once to watch it drift.', {
@@ -298,6 +313,7 @@ export class Coach {
     this.startAim = v.state.turn.aim;
     this.startZoom = v.camera.zoom;
     this.firedThisStep = false;
+    if (this.step < STEPS.length) usage('tutorial', { step: STEPS[this.step].id });
   }
 
   private show(html: string, text: string): void {
@@ -310,6 +326,7 @@ export class Coach {
 
   private end(won: boolean): void {
     this.finished = true;
+    if (this.step >= STEPS.length) usage('tutorial', { step: 'done' });
     this.root.className = 'coach coach-end';
     this.root.innerHTML = '';
     const h = document.createElement('h2');

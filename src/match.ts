@@ -47,7 +47,7 @@ import { ANGLE_FULL } from './sim/math/trig';
 import { t } from './i18n/i18n';
 import { noteMatchForReview } from './review';
 import { cpuForm, noteCpuResult } from './ai/form';
-import { flushUsage, usage } from './usage/usage';
+import { flushUsage, setUsagePlace, usage, usageError } from './usage/usage';
 import type { USAGE_MODES } from './usage/catalog';
 
 const TICK_MS = 1000 / TICK_RATE;
@@ -68,6 +68,8 @@ export function gameApp(): Promise<Application> {
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     });
     document.getElementById('game')!.appendChild(a.canvas);
+    // The graphics card dropped the game's drawing (anonymous count, docs/USAGE.md).
+    a.canvas.addEventListener('webglcontextlost', () => usageError('webgl'));
     return a;
   })());
 }
@@ -192,6 +194,7 @@ export class Match {
     }
 
     if (this.usageMode) usage('match', { mode: this.usageMode, skill: this.usageSkill });
+    setUsagePlace(this.usageMode ?? (mode.kind === 'replay' ? 'replay' : 'watch'));
     // Chosen once: "Surprise me" must not change the world when the view is rebuilt mid-match.
     // Online, the host may have picked the world for everyone.
     this.theme = arenaTheme(this.state.scheme.arena ?? wearArena());
@@ -595,6 +598,7 @@ export class Match {
     }
     if (ls.desynced && !this.resyncAsked) {
       this.resyncAsked = true;
+      usageError('desync');
       client.send({ t: 'resync' });
     }
     // The server sends frames all match long, so a gap means trouble: say so,

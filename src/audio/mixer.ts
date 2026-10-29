@@ -2,6 +2,8 @@
 // The player's sound settings (on/off and volume for each) live here and are
 // kept on this device (`tardigeddon.audio` in local storage).
 
+import { usageError } from '../usage/usage';
+
 export interface AudioSettings {
   music: boolean;
   /** 0–100. */
@@ -110,6 +112,7 @@ export function unlockAudio(): void {
     try {
       ctx = new AudioContext();
     } catch {
+      usageError('audio');
       return;
     }
     musicBus = ctx.createGain();
@@ -128,7 +131,7 @@ export function unlockAudio(): void {
     applyVolumes();
   }
   // Not just "suspended": iOS also leaves it "interrupted" (a call, Siri, another app's sound).
-  if (ctx.state !== 'running') void ctx.resume();
+  if (ctx.state !== 'running') ctx.resume().catch(() => usageError('audio'));
 }
 
 /** Has sound actually started (the browser allowed it)? */
@@ -140,7 +143,7 @@ export function audioRunning(): boolean {
 export function pauseAudio(paused: boolean): void {
   if (!ctx) return;
   if (paused) void ctx.suspend();
-  else void ctx.resume();
+  else ctx.resume().catch(() => usageError('audio'));
 }
 
 /** The context and the bus for sound effects, or null when effects are off (saves making nodes). */
