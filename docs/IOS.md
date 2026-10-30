@@ -276,8 +276,11 @@ with StoreKit 2:
    For each: **Price Schedule → Base country United Kingdom**, the price
    above (Apple sets the other countries). **Localization** English (U.K.):
    display name as the reference name, description e.g. "500 coins + 50
-   bonus". A **review screenshot** (the shop with the packs; from TestFlight).
-   Apple reviews the products with the first app version that sells them.
+   bonus". A **review screenshot** (the shop with the packs, taken on the
+   iPhone from TestFlight; the same one does for all six). The optional
+   **Image** (1024×1024): `store/app-store/products/<product id>.jpg`, made by
+   `npx tsx scripts/product-icons.ts`. Apple reviews the products with the
+   first app version that sells them.
 3. **The server.** The app's Apple ID is the number under App Store Connect →
    the app → App Information → **Apple ID**:
 
