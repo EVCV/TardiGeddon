@@ -93,7 +93,23 @@ Multiplayer, Casual.
 **App Store Connect → the app → App Store tab**, for each language
 (English (U.K.) as primary, then Spanish (Mexico) and Spanish (Spain),
 Portuguese (Brazil), German, French, Japanese):
-- **Name** (`appStore.name`), **Subtitle** (`appStore.subtitle`).
+- **Name** (`appStore.name`), **Subtitle** (`appStore.subtitle`). A name
+  can be used by only one app, and once only: plain "TardiGeddon" is the
+  English (U.K.) page's, so the other languages add words to it, and the
+  two kinds of Spanish need different ones. Apple also refused a subtitle
+  that repeated a word from its name. As entered (October 2026):
+
+  | Language | Name | Subtitle |
+  |---|---|---|
+  | English (U.K.) | TardiGeddon | Tiny tardigrade artillery war |
+  | Spanish (Spain) | TardiGeddon: Batalla artillera | Pequeños, duros y armados |
+  | Spanish (Mexico) | TardiGeddon: Guerra de cañones | Artillería de tardígrados |
+  | Portuguese (Brazil) | TardiGeddon: Batalha de canhão | Pequenos, duros e armados |
+  | German | TardiGeddon: Artillerie-Duell | Bärtierchen-Artilleriekrieg |
+  | French | TardiGeddon : Duel de canons | La guerre des tardigrades |
+  | Japanese | TardiGeddon：クマムシ砲撃バトル | ちっちゃい不死身の砲撃戦 |
+
+  Spanish (Mexico) is only here (`listing.json` has one Spanish).
 - **Promotional Text** (`appStore.promo`): can be changed any time without a
   new build, so use it for events ("Halloween world free until 2 Nov").
 - **Description**: the same as Google Play's full description (`play.full`).
