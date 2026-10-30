@@ -69,7 +69,7 @@ workflow** (branch `main`). It contains:
 
 The version number Google sees (`versionCode`) is the build's run number, so
 it goes up by itself with every build. The version players see is the one in
-`package.json` (`0.1.0` now).
+`package.json` (`1.0.0` now, from the launch).
 
 ## 2. Create the app
 
@@ -259,7 +259,7 @@ the same data types as above (email, name, user ID); the profile picture
 
 1. **Test and release → Testing → Internal testing → Create new release.**
 2. Upload `app-release.aab` from the latest `tardigeddon-release-N`.
-3. Release name: the version (e.g. `0.1.0 (12)`). Notes: "First test build."
+3. Release name: the version (e.g. `1.0.0 (12)`). Notes: "First test build."
 4. **Testers:** create an email list with your own Google account(s) and save.
 5. Roll out, then open the **"Join on the web"** link on your phone and
    install from Google Play.

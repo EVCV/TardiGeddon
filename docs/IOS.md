@@ -347,7 +347,7 @@ the middle); Apple requires the iOS 27 SDK for all uploads from April 2027:
 | `.github/workflows/ios.yml` | a push that changes `ios/`, the Capacitor settings or packages | Unsigned simulator build: proves the project and our Swift compile. Needs nothing from Apple |
 | `.github/workflows/ios-testflight.yml` | every merge to `main` that changes the app, and **Actions → iOS TestFlight → Run workflow** | `npm run app:build`, then fastlane (`ios/fastlane/Fastfile`, lane `beta`): `match` fetches the signing certificate (making it the first time), the build is signed and uploaded to **TestFlight**. Until the secrets below exist it just says so and stops |
 
-The version players see is `package.json`'s (`0.1.0`), as on Android; the
+The version players see is `package.json`'s (`1.0.0` from the launch), as on Android; the
 build number is the workflow's run number, so it goes up by itself. Minimum
 iOS 15 (StoreKit 2 needs it). fastlane's version is pinned in
 `ios/Gemfile.lock`.
@@ -469,7 +469,7 @@ whenever the iOS side changes: that's the check that the Swift compiles.
 | Settings: `capacitor://app.tardigeddon.com`, no bounce, iPad gets the touch game | `capacitor.config.ts` → `ios` |
 | Icon and splash | `npx @capacitor/assets generate --ios --iconBackgroundColor '#7fd3f7' --splashBackgroundColor '#7fd3f7'` (from `assets/`) |
 
-Minimum iOS 15. Version 0.1.0 (from `package.json`); the build number comes
+Minimum iOS 15. Version 1.0.0 (from `package.json`); the build number comes
 from the TestFlight build (§5).
 
 - **Launch screen:** Capacitor's storyboard. Apple requires one from the iOS
