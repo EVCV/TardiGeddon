@@ -8,8 +8,8 @@
 //
 //   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npx tsx scripts/app-store-header.ts
 //
-// Writes store/app-store/header.jpg and store/app-store/search-result.jpg
-// (JPEG: Apple wants no transparency).
+// Writes store/app-store/header.png and store/app-store/search-result.png
+// (PNG with no transparency: App Store Connect refused .jpg here, October 2026).
 
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -56,7 +56,7 @@ const cloud = (x: number, y: number, w: number) =>
 
 const IMAGES = [
   {
-    file: 'header.jpg',
+    file: 'header.png',
     w: 3840,
     h: 1646,
     html: page(
@@ -73,7 +73,7 @@ const IMAGES = [
     ),
   },
   {
-    file: 'search-result.jpg',
+    file: 'search-result.png',
     w: 3840,
     h: 2560,
     html: page(
@@ -96,7 +96,7 @@ const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_
 for (const img of IMAGES) {
   const p = await browser.newPage({ viewport: { width: img.w, height: img.h } });
   await p.setContent(img.html);
-  await p.screenshot({ path: join(out, img.file), type: 'jpeg', quality: 90 });
+  await p.screenshot({ path: join(out, img.file), type: 'png', omitBackground: false });
   await p.close();
   console.log('wrote', img.file);
 }

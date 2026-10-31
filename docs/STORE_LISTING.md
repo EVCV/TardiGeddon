@@ -118,8 +118,8 @@ Portuguese (Brazil), German, French, Japanese):
 - **Screenshots:** iPhone and iPad 13-inch from `store/listing/<lang>/app-store/`.
   Apple scales them down for smaller iPhones and iPads.
 - **Header and Search Results** (optional, the version page's first tab):
-  `store/app-store/header.jpg` (21:9, 3840×1646) and
-  `store/app-store/search-result.jpg` (3:2, 3840×2560), made by
+  `store/app-store/header.png` (21:9, 3840×1646) and
+  `store/app-store/search-result.png` (3:2, 3840×2560; PNG, as App Store Connect refuses .jpg here), made by
   `npx tsx scripts/app-store-header.ts`. No words, so the same pair does for
   every language; Apple puts the name and icon over the header.
 - **App Preview video** (optional): up to 30 seconds of real play, recorded
