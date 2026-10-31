@@ -7,7 +7,8 @@
 //   PW_CHROMIUM_PATH=… npx tsx scripts/product-icons.ts
 //
 // Writes store/google-play/products/<product id>.png and
-// store/app-store/products/<product id>.png.
+// store/app-store/products/<product id>.png, and all-packs.png: the six
+// together, for where App Store Connect takes one image for every pack.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { packArt } from '../src/ui/coinArt';
@@ -50,4 +51,22 @@ for (const { out, size } of STORES) {
   }
   await page.close();
 }
+
+// All six packs in one picture, smallest to biggest.
+const ALL = 1024;
+const page = await browser.newPage({ viewport: { width: ALL, height: ALL } });
+const cells = COIN_PACKS.map((p) => `<div style="display:grid;place-items:center">${packArt(ART[p.id] ?? 'pouch')}</div>`).join('');
+await page.setContent(`<html><body style="margin:0;width:${ALL}px;height:${ALL}px;display:grid;
+  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);padding:${ALL * 0.12}px ${ALL * 0.04}px;box-sizing:border-box;
+  background:radial-gradient(circle at 50% 42%, #c4ecfb 0%, #7fd3f7 55%, #68a8e8 100%)">${cells}</body></html>`);
+await page.evaluate((fill) => {
+  for (const svg of document.querySelectorAll('svg')) {
+    const b = svg.getBBox();
+    const side = Math.max(b.width, b.height) + 8;
+    svg.setAttribute('viewBox', `${b.x + b.width / 2 - side / 2} ${b.y + b.height / 2 - side / 2} ${side} ${side}`);
+    svg.setAttribute('width', String(fill));
+    svg.setAttribute('height', String(fill));
+  }
+}, ALL * 0.29);
+await page.screenshot({ path: 'store/app-store/products/all-packs.png' });
 await browser.close();
