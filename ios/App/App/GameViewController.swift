@@ -8,6 +8,8 @@ class GameViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(AuthTokenPlugin())
         bridge?.registerPluginInstance(AppStorePlugin())
         bridge?.registerPluginInstance(ReviewPlugin())
+        bridge?.registerPluginInstance(AppleSignInPlugin())
+        bridge?.registerPluginInstance(AgeSignalsPlugin())
         bridge?.registerPluginInstance(DisplayPlugin())
     }
 

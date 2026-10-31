@@ -13,6 +13,7 @@ import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { App } from '@capacitor/app';
 import { googleAccountPicker, nativeSignInAvailable, newChallenge, openBrowserTab, parseSignInLink, takeVerifier } from './nativeSignIn';
+import { appleSheet, appleSignInAvailable } from './appleSignIn';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
 import { appStoreAvailable, appStoreBuy, appStoreFinish, appStoreUnfinished, type AppStorePurchase } from '../shop/appStore';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
@@ -34,6 +35,8 @@ export interface MeResponse {
   providers: string[];
   /** Google's (public) client ID, for the Android app's Google account picker. */
   googleClientId?: string;
+  /** The server checks Apple's sign-in sheet in the iOS app (always, on servers that know it). */
+  appleInApp?: boolean;
   /** Whether the server can send email (password reset, confirming your email). */
   mail?: boolean;
   /** Only for the owner (ADMIN_EMAILS on the server): show the Sales page. */
@@ -149,8 +152,8 @@ function set(next: MeResponse | null): void {
   // In the phone apps: Google and Apple only allow their own payment systems,
   // so no coin packs or Stripe receipts (coins bought on the website still
   // spend). In the Android app, coin packs are sold with Google Play Billing instead.
-  // Google and Apple sign-in pages refuse to open inside an app, so the Android
-  // app signs in its own way (signInInApp); other apps offer email only.
+  // Google and Apple sign-in pages refuse to open inside an app, so the apps
+  // sign in their own way (signInInApp): Google and Apple on Android, Apple on iOS.
   if (next && isNativeApp()) next = { ...next, shop: (next.playBilling === true && playBillingAvailable()) || (next.appStore === true && appStoreAvailable()), receipts: false, providers: appProviders(next) };
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
@@ -540,8 +543,12 @@ export async function reportCpuMatch(r: { won: boolean; popped: number; damage: 
   return slime;
 }
 
-/** Sign-in providers the Android app can offer: Google (the account picker needs the client ID) and Apple (a browser tab). */
+/**
+ * Sign-in providers the apps can offer. iOS: Apple's own sheet. Android: Google
+ * (the account picker needs the client ID) and Apple (a browser tab).
+ */
 function appProviders(m: MeResponse): string[] {
+  if (appleSignInAvailable()) return m.appleInApp ? ['apple'] : [];
   if (!nativeSignInAvailable()) return [];
   return m.providers.filter((p) => (p === 'google' ? !!m.googleClientId : p === 'apple'));
 }
@@ -554,11 +561,23 @@ export async function signInWith(provider: string): Promise<void> {
 }
 
 /**
- * In the Android app. Google: Android's account picker gives a token the server
- * checks. Apple: its page in a browser tab, which hands the sign-in back to the
- * app (listenForAppSignIn finishes it).
+ * In the apps. iOS: Apple's own sheet gives a token the server checks. Android:
+ * Google's account picker gives a token the same way; Apple's page opens in a
+ * browser tab, which hands the sign-in back to the app (listenForAppSignIn finishes it).
  */
 async function signInInApp(provider: string): Promise<void> {
+  if (provider === 'apple' && appleSignInAvailable()) {
+    const r = await appleSheet();
+    if (r.status === 'cancelled') return;
+    if (r.status !== 'ok') throw new Error(t('Couldn’t sign in with Apple. Please try again.'));
+    try {
+      await call('/api/auth/sign-in/social', { provider: 'apple', idToken: { token: r.idToken, nonce: r.nonce } });
+    } catch (e) {
+      throw (e as { raw?: string }).raw === 'account not linked' ? new Error(t('An account with this email already exists. Sign in with your email and password, confirm your email, then you can use Apple.')) : e;
+    }
+    await refreshAccount();
+    return;
+  }
   if (provider === 'google') {
     const r = await googleAccountPicker(me?.googleClientId ?? '');
     if (r.status === 'cancelled') return;

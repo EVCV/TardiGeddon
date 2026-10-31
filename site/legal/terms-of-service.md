@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 25 October 2026
-**Document Version:** v2.2
+**Last Modified:** 31 October 2026
+**Document Version:** v2.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -138,7 +138,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.1 Buying Coins
 
-5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. Before every purchase, we ask you to confirm that you are 18 or over or that a parent or guardian has agreed to it. In our Android app, the shop also takes account of the age range Google Play provides, where you or a parent or carer share it: it reminds players under 18 that a parent or carer may need to approve purchases, and buying coins is switched off while a parent or carer has not approved the latest version of the app in Google Family Link, or while Google Play needs you to confirm your age (see our Privacy Policy, Section 2.0.4).
+5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. Before every purchase, we ask you to confirm that you are 18 or over or that a parent or guardian has agreed to it. In our Android app, the shop also takes account of the age range Google Play provides, where you or a parent or carer share it: it reminds players under 18 that a parent or carer may need to approve purchases, and buying coins is switched off while a parent or carer has not approved the latest version of the app in Google Family Link, or while Google Play needs you to confirm your age (see our Privacy Policy, Section 2.0.4). In our iOS app, where the law requires it, the shop takes account of the age range Apple provides in the same way, and reminds players under 18 that a parent or guardian may need to approve purchases through Apple's Ask to Buy (see our Privacy Policy, Section 2.0.4A).
 
 5.1.2 Coin packs are priced in pounds sterling, including VAT or any similar sales tax for your country. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or time-limited offers to pressure you into buying. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page, which may also show you the price in your own currency; your bank or card issuer may charge fees for payments in a foreign currency.
 
@@ -147,6 +147,8 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 5.1.4 Your coins are added to your account straight away, normally within a few seconds of payment. If they have not appeared within an hour, please contact support@tardigeddon.com.
 
 5.1.5 **In our Android app**, coin packs are sold through Google Play's billing system instead of Stripe. The packs and the coins they give are the same, but the price is the one Google Play shows you, in your currency and including the tax for your country, and the per-coin price is not shown. Google Play takes the payment, as the seller of the purchase, under its own terms (Google Play Terms of Service and its refund policies), and sends you the receipt; refunds of Google Play purchases are asked for from Google Play. Before Google Play's payment sheet opens, the app asks for the same confirmations as on the website (that you want the coins straight away, and that you are 18 or over or a parent or carer has agreed). If Google Play refunds a purchase or the payment is reversed, the coins it gave are taken back, as in Section 5.3.2. Coins are kept on your account whether you bought them on the website or in the app.
+
+5.1.5A **In our iOS app** (iPhone and iPad), coin packs are sold through Apple's in-app purchase system in the same way. The price is the one the App Store shows you, in your currency and including the tax for your country. Apple takes the payment, as the seller of the purchase, under its own terms (the Apple Media Services Terms and Conditions), and sends you the receipt; refunds of App Store purchases are asked for from Apple, at https://reportaproblem.apple.com. The app asks for the same confirmations before Apple's payment sheet opens. If Apple refunds a purchase, the coins it gave are taken back, as in Section 5.3.2. Coins bought on the website, in the Android app or in the iOS app all stay on your account and can be spent anywhere you sign in.
 
 5.1.6 When you spend coins, any free coins you have (such as the bonus coins in a pack) are used first, then the coins you bought, oldest first. This does not change what you can unlock or what anything costs: it is how we keep a record of which of your coins were paid for, which some countries' laws require (see Section 5.5.4). For the same reason, and for tax, each purchase record includes the country of the payment, when Stripe or Google Play gives it to us.
 
@@ -196,7 +198,9 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.7 App Stores
 
-5.7.1 If you buy coins in a TardiGeddon app from an app store (Google Play now, and the Apple App Store in future), that purchase is made through the app store's own payment system and is also subject to that store's terms, including its refund policy (see Section 5.1.5 for Google Play).
+5.7.1 If you buy coins in a TardiGeddon app from an app store (Google Play or the Apple App Store), that purchase is made through the app store's own payment system and is also subject to that store's terms, including its refund policy (see Section 5.1.5 for Google Play and Section 5.1.5A for the App Store).
+
+5.7.2 Our iOS app is licensed to you under Apple's Standard Licensed Application End User License Agreement (https://www.apple.com/legal/internet-services/itunes/dev/stdeula/), together with these Terms. These Terms are between you and EVCV Limited, not Apple: we, not Apple, are responsible for the app, its content and its support.
 
 ### 5.8 Gifts
 

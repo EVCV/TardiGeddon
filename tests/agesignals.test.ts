@@ -20,6 +20,13 @@ describe('age signals and the coin shop', () => {
     expect(coinRules({ status: 'shared', lower: 13, upper: 15, change: 'approved' }).note).toMatch(/parent/);
   });
 
+  it('names the store that asks the parent: Google Play, or Apple in the iOS app', () => {
+    expect(coinRules({ status: 'shared', lower: 13, upper: 15 }).note).toMatch(/Google Play/);
+    expect(coinRules({ status: 'shared', lower: 13, upper: 15 }, 'appstore').note).toMatch(/Apple will ask/);
+    // Apple's 18+ has no upper bound: nothing to say.
+    expect(coinRules({ status: 'shared', lower: 18 }, 'appstore')).toEqual({});
+  });
+
   it('switches buying coins off while a parent has not approved this version', () => {
     expect(coinRules({ status: 'shared', lower: 13, upper: 15, change: 'pending' }).blocked).toMatch(/until a parent/);
     expect(coinRules({ status: 'shared', lower: 13, upper: 15, change: 'declined' }).blocked).toMatch(/hasn’t approved/);

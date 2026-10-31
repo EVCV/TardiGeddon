@@ -145,12 +145,38 @@ The iOS app's first release needs at least email + Apple. Google can follow
 in an update if it isn't ready, but Apple must never be missing while Google
 is offered (Guideline 4.8).
 
-Natively, both work the same way: the phone's own sheet gives the app an
-**ID token**, and the app sends it to the server
-(`signIn.social({ provider: 'apple', idToken })`). Better Auth checks it and
-replies with the bearer token from 2a. No browser and no redirect.
-`appBundleIdentifier` is already in `server/accounts.ts` for Apple's
-native tokens. Later, the "other" provider in each app (Google on iOS,
+**Sign in with Apple in the iOS app: built** (October 2026).
+`ios/App/App/AppleSignInPlugin.swift` ↔ `src/account/appleSignIn.ts`, used by
+`signInInApp` in `src/account/session.ts`:
+
+- iOS's own sheet asks for the **email only** and gives an **ID token** for
+  the app's bundle ID, with a fresh nonce (its SHA-256 goes to Apple; the
+  nonce itself to the server, so a token can't be replayed). The app sends
+  it to `/api/auth/sign-in/social` with `idToken`; Better Auth checks Apple's
+  signature (Apple's public keys), the audience (`com.tardigeddon.app`,
+  or `APPLE_APP_BUNDLE_IDENTIFIER`) and the nonce, and replies with the
+  bearer token from 2a. No browser, no redirect.
+- **Needs nothing on the server**: no Apple key or secret, so it's always on
+  (`appleInApp` in `/api/me`). The website's and the Android app's Apple
+  button still need the Services ID and secret (docs/ACCOUNTS.md), and only
+  shows when they're set.
+- New accounts made with Apple or Google get a **made-up player name**
+  (e.g. "Mossy Rockets", changeable on the Account page): Apple often sends
+  no name, and real names mustn't show on leaderboards.
+- An existing account with that email that isn't **confirmed** isn't linked
+  (2c); the app says to sign in with the password and confirm the email first.
+- The button is black with Apple's logo (Apple's design guidelines).
+- Needs the **Sign in with Apple** capability on the App ID (§5 step 1) and
+  `App.entitlements`. fastlane makes a new signing profile once if the old
+  one lacks it.
+- Tested in `tests/accounts.test.ts` (Apple's signature check stood in for).
+
+Still to do: **revoking Apple's tokens when an Apple account is deleted**.
+Apple asks apps with Sign in with Apple to call its REST API's revoke
+endpoint on account deletion. That needs a Sign in with Apple **key** (the
+same one the website's Apple button needs) and the authorization code the
+sheet gives, exchanged for a refresh token at sign-in. Do it with the
+website's Apple sign-in. Later, the "other" provider in each app (Google on iOS,
 Apple on Android) opens the provider's page in the system browser and
 returns to the app. So a player who started on an iPhone with Apple can
 carry on on Android.
@@ -276,8 +302,12 @@ with StoreKit 2:
    For each: **Price Schedule → Base country United Kingdom**, the price
    above (Apple sets the other countries). **Localization** English (U.K.):
    display name as the reference name, description e.g. "500 coins + 50
-   bonus". A **review screenshot** (the shop with the packs; from TestFlight).
-   Apple reviews the products with the first app version that sells them.
+   bonus". A **review screenshot** (the shop with the packs, taken on the
+   iPhone from TestFlight; the same one does for all six). The optional
+   **Image** (1024×1024): `store/app-store/products/<product id>.png`, made by
+   `npx tsx scripts/product-icons.ts`; where App Store Connect takes one image
+   for every pack, `all-packs.png` (the six together). Apple reviews the products with the
+   first app version that sells them.
 3. **The server.** The app's Apple ID is the number under App Store Connect →
    the app → App Information → **Apple ID**:
 
@@ -294,6 +324,17 @@ with StoreKit 2:
    purchase in TestFlight). Sandbox payments are free and grant coins as £0.
 
 ## 4. Ages and parents *(changing)*
+
+**Built** (October 2026): `ios/App/App/AgeSignalsPlugin.swift` (the same JS
+plugin name as Android's, `AgeSignals`, so `src/shop/ageSignals.ts` serves
+both). Where Apple says the law applies (`isEligibleForAgeFeatures`, iOS 26.2+)
+it asks `requestAgeRange(ageGates: 13, 16, 18)` when the coin packs open, and
+under-18s see "a parent or carer may need to approve purchases. Apple will
+ask them" (Ask to Buy). Elsewhere, and on older iOS, nothing is asked. In
+memory only; never sent to the server. Needs the **Declared Age Range**
+capability on the App ID (§5 step 1) and `App.entitlements`. Not built yet:
+the Significant Change acknowledgement (`showSignificantUpdateAcknowledgment`,
+`requiredRegulatoryFeatures`, iOS 26.4) for a future significant update.
 
 As of October 2026, Apple requires these for apps in some places:
 
@@ -327,8 +368,19 @@ only covers Brazil today. Check that separately before the Android launch.
 **Age rating:** Apple's age ratings changed in 2026 (4+, 9+, 13+, 16+, 18+),
 with new questions. Answer them like Google's (`docs/GOOGLE_PLAY.md` §4):
 cartoon violence, in-app purchases, online play with no chat, blocking and
-reporting. Expect 9+ or 13+. Not in the **Kids** category: accounts and
-online play are 13+.
+reporting. Not in the **Kids** category: accounts and online play are 13+.
+
+**As answered (October 2026), rated 13+:** Parental Controls No, Age
+Assurance No (change to Yes now the age check is built), Unrestricted Web
+Access No, User-Generated Content **Yes** (names on leaderboards, team names
+and maps online; report and block), Social Media No (sharing goes out
+through the phone's share sheet; no feed), Messaging and Chat No,
+Advertising No; mature themes, medical, sexuality all None; Cartoon or
+Fantasy Violence **Frequent**, Guns or Other Weapons **Frequent**, other
+violence None; Contests **Frequent** (daily challenge leaderboards, quick-play
+rating), Simulated Gambling None, Gambling No, Loot Boxes No; In-App
+Purchases Yes. No override; Age Suitability URL
+`https://tardigeddon.com/legal/childrens-privacy`.
 
 ## 5. Building on GitHub (no Mac): **built**, waiting for the owner's keys
 
@@ -344,7 +396,7 @@ the middle); Apple requires the iOS 27 SDK for all uploads from April 2027:
 | `.github/workflows/ios.yml` | a push that changes `ios/`, the Capacitor settings or packages | Unsigned simulator build: proves the project and our Swift compile. Needs nothing from Apple |
 | `.github/workflows/ios-testflight.yml` | every merge to `main` that changes the app, and **Actions → iOS TestFlight → Run workflow** | `npm run app:build`, then fastlane (`ios/fastlane/Fastfile`, lane `beta`): `match` fetches the signing certificate (making it the first time), the build is signed and uploaded to **TestFlight**. Until the secrets below exist it just says so and stops |
 
-The version players see is `package.json`'s (`0.1.0`), as on Android; the
+The version players see is `package.json`'s (`1.0.0` from the launch), as on Android; the
 build number is the workflow's run number, so it goes up by itself. Minimum
 iOS 15 (StoreKit 2 needs it). fastlane's version is pinned in
 `ios/Gemfile.lock`.
@@ -358,7 +410,10 @@ Account.
    Identifiers & Profiles → Identifiers → +** → App IDs → App. Description
    `TardiGeddon`, **Explicit** Bundle ID `com.tardigeddon.app`. Under
    Capabilities, **In-App Purchase** is already on; also tick **Sign in with
-   Apple**. Continue → Register.
+   Apple** and **Declared Age Range** (both are in `App.entitlements`; a
+   signed build fails until the App ID has them). Continue → Register. Ticked
+   later on an existing App ID: Identifiers → `com.tardigeddon.app` → tick →
+   Save; the next TestFlight build makes a new signing profile by itself.
 2. **Create the app.** appstoreconnect.apple.com → **Apps → + → New App**:
    iOS, name `TardiGeddon`, primary language English (U.K.), bundle ID
    `com.tardigeddon.app`, SKU `tardigeddon-ios`, User Access: Full Access.
@@ -439,14 +494,33 @@ review; external testers need a short beta review.
   (e.g. UserDefaults). Apple refuses uploads without it.
 - **Export compliance:** HTTPS only, so `ITSAppUsesNonExemptEncryption = NO`
   in `Info.plist`.
-- **Legal pages:** Privacy Policy 11.0.1 still says apps are coming. Update it
-  for both apps, with the iOS age check (as 2.0.4 does for Android), Sign in
-  with Apple and Hide My Email. Terms: Apple as the seller in the app, and
-  refunds through Apple (reportaproblem.apple.com), as 5.1.3/5.7 do for Google.
+- **Legal pages: done** (31 October 2026): Privacy Policy v2.12 (2.0.4A age
+  range, 2.2.1 Sign in with Apple and Hide My Email, 2.3.4A and 4.0.4B App
+  Store purchases, Section 11), Terms v2.3 (5.1.5A, 5.7.2 Apple's standard
+  licence), Cookie & Storage v1.9 (Keychain token), Children's Privacy v1.10,
+  Delete your account v1.2.
 - **App Review notes:** give a demo account (reviewers like to see the shop
   signed in). Say coins are cosmetic only, and that coins bought on the
   website or Android also spend here (Guideline 3.1.3(b)).
-- **Countries:** as Google Play: everywhere except Vietnam.
+- **Countries:** everywhere except **Vietnam** (online games need a licence),
+  **China mainland** (games need a government licence, an ISBN approval
+  number), and **South Korea** until we have a GRAC rating number (Age
+  Ratings asks for one). Apple itself leaves out **Afghanistan and Morocco**
+  for this age rating.
+- **As set up in App Store Connect (October 2026):** app Apple ID
+  `6826841030` (`APPLE_APP_ID` on the server), primary language English
+  (U.K.), Games → Strategy + Casual, Content Rights "Yes, has the rights"
+  (open-source fonts and code, players' names and maps), Apple's Standard
+  License Agreement, EU trader status, App Store Server Notifications v2 at
+  `/api/shop/apple/notifications` (production and sandbox), version 1.0.0
+  (`package.json`). App Privacy: Name, Email Address, **Contacts** (the
+  friends list counts as a social graph), Gameplay Content, Other User
+  Content, User ID, Purchases (linked, App Functionality); Product
+  Interaction, Crash Data, Performance Data, Other Diagnostic Data (not
+  linked, Analytics); no tracking. Privacy Policy URL
+  `https://tardigeddon.com/legal/privacy-policy`, User Privacy Choices URL
+  `https://tardigeddon.com/legal/delete-account`. Names and subtitles per
+  language: `docs/STORE_LISTING.md`.
 - **Accessibility** (App Store Connect → App Accessibility, the labels on the
   product page; Apple's rule: every common task, including a match, works
   with the feature). Tick:
@@ -488,7 +562,7 @@ whenever the iOS side changes: that's the check that the Swift compiles.
 | Settings: `capacitor://app.tardigeddon.com`, no bounce, iPad gets the touch game | `capacitor.config.ts` → `ios` |
 | Icon and splash | `npx @capacitor/assets generate --ios --iconBackgroundColor '#7fd3f7' --splashBackgroundColor '#7fd3f7'` (from `assets/`) |
 
-Minimum iOS 15. Version 0.1.0 (from `package.json`); the build number comes
+Minimum iOS 15. Version 1.0.0 (from `package.json`); the build number comes
 from the TestFlight build (§5).
 
 - **Launch screen:** Capacitor's storyboard. Apple requires one from the iOS
@@ -554,9 +628,9 @@ from the TestFlight build (§5).
 | 7 | ✅ One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
 | 8 | ✅ `server/appStore.ts`, notifications, tests. Left: products, `APPLE_APP_ID`, notification URL (§3) | Code + owner | 1, 7 |
 | 9 | Sandbox purchases on TestFlight: pay, refund, app closed mid-purchase, wrong account | Owner | 6, 8 |
-| 10 | Apple and Google sign-in in the app + "Link Apple/Google" + add a password; Apple and Google keys live on the server | Code + owner (Apple and Google keys) | 2 |
-| 11 | Age range, Significant Change API, consent notifications; sandbox-tested | Code | 7, 8 |
-| 12 | Screenshots, listing, App Privacy, age rating, legal pages | Code + owner | 6 |
+| 10 | ✅ Sign in with Apple in the app (§2b). Left: Google in the iOS app, "Link Apple/Google", add a password, revoking Apple tokens on deletion; Apple and Google web keys on the server | Code + owner (Apple and Google keys) | 2 |
+| 11 | ✅ Age range for the coin shop (§4). Left: Significant Change acknowledgement, consent notifications; sandbox-test it all | Code | 7, 8 |
+| 12 | ✅ Screenshots, listing, App Privacy, age rating, legal pages | Code + owner | 6 |
 | 13 | Submit for review | Owner | all |
 
 Steps 2, 3 and 4 can start now and don't touch the Android release.

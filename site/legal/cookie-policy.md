@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 28 October 2026
-**Document Version:** v1.8
+**Last Modified:** 31 October 2026
+**Document Version:** v1.9
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -80,6 +80,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.shareUsage` | Local storage | TardiGeddon (first party) | That you turned off "Share anonymous statistics" in Settings, so the game sends none. Only set if you turn them off | Strictly necessary | Until you turn them back on or clear site data |
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
 | `__Secure-better-auth.session_token` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Keeps you signed in to your account. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
+| Sign-in token | iOS Keychain (on your device) | TardiGeddon game server (first party) | In our iOS app, keeps you signed in to your account instead of the cookie above, which iOS doesn't keep for apps. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
 | `__Secure-better-auth.state` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Protects sign-in with Google or Apple from forgery. Only set while you sign in with them | Strictly necessary | 5 minutes |
 | `tardi-app-challenge` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | In our Android app, when you sign in with Apple in your phone's browser: makes sure the sign-in goes back to the app that asked for it. Only set in the browser, while you sign in | Strictly necessary | 10 minutes, or until the sign-in finishes |
 
@@ -101,7 +102,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 5.1 Browser and Device Controls
 
-5.1.1 You can delete the information the game stores by clearing your browser's site data for tardigeddon.com (and, to remove sign-in cookies, for server.tardigeddon.com). In our Android app, the same information is kept in the app's own storage on your device: clear the app's storage in your phone's settings, or uninstall the app, to delete it. Signing out also removes the sign-in cookie. Instructions can be found in your browser's settings or "Help" menu.
+5.1.1 You can delete the information the game stores by clearing your browser's site data for tardigeddon.com (and, to remove sign-in cookies, for server.tardigeddon.com). In our Android app, the same information is kept in the app's own storage on your device: clear the app's storage in your phone's settings, or uninstall the app, to delete it. In our iOS app, uninstall the app to delete it; signing out removes the sign-in token from the Keychain. Signing out also removes the sign-in cookie. Instructions can be found in your browser's settings or "Help" menu.
 
 5.1.2 If you block or clear this storage, the game will still work, but it will forget your teams and settings, and you will need to sign in again. If you block cookies from server.tardigeddon.com, you will not be able to sign in.
 

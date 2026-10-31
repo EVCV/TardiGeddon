@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 28 October 2026
-**Document Version:** v2.11
+**Last Modified:** 31 October 2026
+**Document Version:** v2.12
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -53,9 +53,11 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.0.2 When you join an online room, the game also keeps the room code and a random rejoin token in your browser's session storage, so you can get back into your match if your connection drops. If you change your controls on the Settings page (which keys, mouse buttons and touch buttons do what), the game keeps them there too. This is deleted when you close the tab.
 
-2.0.3 This information stays on your device. In our Android app, it is kept in the app's own storage on your device instead of a browser's. It is not sent to us, except as described in Section 2.1 when you play online and in Section 2.2 if you have an account, and you can delete it at any time by clearing your browser's site data.
+2.0.3 This information stays on your device. In our Android and iOS apps, it is kept in the app's own storage on your device instead of a browser's. It is not sent to us, except as described in Section 2.1 when you play online and in Section 2.2 if you have an account, and you can delete it at any time by clearing your browser's site data.
 
 2.0.4 In our Android app, when you open the coin packs in the shop, the app asks Google Play for your age range (for example "13 to 15" or "18 and over"), using Google's Play Age Signals service. Google may first ask you, or a parent or carer through Google Family Link, whether to share it. The app uses the answer only to adjust buying coins: it reminds players under 18 that a parent or carer may need to approve purchases, and switches buying coins off while a parent or carer has not yet approved the latest version of the app, or while Google needs to confirm your age. The answer is kept in the app's memory until you close it: it is not saved on your device, not sent to us, and not used for anything else. We do this because Brazil's Digital Statute of Children and Adolescents (Digital ECA) asks apps that children and teenagers may use to take account of the age range app stores provide.
+
+2.0.4A In our iOS app (iPhone and iPad), where the law requires it (for example in some US states and in Brazil), the app asks Apple for your age range when you open the coin packs, using Apple's Declared Age Range service. Apple may first ask you, or a parent or guardian in Family Sharing, whether to share it. The app uses the answer only to remind players under 18 that a parent or guardian may need to approve purchases (Apple's Ask to Buy). As on Android, the answer is kept in the app's memory until you close it: it is not saved on your device, not sent to us, and not used for anything else. Where the law does not require it, the app does not ask.
 
 ### 2.1 Information Used When You Play Online
 
@@ -77,7 +79,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 - your player name and email address;
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
-- if you sign in with Google or Apple instead of a password: the name, email address, profile picture link and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it;
+- if you sign in with Google or Apple instead of a password: the email address and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in (Google's can also include your name and a profile picture link). New accounts made this way get a made-up player name, which you can change; we do not use the name Google or Apple has for you. If you use Apple's "Hide My Email", Apple gives us a private relay address (ending in @privaterelay.appleid.com) that forwards to your real email, and we never see your real address. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it. In our iOS app, signing in with Apple uses your iPhone's or iPad's own Sign in with Apple screen, which asks only for your email address;
 - when your account was created and last updated, and whether you have confirmed your email address;
 - the items your account has unlocked, and how (with coins, Slime, a gift, a promotional code, the Founder or Early Bird pack, or an earlier direct purchase);
 - invites (Terms of Service, Section 5.10): if you enter a friend's invite code, which account invited yours, when, and when the invite rewards were given. The player who invited you is not told who you are by us; the game only shows them how many of their invited friends have been rewarded or are still waiting. If you invite friends, we keep the same record on their side. Deleting either account removes it from that account's side;
@@ -90,7 +92,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 - your friends, if you add any while signed in: your friend code, the players you've asked or accepted, and when. Only players who have both accepted each other are friends. Your friends can see your player name, whether you're on the online screen, and the code of a private room you're in so they can join it; they can send you an invite to their room. There is no chat. You can remove a friend or cancel a request at any time, and deleting your account removes your friends list.
 - your daily challenge scores, if you send them while signed in: which challenge, the day, your best result (targets popped or race time) and when you set it. To check a score, the game sends us the buttons pressed during that run; we play it back on our server and then discard it, keeping only the result. Your best result for each day's challenge is shown on the public leaderboards in the game and on our Website, next to your account's player name (not your email). If you don't want to appear, don't send a score, or ask us to remove it.
 
-2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
+2.2.2 While you are signed in, our server keeps a sign-in session: a random code, which is also stored in a cookie on your device (in our iOS app, in your device's secure Keychain instead; see our Cookie & Storage Policy), the account it belongs to and when it expires. We do not store your IP address or details of your device or browser with it. Your IP address is used briefly, in memory only, to limit repeated sign-in attempts and protect accounts from password guessing.
 
 2.2.3 Your account name and email address are not shown to other players, with one exception: when someone claims a gift you sent, they see your player name and the message you chose (see our Terms of Service, Section 5.8). Your email address is never shown.
 
@@ -107,6 +109,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 2.3.3 Stripe also uses payment information for its own purposes, such as preventing fraud and meeting its legal obligations, as described in its own privacy policy at https://stripe.com/privacy.
 
 2.3.4 In our Android app, coin packs are bought through Google Play's billing system instead, and Google takes the payment as the seller, under its own terms and privacy policy (https://policies.google.com/privacy). We never see your payment details. When you start a purchase, the app gives Google a code made from your account identifier by a one-way calculation (a "hash"), so that we can check the purchase belongs to your account without Google learning which account it is. Google gives the app a purchase reference, which the app sends to our server; our server then asks Google whether the purchase is complete and genuine, and later whether it has been refunded. We keep a purchase record as in Section 2.3.2: the coin pack, how many coins it gave, its list price in pounds (or nothing, for Google's test purchases), the date, the billing country Google gives us, Google's purchase reference, whether it has been refunded or disputed, and the account it was for.
+
+2.3.4A In our iOS app, coin packs are bought through Apple's in-app purchase system, and Apple takes the payment as the seller, under its own terms and privacy policy (https://www.apple.com/legal/privacy/). We never see your payment details. As on Android, the app gives Apple a code made from your account identifier by a one-way calculation, so that we can check the purchase belongs to your account without Apple learning which account it is. Apple signs each purchase; the app sends the signed purchase to our server, which checks Apple's signature, and Apple tells our server if a purchase is later refunded. We keep a purchase record as in Section 2.3.2: the coin pack, how many coins it gave, its list price in pounds (or nothing, for Apple's test purchases), the date, the App Store country, Apple's transaction reference, whether it has been refunded, and the account it was for.
 
 2.3.5 With your account we also keep a record of where the coins in your wallet came from: which purchase (or bonus) each batch of coins came from, its country and what it cost, and how many of those coins you have not spent yet. We use it to keep your wallet correct when a purchase is refunded or a gift is cancelled, and to meet the law in countries that treat unspent paid coins as prepaid credit, such as Japan's Payment Services Act, which requires us to know the value of unspent coins bought by players in Japan. It is deleted with your account.
 
@@ -159,7 +163,7 @@ Our online game server counts in the same way, for online play: how long players
 
 3.0.6 If you create an account: to sign you in, keep your account secure, keep track of the shop items you own on every device, and let you delete your account.
 
-3.0.7 If you buy something: to take payment through Stripe (or, in the Android app, Google Play), deliver the item, handle refunds and disputes, and prevent fraud.
+3.0.7 If you buy something: to take payment through Stripe (or, in our apps, Google Play or the App Store), deliver the item, handle refunds and disputes, and prevent fraud.
 
 3.0.8 To comply with legal obligations, such as keeping accounting and tax records, and to respond to lawful requests from public authorities.
 
@@ -186,6 +190,8 @@ Our online game server counts in the same way, for online play: how long players
 4.0.4 Stripe, which takes payments for us as the merchant of record. For the payment, and the tax and accounting records that go with it, Stripe is an independent controller of your data under its own privacy policy at https://stripe.com/privacy; it also uses payment information for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
 
 4.0.4A Google, for coin packs bought in our Android app: Google takes the payment as the seller and is an independent controller of the payment data under its own privacy policy at https://policies.google.com/privacy (see Section 2.3.4).
+
+4.0.4B Apple, for coin packs bought in our iOS app: Apple takes the payment as the seller and is an independent controller of the payment data under its own privacy policy at https://www.apple.com/legal/privacy/ (see Section 2.3.4A).
 
 4.0.5 Google or Apple, only if you choose to sign in with them. They will know that you used your Google or Apple account to sign in to TardiGeddon, under their own privacy policies.
 
@@ -221,7 +227,7 @@ Our online game server counts in the same way, for online play: how long players
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 
-5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, and Google for purchases in the Android app, keep their own records under their privacy policies.
+5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, Google for purchases in the Android app, and Apple for purchases in the iOS app, keep their own records under their privacy policies.
 
 5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies. The game's play statistics are only ever kept as daily totals, which are deleted after 25 months.
 
@@ -259,7 +265,7 @@ Our online game server counts in the same way, for online play: how long players
 
 ### 7.0 Safeguards
 
-7.0.1 We use appropriate technical and organisational measures to protect personal data, including encrypted connections (HTTPS and secure WebSockets) between the game and our servers, an encrypted connection to our account database, passwords stored only in hashed form, sign-in cookies that the game's code cannot read, limits on repeated sign-in attempts, checks that payment notifications really come from Stripe and that purchases made in the Android app are confirmed with Google, checks that reject malformed data, limits on how quickly a connection can send messages or create rooms, and keeping as little data as possible for as short a time as possible.
+7.0.1 We use appropriate technical and organisational measures to protect personal data, including encrypted connections (HTTPS and secure WebSockets) between the game and our servers, an encrypted connection to our account database, passwords stored only in hashed form, sign-in cookies that the game's code cannot read, limits on repeated sign-in attempts, checks that payment notifications really come from Stripe and that purchases made in the Android app are confirmed with Google and those made in the iOS app carry Apple's signature, checks that reject malformed data, limits on how quickly a connection can send messages or create rooms, and keeping as little data as possible for as short a time as possible.
 
 7.0.2 No method of transmission over the internet or method of electronic storage is completely secure. While we strive to protect your personal data, we cannot guarantee its absolute security.
 
@@ -277,7 +283,7 @@ Our online game server counts in the same way, for online play: how long players
 
 ### 9.0 Children
 
-9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. In our Android app, the shop also takes account of the age range Google Play provides (Section 2.0.4). Please see our Children's Privacy Policy for further detail.
+9.0.1 TardiGeddon is a cartoon game that children may enjoy. The game can be played without an account, and without giving us a name, email address, age, or location, so we collect as little information as possible from every player, including children. Accounts are only for people aged 13 or over, and we ask players under 18 to get a parent's or carer's permission before buying anything. In our Android and iOS apps, the shop also takes account of the age range Google Play or Apple provides (Sections 2.0.4 and 2.0.4A). Please see our Children's Privacy Policy for further detail.
 
 ## Section 10 — Regional Supplements
 
@@ -293,11 +299,11 @@ Our online game server counts in the same way, for online play: how long players
 
 10.2.1 We aim to comply with applicable data protection laws in the jurisdictions in which we operate. If you have questions about your rights under a specific local law not otherwise addressed in this Policy, please contact privacy@tardigeddon.com.
 
-## Section 11 — Future Changes to the Services
+## Section 11 — Our Apps
 
 ### 11.0 Mobile Apps
 
-11.0.1 We plan to release TardiGeddon as an app for phones and tablets. Purchases in those apps will be made through Apple's or Google's own payment systems. We will update this Policy before the apps become available.
+11.0.1 TardiGeddon is available as an app for Android phones and tablets (on Google Play) and for iPhone and iPad (on the App Store). This Policy applies to the apps in the same way as to the Website, with the differences described in it. Coin packs bought in the apps are paid for through Google's or Apple's own payment systems (Sections 2.3.4 and 2.3.4A).
 
 ## Section 12 — General Legal Provisions
 

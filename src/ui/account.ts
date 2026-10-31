@@ -16,6 +16,10 @@ import { itemArt } from './shop';
 import { lang, t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
+/** Apple's logo, for the Sign in with Apple button. */
+const APPLE_LOGO =
+  '<svg class="apple-logo" viewBox="0 0 814 1000" aria-hidden="true"><path fill="currentColor" d="M788 341c-6 4-108 62-108 190 0 149 131 202 135 203-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-164-40c-77 0-104 41-167 41s-106-57-156-127C45 792 0 668 0 551 0 362 123 262 244 262c64 0 118 42 158 42 38 0 98-45 171-45 28 0 128 3 194 82zM553 165c30-36 52-86 52-136 0-7-1-14-2-19-49 2-108 33-143 74-28 32-54 82-54 133 0 8 1 15 2 18 3 1 9 1 14 1 45 0 101-30 131-71z"/></svg>';
+
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -322,7 +326,9 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     });
   };
   for (const p of providers) {
-    const b = el('button', 'hud-btn account-provider', t('Continue with {provider}', { provider: PROVIDER_NAMES[p] ?? p }));
+    const b = el('button', `hud-btn account-provider account-provider-${p}`, t('Continue with {provider}', { provider: PROVIDER_NAMES[p] ?? p }));
+    // Apple's button: black, with its logo (Apple's design guidelines for Sign in with Apple).
+    if (p === 'apple') b.insertAdjacentHTML('afterbegin', APPLE_LOGO);
     b.type = 'button';
     b.disabled = ctx.busy;
     b.onclick = () => ctx.run(() => signInWith(p));

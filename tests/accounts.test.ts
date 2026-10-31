@@ -111,6 +111,15 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     notification: async (signed) => appleNotes.get(signed) ?? null,
   };
 
+  // No Apple in tests: an Apple ID token is "signed" if its nonce is one we handed out.
+  const appleNonces = new Set<string>();
+  const appleIdToken = async (_token: string, nonce?: string) => !!nonce && appleNonces.has(nonce);
+  /** An Apple ID token's shape (header.payload.signature), as iOS's sheet gives one. */
+  const appleToken = (claims: Record<string, unknown>) =>
+    [{ alg: 'RS256', kid: 'test' }, { iss: 'https://appleid.apple.com', aud: 'com.tardigeddon.app', ...claims }, 'sig']
+      .map((x) => Buffer.from(typeof x === 'string' ? x : JSON.stringify(x)).toString('base64url'))
+      .join('.');
+
   // No email service in tests: keep what would have been sent.
   const sent: Mail[] = [];
   const mailer = async (m: Mail) => void sent.push(m);
@@ -128,7 +137,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', FOUNDER_UNTIL: '2000-01-01', FOUNDER_EMAILS: 'Founder@example.com', EARLY_BIRD_UNTIL: '2000-01-01', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
-      { stripe, mailer, play, appStore },
+      { stripe, mailer, play, appStore, appleIdToken },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM creator_payout; DELETE FROM creator_player; DELETE FROM creator; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -1194,6 +1203,41 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const kept = await accounts.db.query('SELECT user_id FROM purchase WHERE id = $1', ['cs_4']);
     expect(kept.rows).toEqual([{ user_id: null }]);
   });
+  it('signs in with Apple in the iOS app: Apple’s token checked, a made-up player name, never linked to an unconfirmed account', async () => {
+    const app = (path: string, body: unknown) =>
+      fetch(base + path, { method: 'POST', headers: { origin: IOS_APP, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const apple = (claims: Record<string, unknown>, nonce: string) => app('/api/auth/sign-in/social', { provider: 'apple', idToken: { token: appleToken(claims), nonce } });
+
+    // Without Apple's web keys, only the app's sheet: no "Continue with Apple" on the website.
+    const visitor = await me('');
+    expect(visitor.appleInApp).toBe(true);
+    expect(visitor.providers).not.toContain('apple');
+    const tab = await fetch(base + '/api/app/social?provider=apple&challenge=' + 'a'.repeat(43), { redirect: 'manual' });
+    expect(tab.headers.get('location')).toMatch(/error=unavailable/);
+
+    // A token Apple didn't sign (here: a nonce we never made) is refused.
+    expect((await apple({ sub: 'apple-1', email: 'apple-new@example.com', email_verified: true }, 'unknown')).status).toBe(401);
+    expect((await accounts.db.query('SELECT 1 FROM "user" WHERE email = $1', ['apple-new@example.com'])).rowCount).toBe(0);
+
+    // A good one makes the account and signs the app in (with a token, as on iOS).
+    appleNonces.add('n1');
+    const r = await apple({ sub: 'apple-1', email: 'apple-new@example.com', email_verified: true }, 'n1');
+    expect(r.status).toBe(200);
+    const token = r.headers.get('set-auth-token') ?? '';
+    expect(token).not.toBe('');
+    const m = (await (await fetch(base + '/api/me', { headers: { origin: IOS_APP, authorization: `Bearer ${token}` } })).json()) as MeResponse;
+    expect(m.user?.email).toBe('apple-new@example.com');
+    // Others see the player name: a made-up one, never a real name from Apple.
+    expect(m.user?.name).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+
+    // An account already made with this email but not confirmed: Apple isn't attached to it.
+    await signUp('apple-old@example.com');
+    appleNonces.add('n2');
+    const linked = await apple({ sub: 'apple-2', email: 'apple-old@example.com', email_verified: true }, 'n2');
+    expect(linked.status).toBe(401);
+    expect(((await linked.json()) as { message?: string }).message).toBe('account not linked');
+  });
+
   it('signs the iOS app in with a token, joins online play with a one-use ticket, and never gives the website the token', async () => {
     // The website: the cookie only. Page scripts can't read the token.
     const web = await post('/api/auth/sign-up/email', { email: 'web-token@example.com', password: 'correct horse', name: 'Tester' });

@@ -1,8 +1,8 @@
 # Children's Privacy Policy
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 28 October 2026
-**Document Version:** v1.9
+**Last Modified:** 31 October 2026
+**Document Version:** v1.10
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -52,6 +52,8 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 1.2.3 Money only buys coins, and coins only buy cosmetic items, which change how a team looks and never how it plays. Season weapons are unlocked with Slime, which is earned by playing and cannot be bought, and coin prices are always shown with their value in pounds. There are no loot boxes or random paid rewards, no time-limited pressure to buy, and nothing in the game that requires a purchase. Players under 18 must have a parent's or carer's permission before buying anything, and every coin pack can only be bought after confirming that the buyer is 18 or over or that a parent or carer has agreed. Payments are made on Stripe's payment page, or in our Android app through Google Play (where Google's own parental controls, such as purchase approval in Google Family Link, also apply), and parents and carers can ask us about a child's purchase at support@tardigeddon.com (see our Terms of Service, Section 5).
 
 1.2.4 In our Android app, the shop asks Google Play for the player's age range when the coin packs are opened (Google's Play Age Signals service; a parent or carer chooses whether to share it in Google Family Link). If the player is under 18, the shop reminds them that a parent or carer may need to approve purchases; if a parent or carer has not yet approved the latest version of the app, buying coins is switched off until they do. The age range stays in the app's memory while it is open and is never sent to us. See our Privacy Policy, Section 2.0.4.
+
+1.2.4A In our iOS app, where the law requires it (for example in some US states and in Brazil), the shop asks Apple for the player's age range when the coin packs are opened (Apple's Declared Age Range service; a parent or guardian in Family Sharing chooses whether to share it). If the player is under 18, the shop reminds them that a parent or guardian may need to approve purchases, which Apple's Ask to Buy handles. The age range stays in the app's memory while it is open and is never sent to us. See our Privacy Policy, Section 2.0.4A.
 
 ## Section 2 — Parental Notice and Rights
 

@@ -427,6 +427,11 @@ what players own now. Run it again any time to move the start to now.
 
 Check: the sign-in screen shows "Continue with Google / Apple".
 
+The **iOS app's** Apple button needs none of this: iOS's own sheet gives a
+token the server checks with Apple's public keys (`docs/IOS.md` §2b), so it
+is always on. Accounts made with Google or Apple get a made-up player name
+(their real name is never used), which the player can change.
+
 ### Google and Apple in the Android app
 
 Their sign-in pages won't open inside an app, so the Android app signs in its

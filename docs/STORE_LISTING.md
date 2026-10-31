@@ -93,7 +93,23 @@ Multiplayer, Casual.
 **App Store Connect → the app → App Store tab**, for each language
 (English (U.K.) as primary, then Spanish (Mexico) and Spanish (Spain),
 Portuguese (Brazil), German, French, Japanese):
-- **Name** (`appStore.name`), **Subtitle** (`appStore.subtitle`).
+- **Name** (`appStore.name`), **Subtitle** (`appStore.subtitle`). A name
+  can be used by only one app, and once only: plain "TardiGeddon" is the
+  English (U.K.) page's, so the other languages add words to it, and the
+  two kinds of Spanish need different ones. Apple also refused a subtitle
+  that repeated a word from its name. As entered (October 2026):
+
+  | Language | Name | Subtitle |
+  |---|---|---|
+  | English (U.K.) | TardiGeddon | Tiny tardigrade artillery war |
+  | Spanish (Spain) | TardiGeddon: Batalla artillera | Pequeños, duros y armados |
+  | Spanish (Mexico) | TardiGeddon: Guerra de cañones | Artillería de tardígrados |
+  | Portuguese (Brazil) | TardiGeddon: Batalha de canhão | Pequenos, duros e armados |
+  | German | TardiGeddon: Artillerie-Duell | Bärtierchen-Artilleriekrieg |
+  | French | TardiGeddon : Duel de canons | La guerre des tardigrades |
+  | Japanese | TardiGeddon：クマムシ砲撃バトル | ちっちゃい不死身の砲撃戦 |
+
+  Spanish (Mexico) is only here (`listing.json` has one Spanish).
 - **Promotional Text** (`appStore.promo`): can be changed any time without a
   new build, so use it for events ("Halloween world free until 2 Nov").
 - **Description**: the same as Google Play's full description (`play.full`).
@@ -101,5 +117,10 @@ Portuguese (Brazil), German, French, Japanese):
   app's name (Apple adds that already) or other games' names.
 - **Screenshots:** iPhone and iPad 13-inch from `store/listing/<lang>/app-store/`.
   Apple scales them down for smaller iPhones and iPads.
+- **Header and Search Results** (optional, the version page's first tab):
+  `store/app-store/header.png` (21:9, 3840×1646) and
+  `store/app-store/search-result.png` (3:2, 3840×2560; PNG, as App Store Connect refuses .jpg here), made by
+  `npx tsx scripts/app-store-header.ts`. No words, so the same pair does for
+  every language; Apple puts the name and icon over the header.
 - **App Preview video** (optional): up to 30 seconds of real play, recorded
   from the device.

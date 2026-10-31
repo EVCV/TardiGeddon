@@ -6,7 +6,7 @@
       "full": "Tiny. Indestructible. Armed.\n\nTardigrades can survive space, boiling water and being frozen solid. Now they've found the weapons cupboard. TardiGeddon is a cartoon turn-based artillery game: take turns to walk, aim and fire across a world you can blow holes in, and be the last team standing.\n\nWHAT'S INSIDE\n• 20+ weapons and tools: Spore Bazooka, Pebble Grenade, Raindrop Strike, the Silk Rope, teleports, girders and more, plus season weapons you unlock by playing\n• 7 realms to fight across, from Twin Isles to Caverns and Sky Realms, with wind, weather, mines, brine drums and supply crates\n• Every blast digs into the land: knock rivals into the water, or bury them in a crater\n\nPLAY YOUR WAY\n• Against the computer, from Easy to Expert\n• With friends on one device: pass it round, 2 to 10 teams\n• Online: Quick play against other players, or a private room with a code for friends\n• Rope Race and the Daily challenge: beat the clock and climb the leaderboard\n• A step-by-step tutorial and a Practice range for new players\n\nMAKE IT YOURS\n• Dress your team up in hats, skins, gravestones and victory dances\n• Draw your own maps in the Map editor, and watch the winning shot again in Replays\n• Controls you can change, with left-handed layouts and bigger buttons\n\nFAIR PLAY\nEverything that changes how the game plays is earned by playing. Shop items only change how your team looks. No adverts, and no account needed: sign in only if you want your stats and items on every device."
     },
     "appStore": {
-      "name": "TardiGeddon: Artillery Battle",
+      "name": "TardiGeddon",
       "subtitle": "Tiny tardigrade artillery war",
       "promo": "Swing on the Silk Rope, call in a Raindrop Strike and blow holes in the world. Play the computer, friends on one device, or online.",
       "keywords": "artillery,turn based,strategy,tactics,multiplayer,online,cannon,bazooka,physics,party,pass and play"
@@ -20,7 +20,7 @@
     },
     "appStore": {
       "name": "TardiGeddon: Batalla artillera",
-      "subtitle": "Guerra artillera diminuta",
+      "subtitle": "Pequeños, duros y armados",
       "promo": "Balancéate con la Cuerda de Seda, pide un Ataque de Gotas y abre agujeros en el mundo. Contra el ordenador, con amigos o en línea.",
       "keywords": "artillería,por turnos,estrategia,táctica,multijugador,en línea,cañón,bazuca,física,fiesta,amigos"
     }
@@ -33,7 +33,7 @@
     },
     "appStore": {
       "name": "TardiGeddon: Batalha de canhão",
-      "subtitle": "Guerra de tardígrados armados",
+      "subtitle": "Pequenos, duros e armados",
       "promo": "Balance na Corda de Seda, chame um Ataque de Gotas e abra buracos no mundo. Contra o computador, com amigos no mesmo aparelho ou online.",
       "keywords": "artilharia,por turnos,estratégia,tática,multijogador,online,canhão,bazuca,física,festa,amigos"
     }

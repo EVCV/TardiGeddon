@@ -60,7 +60,9 @@ The iOS app plan: `docs/IOS.md`.
   12-tester closed test doesn't apply.
 - **Email:** support@tardigeddon.com forwards to the owner, so owner alerts go there (e.g. the Japan
   coins alert; `ADMIN_EMAILS` is only who can open the Sales page).
-- **Countries:** everywhere except Vietnam (online games need a licence there). The EU is all or
+- **Countries:** everywhere except Vietnam (online games need a licence there). The App Store also
+  leaves out China mainland (game licence), South Korea (until a GRAC rating number) and, Apple's
+  own choice for our age rating, Afghanistan and Morocco (`docs/IOS.md` §6). The EU is all or
   nothing (geo-blocking rules). Brazil needs the in-app age check (`src/shop/ageSignals.ts`); Japan
   needs the unspent-coin record (`coin_lot`, `src/shop/japan.ts`). See `docs/GOOGLE_PLAY.md`.
 - **iOS app:** iPhone and iPad; built on GitHub Actions macOS runners with fastlane `match` (no Mac);
