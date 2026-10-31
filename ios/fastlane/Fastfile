@@ -21,6 +21,15 @@ platform :ios do
     # makes them (with the API key) and saves them there.
     match(api_key: api_key, readonly: false)
 
+    # A profile made before a capability was added to the app (e.g. Sign in with
+    # Apple, App.entitlements) can't sign it: make a new one, once. The App ID
+    # needs the capability ticked first (docs/IOS.md §5).
+    profile = ENV.fetch('sigh_com.tardigeddon.app_appstore_profile-path')
+    unless `security cms -D -i "#{profile}"`.include?('com.apple.developer.applesignin')
+      UI.important('The signing profile has no Sign in with Apple: making a new one')
+      match(api_key: api_key, readonly: false, force: true)
+    end
+
     # The version players see is package.json's; the build number goes up with
     # every run, as Apple needs a new one for each upload.
     version = JSON.parse(File.read('../../package.json'))['version']

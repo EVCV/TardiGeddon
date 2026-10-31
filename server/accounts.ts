@@ -28,7 +28,7 @@ import { oneTimeToken } from 'better-auth/plugins/one-time-token';
 import { APP_SIGNIN_RETURN, isChallenge } from '../src/account/appSignIn';
 import { APIError } from 'better-auth/api';
 import { bearer } from 'better-auth/plugins';
-import { NAME_PROBLEM_TEXT, nameProblem, safeName, tidyName } from '../src/names';
+import { NAME_PROBLEM_TEXT, nameProblem, presetTeamName, safeName, tidyName } from '../src/names';
 import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
@@ -71,6 +71,7 @@ export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv {
   GOOGLE_CLIENT_SECRET?: string;
   APPLE_CLIENT_ID?: string;
   APPLE_CLIENT_SECRET?: string;
+  /** The iOS app's bundle ID (default com.tardigeddon.app): Apple's sign-in sheet in the app makes tokens for it. */
   APPLE_APP_BUNDLE_IDENTIFIER?: string;
   /** Comma-separated emails that may see the sales page (confirmed email only). */
   ADMIN_EMAILS?: string;
@@ -117,7 +118,18 @@ export interface Presence {
   invite(fromUserId: string, fromName: string, toUserId: string): 'sent' | 'offline' | 'noroom';
 }
 
-export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe?: Stripe; mailer?: Mailer | null; play?: PlayApi | null; appStore?: AppStoreApi | null } = {}) {
+export async function createAccounts(
+  env: AccountsEnv,
+  opts: {
+    db?: Pool;
+    stripe?: Stripe;
+    mailer?: Mailer | null;
+    play?: PlayApi | null;
+    appStore?: AppStoreApi | null;
+    /** Tests: stands in for checking an Apple ID token's signature with Apple's public keys. */
+    appleIdToken?: (token: string, nonce?: string) => Promise<boolean>;
+  } = {},
+) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
   const db = opts.db ?? new Pool({ connectionString: env.DATABASE_URL, max: 5 });
   const baseURL = env.BETTER_AUTH_URL ?? 'http://localhost:8787';
@@ -151,17 +163,27 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     return u.href;
   };
 
-  const socialProviders: Record<string, { clientId: string; clientSecret: string; appBundleIdentifier?: string }> = {};
+  const socialProviders: Record<
+    string,
+    { clientId: string; clientSecret: string; appBundleIdentifier?: string; audience?: string[]; verifyIdToken?: (token: string, nonce?: string) => Promise<boolean> }
+  > = {};
+  /** Providers with a sign-in page (the website, and the Android app's browser tab). */
+  const webProviders: string[] = [];
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
     socialProviders.google = { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET };
+    webProviders.push('google');
   }
+  // Apple: the iOS app's own sign-in sheet gives a token for the app's bundle ID,
+  // which needs nothing from Apple to check but Apple's public keys, so it is
+  // always on. Its web page (website, Android) needs the Services ID and secret.
+  const appleBundle = env.APPLE_APP_BUNDLE_IDENTIFIER || 'com.tardigeddon.app';
   if (env.APPLE_CLIENT_ID && env.APPLE_CLIENT_SECRET) {
-    socialProviders.apple = {
-      clientId: env.APPLE_CLIENT_ID,
-      clientSecret: env.APPLE_CLIENT_SECRET,
-      appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER,
-    };
+    socialProviders.apple = { clientId: env.APPLE_CLIENT_ID, clientSecret: env.APPLE_CLIENT_SECRET, appBundleIdentifier: appleBundle, audience: [env.APPLE_CLIENT_ID, appleBundle] };
+    webProviders.push('apple');
+  } else {
+    socialProviders.apple = { clientId: appleBundle, clientSecret: '', appBundleIdentifier: appleBundle, audience: [appleBundle] };
   }
+  if (opts.appleIdToken) socialProviders.apple.verifyIdToken = opts.appleIdToken;
 
   /** A player name tidied, or a refusal the sign-up form shows. */
   const checkedName = (raw: unknown): string => {
@@ -177,7 +199,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     baseURL,
     secret: env.BETTER_AUTH_SECRET,
     // Apple posts its sign-in result back from its own origin.
-    trustedOrigins: [...origins, ...(socialProviders.apple ? ['https://appleid.apple.com'] : [])],
+    trustedOrigins: [...origins, ...(webProviders.includes('apple') ? ['https://appleid.apple.com'] : [])],
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
@@ -224,7 +246,11 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     databaseHooks: {
       // The player name is shown to other players (on gifts): safe for children, no contact details.
       user: {
-        create: { before: async (user) => ({ data: { ...user, name: checkedName(user.name) } }) },
+        // Signing up with Apple or Google: a made-up name (they give the real one, or
+        // none with Apple's "Hide My Email"), which the player can change on the Account page.
+        create: {
+          before: async (user, ctx) => ({ data: { ...user, name: ctx?.path === '/sign-up/email' ? checkedName(user.name) : presetTeamName(Math.random) } }),
+        },
         update: { before: async (user) => (typeof user.name === 'string' ? { data: { ...user, name: checkedName(user.name) } } : { data: user }) },
       },
       session: {
@@ -960,7 +986,7 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
     const q = new URL(req.url ?? '', 'http://x').searchParams;
     const provider = q.get('provider') ?? '';
     const challenge = q.get('challenge');
-    if (!socialProviders[provider] || !isChallenge(challenge)) return toApp(res, { error: 'unavailable' });
+    if (!webProviders.includes(provider) || !isChallenge(challenge)) return toApp(res, { error: 'unavailable' });
     let started;
     try {
       started = await auth.api.signInSocial({
@@ -1086,7 +1112,9 @@ export async function createAccounts(env: AccountsEnv, opts: { db?: Pool; stripe
             shop: stripe !== null,
             // The "Purchases & receipts" page (not with Managed Payments: Stripe emails receipts).
             receipts: stripe !== null && !managed,
-            providers: Object.keys(socialProviders),
+            providers: webProviders,
+            // The iOS app's Apple sign-in sheet (its token is checked against the app's bundle ID).
+            appleInApp: true,
             // The Android app's Google account picker asks for a token for this (public) client.
             ...(env.GOOGLE_CLIENT_ID && socialProviders.google ? { googleClientId: env.GOOGLE_CLIENT_ID } : {}),
             // Whether password reset and email confirmation work (an email service is set up).
