@@ -83,7 +83,12 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   out of FIRE and other buttons), so `MainActivity` turns that off
   (`setTextZoom(100)`) and `DisplayPlugin` tells the game the phone's font
   scale; Settings → Text size "Auto" then scales the whole interface, text and
-  buttons together (`src/ui/textSize.ts`, up to what the screen has room for).
+  buttons together (`src/ui/textSize.ts`, up to 200%: menus scroll when they
+  no longer fit, the match HUD grows only as far as the screen has room for).
+  The same plugin (and `DisplayPlugin.swift` in the iOS app) tells the game
+  about Dark theme, Colour correction and High contrast text, which the
+  game's own settings follow until the player changes them (`src/ui/device.ts`,
+  `src/ui/access.ts`).
 
 ## Foldables
 

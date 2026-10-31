@@ -434,7 +434,9 @@ export class Hud {
     for (const tm of s.teams) {
       const hp = s.tardis.filter((x) => x.team === tm.id && x.alive).reduce((a, x) => a + x.hp, 0);
       const row = el('div', 'team-row');
-      const name = el('span', 'team-name', teamSymbol(tm.color) + teamLabel(tm));
+      const name = el('span', 'team-name', teamLabel(tm));
+      const sym = teamSymbol(tm.color);
+      if (sym) name.dataset.sym = sym; // drawn in front by style.css
       const bar = el('div', 'team-bar');
       bar.style.width = `${Math.max(2, Math.min(100, (hp / maxHpOf(tm.id)) * 100))}%`;
       bar.style.background = hex(shown(tm.color));

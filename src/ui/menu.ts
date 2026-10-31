@@ -230,6 +230,7 @@ export function buildLobby(
   const show = (view: 'home' | 'setup') => {
     root.dataset.view = view;
     root.scrollTop = 0;
+    root.closest('.menu')?.scrollTo({ top: 0 }); // with big text the whole screen scrolls
   };
 
   const styleSel = root.querySelector<HTMLSelectElement>('select[name=style]')!;
@@ -275,6 +276,10 @@ export function buildLobby(
       // Colour dot: one tap steps to the next colour (a team that had it gets this one's).
       const colourBtn = document.createElement('button');
       colourBtn.className = 'slot-colour';
+      const sym = document.createElement('span');
+      sym.className = 'team-sym';
+      sym.textContent = teamSymbol(p.color).trim();
+      colourBtn.append(sym);
       colourBtn.title = t('Change colour');
       colourBtn.setAttribute('aria-label', t("Change {name}'s colour", { name: p.name }));
       colourBtn.onclick = () => {

@@ -5,6 +5,7 @@ import './style.css';
 import { enforceLandscape } from './ui/landscape';
 import { initTextSize } from './ui/textSize';
 import { applyAccess } from './ui/access';
+import { initDeviceDisplay } from './ui/device';
 import { lang, loadLang, t } from './i18n/i18n';
 import { setUsagePlace, startUsage, usage, usageLoad } from './usage/usage';
 import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount, saveInvite } from './account/session';
@@ -30,10 +31,10 @@ import { presetScheme } from './sim/schemes';
 import { refreshNews } from './news/feed';
 
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
-  void initTextSize();
+  initTextSize();
   applyAccess();
+  void initDeviceDisplay();
 async function boot(): Promise<void> {
-  void initTextSize();
   if (touchMode) enforceLandscape();
   // The player's language (if not English) loads alongside the font.
   const langReady = loadLang();
