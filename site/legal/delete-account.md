@@ -1,9 +1,9 @@
 # Delete Your TardiGeddon Account
 
 **Effective Date:** 17 October 2026
-**Last Modified:** 20 October 2026
-**Document Version:** v1.1
-**Applies To:** TardiGeddon by EVCV Limited: the game at https://tardigeddon.com/play, the TardiGeddon Android app on Google Play, and its online game server
+**Last Modified:** 31 October 2026
+**Document Version:** v1.2
+**Applies To:** TardiGeddon by EVCV Limited: the game at https://tardigeddon.com/play, the TardiGeddon apps on Google Play and the App Store, and its online game server
 
 ---
 
@@ -13,13 +13,13 @@ This page explains how to delete your TardiGeddon account, or just some of your 
 
 ### 1.0 In the Game (Fastest)
 
-1.0.1 Open TardiGeddon (in the Android app or at https://tardigeddon.com/play) and sign in.
+1.0.1 Open TardiGeddon (in the Android or iOS app, or at https://tardigeddon.com/play) and sign in.
 
 1.0.2 Open the menu and go to **👤 Account**.
 
 1.0.3 Under **Manage**, tap **Delete account**.
 
-1.0.4 Type your password to confirm. Your account is deleted straight away.
+1.0.4 Type your password to confirm (if you signed in with Google or Apple, leave it empty). Your account is deleted straight away.
 
 ### 1.1 By Email
 
