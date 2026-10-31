@@ -37,12 +37,16 @@ export function hex(c: number): string {
  * Only changes what this device shows, never the match.
  */
 export const VIEW = {
-  /** Team colours from a palette colour-blind players can tell apart, plus a symbol per team. */
+  /** A symbol per team beside its name, so teams never differ by colour alone. On unless turned off. */
+  symbols: true,
+  /** Team colours from a palette colour-blind players can tell apart. */
   colourBlind: false,
   /** Bigger, bolder name tags and solid panels. */
   highContrast: false,
   /** Fewer flashes and less movement (lightning, the tornado's sweep, shaking). */
   calm: false,
+  /** The dark look: a dimmed sky and world, so nothing big and bright lights up the screen. */
+  dark: false,
 };
 
 /**
@@ -64,9 +68,9 @@ export function shown(c: number): number {
   return i < 0 ? c : CB_COLORS[i];
 }
 
-/** The symbol in front of a team's name when colour-blind mode is on ('' otherwise). */
+/** The symbol in front of a team's name, with a space ('' when team symbols are off). */
 export function teamSymbol(c: number): string {
-  if (!VIEW.colourBlind) return '';
+  if (!VIEW.symbols) return '';
   const i = TEAM_COLORS.indexOf(c);
   return i < 0 ? '' : TEAM_SYMBOLS[i] + ' ';
 }

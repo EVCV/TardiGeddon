@@ -89,3 +89,49 @@ test('picking something further down a menu keeps your place in it', async ({ pa
   await list.locator('button').last().click();
   await expect.poll(() => list.evaluate((e) => e.scrollTop)).toBe(before);
 });
+
+test('at the largest text size the phone menu scrolls, and nothing spills off the side', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phones only');
+  await page.addInitScript(() => localStorage.setItem('tardigeddon.textsize', '2'));
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-big-text', '');
+  const wide = () => page.evaluate(() => {
+    const hub = document.querySelector<HTMLElement>('.menu.hub')!;
+    return { over: hub.scrollWidth - hub.clientWidth, scrolls: hub.scrollHeight > hub.clientHeight };
+  });
+  expect(await wide()).toEqual({ over: 0, scrolls: true });
+  // The whole home screen can be reached by scrolling: Settings is at the bottom.
+  await page.locator('[data-go=settings]').scrollIntoViewIfNeeded();
+  await page.locator('[data-go=settings]').click();
+  await expect(page.locator('.hub-title')).toHaveText('Settings');
+  expect((await wide()).over).toBe(0);
+  await page.locator('.hub-back').click();
+  await page.locator('.setup-btn').scrollIntoViewIfNeeded();
+  await page.locator('.setup-btn').click();
+  await expect(page.locator('.setup-head')).toBeVisible();
+  expect((await wide()).over).toBe(0);
+});
+
+test('dark mode follows the device, and can be turned off', async ({ browser }, info) => {
+  test.skip(info.project.name !== 'phone', 'phones only');
+  const ctx = await browser.newContext({ ...info.project.use, colorScheme: 'dark' });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+  // The panels are dark and the writing light.
+  const colours = await page.locator('.nav-tile').first().evaluate((e) => {
+    const c = getComputedStyle(e);
+    return [c.backgroundColor, c.color];
+  });
+  const lum = (rgb: string) => {
+    const [r, g, b] = rgb.match(/\d+/g)!.map(Number);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  };
+  expect(lum(colours[0])).toBeLessThan(0.25);
+  expect(lum(colours[1])).toBeGreaterThan(0.75);
+  await page.locator('[data-go=settings]').click();
+  await page.locator('.settings-menu-btn', { hasText: 'Accessibility' }).click();
+  await page.getByRole('group', { name: 'Dark mode' }).getByRole('button', { name: 'Off' }).click();
+  await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
+  await ctx.close();
+});

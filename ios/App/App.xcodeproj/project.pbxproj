@@ -21,6 +21,7 @@
 		A7D0C0010000000000000103 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000003 /* PrivacyInfo.xcprivacy */; };
 		A7D0C0010000000000000104 /* AppStorePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000004 /* AppStorePlugin.swift */; };
 		A7D0C0010000000000000105 /* ReviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000005 /* ReviewPlugin.swift */; };
+		A7D0C0010000000000000106 /* DisplayPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000006 /* DisplayPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		A7D0C0010000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A7D0C0010000000000000004 /* AppStorePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStorePlugin.swift; sourceTree = "<group>"; };
 		A7D0C0010000000000000005 /* ReviewPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewPlugin.swift; sourceTree = "<group>"; };
+		A7D0C0010000000000000006 /* DisplayPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +83,7 @@
 				A7D0C0010000000000000002 /* AuthTokenPlugin.swift */,
 				A7D0C0010000000000000004 /* AppStorePlugin.swift */,
 				A7D0C0010000000000000005 /* ReviewPlugin.swift */,
+				A7D0C0010000000000000006 /* DisplayPlugin.swift */,
 				A7D0C0010000000000000001 /* GameViewController.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -178,6 +181,7 @@
 				A7D0C0010000000000000102 /* AuthTokenPlugin.swift in Sources */,
 				A7D0C0010000000000000104 /* AppStorePlugin.swift in Sources */,
 				A7D0C0010000000000000105 /* ReviewPlugin.swift in Sources */,
+				A7D0C0010000000000000106 /* DisplayPlugin.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 			);

@@ -5,7 +5,7 @@ import { onlineGuide } from './guide';
 import { otherPlayer, playerActions, slotName } from './safety';
 import { mascotSvg } from './mascot';
 import { emblemSvg } from '../render/emblems';
-import { hex, shown } from '../render/palette';
+import { hex, shown, teamSymbol } from '../render/palette';
 import { SCHEME_PRESETS } from '../sim/schemes';
 import { MAX_TEAMS } from '../sim/rosters';
 import { loadProfiles, matchNames } from './teams';
@@ -326,7 +326,12 @@ export function showOnline(
       if (i === room.you && !s.cpu) tag.textContent = s.host ? t('👑 You') : t('You');
       const badge = el('span', 'team-emblem');
       badge.innerHTML = emblemSvg(s.team.emblem, t('{name} emblem', { name: slotName(s) }));
-      row.append(pic, badge, name);
+      const sym = teamSymbol(s.team.color).trim();
+      if (sym) {
+        const mark = el('span', 'lobby-sym', sym);
+        mark.setAttribute('aria-hidden', 'true');
+        row.append(pic, badge, mark, name);
+      } else row.append(pic, badge, name);
       if (s.badge) {
         const f = el('span', 'founder-badge', s.badge === 'founder' ? '🌱' : '🐣');
         f.title = s.badge === 'founder' ? t('Founder: here from the start') : t('Early bird: joined in the first months');

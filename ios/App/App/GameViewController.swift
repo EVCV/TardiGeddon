@@ -8,6 +8,7 @@ class GameViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(AuthTokenPlugin())
         bridge?.registerPluginInstance(AppStorePlugin())
         bridge?.registerPluginInstance(ReviewPlugin())
+        bridge?.registerPluginInstance(DisplayPlugin())
     }
 
     // A swipe in from an edge (aiming, scrolling the map) needs a second swipe to

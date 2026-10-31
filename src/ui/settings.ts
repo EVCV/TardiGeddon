@@ -11,12 +11,12 @@ import { audioSettings, hasSilentSwitch, saveAudioSettings, unlockAudio, type Au
 import { TRACKS } from '../audio/music';
 import { SOUND_PACKS, sfx, useSoundPack } from '../audio/sfx';
 import { blockedPlayers, unblock } from '../net/blocked';
-import { TEXT_SIZES, deviceTextScale, maxScaleHere, setTextSize, textSize, uiScale } from './textSize';
+import { TEXT_SIZES, deviceTextScale, menuScale, phoneMenu, setTextSize, textSize, uiScale } from './textSize';
 import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
 import { setUsageSetting, usageBlockedByBrowser, usageSetting } from '../usage/usage';
-import { accessSettings, saveAccessSettings, type AccessSettings } from './access';
+import { accessSettings, saveAccessSettings, type AccessSettings, type DarkSetting } from './access';
 import { TEAM_SYMBOLS } from '../render/palette';
 import { LANGS, isLang, lang, langSetting, setLangSetting, t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
@@ -182,9 +182,8 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
   // One section at a time, beside the list of them (on a touch screen, touch controls first).
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   state.section ??= touchFirst ? 'touch' : 'keys';
-  // About & legal is only a section on phones (the same media query as the phone menu in style.css).
-  const phoneMenu = typeof matchMedia === 'function' && matchMedia('(max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px)').matches;
-  if (state.section === 'about' && !phoneMenu) state.section = 'keys';
+  // About & legal is only a section in the phone menu.
+  if (state.section === 'about' && !phoneMenu()) state.section = 'keys';
   root.dataset.section = state.section;
   const menu = el('nav', 'settings-menu');
   menu.setAttribute('aria-label', t('Settings sections'));
@@ -267,15 +266,15 @@ function textSettings(ctx: HubContext): HTMLElement {
     seg.append(b);
   }
   const dev = deviceTextScale();
-  const pct = Math.round(uiScale() * 100);
+  const pct = Math.round(menuScale() * 100);
+  const inMatch = Math.round(uiScale() * 100);
   const note = [
     t('Makes all the writing bigger, with the buttons around it, in the menus and in matches.'),
     dev > 1 ? t('Auto follows your device ({pct}% now).', { pct: Math.round(dev * 100) }) : t('Auto follows your device.'),
-    maxScaleHere() < 1.5
-      ? t('Now: {pct}% (this screen has room for up to {max}%; more on a bigger screen).', { pct, max: Math.round(maxScaleHere() * 100) })
-      : t('Now: {pct}%.', { pct }),
+    t('Now: {pct}%.', { pct }),
+    inMatch < pct ? t('In a match the buttons grow to {max}% on this screen, so they never cover the battlefield.', { max: inMatch }) : '',
     t('Kept on this device.'),
-  ].join(' ');
+  ].filter(Boolean).join(' ');
   card.append(seg, el('p', 'account-note', note));
   return card;
 }
@@ -286,7 +285,7 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
   card.dataset.section = 'access';
   card.append(el('h2', 'card-title', `👁️ ${t('Accessibility')}`));
   const a = accessSettings();
-  const toggle = (key: keyof AccessSettings, title: string, help: string) => {
+  const toggle = (key: Exclude<keyof AccessSettings, 'dark'>, title: string, help: string) => {
     const row = el('div', 'access-row');
     const b = el('button', 'seg-btn' + (a[key] ? ' on' : ''), a[key] ? t('On') : t('Off'));
     b.setAttribute('role', 'switch');
@@ -304,14 +303,42 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
     row.append(label, b);
     card.append(row);
   };
+  // Dark mode: Auto (as the device), On or Off.
+  const darkRow = el('div', 'access-row access-row-wide');
+  const darkLabel = el('div', 'access-text');
+  const darkName = el('b', '', t('Dark mode'));
+  darkName.id = 'access-dark';
+  darkLabel.append(
+    darkName,
+    el('span', 'account-note', t('Dark menus and buttons, and a darker sky and world in matches, so nothing bright lights up the screen. Auto follows your device.')),
+  );
+  const darkSeg = el('div', 'seg');
+  darkSeg.setAttribute('role', 'group');
+  darkSeg.setAttribute('aria-labelledby', darkName.id);
+  for (const [id, label] of [['auto', t('Auto')], ['on', t('On')], ['off', t('Off')]] as [DarkSetting, string][]) {
+    const b = el('button', 'seg-btn' + (a.dark === id ? ' on' : ''), label);
+    b.setAttribute('aria-pressed', String(a.dark === id));
+    b.onclick = () => {
+      saveAccessSettings({ ...accessSettings(), dark: id });
+      ctx.rerender();
+    };
+    darkSeg.append(b);
+  }
+  darkRow.append(darkLabel, darkSeg);
+  card.append(darkRow);
   toggle(
-    'colourBlind',
-    t('Colour-blind friendly colours'),
-    t('Team colours from a palette people with any kind of colour blindness can tell apart, and a symbol for each team ({symbols} …) beside its name and health bar.', {
+    'symbols',
+    t('Team symbols'),
+    t('A symbol for each team ({symbols} …) beside its name, health bar and colour, so you never have to tell teams apart by colour alone.', {
       symbols: TEAM_SYMBOLS.slice(0, 5).join(' '),
     }),
   );
-  toggle('highContrast', t('High contrast'), t('Black and white panels, stronger outlines and bigger name tags in matches.'));
+  toggle(
+    'colourBlind',
+    t('Colour-blind friendly colours'),
+    t('Team colours from a palette people with any kind of colour blindness can tell apart. On by itself if your device is set to tell things apart without colour (Differentiate Without Color or Colour correction).'),
+  );
+  toggle('highContrast', t('High contrast'), t('Solid panels, stronger outlines and bigger name tags in matches. On by itself if your device asks for more contrast.'));
   // Tap to fire and the power bar: kept with the controls (on the account when signed in).
   const controlSwitch = (key: 'tapFire' | 'slowPower' | 'powerBounce', title: string, help: string) => {
     const on = controls()[key];
