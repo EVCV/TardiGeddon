@@ -1,12 +1,13 @@
 // Pictures for the coin products: the shop's own pack pictures
 // (src/ui/coinArt.ts) on the game's sky blue. Google Play's icons
 // (docs/GOOGLE_PLAY.md §7) are 512×512 PNG; the App Store's in-app purchase
-// images (docs/IOS.md §3) are 1024×1024 JPEG, as Apple wants no transparency.
+// images (docs/IOS.md §3) are 1024×1024 PNG (App Store Connect takes PNG
+// where it refuses .jpg; no transparency either way).
 //
 //   PW_CHROMIUM_PATH=… npx tsx scripts/product-icons.ts
 //
 // Writes store/google-play/products/<product id>.png and
-// store/app-store/products/<product id>.jpg.
+// store/app-store/products/<product id>.png.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { packArt } from '../src/ui/coinArt';
@@ -23,12 +24,12 @@ const ART: Record<string, string> = {
 };
 
 const STORES = [
-  { out: 'store/google-play/products', size: 512, type: 'png' },
-  { out: 'store/app-store/products', size: 1024, type: 'jpeg' },
+  { out: 'store/google-play/products', size: 512 },
+  { out: 'store/app-store/products', size: 1024 },
 ] as const;
 
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
-for (const { out, size, type } of STORES) {
+for (const { out, size } of STORES) {
   mkdirSync(out, { recursive: true });
   const page = await browser.newPage({ viewport: { width: size, height: size } });
   for (const pack of COIN_PACKS) {
@@ -45,8 +46,7 @@ for (const { out, size, type } of STORES) {
       svg.setAttribute('width', String(fill));
       svg.setAttribute('height', String(fill));
     }, size * 0.78);
-    const ext = type === 'jpeg' ? 'jpg' : 'png';
-    await page.screenshot({ path: `${out}/${storeProductId(pack)}.${ext}`, type, ...(type === 'jpeg' ? { quality: 92 } : {}) });
+    await page.screenshot({ path: `${out}/${storeProductId(pack)}.png` });
   }
   await page.close();
 }
