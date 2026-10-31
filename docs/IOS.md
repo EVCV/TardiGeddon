@@ -521,6 +521,28 @@ review; external testers need a short beta review.
   `https://tardigeddon.com/legal/privacy-policy`, User Privacy Choices URL
   `https://tardigeddon.com/legal/delete-account`. Names and subtitles per
   language: `docs/STORE_LISTING.md`.
+- **Accessibility** (App Store Connect → App Accessibility, the labels on the
+  product page; Apple's rule: every common task, including a match, works
+  with the feature). Tick:
+  - **Larger Text**: Settings → Text size goes to 200%, and "Auto" follows
+    iOS Dynamic Type (`DisplayPlugin.swift`). Menus scale the whole way and
+    scroll when they no longer fit; in a match the HUD grows as far as the
+    screen has room for, like a tab bar, so it never covers the battlefield.
+  - **Dark Interface**: Settings → Accessibility → Dark mode (Auto follows
+    iOS Dark Mode): dark menus and HUD, a dusk sky and world in matches, no
+    lightning flashes.
+  - **Differentiate Without Color Alone**: every team has a symbol beside its
+    name, health bar and colour dot (on unless turned off), chosen buttons get
+    a ring, friends online/offline are a filled dot or a ring. The colour-blind
+    palette turns on by itself with iOS Differentiate Without Color.
+  - **Sufficient Contrast**: High contrast (7:1 text, solid panels), on by
+    itself with iOS Increase Contrast; works in dark mode too.
+  - **Reduced Motion**: Calmer effects, on by itself with iOS Reduce Motion.
+
+  Leave unticked: VoiceOver and Voice Control (aiming is on a canvas, not
+  labelled controls), Captions (sound captions exist but are off by default
+  and there is no dialogue or video) and Audio Descriptions (no video).
+  Re-check them each release (Apple asks).
 
 ## 7. The Xcode project: **built**
 
@@ -585,8 +607,9 @@ from the TestFlight build (§5).
   stop the player's music). Check sound starts after the first tap and comes
   back after a call or the background.
 - **Text size:** WebKit doesn't enlarge web text with the phone's text size,
-  so nothing spills. Later, optionally: pass the iOS text size to Settings →
-  Text size "Auto" (`src/ui/textSize.ts` is Android-only today).
+  so nothing spills. `DisplayPlugin.swift` passes the iOS text size (Dynamic
+  Type) to Settings → Text size "Auto" instead, which scales the whole
+  interface, up to 200% (`src/ui/textSize.ts`).
 - **Icons:** `npx @capacitor/assets generate --ios` from `assets/` (no
   transparency).
 - **Invite links** stay web links. Later, with Android app links: Universal

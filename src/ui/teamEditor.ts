@@ -13,7 +13,7 @@ import { DANCES, GRAVES } from '../render/finales';
 import { renderEmblemBuilder } from './emblemBuilder';
 import { priceLabel } from './shop';
 import { account, ownedItems } from '../account/session';
-import { TEAM_COLORS, hex } from '../render/palette';
+import { TEAM_COLORS, hex, shown, teamSymbol } from '../render/palette';
 import {
   TARDI_NAME_MAX,
   TEAM_NAME_MAX,
@@ -82,12 +82,12 @@ export function openTeamEditor(host: HTMLElement, slot: number, start: TeamProfi
   const refresh = () => {
     // Redrawn after every pick: everything stays scrolled where it was.
     keepPlaceAfter(overlay);
-    preview.innerHTML = mascotSvg(draft.color, draft.hat, draft.skin);
-    title.style.color = hex(draft.color);
+    preview.innerHTML = mascotSvg(shown(draft.color), draft.hat, draft.skin);
+    title.style.color = hex(shown(draft.color));
     colours.innerHTML = '';
     for (const c of TEAM_COLORS) {
-      const b = el('button', 'swatch' + (c === draft.color ? ' on' : ''));
-      b.style.background = hex(c);
+      const b = el('button', 'swatch' + (c === draft.color ? ' on' : ''), teamSymbol(c).trim());
+      b.style.background = hex(shown(c));
       b.setAttribute('aria-label', t('Colour {code}', { code: hex(c) }));
       b.onclick = () => {
         draft.color = c;

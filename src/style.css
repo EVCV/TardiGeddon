@@ -1,5 +1,11 @@
 :root {
   --ink: #2b1b24;
+  /* Text, and the light surfaces it sits on: dark mode (.dark, ui/access.ts) swaps these. */
+  --text: var(--ink);
+  --on-accent: #2b1b24;
+  --surface: #fff;
+  --hover: #f4eedf;
+  --line-soft: #e4dccb;
   --paper: #fff8ec;
   --sky: #7fd3f7;
   --accent: #ffd84a;
@@ -22,7 +28,7 @@ html, body {
   overflow: hidden;
   background: var(--sky);
   font-family: var(--body);
-  color: var(--ink);
+  color: var(--text);
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -30,8 +36,10 @@ html, body {
 }
 #game, #game canvas { position: fixed; inset: 0; display: block; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
-/* Text size (Settings, ui/textSize.ts): menus and the match HUD scale as a whole, text and buttons together. */
+/* Text size (Settings, ui/textSize.ts): menus and the match HUD scale as a whole, text and buttons together.
+   The HUD only as far as the screen has room for (--ui-scale); menus the whole way (--menu-boost on top). */
 #ui { zoom: var(--ui-scale, 1); }
+.menu, .editor-overlay { zoom: var(--menu-boost, 1); }
 .hidden { display: none !important; }
 
 /* ---------- Buttons ---------- */
@@ -46,9 +54,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--accent);
   box-shadow: 0 5px 0 var(--ink);
   transition: transform .06s;
+  color: var(--on-accent);
 }
 .big-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
-.big-btn.secondary { background: #fff; }
+.big-btn.secondary { background: var(--surface); }
 .hud-btn {
   border: 3px solid var(--ink);
   border-radius: 10px;
@@ -146,7 +155,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 2px solid var(--ink);
   border-radius: 999px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--text);
   font-family: var(--title);
   font-size: 11px;
   letter-spacing: 1px;
@@ -190,6 +199,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud-teams { flex: 1; display: flex; flex-direction: column; gap: 3px; max-width: 320px; margin: 0 auto; pointer-events: none; }
 .team-row { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; }
 .team-row.active .team-name { text-decoration: underline; }
+.team-name[data-sym]::before { content: attr(data-sym); text-decoration: none; display: inline-block; white-space: pre; }
 .team-name { min-width: 84px; text-align: right; color: #fff; text-shadow: 0 0 3px var(--ink), 0 1px 0 var(--ink); }
 /* Long team names stay on one line (cut with …), so the bars keep their size. */
 .team-name { flex: none; width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -269,7 +279,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 8px 4px;
   border: 3px solid var(--ink);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   font-weight: 800;
   font-size: 12px;
 }
@@ -280,7 +290,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .weapon-cell.selected .wu { background: #fff6c8; }
 .weapon-info { margin: 10px 2px 0; min-height: 2.6em; font-size: 13px; line-height: 1.3; text-align: left; }
 .weapon-info b { margin-right: 4px; }
-.weapon-cell.selected { background: var(--accent); }
+.weapon-cell.selected { background: var(--accent); color: var(--on-accent); }
 .weapon-cell:disabled { opacity: .35; }
 
 /* ---------- Game over ---------- */
@@ -390,7 +400,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 6px 10px;
   border: 3px solid var(--ink);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
 }
 .style-blurb { margin: 8px 0 0; font-size: 13px; min-height: 2.6em; }
 .custom-panel {
@@ -417,7 +427,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Player slots */
 .players-row { display: flex; gap: 16px; align-items: flex-end; justify-content: center; font-weight: 800; text-align: left; }
 .players-row label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
-.players-row select { font: inherit; padding: 6px 10px; border: 3px solid var(--ink); border-radius: 10px; background: #fff; }
+.players-row select { font: inherit; padding: 6px 10px; border: 3px solid var(--ink); border-radius: 10px; background: var(--surface); }
 .players-hint { margin: 0 0 14px; font-size: 12px; font-weight: 600; }
 /* One full-width row per team, so names are never cut short. */
 .slots { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 6px; }
@@ -427,7 +437,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 3px solid var(--ink);
   border-left: 12px solid var(--team);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   font-weight: 800;
   font-size: 15px;
   text-align: left;
@@ -440,9 +450,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud-teams.many .team-name { min-width: 70px; }
 .hud-teams.many .team-bar { height: 8px; border-width: 1.5px; }
 @media (max-height: 450px) {
-  /* Phones: many teams become a strip of name-less bars (colour = team). */
+  /* Phones: many teams become a strip of name-less bars, each with its team's symbol (not colour alone). */
   .hud-teams.many { grid-template-columns: repeat(5, 1fr); gap: 3px; max-width: 38vw; margin: 0 0 0 4px; }
   .hud-teams.many .team-name { display: none; }
+  .hud-teams.many .team-name[data-sym] { display: block; width: auto; min-width: 0; font-size: 0; }
+  .hud-teams.many .team-name[data-sym]::before { font-size: 11px; }
   .hud-teams.many .team-row.active .team-bar { outline: 2px solid #fff; }
 }
 
@@ -477,7 +489,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   width: 44px;
   border: 0;
   border-left: 3px solid var(--ink);
-  background: #fff;
+  background: var(--surface);
   position: relative;
 }
 .slot.cpu .slot-colour { background: #f1ece3; }
@@ -499,6 +511,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 17px;
   width: 44px;
   flex: none;
+  color: var(--on-accent);
 }
 
 /* Team editor */
@@ -509,11 +522,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .emblem-label { flex: 0 0 100%; font-weight: 800; font-size: 13px; text-align: left; }
 .emblem-part {
   min-width: 36px; min-height: 36px; padding: 2px;
-  border: 2px solid var(--ink); border-radius: 8px; background: #fff;
+  border: 2px solid var(--ink); border-radius: 8px; background: var(--surface);
   display: grid; place-items: center; font-size: 20px; line-height: 1;
 }
 .emblem-part svg { width: 30px; height: 30px; }
-.emblem-part.on { background: var(--accent); outline: 3px solid var(--ink); outline-offset: 1px; }
+.emblem-part.on { background: var(--accent); outline: 3px solid var(--ink); outline-offset: 1px; color: var(--on-accent); }
 .emblem-part.swatch { width: 30px; min-width: 30px; height: 30px; min-height: 30px; border-radius: 50%; }
 .team-emblem { display: inline-block; width: 1.4em; height: 1.4em; flex: none; vertical-align: middle; }
 .team-emblem svg { width: 100%; height: 100%; display: block; }
@@ -549,12 +562,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 7px 10px;
   border: 3px solid var(--ink);
   border-radius: 10px;
-  background: #fff;
-  color: var(--ink);
+  background: var(--surface);
+  color: var(--text);
 }
 .editor-swatches { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
 .swatch { aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 50%; padding: 0; }
 .swatch.on { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Team symbols on colour dots (ui/access.ts): readable on any team colour. */
+.swatch, .slot-colour .team-sym { color: #fff; font-size: 14px; line-height: 1; text-shadow: 0 0 2px #000, 0 0 2px #000, 0 0 1px #000; }
+.slot-colour .team-sym { position: relative; }
 .editor-hats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .hat-btn {
   display: flex;
@@ -562,13 +578,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   align-items: center;
   border: 3px solid var(--ink);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   padding: 4px;
   font-size: 11px;
   font-weight: 800;
 }
 .hat-btn svg { width: 64px; height: auto; }
-.hat-btn.on { background: var(--accent); }
+.hat-btn.on { background: var(--accent); box-shadow: inset 0 0 0 2.5px var(--ink); color: var(--on-accent); }
 .editor-tardis { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .editor-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 14px; }
 .editor-actions .big-btn { padding: 8px 22px; font-size: 18px; }
@@ -596,8 +612,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 3px solid var(--ink);
   border-radius: 14px;
   padding: 6px 8px;
-  background: #fff;
-  color: var(--ink);
+  background: var(--surface);
+  color: var(--text);
   -webkit-user-select: text;
   user-select: text;
 }
@@ -605,7 +621,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-family: var(--title);
   font-size: 46px;
   letter-spacing: 10px;
-  color: var(--ink);
+  color: var(--text);
   background: var(--accent);
   border: 3px solid var(--ink);
   border-radius: 16px;
@@ -620,12 +636,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 3px solid var(--ink);
   border-left: 12px solid var(--team);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   text-align: left;
 }
 .lobby-slot.gone { opacity: .5; }
 .lobby-pic svg { width: 40px; height: auto; display: block; }
 .lobby-name { flex: 1; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lobby-sym { flex: none; font-weight: 800; }
 .lobby-tag { font-size: 13px; font-weight: 800; }
 .online-style { font-weight: 800; }
 .online-style select { font: inherit; margin-left: 6px; }
@@ -644,7 +661,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     position: fixed; inset: 0; z-index: 1000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; padding: 24px; text-align: center;
-    background: var(--sky); color: var(--ink);
+    background: var(--sky); color: var(--text);
   }
 }
 #rotate h2 { margin: 16px 0 0; font-family: var(--title); font-weight: 400; font-size: 28px; letter-spacing: 1px; }
@@ -728,7 +745,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 3px;
   border: 3px solid var(--ink);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 3px 0 var(--ink);
   max-width: 100%;
 }
@@ -745,8 +762,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 15px;
   white-space: nowrap;
 }
-.seg-btn:hover { background: #f4eedf; }
-.seg-btn.on { background: var(--accent); box-shadow: inset 0 0 0 2.5px var(--ink); }
+.seg-btn:hover { background: var(--hover); }
+.seg-btn.on { background: var(--accent); box-shadow: inset 0 0 0 2.5px var(--ink); color: var(--on-accent); }
 
 /* Chips: wallet and profile in the top bar */
 .chip {
@@ -756,7 +773,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   min-height: 38px;
   border: 3px solid var(--ink);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   padding: 3px 12px;
   font-weight: 800;
   font-size: 15px;
@@ -766,7 +783,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip:active, .hud-btn:active, .shop-card:active, .coin-pack:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
 .chip-coins { background: #fff4c7; }
 .chip-slime { background: #ddf5cf; }
-.hub-me { background: var(--accent); max-width: 180px; }
+.hub-me { background: var(--accent); max-width: 180px; color: var(--on-accent); }
 .hub-me-name { overflow: hidden; text-overflow: ellipsis; }
 
 .hub-notice {
@@ -782,6 +799,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--accent);
   font-weight: 800;
   overflow-wrap: anywhere;
+  color: var(--on-accent);
 }
 .hub-notice span { flex: 1; }
 /* Something new (src/ui/drops.ts): like the notice bar, in festive colours. */
@@ -851,13 +869,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: radial-gradient(circle at 50% 35%, #d9f3ff, var(--sky) 70%);
 }
 .hero-art .mascot svg { width: 150px; }
-.hero-edit { font-size: 13px; min-height: 32px; padding: 2px 10px; background: var(--accent); }
+.hero-edit { font-size: 13px; min-height: 32px; padding: 2px 10px; background: var(--accent); color: var(--on-accent); }
 .hero-looks { font-size: 13px; min-height: 32px; padding: 2px 10px; background: #bfe8ff; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hero-coins { font-size: 14px; min-height: 34px; padding: 2px 14px; background: linear-gradient(#ffe066, #f5b700); }
 .hero-coins-banner {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; width: 100%;
   margin: 8px 0 0; padding: 8px 14px; border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 3px 0 var(--ink);
-  background: linear-gradient(90deg, #fff3b0, #ffd84a); color: var(--ink); font: inherit; font-weight: 800; font-size: 14px; text-align: left; cursor: pointer;
+  background: linear-gradient(90deg, #fff3b0, #ffd84a); color: var(--text); font: inherit; font-weight: 800; font-size: 14px; text-align: left; cursor: pointer;
 }
 .hero-coins-banner b { white-space: nowrap; padding: 2px 10px; border-radius: 999px; background: var(--ink); color: #ffd84a; }
 .hero-coins-banner:hover { filter: brightness(1.04); }
@@ -882,7 +900,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 3px solid var(--ink);
   border-left: 12px solid var(--team, var(--accent));
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   font-weight: 800;
   overflow-wrap: break-word;
 }
@@ -891,24 +909,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lobby-setup .style-blurb { min-height: 0; }
 .lobby-play .menu-buttons { margin: 0; gap: 16px; }
 .lobby-play .big-btn { font-size: 30px; padding: 16px 22px; }
-.lobby-play .play { background: var(--accent); }
+.lobby-play .play { background: var(--accent); color: var(--on-accent); }
 .lobby-play .online-btn { background: var(--sky-deep); color: #fff; -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill; font-size: 24px; padding: 12px 22px; }
 .lobby-learn { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-.learn-new { background: var(--accent); animation: nudge .9s infinite alternate; }
+.learn-new { background: var(--accent); animation: nudge .9s infinite alternate; color: var(--on-accent); }
 @keyframes nudge { to { transform: scale(1.05); } }
 @media (prefers-reduced-motion: reduce) { .learn-new { animation: none; } }
 
 /* Career panel (ui/dashboard.ts) */
 .dash { display: flex; flex-direction: column; gap: 12px; }
 .dash .card-title { margin: 0; }
-.dash-head { display: flex; align-items: center; gap: 12px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; padding: 6px 12px 6px 6px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.dash-head { display: flex; align-items: center; gap: 12px; border: 3px solid var(--ink); border-radius: 16px; background: var(--surface); padding: 6px 12px 6px 6px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
 .dash-pic svg { width: 64px; height: auto; display: block; }
 .dash-who { display: flex; flex-direction: column; min-width: 0; }
 .dash-name { font-family: var(--title); font-size: 22px; line-height: 1.1; color: var(--accent); -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; overflow-wrap: break-word; }
 .dash-streak { font-size: 13px; font-weight: 800; color: var(--red); }
 .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .dash-collection { display: flex; flex-direction: column; gap: 5px; border: 0; background: none; padding: 0; text-align: left; font-weight: 800; font-size: 14px; }
-.dash-bar { height: 14px; border: 3px solid var(--ink); border-radius: 999px; background: #fff; overflow: hidden; }
+.dash-bar { height: 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--surface); overflow: hidden; }
 .dash-bar-fill { display: block; height: 100%; background: var(--moss); border-right: 2px solid var(--ink); }
 .dash-note { margin: 0; font-size: 13px; font-weight: 600; text-align: center; }
 .dash-buttons { display: flex; gap: 8px; }
@@ -917,8 +935,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dash-go { font-size: 20px; padding: 10px; }
 
 /* Stat tiles (career panel, Stats and Account pages) */
-.stat-tile { border: 3px solid var(--ink); border-radius: 12px; background: #fff; padding: 6px 4px; text-align: center; min-width: 0; }
-.stat-tile.gold { background: var(--accent); }
+.stat-tile { border: 3px solid var(--ink); border-radius: 12px; background: var(--surface); padding: 6px 4px; text-align: center; min-width: 0; }
+.stat-tile.gold { background: var(--accent); color: var(--on-accent); }
 .stat-value { font-family: var(--title); font-size: 24px; line-height: 1.1; overflow-wrap: anywhere; }
 .stat-label { font-size: 11px; font-weight: 800; }
 
@@ -953,8 +971,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 9px 12px;
   border: 3px solid var(--ink);
   border-radius: 12px;
-  background: #fff;
-  color: var(--ink);
+  background: var(--surface);
+  color: var(--text);
   -webkit-user-select: text;
   user-select: text;
 }
@@ -1019,7 +1037,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   gap: 4px;
   border: 3px solid var(--ink);
   border-radius: 16px;
-  background: #fff;
+  background: var(--surface);
   padding: 8px;
   box-shadow: 0 4px 0 var(--ink);
   text-align: left;
@@ -1035,15 +1053,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .shop-weapon-icon { font-size: 44px; line-height: 1; }
 .shop-card-name { font-size: 14px; line-height: 1.15; }
 .shop-card-foot { margin-top: auto; display: flex; justify-content: flex-end; }
-.shop-price { font-weight: 800; font-size: 14px; border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 10px; background: #fff; }
-.shop-price.can { background: var(--accent); }
+.shop-price { font-weight: 800; font-size: 14px; border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 10px; background: var(--surface); }
+.shop-price.can { background: var(--accent); color: var(--on-accent); }
 .shop-owned { color: #2c7a3d; font-weight: 800; }
 .shop-note { font-size: 13px; opacity: .75; }
 .rarity { display: inline-block; align-self: flex-start; border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
 .rarity-common { background: #eee8dd; }
 .rarity-rare { background: #a5f78c; }
 .rarity-epic { background: #9bcaff; }
-.rarity-legendary { background: var(--accent); }
+.rarity-legendary { background: var(--accent); color: var(--on-accent); }
 .rarity-bundle { background: #ffb6dc; }
 .shop-section { margin: 4px 2px -2px; font-family: var(--title); font-weight: normal; font-size: 20px; }
 /* Bundles: the set's tardi with its aim style and effect beside it. */
@@ -1068,10 +1086,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .shop-coins { display: flex; flex-direction: column; gap: 12px; }
 .shop-coins .big-btn { align-self: flex-start; }
 .coin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-.coin-pack { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; padding: 14px 6px; box-shadow: 0 4px 0 var(--ink); font: inherit; color: inherit; }
+.coin-pack { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 3px solid var(--ink); border-radius: 16px; background: var(--surface); padding: 14px 6px; box-shadow: 0 4px 0 var(--ink); font: inherit; color: inherit; }
 .coin-pack b { font-family: var(--title); font-weight: normal; font-size: 26px; }
 .coin-pack span { font-weight: 800; }
-.coin-pack.on { background: var(--accent); }
+.coin-pack.on { background: var(--accent); color: var(--on-accent); }
 .hat-btn.locked svg { opacity: .55; }
 .editor-hats { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
 
@@ -1175,14 +1193,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-weight: 800;
 }
 .hub-footer a, .hub-version {
-  color: var(--ink);
+  color: var(--text);
   text-decoration: none;
   background: rgba(255, 248, 236, .85);
   border: 2px solid var(--ink);
   border-radius: 999px;
   padding: 2px 10px;
 }
-.hub-footer a:hover { background: var(--accent); }
+.hub-footer a:hover { background: var(--accent); color: var(--on-accent); }
 .hub-version { opacity: .7; }
 
 /* ---------- Lobby: balanced columns ---------- */
@@ -1200,7 +1218,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .page-stats.locked { pointer-events: none; user-select: none; }
 .page-stats.locked .card > * { opacity: .35; filter: saturate(.5); }
 .stats-locked > .stats-teaser { align-self: center; justify-self: center; z-index: 1; box-shadow: 0 10px 0 var(--ink); max-width: 460px; }
-.shop-cta { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; text-align: center; }
+.shop-cta { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 14px; background: var(--surface); text-align: center; }
 .shop-cta p { margin: 0; font-size: 13px; font-weight: 700; }
 .shop-cta .big-btn { font-size: 17px; padding: 8px 12px; }
 
@@ -1344,8 +1362,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .banner-text { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; color: #fff; min-width: 0; }
 .banner-kicker { font-weight: 800; font-size: 13px; background: var(--ink); border-radius: 999px; padding: 2px 10px; }
 .banner-title { font-family: var(--title); font-weight: normal; font-size: 34px; line-height: 1.05; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink); }
-.banner-sub { font-weight: 800; color: var(--ink); background: rgba(255, 248, 236, .9); border: 2px solid var(--ink); border-radius: 10px; padding: 2px 10px; }
-.banner-go { font-size: 18px; padding: 6px 16px; margin-top: 4px; color: var(--ink); } /* the banner's text is white; this sits on yellow */
+.banner-sub { font-weight: 800; color: var(--text); background: rgba(255, 248, 236, .9); border: 2px solid var(--ink); border-radius: 10px; padding: 2px 10px; }
+.banner-go { font-size: 18px; padding: 6px 16px; margin-top: 4px; color: var(--text); } /* the banner's text is white; this sits on yellow */
 .banner-minis { display: flex; gap: 10px; }
 .banner-mini { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 108px; padding: 6px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 3px 0 var(--ink); font: inherit; color: inherit; }
 .banner-mini .rarity { align-self: flex-start; }
@@ -1443,7 +1461,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   gap: 8px;
   text-align: center;
 }
-.coin-dialog-x { position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; border: 0; background: none; font-size: 30px; line-height: 1; cursor: pointer; color: var(--ink); }
+.coin-dialog-x { position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; border: 0; background: none; font-size: 30px; line-height: 1; cursor: pointer; color: var(--text); }
 .coin-dialog-art svg { width: 120px; height: auto; display: block; }
 .coin-dialog-title { font-family: var(--title); font-weight: normal; font-size: 28px; color: var(--red); margin: 0; }
 .coin-dialog-coins { font-family: var(--title); font-size: 26px; }
@@ -1507,7 +1525,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- Coin packs: bonus coins ---------- */
 .pack-bonus { font-size: 12px; font-weight: 800; color: #fff; background: var(--moss); border: 2px solid var(--ink); border-radius: 999px; padding: 1px 9px; }
-.pack-bonus.none { color: var(--ink); background: transparent; border-color: transparent; opacity: .6; }
+.pack-bonus.none { color: var(--text); background: transparent; border-color: transparent; opacity: .6; }
 .pack-rate { font-size: 11px; font-weight: 800; opacity: .7; }
 .coin-pack.best { background: radial-gradient(circle at 50% 30%, #fff, #ffd84a 85%); }
 .coin-pack.best .pack-tag { background: var(--moss); font-size: 17px; }
@@ -1551,16 +1569,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gift-claimed { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 12px; background: #e9ffe0; }
 .gift-how p { margin: 4px 0; }
 .gift-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.gift-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; font-weight: 700; }
+.gift-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 10px; background: var(--surface); font-weight: 700; }
 .gift-row.cancelled { opacity: .55; }
 .gift-name { flex: 1 1 10em; }
 .gift-meta { font-size: 13px; opacity: .7; font-variant-numeric: tabular-nums; }
 .gift-status { font-size: 13px; }
 .gift-row.claimed .gift-status { color: #2c7a3d; }
 .gift-msgs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.gift-msg { border: 2px solid var(--ink); border-radius: 999px; background: #fff; padding: 5px 10px; font-weight: 800; font-size: 13px; cursor: pointer; }
-.gift-msg.on { background: var(--accent); }
-.gift-code { font: 800 26px/1.2 ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: 2px; padding: 10px 14px; border: 3px dashed var(--ink); border-radius: 12px; background: #fff; user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; text-align: center; }
+.gift-msg { border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); padding: 5px 10px; font-weight: 800; font-size: 13px; cursor: pointer; }
+.gift-msg.on { background: var(--accent); box-shadow: inset 0 0 0 2px var(--ink); color: var(--on-accent); }
+.gift-code { font: 800 26px/1.2 ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: 2px; padding: 10px 14px; border: 3px dashed var(--ink); border-radius: 12px; background: var(--surface); user-select: all; -webkit-user-select: all; overflow-wrap: anywhere; text-align: center; }
 .gift-dialog-art svg { width: 110px; height: auto; }
 .gift-dialog-art .bundle-art { width: 160px; height: 100px; }
 
@@ -1585,7 +1603,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 12px;
   background: var(--paper);
   box-shadow: 0 3px 0 var(--ink);
-  color: var(--ink);
+  color: var(--text);
   font: inherit;
   font-weight: 800;
   font-size: 15px;
@@ -1593,8 +1611,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   overflow-wrap: anywhere; /* long names in some languages wrap rather than spill */
   cursor: pointer;
 }
-.settings-menu-btn:hover { background: #f4eedf; }
-.settings-menu-btn.on { background: var(--accent); }
+.settings-menu-btn:hover { background: var(--hover); }
+.settings-menu-btn.on { background: var(--accent); box-shadow: inset 0 0 0 2.5px var(--ink), 0 3px 0 var(--ink); color: var(--on-accent); }
 .page-settings > .card { grid-area: content; display: none; min-width: 0; }
 .page-settings[data-section=language] > [data-section=language],
 .page-settings[data-section=text] > [data-section=text],
@@ -1612,7 +1630,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   min-height: 38px;
   border: 3px solid var(--ink);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-weight: 800;
   box-shadow: 0 3px 0 var(--ink);
@@ -1622,7 +1640,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 0 6px;
 }
 .bind-key.empty { background: transparent; border-style: dashed; box-shadow: none; opacity: .6; }
-.bind-key.listening { background: var(--accent); animation: pulse .5s infinite alternate; }
+.bind-key.listening { background: var(--accent); animation: pulse .5s infinite alternate; color: var(--on-accent); }
 .bind-key:disabled { opacity: .25; }
 .settings-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
 .settings-label { margin: 0 0 6px; font-weight: 800; }
@@ -1680,131 +1698,131 @@ button { font: inherit; color: inherit; cursor: pointer; }
    lists (teams, shop items, keys) scroll inside their own box.
    ====================================================================== */
 .phone-only, .hub-back, .hub-title { display: none; }
-@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
-  .menu.hub { height: 100vh; height: 100dvh; overflow: hidden; }
-  /* Bigger text: the phone screens lay out on the screen as it is after scaling. */
-  .menu.hub { height: calc(100dvh / var(--ui-scale, 1)); }
-  .menu.hub .hub-footer, .menu.hub .hub-tabs, .menu.hub .hub-logo, .menu.hub .hub-me { display: none; }
-  .menu.hub[data-tab=lobby] .hub-bar { display: none; }
-  .hub-bar { padding: 6px calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
-  .hub-bar-inner { flex-wrap: nowrap; gap: 8px; max-width: none; padding: 0; }
-  .hub-back { display: inline-flex; flex: none; align-items: center; min-height: 36px; padding: 2px 12px; font-size: 15px; }
-  .hub-title {
-    display: block;
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    font-family: var(--title);
-    font-weight: normal;
-    font-size: 24px;
-    letter-spacing: .5px;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hub-right .chip { min-height: 32px; font-size: 14px; padding: 2px 10px; }
-  .menu.hub .hub-page { flex: 1 1 0; min-height: 0; max-width: none; overflow-y: auto; padding: 8px calc(10px + var(--safe-r)) 10px calc(10px + var(--safe-l)); }
-  .hub-notice { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); margin: 0; z-index: 10; font-size: 14px; }
-  .hub-news { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); margin: 0; z-index: 9; font-size: 13px; padding: 4px 6px 4px 12px; }
-  .hub-news .hub-news-go { min-height: 0; padding: 3px 10px; font-size: 13px; }
-  .card { padding: 10px; border-radius: 16px; border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
-  .card-title { font-size: 18px; margin-bottom: 6px; }
-
-  /* ---- Lobby: home screen ---- */
-  .menu.hub .lobby[data-view] {
-    height: 100%;
-    display: grid;
-    gap: 8px 10px;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-areas: 'hero play' 'nav nav';
-    align-items: stretch;
-  }
-  .lobby[data-view] .dash { display: none; }
-  .lobby[data-view=home] .lobby-setup { display: none; }
-  /* "safe": if it's ever too tall, it's cut at the bottom, never the top. */
-  .lobby[data-view] .lobby-hero { grid-area: hero; flex-direction: column; justify-content: center; justify-content: safe center; align-items: center; gap: 6px; padding: 8px; text-align: center; min-height: 0; overflow: hidden; }
-  .lobby[data-view] .hero-art { padding: 4px 10px 8px; gap: 4px; border-radius: 14px; }
-  .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(44px, calc(100dvh - 300px), 150px); display: block; }
-  /* The seasonal note: one line, so the column fits short screens. */
-  .lobby[data-view] .hero-season { margin: 0; padding: 3px 10px; font-size: 12px; border-width: 2px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
-  .lobby[data-view] .hero-text { text-align: center; max-width: 100%; }
-  .lobby[data-view] .title { font-size: min(4vw, 7vh, 40px); white-space: nowrap; }
-  .lobby[data-view] .tagline { display: none; }
-  .lobby[data-view] .hero-team { font-size: 13px; margin-top: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
-  .lobby[data-view] .hero-edit, .lobby[data-view] .hero-looks { font-size: 12px; min-height: 28px; }
-  .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; justify-content: safe center; padding: 10px; min-height: 0; align-self: stretch; overflow: hidden; }
-  .lobby[data-view] .lobby-hero { align-self: stretch; }
-  .lobby[data-view] .lobby-play .menu-buttons { gap: 8px; margin: 0; }
-  .lobby[data-view] .lobby-play .play { display: flex; flex-direction: column; align-items: center; font-size: clamp(26px, 10vh, 52px); line-height: 1.05; padding: 6px 14px 8px; }
-  .play-sum.phone-only { display: block; font-family: var(--body); font-size: 12px; font-weight: 800; letter-spacing: 0; -webkit-text-stroke: 0; }
-  .lobby[data-view] .menu-row { flex-direction: row; gap: 8px; }
-  .lobby[data-view] .menu-row .big-btn { flex: 1 1 0; min-width: 0; font-size: 16px; padding: 8px 6px; white-space: nowrap; }
-  .setup-btn.phone-only { display: block; }
-  .lobby[data-view] .lobby-learn { margin-top: 8px; }
-  .lobby[data-view] .lobby-learn .hud-btn { flex: 1; }
-  /* News is a tile in the bottom menu on phones (ui/menu.ts renderNav). */
-  .lobby[data-view] .lobby-learn .news-btn { display: none; }
-  .lobby[data-view] .controls-btn { display: none; }
-  .lobby-nav.phone-only { grid-area: nav; display: flex; gap: 8px; }
-  .nav-tile {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0 6px;
-    min-height: 44px;
-    padding: 4px 6px;
-    border: 3px solid var(--ink);
-    border-radius: 14px;
-    background: var(--paper);
-    box-shadow: 0 3px 0 var(--ink);
-    color: var(--ink);
-    font: inherit;
-    font-weight: 800;
-    font-size: 14px;
-    line-height: 1.15;
-  }
-  .nav-tile:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
-  .nav-tile.nav-coins { background: linear-gradient(#ffe066, #f5b700); }
-  /* The home screen is tight: coins live in the gold tile at the bottom instead. */
-  .lobby[data-view] .hero-coins, .lobby[data-view] .hero-coins-banner { display: none; }
-  .nav-icon { font-size: 17px; }
-  .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .nav-extra { flex-basis: 100%; text-align: center; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* ---- Lobby: match setup screen ---- */
-  .menu.hub .lobby[data-view=setup] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: 'setup'; }
-  .lobby[data-view=setup] > :not(.lobby-setup) { display: none; }
-  .lobby[data-view=setup] .lobby-setup {
-    grid-area: setup;
-    display: grid;
-    min-height: 0;
-    gap: 6px 12px;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-    grid-template-rows: auto auto auto auto minmax(0, 1fr);
-    grid-template-areas: 'head head' 'players slots' 'style slots' 'blurb slots' 'hint slots';
-    align-content: start;
-  }
-  .setup-head.phone-only { grid-area: head; display: flex; align-items: center; gap: 8px; }
-  .setup-head .card-title { flex: 1; margin: 0; text-align: center; font-size: 22px; }
-  .setup-head .setup-play { font-size: 18px; padding: 4px 14px; box-shadow: 0 3px 0 var(--ink); }
-  .lobby[data-view] .setup-title { display: none; }
-  .lobby[data-view] .lobby-setup .players-row { grid-area: players; margin: 0; justify-content: flex-start; gap: 10px; }
-  .lobby[data-view] .lobby-setup .slots { grid-area: slots; margin: 0; overflow-y: auto; min-height: 0; align-self: stretch; align-content: start; padding: 2px 4px 4px 0; }
-  .lobby[data-view] .lobby-setup .players-hint { grid-area: hint; margin: 0; font-size: 11px; }
-  .lobby[data-view] .lobby-setup .style-row { grid-area: style; margin: 0; flex-wrap: wrap; gap: 6px; }
-  .lobby[data-view] .lobby-setup .style-blurb { grid-area: blurb; margin: 0; font-size: 12px; }
-  .lobby[data-view] .lobby-setup .custom-panel { grid-area: slots; overflow-y: auto; min-height: 0; margin: 0; align-content: start; }
-  .lobby.rules-open .lobby-setup .slots { display: none; }
-  .lobby[data-view] .slot { font-size: 14px; }
-  .lobby[data-view] .slot-main { padding-top: 2px; padding-bottom: 2px; }
-  .lobby[data-view] .slot-pic svg { width: 32px; }
-  .lobby[data-view] .slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The phone menu (data-phone-menu, set by ui/textSize.ts: this screen size, or text too big for the full menu). */
+:where(:root[data-phone-menu]) .menu.hub { height: 100vh; height: 100dvh; overflow: hidden; }
+/* Bigger text: the phone screens lay out on the screen as it is after scaling. */
+:where(:root[data-phone-menu]) .menu.hub { height: calc(100dvh / var(--menu-scale, 1)); }
+:where(:root[data-phone-menu]) .menu.hub .hub-footer, :where(:root[data-phone-menu]) .menu.hub .hub-tabs, :where(:root[data-phone-menu]) .menu.hub .hub-logo, :where(:root[data-phone-menu]) .menu.hub .hub-me { display: none; }
+:where(:root[data-phone-menu]) .menu.hub[data-tab=lobby] .hub-bar { display: none; }
+:where(:root[data-phone-menu]) .hub-bar { padding: 6px calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
+:where(:root[data-phone-menu]) .hub-bar-inner { flex-wrap: nowrap; gap: 8px; max-width: none; padding: 0; }
+:where(:root[data-phone-menu]) .hub-back { display: inline-flex; flex: none; align-items: center; min-height: 36px; padding: 2px 12px; font-size: 15px; }
+:where(:root[data-phone-menu]) .hub-title {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--title);
+  font-weight: normal;
+  font-size: 24px;
+  letter-spacing: .5px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+:where(:root[data-phone-menu]) .hub-right .chip { min-height: 32px; font-size: 14px; padding: 2px 10px; }
+:where(:root[data-phone-menu]) .menu.hub .hub-page { flex: 1 1 0; min-height: 0; max-width: none; overflow-y: auto; padding: 8px calc(10px + var(--safe-r)) 10px calc(10px + var(--safe-l)); }
+:where(:root[data-phone-menu]) .hub-notice { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); margin: 0; z-index: 10; font-size: 14px; }
+:where(:root[data-phone-menu]) .hub-news { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); margin: 0; z-index: 9; font-size: 13px; padding: 4px 6px 4px 12px; }
+:where(:root[data-phone-menu]) .hub-news .hub-news-go { min-height: 0; padding: 3px 10px; font-size: 13px; }
+:where(:root[data-phone-menu]) .card { padding: 10px; border-radius: 16px; border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
+:where(:root[data-phone-menu]) .card-title { font-size: 18px; margin-bottom: 6px; }
+
+/* ---- Lobby: home screen ---- */
+:where(:root[data-phone-menu]) .menu.hub .lobby[data-view] {
+  height: 100%;
+  display: grid;
+  gap: 8px 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'hero play' 'nav nav';
+  align-items: stretch;
+}
+:where(:root[data-phone-menu]) .lobby[data-view] .dash { display: none; }
+:where(:root[data-phone-menu]) .lobby[data-view=home] .lobby-setup { display: none; }
+/* "safe": if it's ever too tall, it's cut at the bottom, never the top. */
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-hero { grid-area: hero; flex-direction: column; justify-content: center; justify-content: safe center; align-items: center; gap: 6px; padding: 8px; text-align: center; min-height: 0; overflow: hidden; }
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-art { padding: 4px 10px 8px; gap: 4px; border-radius: 14px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(44px, calc(100dvh - 300px), 150px); display: block; }
+/* The seasonal note: one line, so the column fits short screens. */
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-season { margin: 0; padding: 3px 10px; font-size: 12px; border-width: 2px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-text { text-align: center; max-width: 100%; }
+:where(:root[data-phone-menu]) .lobby[data-view] .title { font-size: min(4vw, 7vh, 40px); white-space: nowrap; }
+:where(:root[data-phone-menu]) .lobby[data-view] .tagline { display: none; }
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-team { font-size: 13px; margin-top: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-edit, :where(:root[data-phone-menu]) .lobby[data-view] .hero-looks { font-size: 12px; min-height: 28px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; justify-content: safe center; padding: 10px; min-height: 0; align-self: stretch; overflow: hidden; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-hero { align-self: stretch; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-play .menu-buttons { gap: 8px; margin: 0; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-play .play { display: flex; flex-direction: column; align-items: center; font-size: clamp(26px, 10vh, 52px); line-height: 1.05; padding: 6px 14px 8px; }
+:where(:root[data-phone-menu]) .play-sum.phone-only { display: block; font-family: var(--body); font-size: 12px; font-weight: 800; letter-spacing: 0; -webkit-text-stroke: 0; }
+:where(:root[data-phone-menu]) .lobby[data-view] .menu-row { flex-direction: row; gap: 8px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .menu-row .big-btn { flex: 1 1 0; min-width: 0; font-size: 16px; padding: 8px 6px; white-space: nowrap; }
+:where(:root[data-phone-menu]) .setup-btn.phone-only { display: block; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-learn { margin-top: 8px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-learn .hud-btn { flex: 1; }
+/* News is a tile in the bottom menu on phones (ui/menu.ts renderNav). */
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-learn .news-btn { display: none; }
+:where(:root[data-phone-menu]) .lobby[data-view] .controls-btn { display: none; }
+:where(:root[data-phone-menu]) .lobby-nav.phone-only { grid-area: nav; display: flex; gap: 8px; }
+:where(:root[data-phone-menu]) .nav-tile {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 6px;
+  min-height: 44px;
+  padding: 4px 6px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--ink);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.15;
+}
+:where(:root[data-phone-menu]) .nav-tile:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+:where(:root[data-phone-menu]) .nav-tile.nav-coins { background: linear-gradient(#ffe066, #f5b700); }
+/* The home screen is tight: coins live in the gold tile at the bottom instead. */
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-coins, :where(:root[data-phone-menu]) .lobby[data-view] .hero-coins-banner { display: none; }
+:where(:root[data-phone-menu]) .nav-icon { font-size: 17px; }
+:where(:root[data-phone-menu]) .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where(:root[data-phone-menu]) .nav-extra { flex-basis: 100%; text-align: center; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Lobby: match setup screen ---- */
+:where(:root[data-phone-menu]) .menu.hub .lobby[data-view=setup] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: 'setup'; }
+:where(:root[data-phone-menu]) .lobby[data-view=setup] > :not(.lobby-setup) { display: none; }
+:where(:root[data-phone-menu]) .lobby[data-view=setup] .lobby-setup {
+  grid-area: setup;
+  display: grid;
+  min-height: 0;
+  gap: 6px 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-areas: 'head head' 'players slots' 'style slots' 'blurb slots' 'hint slots';
+  align-content: start;
+}
+:where(:root[data-phone-menu]) .setup-head.phone-only { grid-area: head; display: flex; align-items: center; gap: 8px; }
+:where(:root[data-phone-menu]) .setup-head .card-title { flex: 1; margin: 0; text-align: center; font-size: 22px; }
+:where(:root[data-phone-menu]) .setup-head .setup-play { font-size: 18px; padding: 4px 14px; box-shadow: 0 3px 0 var(--ink); }
+:where(:root[data-phone-menu]) .lobby[data-view] .setup-title { display: none; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .players-row { grid-area: players; margin: 0; justify-content: flex-start; gap: 10px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .slots { grid-area: slots; margin: 0; overflow-y: auto; min-height: 0; align-self: stretch; align-content: start; padding: 2px 4px 4px 0; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .players-hint { grid-area: hint; margin: 0; font-size: 11px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .style-row { grid-area: style; margin: 0; flex-wrap: wrap; gap: 6px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .style-blurb { grid-area: blurb; margin: 0; font-size: 12px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .custom-panel { grid-area: slots; overflow-y: auto; min-height: 0; margin: 0; align-content: start; }
+:where(:root[data-phone-menu]) .lobby.rules-open .lobby-setup .slots { display: none; }
+:where(:root[data-phone-menu]) .lobby[data-view] .slot { font-size: 14px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .slot-main { padding-top: 2px; padding-bottom: 2px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .slot-pic svg { width: 32px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 @media (max-height: 340px) {
   .lobby[data-view] .lobby-setup .players-hint { display: none; }
   /* Small phones: the Play card's buttons shrink to fit, never past the card. */
@@ -1816,191 +1834,223 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .lobby[data-view] .lobby-learn .hud-btn { font-size: 12px; min-height: 0; padding: 4px 6px; line-height: 1.15; }
 }
 
-@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
-  /* ---- Play online: two columns ---- */
-  .menu { padding: 8px calc(10px + var(--safe-r)) 8px calc(10px + var(--safe-l)); }
-  .menu-card.online[data-screen=entry], .menu-card.online[data-screen=room] {
-    width: min(820px, 100%);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-    gap: 14px;
-    align-items: start;
-    padding: 12px 14px;
-    border-width: 3px;
-    border-radius: 18px;
-    box-shadow: 0 5px 0 var(--ink);
-  }
-  .menu-card.online .online-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  /* Signed in: Friends gets a third column, scrolling inside itself if the list is long. */
-  .menu-card.online[data-screen=entry]:has(> .friends) { width: 100%; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.1fr) minmax(0, 1fr); max-height: 100%; }
-  .menu-card.online > .friends { margin: 0; padding: 0 0 0 12px; border-top: 0; border-left: 2px dashed #e4dccb; align-self: stretch; min-height: 0; max-height: calc(100dvh - 48px); overflow-y: auto; }
-  .menu-card.online > .friends .card-title { margin: 0; font-size: 18px; }
-  .menu-card.online > .friends .friend-row { flex-wrap: wrap; }
-  .menu-card.online > .friends .friend-row > .online-note { order: 5; flex-basis: 100%; text-align: left; font-size: 11px; }
-  .menu-card.online:has(> .friends) .code-input { font-size: 16px; letter-spacing: 2px; }
-  /* The room code gets a row of its own there, Join and Watch below it. */
-  .menu-card.online:has(> .friends) .online-col .join-row { flex-wrap: wrap; }
-  .menu-card.online:has(> .friends) .online-col .join-row .code-input { flex: 1 1 100%; }
-  .menu-card.online:has(> .friends) .online-col .join-row > button { flex: 1 1 0; }
-  .menu-card.online .title-small { font-size: 28px; }
-  .menu-card.online .online-me svg { width: 56px; }
-  .menu-card.online .online-me-name { font-size: 20px; }
-  .menu-card.online .online-note { font-size: 12px; }
-  .menu-card.online .big-btn { font-size: 18px; padding: 7px 12px; }
-  .menu-card.online .code-input { font-size: 20px; letter-spacing: 4px; padding: 4px 6px; }
-  .menu-card.online .room-code { font-size: 34px; letter-spacing: 8px; }
-  .menu-card.online .lobby-slots { max-height: 46vh; overflow-y: auto; }
-  .menu-card.online .lobby-pic svg { width: 32px; }
-
-  /* ---- Stats: one screen, the collection scrolls in its box ---- */
-  .menu.hub .page-stats {
-    height: 100%;
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto minmax(0, 1fr);
-    align-items: stretch;
-  }
-  .page-stats .stats-head { grid-column: 1 / -1; padding: 6px 10px; gap: 10px; flex-wrap: nowrap; }
-  .page-stats .profile-pic svg { width: 48px; }
-  .page-stats .profile-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .page-stats .stats-big { flex: 1; min-width: 0; gap: 6px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .page-stats .profile-who { flex: 0 1 auto; max-width: 32%; }
-  .page-stats .stats-big .stat-value, .page-stats .stats-grid .stat-value { font-size: 18px; }
-  .page-stats .stat-tile { padding: 3px 4px; border-width: 2px; border-radius: 10px; }
-  .page-stats .stat-label { font-size: 10px; }
-  .page-stats .stats-grid { gap: 5px; }
-  .page-stats > .card { min-height: 0; overflow-y: auto; }
-  .page-stats .stats-collection { grid-column: auto; }
-  .page-stats .collection-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 5px; }
-  .page-stats .account-note { font-size: 11px; }
-  .page-stats.locked, .page-stats:has(.stats-teaser) { display: flex; flex-direction: column; justify-content: center; }
-
-  /* ---- Shop: stage on the left, the catalogue scrolls on the right ---- */
-  .menu.hub .page-shop { height: 100%; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 10px; align-items: stretch; }
-  .page-shop .shop-side { position: static; max-height: none; min-height: 0; overflow-y: auto; }
-  .page-shop .shop-main { min-height: 0; overflow: hidden; gap: 8px; padding: 8px; }
-  .page-shop .shop-pills { flex: none; max-width: 100%; }
-  .page-shop .shop-body { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
-  .page-shop .shop-fair { display: none; }
-  .page-shop .shop-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
-  .page-shop .bundle-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
-  /* Stage: picture above its name, whatever the width (also on the narrowest phones). */
-  .page-shop .shop-side { gap: 8px; padding: 8px; }
-  .page-shop .shop-side .shop-wallet { display: none; } /* already in the top bar */
-  .page-shop .shop-stage { flex-direction: column; text-align: center; padding: 8px; }
-  .page-shop .shop-stage-info, .page-shop .shop-stage-action { align-items: center; }
-  .page-shop .shop-stage-art { min-height: 0; }
-  .page-shop .shop-stage-art svg { width: 84px; }
-  .page-shop .shop-stage-info > b { font-size: 18px; }
-  .page-shop .shop-stage-action .big-btn { font-size: 16px; padding: 6px 12px; }
-  /* Featured banner: one compact row. */
-  .page-shop .shop-banner { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; gap: 10px; padding: 8px 12px; border-width: 3px; border-radius: 16px; }
-  .page-shop .banner-text { align-items: flex-start; }
-  .page-shop .banner-hero svg { width: 76px; }
-  .page-shop .banner-title { font-size: 22px; }
-  .page-shop .banner-minis { display: none; }
-  .page-shop .banner-go { font-size: 15px; padding: 4px 12px; }
-
-  /* ---- Account ---- */
-  .menu.hub .page-account { gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .page-account .profile-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .page-account .profile-email { overflow-wrap: anywhere; font-size: 12px; }
-  .page-account .profile-pic svg { width: 64px; }
-  .page-account .account-wallet .stat-value { font-size: 18px; }
-
-  /* ---- Settings: sections beside the one showing ---- */
-  .menu.hub .page-settings {
-    height: 100%;
-    max-width: none;
-    display: grid;
-    gap: 6px 10px;
-    grid-template-columns: minmax(0, 190px) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: 'menu status' 'menu content';
-  }
-  /* The section list scrolls inside its column if it's longer than the screen (bigger text, small phones). */
-  .page-settings .settings-menu { align-self: stretch; contain: size; height: 100%; flex-direction: column; flex-wrap: nowrap; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
-  .page-settings .settings-menu-btn { padding: 8px 10px; font-size: 14px; }
-  .settings-menu-btn.phone-only { display: block; }
-  .page-settings .settings-status { font-size: 12px; }
-  .page-settings > .card { min-height: 0; overflow-y: auto; }
-  .page-settings .bind-row { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 6px; }
-  .page-settings .bind-key { min-height: 32px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
-  .page-settings .bind-name { font-size: 13px; }
-  .page-settings .bind-table { gap: 4px; margin-top: 6px; }
-  .settings-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-  .settings-links a { text-decoration: none; color: var(--ink); font-weight: 800; }
-  .menu.hub .page-settings { align-items: stretch; }
-  .page-settings .settings-menu { align-self: start; }
-
-  /* ---- Match setup: the rules in two columns ---- */
-  .lobby[data-view] .lobby-setup .custom-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; padding-top: 6px; }
-  .lobby[data-view] .custom-panel label { font-size: 12px; }
-  .lobby[data-view] .custom-panel select { padding: 3px 6px; }
-
-  /* ---- Sign in: why, beside the form ---- */
-  .menu.hub .account-split { height: 100%; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); gap: 12px; padding: 10px; align-items: stretch; }
-  .account-split .account-pitch { padding: 8px; gap: 6px; justify-content: center; overflow-y: auto; }
-  .account-split .account-pitch .account-art svg { width: 70px; }
-  .account-split .account-pitch .dash-perks { font-size: 12px; gap: 4px; padding: 6px 10px; }
-  .account-split .account-form-box { min-height: 0; overflow-y: auto; padding-right: 4px; }
-  .account-split .account-form { gap: 6px; }
-  .account-split .field { padding: 6px 10px; }
-  .menu.hub .page-account:has(.account-split) { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
-  .menu.hub .account-split { min-height: 0; }
-
-  /* ---- Team editor: your tardi on the left, options scroll on the right ---- */
-  .editor-overlay { padding: 6px calc(8px + var(--safe-r)) 6px calc(8px + var(--safe-l)); }
-  .editor {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    display: grid;
-    gap: 8px 14px;
-    grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-areas: 'side options' 'actions options';
-    padding: 10px 12px;
-    border-width: 3px;
-    border-radius: 16px;
-  }
-  .editor-side { grid-area: side; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 0; }
-  .editor-side .editor-preview svg { width: 96px; }
-  .editor-side .editor-title { font-size: 20px; margin: 0; }
-  .editor-options { grid-area: options; display: block; min-height: 0; overflow-y: auto; padding-right: 4px; }
-  .editor-options h3:first-child { margin-top: 0; }
-  .editor .editor-actions { grid-area: actions; margin: 0; flex-wrap: wrap; justify-content: center; }
-  .editor .editor-actions .big-btn { padding: 6px 18px; font-size: 16px; }
-
-  /* ---- Small choosers (Daily challenge, Practice, Replays): not the team
-     editor's full-screen layout. Their choices sit side by side, and the box
-     never runs off the screen: what doesn't fit scrolls inside it. ---- */
-  .editor.practice-choice {
-    display: grid;
-    margin: auto;
-    width: min(680px, 100%);
-    height: auto;
-    max-height: 100%;
-    max-width: none;
-    overflow-y: auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: none;
-    grid-template-areas: none;
-    gap: 8px;
-  }
-  .editor.practice-choice > :not(.practice-option) { grid-column: 1 / -1; }
-  .editor.practice-choice .editor-title { font-size: 22px; margin: 0; }
-  .editor.practice-choice .account-note { margin: 0; font-size: 12px; }
-  .editor.practice-choice .practice-option { padding: 8px 10px; }
-  .editor.practice-choice .practice-option b { font-size: 17px; }
-  .editor.practice-choice .practice-option span { font-size: 12px; }
-  .editor.practice-choice > .hud-btn { justify-self: center; min-width: 50%; }
-  /* Replays: one column, the list scrolls between the title and the buttons. */
-  .editor.practice-choice.replays { display: flex; flex-direction: column; }
-  .editor.practice-choice.replays .replay-list { flex: 1 1 auto; min-height: 0; max-height: none; }
-  .editor.practice-choice.replays > .hud-btn { align-self: center; }
+/* The phone menu (data-phone-menu, set by ui/textSize.ts: this screen size, or text too big for the full menu). */
+/* ---- Play online: two columns ---- */
+:where(:root[data-phone-menu]) .menu { padding: 8px calc(10px + var(--safe-r)) 8px calc(10px + var(--safe-l)); }
+:where(:root[data-phone-menu]) .menu-card.online[data-screen=entry], :where(:root[data-phone-menu]) .menu-card.online[data-screen=room] {
+  width: min(820px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 14px;
+  align-items: start;
+  padding: 12px 14px;
+  border-width: 3px;
+  border-radius: 18px;
+  box-shadow: 0 5px 0 var(--ink);
 }
+:where(:root[data-phone-menu]) .menu-card.online .online-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+/* Signed in: Friends gets a third column, scrolling inside itself if the list is long. */
+:where(:root[data-phone-menu]) .menu-card.online[data-screen=entry]:has(> .friends) { width: 100%; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.1fr) minmax(0, 1fr); max-height: 100%; }
+:where(:root[data-phone-menu]) .menu-card.online > .friends { margin: 0; padding: 0 0 0 12px; border-top: 0; border-left: 2px dashed var(--line-soft); align-self: stretch; min-height: 0; max-height: calc(100dvh - 48px); overflow-y: auto; }
+:where(:root[data-phone-menu]) .menu-card.online > .friends .card-title { margin: 0; font-size: 18px; }
+:where(:root[data-phone-menu]) .menu-card.online > .friends .friend-row { flex-wrap: wrap; }
+:where(:root[data-phone-menu]) .menu-card.online > .friends .friend-row > .online-note { order: 5; flex-basis: 100%; text-align: left; font-size: 11px; }
+:where(:root[data-phone-menu]) .menu-card.online:has(> .friends) .code-input { font-size: 16px; letter-spacing: 2px; }
+/* The room code gets a row of its own there, Join and Watch below it. */
+:where(:root[data-phone-menu]) .menu-card.online:has(> .friends) .online-col .join-row { flex-wrap: wrap; }
+:where(:root[data-phone-menu]) .menu-card.online:has(> .friends) .online-col .join-row .code-input { flex: 1 1 100%; }
+:where(:root[data-phone-menu]) .menu-card.online:has(> .friends) .online-col .join-row > button { flex: 1 1 0; }
+:where(:root[data-phone-menu]) .menu-card.online .title-small { font-size: 28px; }
+:where(:root[data-phone-menu]) .menu-card.online .online-me svg { width: 56px; }
+:where(:root[data-phone-menu]) .menu-card.online .online-me-name { font-size: 20px; }
+:where(:root[data-phone-menu]) .menu-card.online .online-note { font-size: 12px; }
+:where(:root[data-phone-menu]) .menu-card.online .big-btn { font-size: 18px; padding: 7px 12px; }
+:where(:root[data-phone-menu]) .menu-card.online .code-input { font-size: 20px; letter-spacing: 4px; padding: 4px 6px; }
+:where(:root[data-phone-menu]) .menu-card.online .room-code { font-size: 34px; letter-spacing: 8px; }
+:where(:root[data-phone-menu]) .menu-card.online .lobby-slots { max-height: 46vh; overflow-y: auto; }
+:where(:root[data-phone-menu]) .menu-card.online .lobby-pic svg { width: 32px; }
+
+/* ---- Stats: one screen, the collection scrolls in its box ---- */
+:where(:root[data-phone-menu]) .menu.hub .page-stats {
+  height: 100%;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+}
+:where(:root[data-phone-menu]) .page-stats .stats-head { grid-column: 1 / -1; padding: 6px 10px; gap: 10px; flex-wrap: nowrap; }
+:where(:root[data-phone-menu]) .page-stats .profile-pic svg { width: 48px; }
+:where(:root[data-phone-menu]) .page-stats .profile-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where(:root[data-phone-menu]) .page-stats .stats-big { flex: 1; min-width: 0; gap: 6px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:where(:root[data-phone-menu]) .page-stats .profile-who { flex: 0 1 auto; max-width: 32%; }
+:where(:root[data-phone-menu]) .page-stats .stats-big .stat-value, :where(:root[data-phone-menu]) .page-stats .stats-grid .stat-value { font-size: 18px; }
+:where(:root[data-phone-menu]) .page-stats .stat-tile { padding: 3px 4px; border-width: 2px; border-radius: 10px; }
+:where(:root[data-phone-menu]) .page-stats .stat-label { font-size: 10px; }
+:where(:root[data-phone-menu]) .page-stats .stats-grid { gap: 5px; }
+:where(:root[data-phone-menu]) .page-stats > .card { min-height: 0; overflow-y: auto; }
+:where(:root[data-phone-menu]) .page-stats .stats-collection { grid-column: auto; }
+:where(:root[data-phone-menu]) .page-stats .collection-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 5px; }
+:where(:root[data-phone-menu]) .page-stats .account-note { font-size: 11px; }
+:where(:root[data-phone-menu]) .page-stats.locked, :where(:root[data-phone-menu]) .page-stats:has(.stats-teaser) { display: flex; flex-direction: column; justify-content: center; }
+
+/* ---- Shop: stage on the left, the catalogue scrolls on the right ---- */
+:where(:root[data-phone-menu]) .menu.hub .page-shop { height: 100%; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 10px; align-items: stretch; }
+:where(:root[data-phone-menu]) .page-shop .shop-side { position: static; max-height: none; min-height: 0; overflow-y: auto; }
+:where(:root[data-phone-menu]) .page-shop .shop-main { min-height: 0; overflow: hidden; gap: 8px; padding: 8px; }
+:where(:root[data-phone-menu]) .page-shop .shop-pills { flex: none; max-width: 100%; }
+:where(:root[data-phone-menu]) .page-shop .shop-body { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+:where(:root[data-phone-menu]) .page-shop .shop-fair { display: none; }
+:where(:root[data-phone-menu]) .page-shop .shop-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+:where(:root[data-phone-menu]) .page-shop .bundle-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+/* Stage: picture above its name, whatever the width (also on the narrowest phones). */
+:where(:root[data-phone-menu]) .page-shop .shop-side { gap: 8px; padding: 8px; }
+:where(:root[data-phone-menu]) .page-shop .shop-side .shop-wallet { display: none; } /* already in the top bar */
+:where(:root[data-phone-menu]) .page-shop .shop-stage { flex-direction: column; text-align: center; padding: 8px; }
+:where(:root[data-phone-menu]) .page-shop .shop-stage-info, :where(:root[data-phone-menu]) .page-shop .shop-stage-action { align-items: center; }
+:where(:root[data-phone-menu]) .page-shop .shop-stage-art { min-height: 0; }
+:where(:root[data-phone-menu]) .page-shop .shop-stage-art svg { width: 84px; }
+:where(:root[data-phone-menu]) .page-shop .shop-stage-info > b { font-size: 18px; }
+:where(:root[data-phone-menu]) .page-shop .shop-stage-action .big-btn { font-size: 16px; padding: 6px 12px; }
+/* Featured banner: one compact row. */
+:where(:root[data-phone-menu]) .page-shop .shop-banner { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; gap: 10px; padding: 8px 12px; border-width: 3px; border-radius: 16px; }
+:where(:root[data-phone-menu]) .page-shop .banner-text { align-items: flex-start; }
+:where(:root[data-phone-menu]) .page-shop .banner-hero svg { width: 76px; }
+:where(:root[data-phone-menu]) .page-shop .banner-title { font-size: 22px; }
+:where(:root[data-phone-menu]) .page-shop .banner-minis { display: none; }
+:where(:root[data-phone-menu]) .page-shop .banner-go { font-size: 15px; padding: 4px 12px; }
+
+/* ---- Account ---- */
+:where(:root[data-phone-menu]) .menu.hub .page-account { gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:where(:root[data-phone-menu]) .page-account .profile-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:where(:root[data-phone-menu]) .page-account .profile-email { overflow-wrap: anywhere; font-size: 12px; }
+:where(:root[data-phone-menu]) .page-account .profile-pic svg { width: 64px; }
+:where(:root[data-phone-menu]) .page-account .account-wallet .stat-value { font-size: 18px; }
+
+/* ---- Settings: sections beside the one showing ---- */
+:where(:root[data-phone-menu]) .menu.hub .page-settings {
+  height: 100%;
+  max-width: none;
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: minmax(0, 190px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'menu status' 'menu content';
+}
+/* The section list scrolls inside its column if it's longer than the screen (bigger text, small phones). */
+:where(:root[data-phone-menu]) .page-settings .settings-menu { align-self: stretch; contain: size; height: 100%; flex-direction: column; flex-wrap: nowrap; gap: 6px; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
+:where(:root[data-phone-menu]) .page-settings .settings-menu-btn { padding: 8px 10px; font-size: 14px; }
+:where(:root[data-phone-menu]) .settings-menu-btn.phone-only { display: block; }
+:where(:root[data-phone-menu]) .page-settings .settings-status { font-size: 12px; }
+:where(:root[data-phone-menu]) .page-settings > .card { min-height: 0; overflow-y: auto; }
+:where(:root[data-phone-menu]) .page-settings .bind-row { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 6px; }
+:where(:root[data-phone-menu]) .page-settings .bind-key { min-height: 32px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
+:where(:root[data-phone-menu]) .page-settings .bind-name { font-size: 13px; }
+:where(:root[data-phone-menu]) .page-settings .bind-table { gap: 4px; margin-top: 6px; }
+:where(:root[data-phone-menu]) .settings-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+:where(:root[data-phone-menu]) .settings-links a { text-decoration: none; color: var(--text); font-weight: 800; }
+:where(:root[data-phone-menu]) .menu.hub .page-settings { align-items: stretch; }
+:where(:root[data-phone-menu]) .page-settings .settings-menu { align-self: start; }
+
+/* ---- Match setup: the rules in two columns ---- */
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup .custom-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; padding-top: 6px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .custom-panel label { font-size: 12px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .custom-panel select { padding: 3px 6px; }
+
+/* ---- Sign in: why, beside the form ---- */
+:where(:root[data-phone-menu]) .menu.hub .account-split { height: 100%; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); gap: 12px; padding: 10px; align-items: stretch; }
+:where(:root[data-phone-menu]) .account-split .account-pitch { padding: 8px; gap: 6px; justify-content: center; overflow-y: auto; }
+:where(:root[data-phone-menu]) .account-split .account-pitch .account-art svg { width: 70px; }
+:where(:root[data-phone-menu]) .account-split .account-pitch .dash-perks { font-size: 12px; gap: 4px; padding: 6px 10px; }
+:where(:root[data-phone-menu]) .account-split .account-form-box { min-height: 0; overflow-y: auto; padding-right: 4px; }
+:where(:root[data-phone-menu]) .account-split .account-form { gap: 6px; }
+:where(:root[data-phone-menu]) .account-split .field { padding: 6px 10px; }
+:where(:root[data-phone-menu]) .menu.hub .page-account:has(.account-split) { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+:where(:root[data-phone-menu]) .menu.hub .account-split { min-height: 0; }
+
+/* ---- Team editor: your tardi on the left, options scroll on the right ---- */
+:where(:root[data-phone-menu]) .editor-overlay { padding: 6px calc(8px + var(--safe-r)) 6px calc(8px + var(--safe-l)); }
+:where(:root[data-phone-menu]) .editor {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'side options' 'actions options';
+  padding: 10px 12px;
+  border-width: 3px;
+  border-radius: 16px;
+}
+:where(:root[data-phone-menu]) .editor-side { grid-area: side; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 0; }
+:where(:root[data-phone-menu]) .editor-side .editor-preview svg { width: 96px; }
+:where(:root[data-phone-menu]) .editor-side .editor-title { font-size: 20px; margin: 0; }
+:where(:root[data-phone-menu]) .editor-options { grid-area: options; display: block; min-height: 0; overflow-y: auto; padding-right: 4px; }
+:where(:root[data-phone-menu]) .editor-options h3:first-child { margin-top: 0; }
+:where(:root[data-phone-menu]) .editor .editor-actions { grid-area: actions; margin: 0; flex-wrap: wrap; justify-content: center; }
+:where(:root[data-phone-menu]) .editor .editor-actions .big-btn { padding: 6px 18px; font-size: 16px; }
+
+/* ---- Small choosers (Daily challenge, Practice, Replays): not the team
+   editor's full-screen layout. Their choices sit side by side, and the box
+   never runs off the screen: what doesn't fit scrolls inside it. ---- */
+:where(:root[data-phone-menu]) .editor.practice-choice {
+  display: grid;
+  margin: auto;
+  width: min(680px, 100%);
+  height: auto;
+  max-height: 100%;
+  max-width: none;
+  overflow-y: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-template-areas: none;
+  gap: 8px;
+}
+:where(:root[data-phone-menu]) .editor.practice-choice > :not(.practice-option) { grid-column: 1 / -1; }
+:where(:root[data-phone-menu]) .editor.practice-choice .editor-title { font-size: 22px; margin: 0; }
+:where(:root[data-phone-menu]) .editor.practice-choice .account-note { margin: 0; font-size: 12px; }
+:where(:root[data-phone-menu]) .editor.practice-choice .practice-option { padding: 8px 10px; }
+:where(:root[data-phone-menu]) .editor.practice-choice .practice-option b { font-size: 17px; }
+:where(:root[data-phone-menu]) .editor.practice-choice .practice-option span { font-size: 12px; }
+:where(:root[data-phone-menu]) .editor.practice-choice > .hud-btn { justify-self: center; min-width: 50%; }
+/* Replays: one column, the list scrolls between the title and the buttons. */
+:where(:root[data-phone-menu]) .editor.practice-choice.replays { display: flex; flex-direction: column; }
+:where(:root[data-phone-menu]) .editor.practice-choice.replays .replay-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+:where(:root[data-phone-menu]) .editor.practice-choice.replays > .hud-btn { align-self: center; }
+
+
+/* Text bigger than the phone menu has room for (data-big-text, ui/textSize.ts):
+   its screens become pages that scroll, one column, nothing cut off. */
+:where(:root[data-big-text]) .menu.hub { overflow-y: auto; }
+:where(:root[data-big-text]) .menu.hub .hub-page { flex: none; overflow: visible; }
+:where(:root[data-big-text]) .hub-notice, :where(:root[data-big-text]) .hub-news { position: static; transform: none; width: auto; margin: 6px calc(10px + var(--safe-r)) 0 calc(10px + var(--safe-l)); }
+:where(:root[data-big-text]) .hub-title { white-space: normal; }
+:where(:root[data-big-text]) .menu.hub .lobby[data-view] { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: 'play' 'hero' 'nav'; }
+:where(:root[data-big-text]) .lobby[data-view] .lobby-hero, :where(:root[data-big-text]) .lobby[data-view] .lobby-play { overflow: visible; }
+:where(:root[data-big-text]) .lobby[data-view] .hero-season, :where(:root[data-big-text]) .lobby[data-view] .hero-team { white-space: normal; }
+:where(:root[data-big-text]) .lobby[data-view] .menu-row { flex-wrap: wrap; }
+:where(:root[data-big-text]) .lobby[data-view] .menu-row .big-btn { flex-basis: 12em; white-space: normal; }
+:where(:root[data-big-text]) .lobby-nav.phone-only { flex-wrap: wrap; }
+:where(:root[data-big-text]) .nav-tile { flex-basis: 10em; }
+:where(:root[data-big-text]) .nav-label, :where(:root[data-big-text]) .nav-extra { white-space: normal; }
+:where(:root[data-big-text]) .lobby[data-view=setup] .lobby-setup { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: 'head' 'players' 'style' 'blurb' 'slots' 'hint'; }
+:where(:root[data-big-text]) .lobby[data-view] .lobby-setup .slots, :where(:root[data-big-text]) .lobby[data-view] .lobby-setup .custom-panel { overflow: visible; }
+:where(:root[data-big-text]) .lobby[data-view] .slot-name { white-space: normal; }
+:where(:root[data-big-text]) .editor { flex: none; align-self: flex-start; height: auto; max-height: none; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: 'side' 'options' 'actions'; }
+:where(:root[data-big-text]) .editor-side, :where(:root[data-big-text]) .editor-options { min-height: auto; overflow: visible; }
+:where(:root[data-big-text]) .editor.practice-choice { max-height: none; overflow: visible; grid-template-columns: minmax(0, 1fr); }
+:where(:root[data-big-text]) .editor.practice-choice.replays .replay-list { max-height: none; }
+:where(:root[data-big-text]) .menu.hub .page-shop, :where(:root[data-big-text]) .menu.hub .page-stats, :where(:root[data-big-text]) .menu.hub .page-account, :where(:root[data-big-text]) .menu.hub .account-split, :where(:root[data-big-text]) .menu.hub .page-account:has(.account-split), :where(:root[data-big-text]) .menu-card.online[data-screen=entry], :where(:root[data-big-text]) .menu-card.online[data-screen=room], :where(:root[data-big-text]) .menu-card.online[data-screen=entry]:has(> .friends) { height: auto; max-height: none; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+:where(:root[data-big-text]) .menu.hub .page-guide, :where(:root[data-big-text]) .menu.hub .page-news { height: auto; overflow: visible; }
+:where(:root[data-big-text]) .page-shop .shop-side, :where(:root[data-big-text]) .page-shop .shop-main, :where(:root[data-big-text]) .page-shop .shop-body, :where(:root[data-big-text]) .page-stats > .card, :where(:root[data-big-text]) .page-settings > .card, :where(:root[data-big-text]) .account-split .account-pitch, :where(:root[data-big-text]) .account-split .account-form-box, :where(:root[data-big-text]) .menu-card.online > .friends, :where(:root[data-big-text]) .menu-card.online .lobby-slots { min-height: auto; max-height: none; overflow: visible; }
+:where(:root[data-big-text]) .page-settings .settings-menu { contain: none; height: auto; overflow: visible; }
+:where(:root[data-big-text]) .page-settings { grid-template-rows: auto auto; align-items: start; }
+:where(:root[data-big-text]) .page-stats .stats-head { flex-wrap: wrap; }
+:where(:root[data-big-text]) .page-stats .profile-who { max-width: none; }
+:where(:root[data-big-text]) .page-stats .stats-big { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:where(:root[data-big-text]) .profile-name { white-space: normal; }
+:where(:root[data-big-text]) .menu-card.online > .friends { padding: 12px 0 0; border-left: 0; border-top: 2px dashed var(--line-soft); }
 
 /* Tablets (landscape touch screens taller than phones): the phone menu, scaled
    up to match, like a mobile game's menus on a bigger screen. Fixed boxes are
@@ -2023,10 +2073,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @media (pointer: coarse) and (orientation: landscape) and (min-height: 540px) and (max-height: 900px) {
   .menu.hub, .menu, .editor-overlay {
-    zoom: var(--ui-zoom);
-    width: calc(100vw / var(--ui-zoom));
-    height: calc(100vh / var(--ui-zoom));
-    height: calc(100dvh / var(--ui-zoom));
+    zoom: calc(var(--ui-zoom) * var(--menu-boost, 1));
+    width: calc(100vw / var(--ui-zoom) / var(--menu-scale, 1));
+    height: calc(100vh / var(--ui-zoom) / var(--menu-scale, 1));
+    height: calc(100dvh / var(--ui-zoom) / var(--menu-scale, 1));
   }
 }
 
@@ -2037,7 +2087,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sound-pct { text-align: right; font-variant-numeric: tabular-nums; }
 .sound-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; }
 .sound-pick .settings-label { margin: 0; }
-.sound-select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 2px solid var(--ink); background: #fff; color: var(--ink); max-width: 60%; }
+.sound-select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 2px solid var(--ink); background: var(--surface); color: var(--text); max-width: 60%; }
 .shop-listen { align-self: flex-start; }
 
 /* Team editor: a name that isn't allowed */
@@ -2065,11 +2115,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .page-guide { grid-template-columns: minmax(0, 1fr); }
 }
 /* Phones: the guide scrolls inside the page, so the page still fits the screen. */
-@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
-  .menu.hub .page-guide { height: 100%; max-width: none; overflow-y: auto; gap: 10px; align-content: start; }
-  .guide-list { font-size: 13px; gap: 5px; }
-  .guide-box { max-height: 86vh; }
-}
+/* The phone menu (data-phone-menu, set by ui/textSize.ts: this screen size, or text too big for the full menu). */
+:where(:root[data-phone-menu]) .menu.hub .page-guide { height: 100%; max-width: none; overflow-y: auto; gap: 10px; align-content: start; }
+:where(:root[data-phone-menu]) .guide-list { font-size: 13px; gap: 5px; }
+:where(:root[data-phone-menu]) .guide-box { max-height: 86vh; }
+
 
 /* ---- News (ui/news.ts) ---- */
 .page-news { display: flex; flex-direction: column; gap: 16px; max-width: 760px; margin: 0 auto; }
@@ -2088,18 +2138,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .news-dot { position: absolute; top: 3px; right: 3px; width: 12px; height: 12px; border-radius: 50%; background: #e04848; border: 2px solid var(--ink); }
 .news-dot[hidden] { display: none; }
 /* Phones: the news scrolls inside the page, so the page still fits the screen. */
-@media (max-height: 500px), (pointer: coarse) and (orientation: landscape) and (max-height: 900px) {
-  .menu.hub .page-news { height: 100%; max-width: none; overflow-y: auto; gap: 10px; }
-  /* (The top bar already says News.) */
-  .menu.hub .news-head .card-title { display: none; }
-  .news-head { justify-content: center; }
-  .news-text, .news-list { font-size: 13px; }
-}
+/* The phone menu (data-phone-menu, set by ui/textSize.ts: this screen size, or text too big for the full menu). */
+:where(:root[data-phone-menu]) .menu.hub .page-news { height: 100%; max-width: none; overflow-y: auto; gap: 10px; }
+/* (The top bar already says News.) */
+:where(:root[data-phone-menu]) .menu.hub .news-head .card-title { display: none; }
+:where(:root[data-phone-menu]) .news-head { justify-content: center; }
+:where(:root[data-phone-menu]) .news-text, :where(:root[data-phone-menu]) .news-list { font-size: 13px; }
+
 
 /* ---- Practice: which kind (ui/tutorial.ts choosePractice) ---- */
 .practice-choice { max-width: 440px; display: flex; flex-direction: column; gap: 10px; }
-.practice-option { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 4px 0 var(--ink); font: inherit; color: var(--ink); cursor: pointer; }
-.practice-option:hover, .practice-option:focus-visible { background: var(--accent); }
+.practice-option { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 4px 0 var(--ink); font: inherit; color: var(--text); cursor: pointer; }
+.practice-option:hover, .practice-option:focus-visible { background: var(--accent); color: var(--on-accent); }
 .practice-option b { font-family: var(--title); font-size: 20px; font-weight: 400; }
 .practice-option span { font-size: 14px; }
 
@@ -2108,9 +2158,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .text-size-seg .seg-btn { justify-content: center; padding: 6px 2px; font-size: 14px; }
 
 /* ---------- Accessibility (Settings → Accessibility, ui/access.ts) ---------- */
-.access-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 2px dashed #e4dccb; }
+.access-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 2px dashed var(--line-soft); }
 .access-text { display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .access-row .seg-btn { flex: none; min-width: 64px; min-height: 40px; border: 3px solid var(--ink); border-radius: 999px; }
+.access-row-wide { flex-wrap: wrap; }
+.access-row-wide .seg { flex: none; }
+.access-row-wide .seg .seg-btn { min-width: 0; min-height: 36px; border: 0; }
 
 /* Keyboard focus is always plain to see (WCAG 2.4.7, 2.4.13): a thick ring with a white halo. */
 :focus-visible { outline: 3px solid #1450c8; outline-offset: 2px; box-shadow: 0 0 0 6px #fff; }
@@ -2127,9 +2180,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .hc body, .hc .card, .hc .page, .hc .editor { color: #000; }
 .hc .card, .hc .editor, .hc .slot, .hc .hat-btn, .hc .emblem-part, .hc .hud-btn, .hc .big-btn, .hc .seg-btn, .hc select, .hc input { border-color: #000 !important; }
-.hc .card, .hc .editor { background: #fff; }
+.hc .card, .hc .editor { background: var(--surface); }
 .hc .account-note, .hc .looks-hint, .hc .players-hint, .hc .style-blurb { opacity: 1; color: #000; }
-.hc .slot.cpu, .hc .slot.cpu .slot-colour { background: #fff; }
+.hc .slot.cpu, .hc .slot.cpu .slot-colour { background: var(--surface); }
 .hc .hat-btn.locked svg { opacity: .8; }
 .hc .seg-btn.on, .hc .settings-menu-btn.on, .hc .hat-btn.on, .hc .emblem-part.on { background: #000; color: #fff; }
 .hc a { color: #0a3cb4; text-decoration: underline; }
@@ -2139,8 +2192,62 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: #000; color: #fff !important; text-shadow: none; -webkit-text-stroke: 0; padding: 1px 6px; border-radius: 6px;
 }
 .hc .team-bar { outline: 2px solid #fff; }
-.hc .hud-wind-bar { border-color: #000; background: #fff; }
+.hc .hud-wind-bar { border-color: #000; background: var(--surface); }
 .hc :focus-visible { outline: 4px solid #000; box-shadow: 0 0 0 7px #ffe14d; }
+
+/* Dark mode (Settings → Accessibility, ui/access.ts; Auto follows the device): dark panels with
+   light text everywhere, so nothing big and bright lights up the screen. Outlines stay near-black;
+   the yellow buttons and small coloured badges keep their colour with dark text on them. */
+.dark {
+  --ink: #0b0710;
+  --text: #f4ebde;
+  --paper: #2a2132;
+  --cream: #2a2132;
+  --surface: #382d44;
+  --hover: #45385a;
+  --line-soft: #4d4060;
+  --sky: #1a2546;
+  --sky-deep: #3a68b0;
+  --tint-green: #233f2c;
+  --tint-yellow: #463a16;
+  --tint-blue: #1e3352;
+  --tint-red: #4c2027;
+}
+.dark .menu, .dark .menu.hub { background: radial-gradient(circle at 50% 30%, #2c3c69 0%, var(--sky) 60%, #0e1430 100%); }
+.dark .hero-art, .dark .account-pitch { background: radial-gradient(circle at 50% 35%, #2c3c69, var(--sky) 75%); }
+.dark .shop-stage { background: radial-gradient(circle at 50% 30%, #4a3d1c, #2a2132 75%); }
+.dark .coin-pack { background: radial-gradient(circle at 50% 30%, #4a3d1c, #2f2618 80%); }
+.dark .coin-pack.on, .dark .coin-pack.best { background: radial-gradient(circle at 50% 30%, #6b5518, #3a2f12 85%); }
+.dark .section-super, .dark .weapon-cell.super, .dark .weapon-cell.selected .wu, .dark .account-verify, .dark .shop-card:hover,
+.dark .shop-card.previewing, .dark .gameover-stats tr.winner, .dark .board li.you, .dark .hero-season, .dark .egg-toast { background: var(--tint-yellow); }
+.dark .dash-goal, .dark .account-founder, .dark .shop-fair, .dark .shop-card.owned, .dark .coin-trust li, .dark .gift-claimed { background: var(--tint-green); }
+.dark .weapon-cell .wu, .dark .rank-badge, .dark .hero-looks { background: var(--tint-blue); }
+.dark .editor input.bad { background: var(--tint-red); }
+.dark .slot.cpu, .dark .slot.cpu .slot-colour, .dark .rarity-common { background: #241c2b; }
+.dark .hub-news, .dark .hero-coins-banner, .dark .looks-promo { background: linear-gradient(90deg, #4a3d16, #6b5518 60%, #6b4316); }
+.dark .chip-coins, .dark .wallet-chip { background: var(--tint-yellow); }
+.dark .chip-slime, .dark .wallet-chip.slime { background: var(--tint-green); }
+/* Small bright badges and buttons keep their colour: dark writing on them. */
+.dark .slot-kind, .dark .hero-coins, .dark .nav-tile.nav-coins, .dark .rarity-rare, .dark .rarity-epic, .dark .rarity-bundle,
+.dark .big-btn, .dark .stat-tile.gold { color: var(--on-accent); }
+.dark .big-btn.secondary:not(.online-btn) { background: var(--surface); color: var(--text); }
+.dark .slot.cpu .slot-kind { background: #6e6478; color: var(--text); }
+.dark .touch-btn, .dark .hub-footer a, .dark .hub-version, .dark .banner-sub { background: rgba(42, 33, 50, .88); color: var(--text); }
+.dark .hub-footer a:hover { background: var(--accent); color: var(--on-accent); }
+.dark .touch-btn.jump { background: rgba(158, 224, 106, .9); color: var(--on-accent); }
+.dark .touch-btn.fire { background: rgba(224, 72, 72, .92); color: #fff; }
+.dark .japan-meter { background: rgba(0, 0, 0, .3); }
+.dark a { color: #9cc4ff; }
+.dark select, .dark input, .dark textarea { background: var(--surface); color: var(--text); }
+.dark ::placeholder { color: #b3a7b8; }
+.dark :focus-visible { outline-color: #8fb4ff; box-shadow: 0 0 0 6px #0b0710; }
+/* Dark high contrast: white on black, white edges. */
+.dark.hc { --ink: #fff; --text: #fff; --paper: #000; --cream: #000; --surface: #000; --hover: #222; --on-accent: #000; }
+.dark.hc body, .dark.hc .card, .dark.hc .page, .dark.hc .editor, .dark.hc .account-note, .dark.hc .looks-hint, .dark.hc .players-hint, .dark.hc .style-blurb { color: #fff; }
+.dark.hc .card, .dark.hc .editor, .dark.hc .slot, .dark.hc .hat-btn, .dark.hc .emblem-part, .dark.hc .hud-btn, .dark.hc .seg-btn, .dark.hc select, .dark.hc input { border-color: #fff !important; }
+.dark.hc .seg-btn.on, .dark.hc .settings-menu-btn.on, .dark.hc .hat-btn.on, .dark.hc .emblem-part.on { background: #fff; color: #000; }
+.dark.hc a { color: #9cc4ff; }
+.dark.hc .big-btn { border-color: #fff !important; color: #000; }
 
 /* Calmer effects: nothing slides, pulses or bounces in the menus (WCAG 2.3.3). */
 .calm *, .calm *::before, .calm *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition: none !important; scroll-behavior: auto !important; }
@@ -2149,14 +2256,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gameover-box { max-width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
 .gameover-stats { overflow-x: auto; }
 .gameover-stats table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.gameover-stats th, .gameover-stats td { padding: 4px 8px; border-bottom: 2px solid #e4dccb; text-align: right; white-space: nowrap; }
+.gameover-stats th, .gameover-stats td { padding: 4px 8px; border-bottom: 2px solid var(--line-soft); text-align: right; white-space: nowrap; }
 .gameover-stats thead th { font-size: 12px; }
 .gameover-stats tbody th { text-align: left; border-left: 8px solid var(--team); }
 .gameover-stats tr.winner { background: #fff1b8; }
 .gameover-stats td.top { font-weight: 900; }
 .gameover-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
 .gameover-note { font-size: 13px; }
-.gameover-review { display: block; margin: 10px auto 0; font-weight: 800; font-size: 15px; color: var(--ink); }
+.gameover-review { display: block; margin: 10px auto 0; font-weight: 800; font-size: 15px; color: var(--text); }
 .gameover-go { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .gameover-go .big-btn { flex: 1 1 180px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -2171,8 +2278,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .challenge-result { margin: 0; font-family: var(--title); font-size: 28px; text-align: center; }
 .board-top { font-size: 13px; font-weight: 800; color: #6b4a00; }
 .board { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
-.board li { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 3px 8px; border-radius: 8px; background: #fff; border: 2px solid #e4dccb; }
-.board li.you { background: #fff1b8; border-color: var(--ink); }
+.board li { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 3px 8px; border-radius: 8px; background: var(--surface); border: 2px solid var(--line-soft); }
+.board li.you { background: #fff1b8; border-color: var(--text); }
 .board-rank { font-weight: 900; text-align: right; }
 .board-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-value { font-weight: 800; white-space: nowrap; }
@@ -2197,7 +2304,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- Replays ---------- */
 .replay-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }
-.replay-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; }
+.replay-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 10px; background: var(--surface); }
 .replay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
 .replay-info span { font-size: 12px; opacity: .8; }
 .replay-bar {
@@ -2205,16 +2312,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper);
   pointer-events: auto; /* #ui lets taps through by default */
 }
-.replay-bar .hud-btn.on { background: var(--accent); }
+.replay-bar .hud-btn.on { background: var(--accent); box-shadow: inset 0 0 0 2.5px var(--ink); color: var(--on-accent); }
 .watching-badge { position: fixed; top: calc(56px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6; padding: 4px 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper); font-weight: 900; }
 .rank-badge { margin-top: 4px; padding: 2px 10px; border: 2px solid var(--ink); border-radius: 999px; background: #e8f4ff; font-weight: 800; font-size: 14px; width: fit-content; }
 
 /* ---------- Friends ---------- */
-.friends { margin-top: 12px; padding-top: 8px; border-top: 2px dashed #e4dccb; display: flex; flex-direction: column; gap: 6px; }
+.friends { margin-top: 12px; padding-top: 8px; border-top: 2px dashed var(--line-soft); display: flex; flex-direction: column; gap: 6px; }
 .friend-code { margin: 0; }
-.friend-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; }
+.friend-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 2px solid var(--ink); border-radius: 10px; background: var(--surface); }
 .friend-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; text-align: left; }
-.friend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: #c9c2b4; flex: none; }
+/* Offline: a hollow ring; online: a filled green dot (the shape tells them apart, not only the colour). */
+.friend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: transparent; flex: none; }
 .friend-dot.on { background: #5ad06a; }
 .invite-toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60; pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 3px solid var(--ink); border-radius: 16px; background: var(--paper); box-shadow: 0 6px 0 var(--ink); font-weight: 900; }
 

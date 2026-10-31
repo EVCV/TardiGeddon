@@ -2,7 +2,7 @@
 // picks their own and only they see it (it never changes the match for
 // anyone else), so it lives in the view and never touches the sim.
 
-import { PALETTE } from './palette';
+import { PALETTE, VIEW } from './palette';
 
 export interface ArenaTheme {
   id: string;
@@ -316,4 +316,33 @@ export const SURPRISE_ARENA = 'random';
 
 export function arenaTheme(id: string | undefined): ArenaTheme {
   return ARENAS.find((a) => a.id === id) ?? ARENAS[0];
+}
+
+/** A colour (0xRRGGBB) mixed toward a night blue: `keep` of it stays. */
+function dim(c: number, keep: number): number {
+  const night = [0x10, 0x16, 0x34];
+  const ch = (shift: number, i: number) => Math.round(((c >> shift) & 0xff) * keep + night[i] * (1 - keep));
+  return (ch(16, 0) << 16) | (ch(8, 1) << 8) | ch(0, 2);
+}
+
+const dimCss = (c: string, keep: number) => '#' + dim(parseInt(c.slice(1), 16), keep).toString(16).padStart(6, '0');
+
+/**
+ * The arena as this player sees it: in dark mode (ui/access.ts) every world
+ * is shown at dusk, its sky and hills dimmed toward night so no big bright
+ * area lights up the screen, the ground a little less, so it still stands out.
+ */
+export function shownArena(theme: ArenaTheme): ArenaTheme {
+  if (!VIEW.dark) return theme;
+  return {
+    ...theme,
+    skyTop: dimCss(theme.skyTop, 0.3),
+    skyBottom: dimCss(theme.skyBottom, 0.38),
+    hillFar: dim(theme.hillFar, 0.42),
+    hillNear: dim(theme.hillNear, 0.5),
+    water: dim(theme.water, 0.6),
+    waterLight: dim(theme.waterLight, 0.6),
+    grass: [dim(theme.grass[0], 0.7), dim(theme.grass[1], 0.7), dim(theme.grass[2], 0.7)],
+    soil: [dim(theme.soil[0], 0.7), dim(theme.soil[1], 0.68), dim(theme.soil[2], 0.68), dim(theme.soil[3], 0.68)],
+  };
 }

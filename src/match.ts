@@ -15,7 +15,7 @@ import { EMPTY_INPUT, TICK_RATE, type InputFrame, type SimEvent, type WorldState
 import { GameRenderer } from './render/renderer';
 import { WEATHER_NAMES } from './render/weather';
 import { mapStyleName } from './sim/terrain/generate';
-import { arenaTheme, type ArenaTheme } from './render/arenas';
+import { arenaTheme, shownArena, type ArenaTheme } from './render/arenas';
 import { shareMatch } from './ui/share';
 import { MatchRecorder, type MatchReplay } from './stats/matchReplay';
 import { keepReplay } from './ui/replays';
@@ -197,7 +197,8 @@ export class Match {
     setUsagePlace(this.usageMode ?? (mode.kind === 'replay' ? 'replay' : 'watch'));
     // Chosen once: "Surprise me" must not change the world when the view is rebuilt mid-match.
     // Online, the host may have picked the world for everyone.
-    this.theme = arenaTheme(this.state.scheme.arena ?? wearArena());
+    this.theme = shownArena(arenaTheme(this.state.scheme.arena ?? wearArena()));
+    app.renderer.background.color = this.theme.skyTop;
     this.renderer = new GameRenderer(app, this.state, this.theme);
     this.renderer.onSound = (name) => {
       sfx[name]();

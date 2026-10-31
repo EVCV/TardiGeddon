@@ -96,21 +96,31 @@ describe('custom teams in a match', () => {
 });
 
 describe('colour-blind mode', () => {
-  it('swaps each team colour for its own safe colour and symbol, and leaves the rest alone', () => {
+  it('swaps each team colour for its own safe colour, and leaves the rest alone', () => {
     expect(CB_COLORS).toHaveLength(TEAM_COLORS.length);
     expect(new Set(CB_COLORS).size).toBe(CB_COLORS.length);
-    expect(new Set(TEAM_SYMBOLS).size).toBe(TEAM_COLORS.length);
     expect(shown(TEAM_COLORS[2])).toBe(TEAM_COLORS[2]);
-    expect(teamSymbol(TEAM_COLORS[2])).toBe('');
     VIEW.colourBlind = true;
     try {
-      TEAM_COLORS.forEach((c, i) => {
-        expect(shown(c)).toBe(CB_COLORS[i]);
-        expect(teamSymbol(c)).toBe(TEAM_SYMBOLS[i] + ' ');
-      });
+      TEAM_COLORS.forEach((c, i) => expect(shown(c)).toBe(CB_COLORS[i]));
       expect(shown(0x123456)).toBe(0x123456);
     } finally {
       VIEW.colourBlind = false;
+    }
+  });
+});
+
+describe('team symbols', () => {
+  it('give every team its own symbol by default, so teams never differ by colour alone', () => {
+    expect(new Set(TEAM_SYMBOLS).size).toBe(TEAM_COLORS.length);
+    expect(VIEW.symbols).toBe(true);
+    TEAM_COLORS.forEach((c, i) => expect(teamSymbol(c)).toBe(TEAM_SYMBOLS[i] + ' '));
+    expect(teamSymbol(0x123456)).toBe('');
+    VIEW.symbols = false;
+    try {
+      expect(teamSymbol(TEAM_COLORS[2])).toBe('');
+    } finally {
+      VIEW.symbols = true;
     }
   });
 });
