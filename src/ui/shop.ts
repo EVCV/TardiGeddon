@@ -749,7 +749,7 @@ function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLEleme
     ),
   );
   box.append(head);
-  const rules = inApp() ? coinRules(age) : {};
+  const rules = inApp() ? coinRules(age, apple() ? 'appstore' : 'play') : {};
   if (inApp()) {
     loadInAppPrices(ctx);
     loadAgeSignal(ctx, box);

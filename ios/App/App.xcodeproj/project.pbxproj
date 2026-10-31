@@ -22,6 +22,7 @@
 		A7D0C0010000000000000104 /* AppStorePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000004 /* AppStorePlugin.swift */; };
 		A7D0C0010000000000000105 /* ReviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000005 /* ReviewPlugin.swift */; };
 		A7D0C0010000000000000106 /* AppleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000006 /* AppleSignInPlugin.swift */; };
+		A7D0C0010000000000000108 /* AgeSignalsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0C0010000000000000008 /* AgeSignalsPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +43,7 @@
 		A7D0C0010000000000000004 /* AppStorePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStorePlugin.swift; sourceTree = "<group>"; };
 		A7D0C0010000000000000005 /* ReviewPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewPlugin.swift; sourceTree = "<group>"; };
 		A7D0C0010000000000000006 /* AppleSignInPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInPlugin.swift; sourceTree = "<group>"; };
+		A7D0C0010000000000000008 /* AgeSignalsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeSignalsPlugin.swift; sourceTree = "<group>"; };
 		A7D0C0010000000000000007 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -85,6 +87,7 @@
 				A7D0C0010000000000000004 /* AppStorePlugin.swift */,
 				A7D0C0010000000000000005 /* ReviewPlugin.swift */,
 				A7D0C0010000000000000006 /* AppleSignInPlugin.swift */,
+				A7D0C0010000000000000008 /* AgeSignalsPlugin.swift */,
 				A7D0C0010000000000000007 /* App.entitlements */,
 				A7D0C0010000000000000001 /* GameViewController.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -184,6 +187,7 @@
 				A7D0C0010000000000000104 /* AppStorePlugin.swift in Sources */,
 				A7D0C0010000000000000105 /* ReviewPlugin.swift in Sources */,
 				A7D0C0010000000000000106 /* AppleSignInPlugin.swift in Sources */,
+				A7D0C0010000000000000108 /* AgeSignalsPlugin.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 			);

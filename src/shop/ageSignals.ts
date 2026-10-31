@@ -1,7 +1,8 @@
-// The player's age band from Google Play, in the Android app: the JavaScript
-// half of android/app/src/main/java/com/tardigeddon/app/AgeSignalsPlugin.java.
-// Brazil's Digital ECA asks apps that children and teenagers are likely to
-// use to read it. The only thing it changes is buying coins: everything else
+// The player's age band from the app store: Google Play in the Android app
+// (android/app/src/main/java/com/tardigeddon/app/AgeSignalsPlugin.java), and
+// Apple's Declared Age Range in the iOS app (ios/App/App/AgeSignalsPlugin.swift,
+// asked only where the law needs it: Texas, Utah, Louisiana, Brazil…).
+// Brazil's Digital ECA and those US states ask apps to read it. The only thing it changes is buying coins: everything else
 // in the game is already the same for everyone (no chat, no ads, no loot
 // boxes, preset names with strangers).
 //
@@ -12,7 +13,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { tk } from '../i18n/tk';
 
-/** What Google Play said. Ages are inclusive; no `upper` means "and over" (18+). */
+/** What the store said. Ages are inclusive; no `upper` means "and over" (18+). Apple's has no `change`. */
 export type AgeSignal =
   | { status: 'shared'; lower?: number; upper?: number; change?: 'approved' | 'pending' | 'declined' }
   | { status: 'not_shared' | 'verification_required' }
@@ -32,8 +33,8 @@ export interface CoinRules {
   note?: string;
 }
 
-/** The coin shop's rules for a player, from their age signal. */
-export function coinRules(signal: AgeSignal | null): CoinRules {
+/** The coin shop's rules for a player, from their age signal and the store that sells the coins. */
+export function coinRules(signal: AgeSignal | null, store: 'play' | 'appstore' = 'play'): CoinRules {
   if (!signal) return {};
   if (signal.status === 'verification_required') {
     return { blocked: tk('Google Play needs to confirm your age before you can buy coins. Open the Play Store app and follow its steps, then come back.') };
@@ -47,7 +48,8 @@ export function coinRules(signal: AgeSignal | null): CoinRules {
     return { blocked: tk('Buying coins is switched off until a parent or carer approves the latest version of TardiGeddon in Family Link.') };
   }
   if (signal.upper !== undefined && signal.upper < 18) {
-    return { note: tk('👪 A parent or carer may need to approve purchases. Google Play will ask them.') };
+    // Google Play asks the parent through Family Link, Apple through Ask to Buy.
+    return { note: store === 'appstore' ? tk('👪 A parent or carer may need to approve purchases. Apple will ask them.') : tk('👪 A parent or carer may need to approve purchases. Google Play will ask them.') };
   }
   return {};
 }
@@ -97,12 +99,12 @@ export function onAgeSignalStale(fn: () => void): () => void {
 }
 
 /**
- * Ask Google Play (it may show its own "share your age range?" prompt).
- * A settled answer is kept for the visit; one that may change is asked
- * again after the app comes back to the front. Null outside the Android app.
+ * Ask the store (Google Play or Apple may show their own "share your age
+ * range?" prompt). A settled answer is kept for the visit; one that may
+ * change is asked again after the app comes back to the front. Null outside the apps.
  */
 export function ageSignal(): Promise<AgeSignal | null> {
-  if (Capacitor.getPlatform() !== 'android' || !Capacitor.isPluginAvailable('AgeSignals')) return Promise.resolve(null);
+  if (!['android', 'ios'].includes(Capacitor.getPlatform()) || !Capacitor.isPluginAvailable('AgeSignals')) return Promise.resolve(null);
   if (!listening) {
     listening = true;
     void App.addListener('resume', () => {
