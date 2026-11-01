@@ -41,8 +41,8 @@ Upload them in this order.
 | Play: app icon | `docs/brand/tardigeddon-icon-512.png` | 512×512 |
 | App Store: iPhone | `app-store/iphone-1…8-*.jpg` | 2622×1206 |
 | App Store: iPad 13-inch | `app-store/ipad-1…8-*.jpg` | 2752×2064 |
-| App Store: iPhone Duo, outer screen | `app-store/iphone-duo-outer-1…8-*.jpg` | 2034×1398 |
-| App Store: iPhone Duo, open | `app-store/iphone-duo-inner-1…8-*.jpg` | 2853×2007 |
+| App Store: iPhone Duo, outer screen | `app-store/iphone-duo-outer-1…8-*.png` | 2034×1398 |
+| App Store: iPhone Duo, open | `app-store/iphone-duo-inner-1…8-*.png` | 2853×2007 |
 
 To make them again after the game changes: **Actions → Store images → Run
 workflow** (leave the languages blank for all six; about 4 minutes a

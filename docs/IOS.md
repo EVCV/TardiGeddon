@@ -478,8 +478,8 @@ review; external testers need a short beta review.
   - **iPhone Duo: required for every app from April 2027**, across its poses
     (outer screen, open), sizes in App Store Connect's screenshot
     specifications. Sending them early earns the "optimized for iPhone Duo"
-    badge on the product page. **Made**: `iphone-duo-outer-*.jpg`
-    (2034×1398) and `iphone-duo-inner-*.jpg` (2853×2007), landscape, each
+    badge on the product page. **Made**: `iphone-duo-outer-*.png`
+    (2034×1398) and `iphone-duo-inner-*.png` (2853×2007), landscape, each
     moment played at that screen's own size.
 
   **Made**: `store/listing/<lang>/app-store/` by `scripts/store-art.ts`, with

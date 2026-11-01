@@ -8,7 +8,7 @@
 //
 // Writes store/listing/<lang>/: google-play/ (phone 1920×1080, tablet
 // 2560×1600, feature graphic 1024×500) and app-store/ (iPhone 2622×1206,
-// iPad 2752×2064, iPhone Duo outer 2034×1398 and open 2853×2007), JPEG.
+// iPad 2752×2064, JPEG; iPhone Duo outer 2034×1398 and open 2853×2007, PNG).
 // SIZES=duoOuter,duoInner (keys of SIZES below) makes only those. The moments are played on the real game (GAME_URL,
 // default the preview above), with its own text in that language.
 
@@ -43,8 +43,9 @@ const SIZES = {
   ipad: { w: 2752, h: 2064, game: { width: 1024, height: 768, scale: 2 }, dir: 'app-store', name: 'ipad' },
   // iPhone Duo (App Store Connect's sizes, landscape): the outer screen, and the open one.
   // Each moment is played at that screen's own size in points, at 3×.
-  duoOuter: { w: 2034, h: 1398, game: { width: 678, height: 466, scale: 3 }, dir: 'app-store', name: 'iphone-duo-outer' },
-  duoInner: { w: 2853, h: 2007, game: { width: 951, height: 669, scale: 3 }, dir: 'app-store', name: 'iphone-duo-inner' },
+  // PNG: App Store Connect's iPhone Duo slot is uploaded as PNG.
+  duoOuter: { w: 2034, h: 1398, game: { width: 678, height: 466, scale: 3 }, dir: 'app-store', name: 'iphone-duo-outer', png: true },
+  duoInner: { w: 2853, h: 2007, game: { width: 951, height: 669, scale: 3 }, dir: 'app-store', name: 'iphone-duo-inner', png: true },
 } as const;
 /** Screens nearer 4:3 than 16:9: words on top, the game below. */
 const SQUARISH: Size[] = ['ipad', 'duoOuter', 'duoInner'];
@@ -288,6 +289,7 @@ function featureGraphic(tagline: string, img: string): string {
 }
 
 async function render(browser: Browser, html: string, w: number, h: number, file: string): Promise<void> {
+  const png = file.endsWith('.png');
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
   await p.setContent(html, { waitUntil: 'load' });
@@ -304,7 +306,8 @@ async function render(browser: Browser, html: string, w: number, h: number, file
     }
   });
   await sleep(150);
-  writeFileSync(file, await p.screenshot({ type: 'jpeg', quality: 90 }));
+  // PNG with no transparency (the App Store refuses an alpha channel): the card fills the page.
+  writeFileSync(file, await p.screenshot(png ? { type: 'png', omitBackground: false } : { type: 'jpeg', quality: 90 }));
   await ctx.close();
 }
 
@@ -329,7 +332,8 @@ for (const lang of want.length ? want : LANGS) {
       const key = `${s.id}-${game.width}`;
       if (!pics.has(key)) pics.set(key, `data:image/png;base64,${(await moment(browser, s.id, lang, game)).toString('base64')}`);
       const { w, h, dir, name } = SIZES[size];
-      await render(browser, compose(lang, size, s.bg, words[s.id][0], words[s.id][1], pics.get(key)!, s.team, s.hat), w, h, join(out, dir, `${name}-${i + 1}-${s.id}.jpg`));
+      const ext = 'png' in SIZES[size] ? 'png' : 'jpg';
+      await render(browser, compose(lang, size, s.bg, words[s.id][0], words[s.id][1], pics.get(key)!, s.team, s.hat), w, h, join(out, dir, `${name}-${i + 1}-${s.id}.${ext}`));
     }
   }
   if (!onlySizes) await render(browser, featureGraphic(words.tagline, pics.get('battle-800')!), 1024, 500, join(out, 'google-play', 'feature-graphic.jpg'));
