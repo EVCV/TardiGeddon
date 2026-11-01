@@ -477,6 +477,24 @@ when the server has that provider switched on (as above).
   the verifier, which never leaves the app (OAuth's PKCE idea).
   `/api/auth/one-time-token/*` is closed to the outside. Covered by
   `tests/accounts.test.ts` ("hands a sign-in made in a browser tab…").
+  If the email already has an email-and-password account, the app is told
+  `error=not_linked` and explains how to link it.
+
+### Google in the iOS app
+
+The same hand-off as Apple's on Android, with iOS's own sign-in sheet
+(`ASWebAuthenticationSession`, which Google allows; it refuses web views)
+instead of a Chrome tab: `ios/App/App/WebSignInPlugin.swift` ↔
+`src/account/webSignIn.ts`, `signInWithSheet` in `src/account/session.ts`.
+The sheet opens `/api/app/social?provider=google&challenge=…` and catches the
+`com.tardigeddon.app://signin?token=…` link itself (nothing to register in
+`Info.plist`), and it's a private browser each time (no "wants to use … to
+sign in" question, and no one else's Google sign-in left on a shared iPad).
+`/api/app/redeem` also sends the iOS app its sign-in token (`set-auth-token`;
+the iOS app doesn't use the cookie, `src/account/token.ts`). Nothing more to
+set up: it uses the website's Google client and return URL, so the button
+shows once the server has `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. Apple is
+always offered beside it (App Review Guideline 4.8).
 - **Trusted origin:** the app's sign-ins come from
   `https://app.tardigeddon.com`, which must be in `TRUSTED_ORIGINS`
   (docs/APPS.md) — already needed for email sign-in.

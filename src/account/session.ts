@@ -12,6 +12,7 @@ import { authToken, saveAuthToken, signsInWithToken } from './token';
 import { canUse, unlockedWeapons } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { App } from '@capacitor/app';
+import { signInSheet, webSignInAvailable } from './webSignIn';
 import { googleAccountPicker, nativeSignInAvailable, newChallenge, openBrowserTab, parseSignInLink, takeVerifier } from './nativeSignIn';
 import { appleSheet, appleSignInAvailable } from './appleSignIn';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
@@ -544,11 +545,12 @@ export async function reportCpuMatch(r: { won: boolean; popped: number; damage: 
 }
 
 /**
- * Sign-in providers the apps can offer. iOS: Apple's own sheet. Android: Google
- * (the account picker needs the client ID) and Apple (a browser tab).
+ * Sign-in providers the apps can offer. iOS: Apple's own sheet, and Google in
+ * iOS's sign-in sheet (Apple always offered alongside, as Apple requires).
+ * Android: Google (the account picker needs the client ID) and Apple (a browser tab).
  */
 function appProviders(m: MeResponse): string[] {
-  if (appleSignInAvailable()) return m.appleInApp ? ['apple'] : [];
+  if (appleSignInAvailable()) return m.appleInApp ? ['apple', ...(webSignInAvailable() && m.providers.includes('google') ? ['google'] : [])] : [];
   if (!nativeSignInAvailable()) return [];
   return m.providers.filter((p) => (p === 'google' ? !!m.googleClientId : p === 'apple'));
 }
@@ -578,6 +580,7 @@ async function signInInApp(provider: string): Promise<void> {
     await refreshAccount();
     return;
   }
+  if (provider === 'google' && webSignInAvailable()) return signInWithSheet(provider);
   if (provider === 'google') {
     const r = await googleAccountPicker(me?.googleClientId ?? '');
     if (r.status === 'cancelled') return;
@@ -591,6 +594,30 @@ async function signInInApp(provider: string): Promise<void> {
   if (!base) throw new Error(t('Accounts are not available here.'));
   const challenge = await newChallenge();
   await openBrowserTab(`${base}/api/app/social?provider=${encodeURIComponent(provider)}&challenge=${challenge}`);
+}
+
+/**
+ * iOS: the provider's page in iOS's sign-in sheet, which hands back the link
+ * the server sends the sign-in to; redeemed with the verifier kept here.
+ */
+/** Signing in with Google or Apple when an email-and-password account has that email. */
+const NOT_LINKED = () => t('An account with this email already exists. Sign in with your email and password, confirm your email, then you can use Google or Apple.');
+
+async function signInWithSheet(provider: string): Promise<void> {
+  const base = apiBase();
+  if (!base) throw new Error(t('Accounts are not available here.'));
+  const challenge = await newChallenge();
+  const r = await signInSheet(`${base}/api/app/social?provider=${encodeURIComponent(provider)}&challenge=${challenge}`);
+  const verifier = takeVerifier();
+  if (r.status === 'cancelled') return;
+  const link = r.status === 'ok' ? parseSignInLink(r.url) : null;
+  if (!link || 'error' in link) {
+    if (link && 'error' in link && link.error === 'cancelled') return;
+    throw new Error(link && 'error' in link && link.error === 'not_linked' ? NOT_LINKED() : t('Couldn’t sign in. Please try again.'));
+  }
+  if (!verifier) throw new Error(t('That sign-in didn’t work. Please try again.'));
+  await call('/api/app/redeem', { token: link.token, verifier });
+  await refreshAccount();
 }
 
 /**
@@ -611,7 +638,7 @@ export function listenForAppSignIn(say: (message: string) => void): void {
     if (atLaunch && !verifier) return;
     try {
       if ('error' in link) {
-        if (link.error !== 'cancelled') say(t('Couldn’t sign in. Please try again.'));
+        if (link.error !== 'cancelled') say(link.error === 'not_linked' ? NOT_LINKED() : t('Couldn’t sign in. Please try again.'));
         return;
       }
       if (!verifier) throw new Error(t('That sign-in didn’t work. Please try again.'));

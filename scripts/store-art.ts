@@ -8,7 +8,8 @@
 //
 // Writes store/listing/<lang>/: google-play/ (phone 1920×1080, tablet
 // 2560×1600, feature graphic 1024×500) and app-store/ (iPhone 2622×1206,
-// iPad 2752×2064), JPEG. The moments are played on the real game (GAME_URL,
+// iPad 2752×2064, iPhone Duo outer 2034×1398 and open 2853×2007), JPEG.
+// SIZES=duoOuter,duoInner (keys of SIZES below) makes only those. The moments are played on the real game (GAME_URL,
 // default the preview above), with its own text in that language.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -40,7 +41,13 @@ const SIZES = {
   tablet: { w: 2560, h: 1600, game: { width: 800, height: 450, scale: 2.4 }, dir: 'google-play', name: 'tablet' },
   iphone: { w: 2622, h: 1206, game: { width: 800, height: 450, scale: 2.4 }, dir: 'app-store', name: 'iphone' },
   ipad: { w: 2752, h: 2064, game: { width: 1024, height: 768, scale: 2 }, dir: 'app-store', name: 'ipad' },
+  // iPhone Duo (App Store Connect's sizes, landscape): the outer screen, and the open one.
+  // Each moment is played at that screen's own size in points, at 3×.
+  duoOuter: { w: 2034, h: 1398, game: { width: 678, height: 466, scale: 3 }, dir: 'app-store', name: 'iphone-duo-outer' },
+  duoInner: { w: 2853, h: 2007, game: { width: 951, height: 669, scale: 3 }, dir: 'app-store', name: 'iphone-duo-inner' },
 } as const;
+/** Screens nearer 4:3 than 16:9: words on top, the game below. */
+const SQUARISH: Size[] = ['ipad', 'duoOuter', 'duoInner'];
 type Size = keyof typeof SIZES;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -59,6 +66,12 @@ async function moment(browser: Browser, shot: Shot, lang: Lang, game: { width: n
     localStorage.setItem('tardigeddon.access', JSON.stringify({ hints: false }));
     // The classic sky world, whatever seasonal event is on.
     localStorage.setItem('tardigeddon.arena', 'classic');
+    // No banner for whatever is new this week (a seasonal world, a sale).
+    addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = '.hub-news { display: none !important; }';
+      document.head.append(style);
+    });
   });
   const q = `lang=${lang}&touch`;
   const start = async (extra: string) => {
@@ -236,12 +249,13 @@ function compose(lang: Lang, size: Size, bg: [string, string], head: string, sub
     mascot = { x: h * 0.1, y: h * 0.77, w: h * 0.21 };
   } else {
     // Words on top, the game below, a little tilted, running off the bottom.
-    const top = size === 'ipad' ? h * 0.25 : h * 0.27;
-    const fw = w * (size === 'ipad' ? 0.8 : 0.74);
+    const squarish = SQUARISH.includes(size);
+    const top = squarish ? h * 0.25 : h * 0.27;
+    const fw = w * (squarish ? 0.8 : 0.74);
     const fh = fw / aspect;
     frame = { x: w - fw - w * 0.05, y: top, w: fw, h: fh, rot: -1.5 };
-    headBox = `left:0;right:0;text-align:center;top:${h * (size === 'ipad' ? 0.045 : 0.05)}px;font-size:${Math.min(w * 0.06, h * 0.11)}px;padding:0 ${w * 0.06}px;white-space:nowrap" data-fit="${h * 0.15}`;
-    subBox = `left:50%;transform:translateX(-50%);top:${h * (size === 'ipad' ? 0.155 : 0.175)}px;font-size:${Math.min(w * 0.021, h * 0.04)}px;max-width:${w * 0.9}px" data-fit="${h * 0.09}`;
+    headBox = `left:0;right:0;text-align:center;top:${h * (squarish ? 0.045 : 0.05)}px;font-size:${Math.min(w * 0.06, h * 0.11)}px;padding:0 ${w * 0.06}px;white-space:nowrap" data-fit="${h * 0.15}`;
+    subBox = `left:50%;transform:translateX(-50%);top:${h * (squarish ? 0.155 : 0.175)}px;font-size:${Math.min(w * 0.021, h * 0.04)}px;max-width:${w * 0.9}px" data-fit="${h * 0.09}`;
     const gutter = frame.x;
     mascot = { x: gutter * 0.12, y: h - gutter * 0.62, w: gutter * 0.78 };
   }
@@ -294,6 +308,8 @@ async function render(browser: Browser, html: string, w: number, h: number, file
   await ctx.close();
 }
 
+/** SIZES=duoOuter,duoInner: only those pictures (and no feature graphic). */
+const onlySizes = process.env.SIZES?.split(',') as Size[] | undefined;
 const want = process.argv.slice(2).filter((a): a is Lang => (LANGS as readonly string[]).includes(a));
 const browser = await chromium.launch({
   executablePath: process.env.PW_CHROMIUM_PATH || undefined,
@@ -308,6 +324,7 @@ for (const lang of want.length ? want : LANGS) {
   for (const [i, s] of SHOTS.entries()) {
     if (process.env.SHOT && process.env.SHOT !== s.id) continue;
     for (const size of Object.keys(SIZES) as Size[]) {
+      if (onlySizes && !onlySizes.includes(size)) continue;
       const game = SIZES[size].game;
       const key = `${s.id}-${game.width}`;
       if (!pics.has(key)) pics.set(key, `data:image/png;base64,${(await moment(browser, s.id, lang, game)).toString('base64')}`);
@@ -315,7 +332,7 @@ for (const lang of want.length ? want : LANGS) {
       await render(browser, compose(lang, size, s.bg, words[s.id][0], words[s.id][1], pics.get(key)!, s.team, s.hat), w, h, join(out, dir, `${name}-${i + 1}-${s.id}.jpg`));
     }
   }
-  await render(browser, featureGraphic(words.tagline, pics.get('battle-800')!), 1024, 500, join(out, 'google-play', 'feature-graphic.jpg'));
+  if (!onlySizes) await render(browser, featureGraphic(words.tagline, pics.get('battle-800')!), 1024, 500, join(out, 'google-play', 'feature-graphic.jpg'));
   console.log(`${lang}: done`);
 }
 await browser.close();

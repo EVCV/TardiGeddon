@@ -19,7 +19,11 @@
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  /* The screen's width and height in the units of the box they're used in (see "Text size" below). */
+  --vw: 1vw;
+  --vh: 1vh;
 }
+@supports (height: 1dvh) { :root { --vh: 1dvh; } }
 
 * { box-sizing: border-box; }
 html, body {
@@ -37,9 +41,45 @@ html, body {
 #game, #game canvas { position: fixed; inset: 0; display: block; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
 /* Text size (Settings, ui/textSize.ts): menus and the match HUD scale as a whole, text and buttons together.
-   The HUD only as far as the screen has room for (--ui-scale); menus the whole way (--menu-boost on top). */
-#ui { zoom: var(--ui-scale, 1); }
-.menu, .editor-overlay { zoom: var(--menu-boost, 1); }
+   The HUD only as far as the screen has room for (--ui-scale); menus the whole way (--menu-boost on top,
+   and --ui-zoom on tablets: --menu-k).
+   Scaled with transform, not CSS zoom: Safari's zoom doesn't scale screen units (vw, vh) or the
+   notch's safe areas the way other browsers do, so zoomed screens came out the wrong size on iPhones.
+   A scaled box is laid out at the screen's size divided by its scale, so it exactly fills the screen,
+   and it holds its fixed boxes (inset: 0 fills it). Inside, --vw/--vh and --safe-* are in its units. */
+#ui {
+  inset: auto;
+  left: 0;
+  top: 0;
+  width: calc(100% / var(--ui-scale, 1));
+  height: calc(100% / var(--ui-scale, 1));
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: 0 0;
+  --vw: calc(1vw / var(--ui-scale, 1));
+  --vh: calc(1vh / var(--ui-scale, 1));
+  --safe-l: calc(env(safe-area-inset-left, 0px) / var(--ui-scale, 1));
+  --safe-r: calc(env(safe-area-inset-right, 0px) / var(--ui-scale, 1));
+  --safe-b: calc(env(safe-area-inset-bottom, 0px) / var(--ui-scale, 1));
+  --safe-t: calc(env(safe-area-inset-top, 0px) / var(--ui-scale, 1));
+}
+@supports (height: 1dvh) { #ui { --vh: calc(1dvh / var(--ui-scale, 1)); } }
+.menu, .editor-overlay {
+  --menu-k: var(--menu-boost, 1);
+  inset: auto;
+  left: 0;
+  top: 0;
+  width: calc(100% / var(--menu-k));
+  height: calc(100% / var(--menu-k));
+  transform: scale(var(--menu-k));
+  transform-origin: 0 0;
+  --vw: calc(1vw / var(--ui-scale, 1) / var(--menu-k));
+  --vh: calc(1vh / var(--ui-scale, 1) / var(--menu-k));
+  --safe-l: calc(env(safe-area-inset-left, 0px) / var(--ui-scale, 1) / var(--menu-k));
+  --safe-r: calc(env(safe-area-inset-right, 0px) / var(--ui-scale, 1) / var(--menu-k));
+  --safe-b: calc(env(safe-area-inset-bottom, 0px) / var(--ui-scale, 1) / var(--menu-k));
+  --safe-t: calc(env(safe-area-inset-top, 0px) / var(--ui-scale, 1) / var(--menu-k));
+}
+@supports (height: 1dvh) { .menu, .editor-overlay { --vh: calc(1dvh / var(--ui-scale, 1) / var(--menu-k)); } }
 .hidden { display: none !important; }
 
 /* ---------- Buttons ---------- */
@@ -74,7 +114,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: fixed;
   inset: 0;
   display: flex; /* + margin:auto on the card: centred, but never clipped when taller than the screen */
-  padding: 16px;
+  padding: calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) calc(16px + var(--safe-l));
   background: radial-gradient(circle at 50% 30%, #d9f3ff 0%, var(--sky) 60%, #4fb3e0 100%);
   overflow-y: auto;
   pointer-events: auto;
@@ -94,7 +134,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-2deg); } }
 .title {
   font-family: var(--title);
-  font-size: clamp(40px, 9vw, 64px);
+  font-size: clamp(40px, calc(9 * var(--vw)), 64px);
   margin: 0;
   color: var(--red);
   -webkit-text-stroke: 2px var(--ink);
@@ -111,7 +151,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud > * { pointer-events: auto; }
 .hud-top {
   position: absolute;
-  top: 8px;
+  top: calc(8px + var(--safe-t));
   left: calc(8px + var(--safe-l));
   right: calc(8px + var(--safe-r));
   display: flex;
@@ -125,7 +165,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 6px;
-  width: min(300px, 56vw);
+  width: min(300px, calc(56 * var(--vw)));
 }
 .hud-wind-bar {
   position: relative;
@@ -216,7 +256,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   right: 0;
   text-align: center;
   font-family: var(--title);
-  font-size: clamp(26px, 5vw, 44px);
+  font-size: clamp(26px, calc(5 * var(--vw)), 44px);
   -webkit-text-stroke: 2px var(--ink);
   text-shadow: 0 4px 0 var(--ink);
   opacity: 0;
@@ -243,7 +283,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .hud-hint.show { opacity: 1; }
 /* A just-picked weapon's line: may need two lines on a phone. */
-.hud-hint.long { white-space: normal; text-align: center; width: max-content; max-width: min(560px, calc(100vw - 150px)); border-radius: 14px; }
+.hud-hint.long { white-space: normal; text-align: center; width: max-content; max-width: min(560px, calc(calc(100 * var(--vw)) - 150px)); border-radius: 14px; }
 
 /* ---------- Weapon panel ---------- */
 .weapon-panel {
@@ -251,8 +291,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
+  width: min(560px, calc(calc(100 * var(--vw)) - 24px));
+  max-height: calc(calc(100 * var(--vh)) - 24px);
   overflow-y: auto;
   background: var(--paper);
   border: 4px solid var(--ink);
@@ -364,7 +404,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .touch-swap .touch-right { transform-origin: bottom left; }
 .touch-size-s .touch-left, .touch-size-s .touch-right { transform: scale(.8); }
 .touch-size-l .touch-left, .touch-size-l .touch-right { transform: scale(1.2); }
-.touch-mode .hud-teams { margin: 0 auto; max-width: 40vw; }
+.touch-mode .hud-teams { margin: 0 auto; max-width: calc(40 * var(--vw)); }
 /* Narrow screens (small phones, a foldable's outer screen): the weapon button in the
    corner would cover centred health bars, so they sit next to the timer instead. */
 @media (max-width: 719px) { .touch-mode .hud-teams { margin: 0 auto 0 0; } }
@@ -451,7 +491,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud-teams.many .team-bar { height: 8px; border-width: 1.5px; }
 @media (max-height: 450px) {
   /* Phones: many teams become a strip of name-less bars, each with its team's symbol (not colour alone). */
-  .hud-teams.many { grid-template-columns: repeat(5, 1fr); gap: 3px; max-width: 38vw; margin: 0 0 0 4px; }
+  .hud-teams.many { grid-template-columns: repeat(5, 1fr); gap: 3px; max-width: calc(38 * var(--vw)); margin: 0 0 0 4px; }
   .hud-teams.many .team-name { display: none; }
   .hud-teams.many .team-name[data-sym] { display: block; width: auto; min-width: 0; font-size: 0; }
   .hud-teams.many .team-name[data-sym]::before { font-size: 11px; }
@@ -707,7 +747,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: sticky;
   top: 0;
   z-index: 4;
-  padding: 10px var(--safe-r) 10px var(--safe-l);
+  padding: calc(10px + var(--safe-t)) var(--safe-r) 10px var(--safe-l);
   background: var(--paper);
   border-bottom: 4px solid var(--ink);
 }
@@ -886,11 +926,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hero-season { margin: 8px 0 0; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 12px; background: #ffe9b8; font-weight: 800; font-size: 14px; }
 .looks-hint { margin: -4px 0 6px; font-size: 13px; opacity: .8; text-align: left; }
 .hero-text { min-width: 0; text-align: left; }
-.lobby .title { font-size: clamp(40px, 5.5vw, 64px); line-height: 1; }
+.lobby .title { font-size: clamp(40px, calc(5.5 * var(--vw)), 64px); line-height: 1; }
 /* Two columns (981–1499px wide, e.g. an upright 13-inch iPad): the title shares half
    the width with your team's picture, so it's sized from that half, not the window. */
 @media (min-width: 981px) and (max-width: 1499px) {
-  .lobby .title { font-size: clamp(32px, min(5.5vw, calc((50vw - 250px) / 6.2)), 64px); }
+  .lobby .title { font-size: clamp(32px, min(calc(5.5 * var(--vw)), calc((calc(50 * var(--vw)) - 250px) / 6.2)), 64px); }
 }
 .lobby .tagline { margin: 6px 0 10px; font-size: 17px; }
 .hero-team {
@@ -1078,7 +1118,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .bundle-card .rarity, .bundle-save { white-space: nowrap; }
 .bundle-card .shop-card-foot { flex-wrap: nowrap; align-items: center; justify-content: flex-end; }
 .bundle-card .shop-price { white-space: nowrap; }
-.bundle-save { margin-left: auto; font-size: 11px; font-weight: 900; background: var(--red); color: #fff; border-radius: 999px; padding: 1px 7px; }
+.bundle-save { margin-left: auto; font-size: 11px; font-weight: 900; background: #c03030; color: #fff; border-radius: 999px; padding: 1px 7px; }
 .bundle-was { color: #8a7a80; font-size: 12px; font-weight: 800; margin-right: 6px; }
 .bundle-list { margin: 4px 0 0; padding: 0; list-style: none; font-size: 13px; font-weight: 700; }
 .bundle-list li.owned { color: #3f7d2a; }
@@ -1158,7 +1198,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .stat-value { font-size: 19px; }
   /* Shop: stage beside the catalogue, so both are on screen. */
   .page-shop { grid-template-columns: minmax(0, 230px) minmax(0, 1fr); gap: 12px; }
-  .shop-side { position: sticky; top: 62px; max-height: calc(100vh - 74px); overflow-y: auto; gap: 8px; }
+  .shop-side { position: sticky; top: 62px; max-height: calc(calc(100 * var(--vh)) - 74px); overflow-y: auto; gap: 8px; }
   .shop-side .shop-wallet { display: none; } /* already in the top bar */
   .shop-stage { flex-direction: column; text-align: center; padding: 8px; }
   .shop-stage-info, .shop-stage-action { align-items: center; }
@@ -1478,7 +1518,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .coin-dialog {
     margin: auto 0 0;
     width: 100%;
-    max-height: 92dvh;
+    max-height: calc(92 * var(--vh));
     overflow-y: auto;
     border-bottom: 0;
     border-radius: 22px 22px 0 0;
@@ -1663,7 +1703,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   top: calc(56px + var(--safe-t));
   left: 50%;
   transform: translateX(-50%);
-  width: min(560px, calc(100vw - 160px));
+  width: min(560px, calc(calc(100 * var(--vw)) - 160px));
   padding: 8px 14px;
   background: var(--paper);
   border: 3px solid var(--ink);
@@ -1679,7 +1719,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   pointer-events: auto;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: min(440px, calc(100vw - 32px));
+  width: min(440px, calc(calc(100 * var(--vw)) - 32px));
   z-index: 6;
 }
 .coach-title { font-family: var(--title); font-weight: normal; font-size: 28px; margin: 0; }
@@ -1699,12 +1739,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
    ====================================================================== */
 .phone-only, .hub-back, .hub-title { display: none; }
 /* The phone menu (data-phone-menu, set by ui/textSize.ts: this screen size, or text too big for the full menu). */
-:where(:root[data-phone-menu]) .menu.hub { height: 100vh; height: 100dvh; overflow: hidden; }
-/* Bigger text: the phone screens lay out on the screen as it is after scaling. */
-:where(:root[data-phone-menu]) .menu.hub { height: calc(100dvh / var(--menu-scale, 1)); }
+:where(:root[data-phone-menu]) .menu.hub { overflow: hidden; }
 :where(:root[data-phone-menu]) .menu.hub .hub-footer, :where(:root[data-phone-menu]) .menu.hub .hub-tabs, :where(:root[data-phone-menu]) .menu.hub .hub-logo, :where(:root[data-phone-menu]) .menu.hub .hub-me { display: none; }
 :where(:root[data-phone-menu]) .menu.hub[data-tab=lobby] .hub-bar { display: none; }
-:where(:root[data-phone-menu]) .hub-bar { padding: 6px calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
+:where(:root[data-phone-menu]) .hub-bar { padding: calc(6px + var(--safe-t)) calc(10px + var(--safe-r)) 6px calc(10px + var(--safe-l)); }
 :where(:root[data-phone-menu]) .hub-bar-inner { flex-wrap: nowrap; gap: 8px; max-width: none; padding: 0; }
 :where(:root[data-phone-menu]) .hub-back { display: inline-flex; flex: none; align-items: center; min-height: 36px; padding: 2px 12px; font-size: 15px; }
 :where(:root[data-phone-menu]) .hub-title {
@@ -1723,8 +1761,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 :where(:root[data-phone-menu]) .hub-right .chip { min-height: 32px; font-size: 14px; padding: 2px 10px; }
 :where(:root[data-phone-menu]) .menu.hub .hub-page { flex: 1 1 0; min-height: 0; max-width: none; overflow-y: auto; padding: 8px calc(10px + var(--safe-r)) 10px calc(10px + var(--safe-l)); }
-:where(:root[data-phone-menu]) .hub-notice { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); margin: 0; z-index: 10; font-size: 14px; }
-:where(:root[data-phone-menu]) .hub-news { position: fixed; top: 6px; left: 50%; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); margin: 0; z-index: 9; font-size: 13px; padding: 4px 6px 4px 12px; }
+:where(:root[data-phone-menu]) .hub-notice { position: fixed; top: calc(6px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: min(560px, calc(calc(100 * var(--vw)) - 24px)); margin: 0; z-index: 10; font-size: 14px; }
+:where(:root[data-phone-menu]) .hub-news { position: fixed; top: calc(6px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: min(620px, calc(calc(100 * var(--vw)) - 24px)); margin: 0; z-index: 9; font-size: 13px; padding: 4px 6px 4px 12px; }
 :where(:root[data-phone-menu]) .hub-news .hub-news-go { min-height: 0; padding: 3px 10px; font-size: 13px; }
 :where(:root[data-phone-menu]) .card { padding: 10px; border-radius: 16px; border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
 :where(:root[data-phone-menu]) .card-title { font-size: 18px; margin-bottom: 6px; }
@@ -1744,18 +1782,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* "safe": if it's ever too tall, it's cut at the bottom, never the top. */
 :where(:root[data-phone-menu]) .lobby[data-view] .lobby-hero { grid-area: hero; flex-direction: column; justify-content: center; justify-content: safe center; align-items: center; gap: 6px; padding: 8px; text-align: center; min-height: 0; overflow: hidden; }
 :where(:root[data-phone-menu]) .lobby[data-view] .hero-art { padding: 4px 10px 8px; gap: 4px; border-radius: 14px; }
-:where(:root[data-phone-menu]) .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(44px, calc(100dvh - 300px), 150px); display: block; }
+:where(:root[data-phone-menu]) .lobby[data-view] .hero-art .mascot svg { width: auto; height: clamp(44px, calc(calc(100 * var(--vh)) - 300px), 150px); display: block; }
 /* The seasonal note: one line, so the column fits short screens. */
 :where(:root[data-phone-menu]) .lobby[data-view] .hero-season { margin: 0; padding: 3px 10px; font-size: 12px; border-width: 2px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
 :where(:root[data-phone-menu]) .lobby[data-view] .hero-text { text-align: center; max-width: 100%; }
-:where(:root[data-phone-menu]) .lobby[data-view] .title { font-size: min(4vw, 7vh, 40px); white-space: nowrap; }
+:where(:root[data-phone-menu]) .lobby[data-view] .title { font-size: min(calc(4 * var(--vw)), calc(7 * var(--vh)), 40px); white-space: nowrap; }
 :where(:root[data-phone-menu]) .lobby[data-view] .tagline { display: none; }
 :where(:root[data-phone-menu]) .lobby[data-view] .hero-team { font-size: 13px; margin-top: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
 :where(:root[data-phone-menu]) .lobby[data-view] .hero-edit, :where(:root[data-phone-menu]) .lobby[data-view] .hero-looks { font-size: 12px; min-height: 28px; }
 :where(:root[data-phone-menu]) .lobby[data-view] .lobby-play { grid-area: play; justify-content: center; justify-content: safe center; padding: 10px; min-height: 0; align-self: stretch; overflow: hidden; }
 :where(:root[data-phone-menu]) .lobby[data-view] .lobby-hero { align-self: stretch; }
 :where(:root[data-phone-menu]) .lobby[data-view] .lobby-play .menu-buttons { gap: 8px; margin: 0; }
-:where(:root[data-phone-menu]) .lobby[data-view] .lobby-play .play { display: flex; flex-direction: column; align-items: center; font-size: clamp(26px, 10vh, 52px); line-height: 1.05; padding: 6px 14px 8px; }
+:where(:root[data-phone-menu]) .lobby[data-view] .lobby-play .play { display: flex; flex-direction: column; align-items: center; font-size: clamp(26px, calc(10 * var(--vh)), 52px); line-height: 1.05; padding: 6px 14px 8px; }
 :where(:root[data-phone-menu]) .play-sum.phone-only { display: block; font-family: var(--body); font-size: 12px; font-weight: 800; letter-spacing: 0; -webkit-text-stroke: 0; }
 :where(:root[data-phone-menu]) .lobby[data-view] .menu-row { flex-direction: row; gap: 8px; }
 :where(:root[data-phone-menu]) .lobby[data-view] .menu-row .big-btn { flex: 1 1 0; min-width: 0; font-size: 16px; padding: 8px 6px; white-space: nowrap; }
@@ -1822,6 +1860,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :where(:root[data-phone-menu]) .lobby[data-view] .slot-main { padding-top: 2px; padding-bottom: 2px; }
 :where(:root[data-phone-menu]) .lobby[data-view] .slot-pic svg { width: 32px; }
 :where(:root[data-phone-menu]) .lobby[data-view] .slot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Narrow phone screens (iPhone Duo's outer screen, iPhone SE): the team list gets more of the width,
+   and its rows tighten up, so team names aren't cut to a few letters. */
+@media (max-width: 719px) {
+  :where(:root[data-phone-menu]) .lobby[data-view] .lobby-setup { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr); }
+  :where(:root[data-phone-menu]) .lobby[data-view] .slot-main { gap: 6px; padding-left: 4px; padding-right: 6px; }
+  :where(:root[data-phone-menu]) .lobby[data-view] .slot-pic svg { width: 26px; }
+  :where(:root[data-phone-menu]) .lobby[data-view] .slot-kind { font-size: 12px; padding: 2px 6px; }
+  :where(:root[data-phone-menu]) .lobby[data-view] .slot-colour { width: 36px; }
+}
 
 @media (max-height: 340px) {
   .lobby[data-view] .lobby-setup .players-hint { display: none; }
@@ -1851,7 +1898,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :where(:root[data-phone-menu]) .menu-card.online .online-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 /* Signed in: Friends gets a third column, scrolling inside itself if the list is long. */
 :where(:root[data-phone-menu]) .menu-card.online[data-screen=entry]:has(> .friends) { width: 100%; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.1fr) minmax(0, 1fr); max-height: 100%; }
-:where(:root[data-phone-menu]) .menu-card.online > .friends { margin: 0; padding: 0 0 0 12px; border-top: 0; border-left: 2px dashed var(--line-soft); align-self: stretch; min-height: 0; max-height: calc(100dvh - 48px); overflow-y: auto; }
+:where(:root[data-phone-menu]) .menu-card.online > .friends { margin: 0; padding: 0 0 0 12px; border-top: 0; border-left: 2px dashed var(--line-soft); align-self: stretch; min-height: 0; max-height: calc(calc(100 * var(--vh)) - 48px); overflow-y: auto; }
 :where(:root[data-phone-menu]) .menu-card.online > .friends .card-title { margin: 0; font-size: 18px; }
 :where(:root[data-phone-menu]) .menu-card.online > .friends .friend-row { flex-wrap: wrap; }
 :where(:root[data-phone-menu]) .menu-card.online > .friends .friend-row > .online-note { order: 5; flex-basis: 100%; text-align: left; font-size: 11px; }
@@ -1867,7 +1914,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :where(:root[data-phone-menu]) .menu-card.online .big-btn { font-size: 18px; padding: 7px 12px; }
 :where(:root[data-phone-menu]) .menu-card.online .code-input { font-size: 20px; letter-spacing: 4px; padding: 4px 6px; }
 :where(:root[data-phone-menu]) .menu-card.online .room-code { font-size: 34px; letter-spacing: 8px; }
-:where(:root[data-phone-menu]) .menu-card.online .lobby-slots { max-height: 46vh; overflow-y: auto; }
+:where(:root[data-phone-menu]) .menu-card.online .lobby-slots { max-height: calc(46 * var(--vh)); overflow-y: auto; }
 :where(:root[data-phone-menu]) .menu-card.online .lobby-pic svg { width: 32px; }
 
 /* ---- Stats: one screen, the collection scrolls in its box ---- */
@@ -2072,12 +2119,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   :root { --ui-zoom: 1.15; }
 }
 @media (pointer: coarse) and (orientation: landscape) and (min-height: 540px) and (max-height: 900px) {
-  .menu.hub, .menu, .editor-overlay {
-    zoom: calc(var(--ui-zoom) * var(--menu-boost, 1));
-    width: calc(100vw / var(--ui-zoom) / var(--menu-scale, 1));
-    height: calc(100vh / var(--ui-zoom) / var(--menu-scale, 1));
-    height: calc(100dvh / var(--ui-zoom) / var(--menu-scale, 1));
-  }
+  .menu, .editor-overlay { --menu-k: calc(var(--ui-zoom) * var(--menu-boost, 1)); }
 }
 
 /* Settings: sound */
@@ -2109,7 +2151,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .guide-start { grid-column: 1 / -1; }
 .guide-list { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; text-align: left; font-size: 15px; line-height: 1.45; }
 .guide-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.guide-box { max-width: 560px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.guide-box { max-width: 560px; max-height: calc(90 * var(--vh)); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .guide-box .card { box-shadow: none; border: 0; padding: 0; background: none; }
 @media (max-width: 760px) {
   .page-guide { grid-template-columns: minmax(0, 1fr); }
@@ -2118,7 +2160,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* The phone menu (data-phone-menu, set by ui/textSize.ts: this screen size, or text too big for the full menu). */
 :where(:root[data-phone-menu]) .menu.hub .page-guide { height: 100%; max-width: none; overflow-y: auto; gap: 10px; align-content: start; }
 :where(:root[data-phone-menu]) .guide-list { font-size: 13px; gap: 5px; }
-:where(:root[data-phone-menu]) .guide-box { max-height: 86vh; }
+:where(:root[data-phone-menu]) .guide-box { max-height: calc(86 * var(--vh)); }
 
 
 /* ---- News (ui/news.ts) ---- */
@@ -2242,6 +2284,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dark ::placeholder { color: #b3a7b8; }
 .dark :focus-visible { outline-color: #8fb4ff; box-shadow: 0 0 0 6px #0b0710; }
 /* Dark high contrast: white on black, white edges. */
+/* Coloured words on dark panels: lighter shades of the same colours, so they read (4.5:1). */
+.dark { --red-text: #ff8f8f; --green-text: #8fdc8f; --blue-text: #9cc4ff; }
+.dark .lobby-play .online-btn, .dark .online-btn { color: #fff; }
+.dark .hud-wind-label.left { color: var(--blue-text); }
+.dark .hud-wind-label.right { color: var(--red-text); }
+.dark .online-status, .dark .dash-streak, .dark .account-delete, .dark .coin-dialog-error, .dark .editor-name-note { color: var(--red-text); }
+.dark .shop-owned, .dark .bundle-list li.owned, .dark .gift-row.claimed .gift-status { color: var(--green-text); }
+.dark .bundle-was { color: #b3a7b8; }
+.dark .section-super .weapon-section-title { color: #ffd84a; }
+.dark .weapon-cell .wu, .dark .weapon-cell.selected .wu { color: var(--text); }
+.dark .weapon-cell.selected .wu { background: rgba(43, 27, 36, .85); }
+.dark .news-post[data-kind='issue'] .news-date { color: #ffab7a; }
+.dark .news-post[data-kind='fixed'] .news-date { color: var(--green-text); }
+.dark .online-me-name { -webkit-text-stroke-color: var(--text); paint-order: stroke fill; }
 .dark.hc { --ink: #fff; --text: #fff; --paper: #000; --cream: #000; --surface: #000; --hover: #222; --on-accent: #000; }
 .dark.hc body, .dark.hc .card, .dark.hc .page, .dark.hc .editor, .dark.hc .account-note, .dark.hc .looks-hint, .dark.hc .players-hint, .dark.hc .style-blurb { color: #fff; }
 .dark.hc .card, .dark.hc .editor, .dark.hc .slot, .dark.hc .hat-btn, .dark.hc .emblem-part, .dark.hc .hud-btn, .dark.hc .seg-btn, .dark.hc select, .dark.hc input { border-color: #fff !important; }
@@ -2253,7 +2309,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .calm *, .calm *::before, .calm *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition: none !important; scroll-behavior: auto !important; }
 
 /* ---------- End of match ---------- */
-.gameover-box { max-width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
+.gameover-box { max-width: min(720px, calc(calc(100 * var(--vw)) - 24px)); max-height: calc(calc(100 * var(--vh)) - 24px); overflow: auto; }
 .gameover-stats { overflow-x: auto; }
 .gameover-stats table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .gameover-stats th, .gameover-stats td { padding: 4px 8px; border-bottom: 2px solid var(--line-soft); text-align: right; white-space: nowrap; }
@@ -2303,7 +2359,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (max-height: 450px) { .captions { bottom: calc(150px + var(--safe-b)); } .caption { font-size: 13px; } }
 
 /* ---------- Replays ---------- */
-.replay-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }
+.replay-list { display: flex; flex-direction: column; gap: 6px; max-height: calc(50 * var(--vh)); overflow: auto; }
 .replay-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 10px; background: var(--surface); }
 .replay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
 .replay-info span { font-size: 12px; opacity: .8; }

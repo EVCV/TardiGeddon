@@ -41,6 +41,8 @@ Upload them in this order.
 | Play: app icon | `docs/brand/tardigeddon-icon-512.png` | 512×512 |
 | App Store: iPhone | `app-store/iphone-1…8-*.jpg` | 2622×1206 |
 | App Store: iPad 13-inch | `app-store/ipad-1…8-*.jpg` | 2752×2064 |
+| App Store: iPhone Duo, outer screen | `app-store/iphone-duo-outer-1…8-*.jpg` | 2034×1398 |
+| App Store: iPhone Duo, open | `app-store/iphone-duo-inner-1…8-*.jpg` | 2853×2007 |
 
 To make them again after the game changes: **Actions → Store images → Run
 workflow** (leave the languages blank for all six; about 4 minutes a
@@ -115,7 +117,7 @@ Portuguese (Brazil), German, French, Japanese):
 - **Description**: the same as Google Play's full description (`play.full`).
 - **Keywords** (`appStore.keywords`): comma-separated, no spaces, never the
   app's name (Apple adds that already) or other games' names.
-- **Screenshots:** iPhone and iPad 13-inch from `store/listing/<lang>/app-store/`.
+- **Screenshots:** iPhone, iPad 13-inch and iPhone Duo (outer and open) from `store/listing/<lang>/app-store/`.
   Apple scales them down for smaller iPhones and iPads.
 - **Header and Search Results** (optional, the version page's first tab):
   `store/app-store/header.png` (21:9, 3840×1646) and
