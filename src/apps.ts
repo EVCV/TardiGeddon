@@ -88,12 +88,17 @@ export function appleAppSiteAssociation(): object {
   };
 }
 
-/** /.well-known/assetlinks.json: which links open the Android app; null until the fingerprints are in. */
+/**
+ * /.well-known/assetlinks.json: which links open the Android app, and that the
+ * app and the website share sign-ins (credential sharing: an email and password
+ * saved for tardigeddon.com in Google Password Manager is offered in the app,
+ * and the other way round). Null until the fingerprints are in.
+ */
 export function assetLinks(): object[] | null {
   if (!ANDROID_CERT_SHA256.length) return null;
   return [
     {
-      relation: ['delegate_permission/common.handle_all_urls'],
+      relation: ['delegate_permission/common.handle_all_urls', 'delegate_permission/common.get_login_creds'],
       target: { namespace: 'android_app', package_name: 'com.tardigeddon.app', sha256_cert_fingerprints: ANDROID_CERT_SHA256 },
     },
   ];

@@ -271,7 +271,8 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     name.maxLength = 30;
     name.title = t('Letters and spaces. No real full name, contact details or social media.');
   }
-  const email = field('email', 'email', t('Email'), 'email');
+  // "username": password managers (and credential sharing with the Android app) pair it with the password.
+  const email = field('email', 'email', t('Email'), 'username');
   const pw = field('password', 'password', signup ? t('Password (8+ characters)') : t('Password'), signup ? 'new-password' : 'current-password');
   if (signup) {
     pw.minLength = 8;

@@ -36,7 +36,8 @@ describe('links that open the app', () => {
 
   it("tells Google which links open the Android app, for both signing keys", () => {
     const [entry] = assetLinks() as { relation: string[]; target: { package_name: string; sha256_cert_fingerprints: string[] } }[];
-    expect(entry.relation).toEqual(['delegate_permission/common.handle_all_urls']);
+    // Opening links, and sharing saved sign-ins between the website and the app.
+    expect(entry.relation).toEqual(['delegate_permission/common.handle_all_urls', 'delegate_permission/common.get_login_creds']);
     expect(entry.target.package_name).toBe('com.tardigeddon.app');
     expect(entry.target.sha256_cert_fingerprints).toHaveLength(2);
     for (const f of entry.target.sha256_cert_fingerprints) expect(f).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
