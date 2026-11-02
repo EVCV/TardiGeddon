@@ -59,9 +59,12 @@ export const APPLE_TEAM_ID = 'R3TQ7LC3G6';
  * as "AB:CD:…": Play Console → Test and release → App integrity → App signing
  * → "App signing key certificate" (installs from Google Play), and "Upload key
  * certificate" (test builds). Empty: no assetlinks.json, so Android opens
- * links in the browser as before.
+ * links in the browser.
  */
-export const ANDROID_CERT_SHA256: string[] = [];
+export const ANDROID_CERT_SHA256: string[] = [
+  'DE:CC:64:50:A7:E1:70:27:BF:13:51:6C:29:6E:6C:BF:4C:F2:95:3C:95:9E:24:3A:2B:6A:4D:15:96:4C:D9:E4',
+  'B1:EB:94:DB:0D:ED:CA:38:AB:CF:67:8E:F8:8B:74:A2:61:0F:72:B0:B1:9B:CA:9A:F0:F0:58:D7:48:21:8B:5C',
+];
 
 /** /.well-known/apple-app-site-association: which links open the iOS app. */
 export function appleAppSiteAssociation(): object {

@@ -130,7 +130,8 @@ Return links from paying on the website (`shop`) stay in the browser.
   once `ANDROID_CERT_SHA256` in `src/apps.ts` has the app's signing
   fingerprints (Play Console → Test and release → App integrity → App signing:
   the **App signing key** SHA-256, and the **Upload key** one for test
-  builds). Until then Android opens these links in the browser.
+  builds; Play Console → Protected with Play → Play Store protection →
+  Manage Play app signing). Both are in.
 - Same-site links never open an app by themselves (Apple and Google's rule):
   tapping Play on tardigeddon.com stays on the website, hence the reminder
   and the Android `intent:` link.
