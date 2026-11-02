@@ -5,6 +5,8 @@
 import { addFriend, friendsList, inviteFriend, removeFriend, type Friend, type FriendLists } from '../account/session';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
+import { pendingFriend } from '../account/links';
+import { webGameUrl } from '../native';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -41,12 +43,19 @@ export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => 
     }
     const mine = el('p', 'friend-code');
     const copy = el('button', 'hud-btn', t('Your code: {code} 📋', { code: lists.code }));
+    // A link, not just the code: tapped on a phone with the app, it opens the app
+    // with the code filled in (account/links.ts); else the web game does the same.
     copy.onclick = async () => {
+      const link = `${webGameUrl()}?friend=${encodeURIComponent(lists!.code)}`;
+      const text = t('Add me as a friend on TardiGeddon! My friend code is {code}: {link}', { code: lists!.code, link });
       try {
-        await navigator.clipboard.writeText(lists!.code);
-        note.textContent = t('Code copied. Give it to a friend so they can add you.');
-      } catch {
-        note.textContent = t('Your code is {code}.', { code: lists!.code });
+        if (navigator.share) await navigator.share({ text });
+        else {
+          await navigator.clipboard.writeText(text);
+          note.textContent = t('Copied: send it to a friend so they can add you.');
+        }
+      } catch (e) {
+        if ((e as Error)?.name !== 'AbortError') note.textContent = t('Your code is {code}.', { code: lists!.code });
       }
     };
     mine.append(copy);
@@ -71,6 +80,13 @@ export function friendsPanel(opts: { inRoom: boolean; onJoin: (code: string) => 
       if (e.key === 'Enter') go.click();
     };
     add.append(input, go);
+    // Came from a friend's link: their code, ready to add.
+    const linked = pendingFriend(true);
+    if (linked && linked !== lists.code) {
+      input.value = linked;
+      note.textContent = t('Your friend’s code is filled in: tap Add.');
+      go.classList.add('learn-new');
+    }
     box.append(mine, add, note);
 
     const row = (f: Friend, ...buttons: HTMLElement[]) => {

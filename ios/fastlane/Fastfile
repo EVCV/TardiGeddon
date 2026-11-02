@@ -21,14 +21,36 @@ platform :ios do
     # makes them (with the API key) and saves them there.
     match(api_key: api_key, readonly: false)
 
+    # App links (tardigeddon.com/play opens the app) need Associated Domains on
+    # the App ID. Switched on here with the API key, so nobody has to tick it.
+    begin
+      bundle = Spaceship::ConnectAPI::BundleId.find('com.tardigeddon.app')
+      types = bundle.get_capabilities.map(&:capability_type)
+      unless types.include?(Spaceship::ConnectAPI::BundleIdCapability::Type::ASSOCIATED_DOMAINS)
+        UI.message('Switching on Associated Domains for the App ID (app links)')
+        bundle.update_capability(Spaceship::ConnectAPI::BundleIdCapability::Type::ASSOCIATED_DOMAINS, enabled: true)
+      end
+    rescue StandardError => e
+      UI.important("Couldn't check the App ID's Associated Domains: #{e.message}")
+    end
+
     # A profile made before a capability was added to the app (App.entitlements:
-    # Sign in with Apple, Declared Age Range) can't sign it: make a new one, once.
-    # The App ID needs the capabilities ticked first (docs/IOS.md §5).
+    # Sign in with Apple, Declared Age Range, Associated Domains) can't sign it:
+    # make a new one, once. The App ID needs the capabilities ticked first (docs/IOS.md §5).
+    needed = %w[com.apple.developer.applesignin com.apple.developer.declared-age-range com.apple.developer.associated-domains]
     profile = ENV.fetch('sigh_com.tardigeddon.app_appstore_profile-path')
     has = `security cms -D -i "#{profile}"`
-    unless %w[com.apple.developer.applesignin com.apple.developer.declared-age-range].all? { |e| has.include?(e) }
+    unless needed.all? { |e| has.include?(e) }
       UI.important('The signing profile lacks a capability in App.entitlements: making a new one')
       match(api_key: api_key, readonly: false, force: true)
+      has = `security cms -D -i "#{ENV.fetch('sigh_com.tardigeddon.app_appstore_profile-path')}"`
+    end
+    # Still no Associated Domains (not on the App ID): build without app links
+    # rather than fail; links then open the website, as before.
+    unless has.include?('com.apple.developer.associated-domains')
+      UI.important('No Associated Domains on the App ID: this build is without app links (docs/IOS.md §5)')
+      entitlements = File.expand_path('../App/App/App.entitlements', __dir__)
+      sh('/usr/libexec/PlistBuddy', '-c', 'Delete :com.apple.developer.associated-domains', entitlements)
     end
 
     # The version players see is package.json's; the build number goes up with

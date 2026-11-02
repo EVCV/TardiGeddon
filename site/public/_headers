@@ -16,6 +16,16 @@
   Access-Control-Allow-Origin: *
   Cache-Control: no-cache
 
+# App links (src/apps.ts): Apple and Google read these to let the apps open
+# tardigeddon.com/play links. They must be JSON, and not wait in a cache long.
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+  Cache-Control: max-age=3600
+
+/.well-known/assetlinks.json
+  Content-Type: application/json
+  Cache-Control: max-age=3600
+
 # Security headers for every page, the game at /play/ included.
 # - CSP: only our own scripts (plus Cloudflare's analytics beacon), no inline
 #   scripts or eval, connections only to us and the game server, and nobody may

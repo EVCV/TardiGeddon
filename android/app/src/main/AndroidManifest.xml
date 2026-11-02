@@ -23,6 +23,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- App links: tardigeddon.com/play links (rooms, friends, invites, our emails) open
+                 the app. Verified by the website's /.well-known/assetlinks.json (src/apps.ts). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="tardigeddon.com" android:path="/play" />
+                <data android:scheme="https" android:host="tardigeddon.com" android:pathPrefix="/play/" />
+            </intent-filter>
             <!-- Back from signing in with Apple in a browser tab (SocialSignInPlugin.java). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

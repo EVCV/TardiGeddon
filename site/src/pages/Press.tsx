@@ -8,6 +8,7 @@ import { LANGS } from '../../../src/i18n/i18n';
 import { MAX_TEAMS } from '../../../src/sim/rosters';
 import { CPU_SKILLS } from '../../../src/ai/skills';
 import { PLAY_URL, SITE_URL } from '../config';
+import { appsLine } from '../components/AppStores';
 
 const WEAPONS = PANEL_WEAPONS.filter((w) => w.id !== 'skip').length;
 
@@ -58,7 +59,7 @@ export function Press() {
             <dt>Genre</dt>
             <dd>Turn-based artillery, multiplayer</dd>
             <dt>Platforms</dt>
-            <dd>Web browser (computers, phones, tablets). Android app coming soon.</dd>
+            <dd>Web browser (computers, phones, tablets). {appsLine()}</dd>
             <dt>Price</dt>
             <dd>Free. Optional coins for looks only; no ads.</dd>
             <dt>Players</dt>

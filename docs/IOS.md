@@ -414,7 +414,8 @@ Account.
    Identifiers & Profiles → Identifiers → +** → App IDs → App. Description
    `TardiGeddon`, **Explicit** Bundle ID `com.tardigeddon.app`. Under
    Capabilities, **In-App Purchase** is already on; also tick **Sign in with
-   Apple** and **Declared Age Range** (both are in `App.entitlements`; a
+   Apple**, **Declared Age Range** and **Associated Domains** (app links,
+   `docs/APPS.md`; the TestFlight lane also switches this one on itself) (all in `App.entitlements`; a
    signed build fails until the App ID has them). Continue → Register. Ticked
    later on an existing App ID: Identifiers → `com.tardigeddon.app` → tick →
    Save; the next TestFlight build makes a new signing profile by itself.

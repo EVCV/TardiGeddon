@@ -442,6 +442,7 @@ Data safety form "Purchase history", are already in the answers above (§4).
 
 ## 8. Later
 
-- **App links:** `https://tardigeddon.com/play/?room=…` opening the app. Needs
-  `/.well-known/assetlinks.json` on the website with the **app signing**
-  key's SHA-256 (Play Console → App signing).
+- **App links:** built (`docs/APPS.md`, "App links"). Left: the **app
+  signing** and **upload** keys' SHA-256 (Play Console → App signing) into
+  `ANDROID_CERT_SHA256` in `src/apps.ts`, which publishes
+  `/.well-known/assetlinks.json`.

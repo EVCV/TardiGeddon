@@ -276,6 +276,7 @@ body.menu-open { overflow: hidden; }
   .hero-head { grid-column: 1 / -1; text-align: center; }
   .hero-pitch { margin-left: 0; }
   .hero-actions { justify-items: start; }
+  .hero-buttons { justify-content: flex-start; }
   .badges { justify-content: flex-start; }
 }
 
@@ -412,6 +413,17 @@ body.menu-open { overflow: hidden; }
 .promise-icon { display: block; font-size: 40px; line-height: 1; margin-bottom: 8px; }
 .promise h3 { font-family: var(--title); font-weight: normal; font-size: 26px; color: var(--red); margin: 0 0 6px; }
 .promise p { margin: 0; }
+
+/* The apps (components/AppStores.tsx): a button per store, "Coming soon" until it's live. */
+.hero-buttons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; }
+.store-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.store-btn { display: inline-flex; flex-direction: column; justify-content: center; min-width: 190px; padding: 8px 18px 7px; border: 3px solid var(--ink); border-radius: 16px; background: var(--ink); color: #fff; text-decoration: none; text-align: left; box-shadow: 0 5px 0 rgba(43, 27, 36, .35); line-height: 1.1; }
+a.store-btn:hover { transform: translateY(-2px); }
+.store-small { font-size: 13px; font-weight: 800; }
+.store-name { font-family: var(--title); font-size: 26px; letter-spacing: 0.02em; }
+.store-soon { background: #fff; color: var(--ink); border-style: dashed; box-shadow: none; }
+.store-big { min-width: 0; padding: 12px 22px 10px; }
+.store-big .store-name { font-size: 30px; }
 
 /* Android, coming soon */
 .android-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; padding: clamp(20px, 4vw, 36px); text-align: left; }

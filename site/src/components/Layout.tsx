@@ -8,6 +8,7 @@ import { LEGAL_PAGES } from '../legal';
 import { SOCIAL } from '../social';
 import { holdScroll } from '../motion/SmoothScroll';
 import { RopeSwinger } from './RopeSwinger';
+import { appsLine } from './AppStores';
 
 /** The site's pages, in menu order. */
 export const NAV = [
@@ -151,7 +152,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <br />
               Tiny. Indestructible. Armed.
               <br />
-              Free to play in your browser. Coming soon to Android.
+              Free to play in your browser. {appsLine()}
             </p>
           </div>
           <nav aria-label="Game">
