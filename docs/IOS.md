@@ -141,6 +141,10 @@ same way on any device:
 | iOS app | ✓ | ✓ native sheet | ✓ through the system browser |
 | Android app | ✓ | ✓ through the system browser | ✓ native account picker |
 
+**Google in the iOS app: built** (November 2026): iOS's sign-in sheet
+(`WebSignInPlugin.swift`; `docs/ACCOUNTS.md`, "Google in the iOS app"). It
+shows when the server has Google's keys.
+
 The iOS app's first release needs at least email + Apple. Google can follow
 in an update if it isn't ready, but Apple must never be missing while Google
 is offered (Guideline 4.8).
@@ -410,7 +414,8 @@ Account.
    Identifiers & Profiles → Identifiers → +** → App IDs → App. Description
    `TardiGeddon`, **Explicit** Bundle ID `com.tardigeddon.app`. Under
    Capabilities, **In-App Purchase** is already on; also tick **Sign in with
-   Apple** and **Declared Age Range** (both are in `App.entitlements`; a
+   Apple**, **Declared Age Range** and **Associated Domains** (app links,
+   `docs/APPS.md`; the TestFlight lane also switches this one on itself) (all in `App.entitlements`; a
    signed build fails until the App ID has them). Continue → Register. Ticked
    later on an existing App ID: Identifiers → `com.tardigeddon.app` → tick →
    Save; the next TestFlight build makes a new signing profile by itself.
@@ -474,7 +479,9 @@ review; external testers need a short beta review.
   - **iPhone Duo: required for every app from April 2027**, across its poses
     (outer screen, open), sizes in App Store Connect's screenshot
     specifications. Sending them early earns the "optimized for iPhone Duo"
-    badge on the product page.
+    badge on the product page. **Made**: `iphone-duo-outer-*.png`
+    (2034×1398) and `iphone-duo-inner-*.png` (2853×2007), landscape, each
+    moment played at that screen's own size.
 
   **Made**: `store/listing/<lang>/app-store/` by `scripts/store-art.ts`, with
   the listing text, in `docs/STORE_LISTING.md`.
@@ -628,7 +635,7 @@ from the TestFlight build (§5).
 | 7 | ✅ One interface for both stores; `AppStorePlugin.swift`, `appStore.ts` | Code | 3 |
 | 8 | ✅ `server/appStore.ts`, notifications, tests. Left: products, `APPLE_APP_ID`, notification URL (§3) | Code + owner | 1, 7 |
 | 9 | Sandbox purchases on TestFlight: pay, refund, app closed mid-purchase, wrong account | Owner | 6, 8 |
-| 10 | ✅ Sign in with Apple in the app (§2b). Left: Google in the iOS app, "Link Apple/Google", add a password, revoking Apple tokens on deletion; Apple and Google web keys on the server | Code + owner (Apple and Google keys) | 2 |
+| 10 | ✅ Sign in with Apple in the app (§2b). ✅ Google in the iOS app (iOS's sign-in sheet, `docs/ACCOUNTS.md`). Left: "Link Apple/Google", add a password, revoking Apple tokens on deletion; Apple and Google web keys on the server | Code + owner (Apple and Google keys) | 2 |
 | 11 | ✅ Age range for the coin shop (§4). Left: Significant Change acknowledgement, consent notifications; sandbox-test it all | Code | 7, 8 |
 | 12 | ✅ Screenshots, listing, App Privacy, age rating, legal pages | Code + owner | 6 |
 | 13 | Submit for review | Owner | all |

@@ -968,8 +968,8 @@ export async function createAccounts(
     json(res, 200, { received: true });
   }
 
-  // Apple sign-in in the Android app. Apple's page won't open inside the app, so
-  // the app opens /api/app/social in a browser tab (which has its own cookies),
+  // Apple sign-in in the Android app, and Google in the iOS app. Their pages won't
+  // open inside the app, so the app opens /api/app/social in a browser tab (iOS: its sign-in sheet) (which has its own cookies),
   // the sign-in happens there, and /api/app/return hands it back to the app
   // with a one-time token. Any app could claim the return link, so the token
   // only works with the verifier behind the challenge the app sent at the start
@@ -1014,14 +1014,16 @@ export async function createAccounts(
   async function appSocialReturn(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const clear = [`${CHALLENGE_COOKIE}=; Path=/api/app; HttpOnly; SameSite=Lax; Max-Age=0${secureCookie}`];
     const [, challenge, startedAt] = /(?:^|;\s*)tardi-app-challenge=([A-Za-z0-9_-]{43})\.(\d{13})(?:;|$)/.exec(req.headers.cookie ?? '') ?? [];
-    const failed = new URL(req.url ?? '', 'http://x').searchParams.has('error');
+    const error = new URL(req.url ?? '', 'http://x').searchParams.get('error');
+    const failed = error !== null;
     const headers = fromNodeHeaders(req.headers);
     const session = challenge && !failed ? await auth.api.getSession({ headers }) : null;
     // The player cancelled, the provider refused, or the tab was too slow. A session
     // from before this sign-in (the browser already signed in to the website) is
     // someone's old sign-in, not this one: never handed over.
     if (!session || !isChallenge(challenge) || new Date(session.session.createdAt).getTime() < Number(startedAt)) {
-      return toApp(res, { error: 'cancelled' }, clear);
+      // An account with this email already, not linked to the provider: the app says how to link it.
+      return toApp(res, { error: error === 'account_not_linked' ? 'not_linked' : 'cancelled' }, clear);
     }
     try {
       const { token } = await auth.api.generateOneTimeToken({ headers });
@@ -1050,6 +1052,12 @@ export async function createAccounts(
     try {
       const { headers } = await auth.api.verifyOneTimeToken({ body: { token }, headers: fromNodeHeaders(req.headers), returnHeaders: true });
       res.setHeader('set-cookie', headers.getSetCookie());
+      // The iOS app signs in with a token, not the cookie (hidden from every other origin: hideToken).
+      const bearer = headers.get('set-auth-token');
+      if (bearer) {
+        res.setHeader('set-auth-token', bearer);
+        res.setHeader('access-control-expose-headers', 'set-auth-token');
+      }
     } catch {
       return failed();
     }

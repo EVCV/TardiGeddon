@@ -11,6 +11,7 @@ class GameViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(AppleSignInPlugin())
         bridge?.registerPluginInstance(AgeSignalsPlugin())
         bridge?.registerPluginInstance(DisplayPlugin())
+        bridge?.registerPluginInstance(WebSignInPlugin())
     }
 
     // A swipe in from an edge (aiming, scrolling the map) needs a second swipe to

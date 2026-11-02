@@ -90,6 +90,55 @@ Because that address is on `tardigeddon.com`, the server's sign-in cookie is
   game's own settings follow until the player changes them (`src/ui/device.ts`,
   `src/ui/access.ts`).
 
+## App links and "get the app"
+
+Links people share open the app when it's installed, and the website points
+phone players at the apps. Everything about the stores is in `src/apps.ts`.
+
+**Switch on each store when its app is live:** `APPS.ios.live` /
+`APPS.android.live` in `src/apps.ts`. Until then the website says "Coming
+soon" for that store and the game never sends anyone to an empty store page.
+Switching one on:
+
+- the website's buttons link to the store (hero on phones and tablets: that
+  device's store beside Play now; the apps section: both);
+- the web game on that kind of phone or tablet shows "TardiGeddon has an app!"
+  once a visit (`src/ui/getApp.ts`): **Play in the app** (Android: opens the
+  app if installed, else Google Play; iOS: the App Store page, which says Open
+  when installed), **Keep playing here**, **Don't remind me again** (kept on
+  the device, `tardigeddon.appNudge`);
+- Android, on the website: **Play now** opens the app when it's installed
+  (an `intent:` link, `site/src/main.tsx`), else the web game;
+- iOS, on the website: Safari's own Open/Get banner (`apple-itunes-app`).
+
+**Links that open the app** (`https://tardigeddon.com/play/?…`): a room invite
+(`room`), a friend code (`friend`: shared from the Friends panel, it fills
+their code in, ready to add), an invite code (`invite`), and our emails
+(`verify`, `reset`). The app reads them as the web game does
+(`src/account/links.ts`, at launch and while running, `src/main.ts`).
+Return links from paying on the website (`shop`) stay in the browser.
+
+- **iOS:** `applinks:tardigeddon.com` in `App.entitlements`; the website
+  serves `/.well-known/apple-app-site-association` (written by
+  `site/vite.config.ts` from `src/apps.ts`, team `R3TQ7LC3G6`). The App ID
+  needs **Associated Domains**: the TestFlight lane switches it on with the
+  API key; if it can't, that build leaves app links out instead of failing
+  (`ios/fastlane/Fastfile`). Apple caches the file: after the first deploy, a
+  fresh install picks it up.
+- **Android:** an `autoVerify` intent filter for `/play` in
+  `AndroidManifest.xml`; the website serves `/.well-known/assetlinks.json`
+  once `ANDROID_CERT_SHA256` in `src/apps.ts` has the app's signing
+  fingerprints (Play Console → Test and release → App integrity → App signing:
+  the **App signing key** SHA-256, and the **Upload key** one for test
+  builds; Play Console → Protected with Play → Play Store protection →
+  Manage Play app signing). Both are in.
+- Same-site links never open an app by themselves (Apple and Google's rule):
+  tapping Play on tardigeddon.com stays on the website, hence the reminder
+  and the Android `intent:` link.
+- Check: `https://tardigeddon.com/.well-known/apple-app-site-association`
+  loads as JSON; on a phone with the app, a room link sent in Messages or
+  WhatsApp opens the app at that room.
+
 ## Foldables
 
 Folding phones bring screens the game must handle (`e2e/foldable.spec.ts`

@@ -24,6 +24,21 @@ export function webGameUrl(): string {
   return env && isNativeApp() ? env : `${location.origin}${location.pathname}`;
 }
 
+/** The link that opened the app (an app link, or the sign-in return), if one did. */
+export async function launchUrl(): Promise<string | undefined> {
+  if (!isNativeApp()) return undefined;
+  try {
+    return (await App.getLaunchUrl())?.url;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Links that open the app while it's already running. */
+export function onAppUrl(fn: (url: string) => void): void {
+  if (isNativeApp()) void App.addListener('appUrlOpen', ({ url }) => fn(url));
+}
+
 /** Android's back button or gesture. */
 export interface NativeHooks {
   /** Go back one step. Return false when there's nowhere to go back to (the lobby): the app is sent to the background. */

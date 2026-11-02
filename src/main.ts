@@ -20,7 +20,9 @@ import { loadProfiles } from './ui/teams';
 import type { CpuSkill } from './ai/skills';
 import { audioRunning, pauseAudio, unlockAudio } from './audio/mixer';
 import { refreshMusic } from './audio/music';
-import { attachNative, isNativeApp, platform } from './native';
+import { attachNative, isNativeApp, launchUrl, onAppUrl, platform } from './native';
+import { gameLinkParams, isFriendCode, savePendingFriend } from './account/links';
+import { WEB_GAME } from './apps';
 import { onStorePurchasesUpdated } from './shop/storeBilling';
 import type { MatchSetup } from './ui/menu';
 import type { ServerMsg } from './net/protocol';
@@ -153,10 +155,20 @@ async function boot(): Promise<void> {
     },
   });
 
-  const params = new URLSearchParams(location.search);
+  // In the phone apps, opened by tapping a tardigeddon.com/play link (an app link): that link's
+  // settings (account/links.ts). Otherwise this page's own address.
+  const params = gameLinkParams(await launchUrl()) ?? new URLSearchParams(location.search);
+  // This page's own settings, for "Play in the app" to carry over (a room link keeps its room).
+  const linkSearch = gameLinkParams(location.href.replace(/^[^?]*/, WEB_GAME))?.toString() ?? '';
   // Debug/test hook: ?autostart=cpu skips the menu.
   const auto = params.get('autostart');
   const room = params.get('room');
+  // A friend's link (?friend=CODE): the Friends panel on the online screen fills in their code.
+  const friend = params.get('friend');
+  if (isFriendCode(friend)) {
+    savePendingFriend(friend);
+    if (!isNativeApp()) history.replaceState(null, '', location.pathname);
+  }
   if (auto === 'tutorial') tutorial();
   else if (auto === 'practice') practice(params.get('endless') !== null);
   else if (auto === 'targets' || auto === 'rope') challenge(auto);
@@ -172,9 +184,16 @@ async function boot(): Promise<void> {
     // Invite link: ?room=CODE
     online({ code: room.toUpperCase() });
   } else {
+    // (A friend's link: the online screen, once it's known who's signed in; below.)
     menu();
     // From opening the page to the menu showing.
     usageLoad('menu', 0);
+  }
+  // Phone and tablet browsers: once a visit, a reminder that there's an app (once it's in the store).
+  if (!auto) {
+    setTimeout(() => {
+      if (!current) void import('./ui/getApp').then((m) => m.maybeSuggestApp(ui, linkSearch ? `?${linkSearch}` : ''));
+    }, 1200);
   }
 
   // The game itself downloads, and its renderer starts, as soon as the first
@@ -197,8 +216,50 @@ async function boot(): Promise<void> {
     history.replaceState(null, '', location.pathname);
   }
 
+  // Phone apps: a link tapped while the app is already open (an app link). The same as at the start.
+  onAppUrl((url) => {
+    const p = gameLinkParams(url);
+    if (!p) return;
+    const code = p.get('invite');
+    if (code && /^[A-Za-z0-9-]{3,20}$/.test(code)) {
+      saveInvite(code);
+      void refreshAccount();
+    }
+    const friendCode = p.get('friend');
+    if (isFriendCode(friendCode)) savePendingFriend(friendCode);
+    const roomCode = p.get('room');
+    const verifyToken = p.get('verify');
+    const resetToken = p.get('reset');
+    // Mid-match, only a room or a friend is worth leaving it for, and only if they say so.
+    if (current && !roomCode && !isFriendCode(friendCode)) {
+      if (verifyToken) void confirmEmail(verifyToken).catch(() => undefined);
+      return;
+    }
+    if ((roomCode || isFriendCode(friendCode)) && current && !confirm(t('Leave this match to go to your friend?'))) return;
+    if (roomCode) online({ code: roomCode.toUpperCase() });
+    else if (isFriendCode(friendCode)) online();
+    else if (resetToken) {
+      if (!hub) menu();
+      hub?.resetPassword(resetToken);
+    } else if (verifyToken) {
+      if (!hub) menu();
+      void confirmEmail(verifyToken).then(
+        () => hub?.go('account', t('Thanks! Your email is confirmed.')),
+        (e: unknown) => hub?.go('account', e instanceof Error ? e.message : String(e)),
+      );
+    } else if (code) {
+      if (!hub) menu();
+      hub?.go('account');
+    } else if (p.get('shop')) {
+      if (!hub) menu();
+      hub?.go('shop');
+    }
+  });
+
   // Who's signed in (and what they own); the menu updates when this lands.
   const before = (await refreshAccount())?.wallet.coins ?? 0;
+  // A friend's link: their code waits in the Friends panel (signed in), or the screen says to sign in.
+  if (isFriendCode(friend) && !auto && !room && hub) online();
   // Android app: back from signing in with Apple in a browser tab.
   listenForAppSignIn((message) => hub?.go('account', message || undefined));
   // Android app: any coin purchase that never reached the server (app closed, no signal).

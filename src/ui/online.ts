@@ -21,6 +21,7 @@ import { arenaTheme } from '../render/arenas';
 import { Lockstep } from '../net/lockstep';
 import type { LobbyTeam, ServerMsg } from '../net/protocol';
 import { webGameUrl } from '../native';
+import { pendingFriend } from '../account/links';
 import { t } from '../i18n/i18n';
 
 const REJOIN_KEY = 'tardigeddon.rejoin';
@@ -251,6 +252,9 @@ export function showOnline(
     if (account().me?.user) {
       card.append(friendsPanel({ inRoom: false, onJoin: (c) => void joinRoom(c) }));
       void connect();
+    } else if (pendingFriend()) {
+      // Came from a friend's link, signed out: friends need an account (the code waits until then).
+      status.textContent = t('To add your friend, sign in first (Account). Their code will be waiting.');
     }
     if (opts.code) join.click();
   };
@@ -303,14 +307,20 @@ export function showOnline(
     const [colA, colB] = columns();
     colA.append(el('h1', 'title-small', t('Room')));
     const codeBox = el('div', 'room-code', room.code);
-    const share = el('button', 'hud-btn', t('🔗 Copy invite link'));
+    // Phones: the share sheet (Messages, WhatsApp…); tapped there with the app installed, the link opens the app.
+    const sheet = 'share' in navigator && matchMedia('(pointer: coarse)').matches;
+    const share = el('button', 'hud-btn', sheet ? t('🔗 Share invite link') : t('🔗 Copy invite link'));
     share.onclick = async () => {
       const link = `${webGameUrl()}?room=${room.code}`;
       try {
+        if (sheet) {
+          await navigator.share({ text: t('Come and play TardiGeddon with me! Room {code}: {link}', { code: room.code, link }) });
+          return;
+        }
         await navigator.clipboard.writeText(link);
         share.textContent = t('✓ Link copied');
-      } catch {
-        share.textContent = link;
+      } catch (e) {
+        if ((e as Error)?.name !== 'AbortError') share.textContent = link;
       }
     };
     colA.append(codeBox, share);

@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import { Link } from '../router';
 import { PLAY_URL } from '../config';
+import { appsLine } from '../components/AppStores';
 
 const EMAIL = 'support@tardigeddon.com';
 
@@ -40,7 +41,7 @@ export function Support() {
       <Q q="What do I need to play?">
         <p>
           A recent browser on a computer, phone or tablet: Chrome, Edge, Firefox or Safari. <a href={PLAY_URL}>Open the
-          game</a> and press Play. An Android app is coming soon to Google Play (Android 7 and newer).
+          game</a> and press Play. {appsLine()} The apps need iOS 15 or Android 7 and newer.
         </p>
       </Q>
       <Q q="Do I need an account?">

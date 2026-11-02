@@ -8,5 +8,9 @@
 	</array>
 	<key>com.apple.developer.declared-age-range</key>
 	<true/>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:tardigeddon.com</string>
+	</array>
 </dict>
 </plist>

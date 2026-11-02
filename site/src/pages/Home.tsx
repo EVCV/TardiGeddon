@@ -23,6 +23,8 @@ import { Clip } from '../components/Clip';
 import { Shot } from '../components/Shot';
 import { Link } from '../router';
 import { PLAY_URL } from '../config';
+import { DeviceStoreButton, StoreButtons, appsLine } from '../components/AppStores';
+import { APPS } from '../../../src/apps';
 import { EGGS } from '../../../src/eggs';
 
 const WEAPONS = PANEL_WEAPONS.filter((w) => w.id !== 'skip');
@@ -144,9 +146,12 @@ export function Home() {
             one device, or online.
           </p>
           <div className="hero-actions reveal">
-            <a className="btn btn-play btn-huge" href={PLAY_URL}>
-              Play now
-            </a>
+            <div className="hero-buttons">
+              <a className="btn btn-play btn-huge" href={PLAY_URL}>
+                Play now
+              </a>
+              <DeviceStoreButton />
+            </div>
             <ul className="badges" aria-label="Good to know">
               <li>Free</li>
               <li>No ads</li>
@@ -154,7 +159,7 @@ export function Home() {
               <li>Never pay-to-win</li>
             </ul>
             <p className="hero-free">
-              Plays in your browser on computers, phones and tablets. <strong>Android app coming soon.</strong>
+              Plays in your browser on computers, phones and tablets. <strong>{appsLine()}</strong>
             </p>
           </div>
         </div>
@@ -410,15 +415,18 @@ export function Home() {
         </div>
       </section>
 
-      <section className="band android-band">
+      <section className="band android-band" aria-labelledby="apps-title">
         <div className="paper android-card">
           <div className="android-text">
-            <span className="soon">Coming soon</span>
-            <h2 className="display">TardiGeddon for Android</h2>
+            <span className="soon">{APPS.ios.live && APPS.android.live ? 'Out now' : APPS.ios.live || APPS.android.live ? 'Out now · more coming' : 'Coming soon'}</span>
+            <h2 className="display" id="apps-title">
+              TardiGeddon for iPhone, iPad and Android
+            </h2>
             <p>
-              The whole game as an app on Google Play, with the same account, stats and unlocks as the browser. Until then, it
-              plays great in your phone’s browser.
+              The whole game as an app on the App Store and Google Play: full screen, and a friend’s room link or friend code
+              opens straight in the game. Same account, stats and unlocks as the browser, so you can carry on wherever you are.
             </p>
+            <StoreButtons />
           </div>
           <div className="screen android-shot">
             <Shot

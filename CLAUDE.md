@@ -45,6 +45,11 @@ The iOS app plan: `docs/IOS.md`.
 
 ## Conventions
 
+- **Every change goes live through a pull request into `main`.** When work is committed and
+  pushed to a branch, always open a pull request for it (the owner asked for this standing rule:
+  no need to ask first), or update the open one for that branch. Give the owner its link and say
+  what to check after merging. Merging to `main` is what deploys the site and game and builds
+  TestFlight; the owner merges.
 - Any gameplay change needs a sim test; keep `tests/soak.test.ts` green (it catches soft-locks).
 - Never copy Worms Armageddon assets or signature names (see plan §1).
 - Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only.
