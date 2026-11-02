@@ -131,7 +131,11 @@ Return links from paying on the website (`shop`) stay in the browser.
   fingerprints (Play Console → Test and release → App integrity → App signing:
   the **App signing key** SHA-256, and the **Upload key** one for test
   builds; Play Console → Protected with Play → Play Store protection →
-  Manage Play app signing). Both are in.
+  Manage Play app signing). Both are in. The same file also turns on
+  **credential sharing** (`get_login_creds`): an email and password saved
+  for tardigeddon.com in Google Password Manager is offered when signing in
+  to the app, and the other way round (Play Console → Grow users → Deep
+  links → Domains → Credential sharing: Turn on).
 - Same-site links never open an app by themselves (Apple and Google's rule):
   tapping Play on tardigeddon.com stays on the website, hence the reminder
   and the Android `intent:` link.
