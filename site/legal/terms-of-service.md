@@ -1,6 +1,6 @@
 # Terms of Service
 
-**Effective Date:** 9 October 2026
+**Effective Date:** 3 November 2026
 **Last Modified:** 31 October 2026
 **Document Version:** v2.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
@@ -240,11 +240,13 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.12 Creator Codes
 
-5.12.1 Some content creators (for example streamers and video makers) have a creator code from us. If you enter one where a friend's code goes, within the first 7 days after making your account (or open the creator's invite link before signing up), you get the same reward as for a friend's invite (Section 5.10.1). A creator code takes the place of a friend's code: each account can use one or the other, once.
+5.12.1 Some content creators (for example streamers and video makers) have a creator code from us. If you enter one where a friend's code goes, within the first 7 days after making your account (or open the creator's invite link before signing up), then once you have confirmed your email address and finished 3 matches (online or against the computer), you get 500 free coins and the Superfan pack: the Superfan cap (a hat), the Spotlight aim and the Fanfare explosion effect. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4); its coins are free coins, as in Section 5.10.2. A creator code takes the place of a friend's code: each account can use one or the other, once.
 
 5.12.2 When you use a creator's code, the creator receives a share of what you spend on coins for a time (at present, 10% of what reaches us after VAT and store or payment fees, for 12 months), paid by us out of our own share. It does not change what you pay or what you get. The creator only sees totals (how many players used their code and how much they earned), never who you are or what you bought.
 
-5.12.3 Creators are bound by a separate agreement with us, including a duty to make clear to their audience that they earn from their code. Creator codes must not be sold, and using one with extra accounts or automated means breaks these Terms (Section 4.1). We may change or end creator codes at any time.
+5.12.3 A creator whose own account we link to their code shows a ⭐ creator badge beside their name, including to other players in online games, and may use the creator medal emblem; both last while they have an active creator code with us.
+
+5.12.4 Creators are bound by a separate agreement with us, including a duty to make clear to their audience that they earn from their code. Creator codes must not be sold, and using one with extra accounts or automated means breaks these Terms (Section 4.1). We may change or end creator codes at any time.
 
 ## Section 6 — Intellectual Property
 

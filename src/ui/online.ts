@@ -343,8 +343,8 @@ export function showOnline(
         row.append(pic, badge, mark, name);
       } else row.append(pic, badge, name);
       if (s.badge) {
-        const f = el('span', 'founder-badge', s.badge === 'founder' ? '🌱' : '🐣');
-        f.title = s.badge === 'founder' ? t('Founder: here from the start') : t('Early bird: joined in the first months');
+        const f = el('span', 'founder-badge', s.badge === 'creator' ? '⭐' : s.badge === 'founder' ? '🌱' : '🐣');
+        f.title = s.badge === 'creator' ? t('Creator: makes videos or streams about TardiGeddon') : s.badge === 'founder' ? t('Founder: here from the start') : t('Early bird: joined in the first months');
         f.setAttribute('aria-label', f.title);
         row.append(f);
       }

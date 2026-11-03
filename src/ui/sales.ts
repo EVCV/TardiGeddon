@@ -324,7 +324,7 @@ function creatorsCard(ctx: HubContext, state: SalesState): HTMLElement {
   box.append(
     form,
     note,
-    el('p', 'account-note', 'Shares are 10% for 12 months by default, of an estimate of what reaches you: prices less VAT and the store’s or Stripe’s cut. Refunded payments stop counting. Players type the code where a friend’s code goes (or open …/play/?invite=CODE) and get the friend-invite coins.'),
+    el('p', 'account-note', 'Shares are 10% for 12 months by default, of an estimate of what reaches you: prices less VAT and the store’s or Stripe’s cut. Refunded payments stop counting. Players type the code where a friend’s code goes (or open …/play/?invite=CODE) and get the creator reward: 500 free coins and the Superfan pack (hat, aim, explosion) once they’ve confirmed their email and played 3 matches. Link the creator’s own account (their email) and they get the ⭐ badge and the creator medal emblem.'),
   );
   return card('🎥 Creator codes', box);
 }

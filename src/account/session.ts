@@ -60,8 +60,15 @@ export interface MeResponse {
   earlyBirdNew?: boolean;
   /** A creator (server/creators.ts): their code and how it's doing, totals only (amounts in the currency's smallest unit). */
   creator?: { code: string; percent: number; months: number; players: number; payers: number; totals: { currency: string; earned: number; paid: number; owed: number }[] };
-  /** Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand. */
-  invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean };
+  /**
+   * Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand.
+   * Invited themselves: the coins they get (`reward`; more with a creator's code), the creator's name, and matches played so far.
+   */
+  invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean; reward?: number; creator?: string; played?: number };
+  /** Invite rewards that came in since last time (said once): friends who joined with this player's code, and their own. */
+  inviteNews?: { friends: number; coins: number; mine?: { coins: number; items: string[]; creator?: string } };
+  /** An active creator (server/creators.ts): shows the ⭐ badge and may use the creator medal emblem. */
+  creatorBadge?: boolean;
 }
 
 /** The owner's sales page: totals only, never who bought what. */
@@ -120,6 +127,15 @@ const OWNED_KEY = 'tardigeddon.owned';
 
 /** null until loaded, or when the server is unreachable / has accounts turned off. */
 let me: MeResponse | null = null;
+/** Invite rewards the server reported, until the hub's pop-up has shown them. */
+let inviteNewsWaiting: MeResponse['inviteNews'] | null = null;
+
+/** Invite rewards waiting to be shown (once: taking them clears them). */
+export function takeInviteNews(): MeResponse['inviteNews'] | null {
+  const n = inviteNewsWaiting;
+  inviteNewsWaiting = null;
+  return n;
+}
 let loaded = false;
 const listeners = new Set<() => void>();
 
@@ -159,6 +175,8 @@ function set(next: MeResponse | null): void {
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
+  // Invite rewards are reported once: keep them until a screen shows them (takeInviteNews).
+  if (next?.inviteNews) inviteNewsWaiting = next.inviteNews;
   me = next;
   loaded = true;
   if (next) {
@@ -374,6 +392,17 @@ export function saveInvite(code: string | null): void {
 }
 
 export type InviteResult = 'ok' | 'unknown' | 'self' | 'already' | 'late' | 'newer';
+
+/** What an invite link's code is worth (server/rewards.ts peekInvite): a creator's (with their name), a friend's, or nothing. */
+export type InvitePeek = { kind: 'creator'; name: string; coins: number; items: string[] } | { kind: 'friend'; coins: number } | { kind: 'unknown' };
+
+export async function peekInvite(code: string): Promise<InvitePeek> {
+  try {
+    return await call<InvitePeek>(`/api/invite/peek?code=${encodeURIComponent(code)}`);
+  } catch {
+    return { kind: 'unknown' };
+  }
+}
 
 /** Say which friend invited this player (src/shop/rewards.ts). */
 export async function enterInvite(code: string): Promise<InviteResult> {

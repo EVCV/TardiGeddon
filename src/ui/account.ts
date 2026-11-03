@@ -9,7 +9,7 @@ import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
 import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
 import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, enterInvite, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
-import { INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../shop/rewards';
+import { CREATOR_INVITE_COINS, INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../shop/rewards';
 import { webGameUrl } from '../native';
 import type { HubContext } from './hub';
 import { itemArt } from './shop';
@@ -161,20 +161,59 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   return page;
 }
 
-/** Invite friends: your code to share, a friend's code to type in (new players), and how it's going. */
+/**
+ * Invite friends: what you both get, how it works (three steps), a big share
+ * button, and how it's going, for both sides. A creator shares their creator
+ * code instead, which is worth more to the player (CREATOR_INVITE_COINS and
+ * the Superfan pack).
+ */
 function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx: HubContext): HTMLElement {
   const card = el('section', 'card account-invite');
   card.append(el('h2', 'card-title', t('🎁 Invite friends')));
-  card.append(
-    el('p', '', t('Give a friend your code. When they’ve made an account with it, confirmed their email and played {matches} matches, you both get {coins} free coins (for up to {max} friends a month).', { matches: INVITE_MATCHES, coins: INVITE_COINS, max: INVITE_MAX })),
+  const creator = me.creator;
+  const code = creator?.code ?? inv.code;
+  const theirCoins = creator ? CREATOR_INVITE_COINS : INVITE_COINS;
+
+  // The reward, big: two tardigrades and the coins they each get.
+  const team = loadProfiles()[0];
+  const hero = el('div', 'invite-hero');
+  const pals = el('div', 'invite-pals');
+  pals.setAttribute('aria-hidden', 'true');
+  pals.innerHTML = mascotSvg(team.color, wearHat(team.hat), wearSkin(team.skin)) + `<span class="invite-plus">+</span>` + mascotSvg(0x3a7be0);
+  const headline = el('div', 'invite-headline');
+  headline.append(
+    el('b', 'invite-big', creator ? t('Your fans get {coins} coins!', { coins: formatNumber(CREATOR_INVITE_COINS) }) : t('You both get {coins} coins!', { coins: formatNumber(INVITE_COINS) })),
+    el('span', 'invite-sub', creator
+      ? t('Players who join with your creator code get {coins} free coins and the Superfan pack, and you get {percent}% of what they spend for {months} months.', { coins: formatNumber(CREATOR_INVITE_COINS), percent: creator.percent, months: creator.months })
+      : t('For every friend who joins with your code: {coins} free coins for them, and {coins} for you (up to {max} friends a month).', { coins: formatNumber(INVITE_COINS), max: INVITE_MAX })),
   );
+  hero.append(pals, headline);
+  card.append(hero);
+
+  // How it works.
+  const steps = el('ol', 'invite-steps');
+  for (const [n, text] of [
+    ['1', t('Share your code')],
+    ['2', t('They make an account with it and confirm their email')],
+    ['3', t('They play {matches} matches', { matches: INVITE_MATCHES })],
+    ['🎉', creator ? t('They get {coins} coins and the Superfan pack', { coins: formatNumber(CREATOR_INVITE_COINS) }) : t('You both get {coins} coins', { coins: formatNumber(INVITE_COINS) })],
+  ] as const) {
+    const li = el('li');
+    li.append(el('span', 'invite-step-n', n), el('span', '', text));
+    steps.append(li);
+  }
+  card.append(steps);
+
+  // Share: the reward is in the message, so the friend knows what they get.
   const note = el('p', 'account-note');
   note.setAttribute('role', 'status');
   const row = el('div', 'invite-row');
-  const link = `${webGameUrl()}?invite=${inv.code}`;
-  const share = el('button', 'hud-btn invite-share', t('Your code: {code} 📋', { code: inv.code }));
+  const link = `${webGameUrl()}?invite=${code}`;
+  const text = creator
+    ? t('Play TardiGeddon, the tardigrade artillery game! Make your account with my creator code {code} and you get {coins} free coins and the Superfan pack: {link}', { code, coins: theirCoins, link })
+    : t('Play TardiGeddon with me, the tardigrade artillery game! Make your account with my code {code} and we both get {coins} free coins: {link}', { code, coins: theirCoins, link });
+  const share = el('button', 'big-btn invite-share', t('📤 Share my code'));
   share.onclick = async () => {
-    const text = t('Play TardiGeddon with me! Use my code {code} when you make your account: {link}', { code: inv.code, link });
     try {
       if (navigator.share) await navigator.share({ text });
       else {
@@ -182,18 +221,54 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
         note.textContent = t('Copied: send it to a friend.');
       }
     } catch {
-      note.textContent = t('Your code is {code}.', { code: inv.code });
+      note.textContent = t('Your code is {code}.', { code });
     }
   };
-  row.append(share);
-  card.append(row);
-  if (inv.rewardedEver || inv.waiting) {
-    card.append(el('p', 'account-note', t('Friends rewarded this month: {n} of {max} ({all} in all) · waiting for {w} to confirm their email and play', { n: inv.rewarded, max: INVITE_MAX, all: inv.rewardedEver, w: inv.waiting })));
+  const copy = el('button', 'invite-code', code);
+  copy.setAttribute('aria-label', t('Your code: {code}. Copy it.', { code }));
+  copy.title = t('Copy');
+  copy.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      note.textContent = t('Code copied.');
+    } catch {
+      note.textContent = t('Your code is {code}.', { code });
+    }
+  };
+  row.append(share, copy);
+  card.append(row, note);
+
+  // How it's going: friends rewarded and on the way.
+  if (!creator && (inv.rewardedEver || inv.waiting)) {
+    const tally = el('div', 'invite-tally');
+    tally.append(
+      el('span', 'invite-chip', t('🪙 {n} of {max} friends rewarded this month', { n: inv.rewarded, max: INVITE_MAX })),
+      el('span', 'invite-chip', t('{all} in all', { all: inv.rewardedEver })),
+    );
+    if (inv.waiting) tally.append(el('span', 'invite-chip waiting', t('⏳ {w} on the way', { w: inv.waiting })));
+    card.append(tally);
   }
+
+  // Invited themselves: their reward and how close they are.
   if (inv.invited === 'waiting') {
-    card.append(el('p', 'account-note', me.user?.emailVerified === false ? t('Your friend’s code is in: confirm your email and play {matches} matches for your {coins} coins.', { matches: INVITE_MATCHES, coins: INVITE_COINS }) : t('Your friend’s code is in: play {matches} matches for your {coins} coins.', { matches: INVITE_MATCHES, coins: INVITE_COINS })));
+    const reward = inv.reward ?? INVITE_COINS;
+    const box = el('div', 'invite-progress');
+    box.append(el('b', '', inv.creator ? t('{name} invited you: {coins} coins and the Superfan pack are waiting for you!', { name: inv.creator, coins: formatNumber(reward) }) : t('A friend invited you: {coins} coins are waiting for you!', { coins: formatNumber(reward) })));
+    const played = Math.min(INVITE_MATCHES, inv.played ?? 0);
+    const bar = el('div', 'invite-bar');
+    bar.setAttribute('role', 'progressbar');
+    bar.setAttribute('aria-valuemin', '0');
+    bar.setAttribute('aria-valuemax', String(INVITE_MATCHES));
+    bar.setAttribute('aria-valuenow', String(played));
+    bar.setAttribute('aria-label', t('Matches played'));
+    const fill = el('i');
+    fill.style.width = `${(played / INVITE_MATCHES) * 100}%`;
+    bar.append(fill);
+    box.append(bar, el('span', 'account-note', t('Matches played: {n} of {matches}', { n: played, matches: INVITE_MATCHES })));
+    if (me.user?.emailVerified === false) box.append(el('span', 'account-note', t('And confirm your email: the link is in your inbox.')));
+    card.append(box);
   } else if (inv.invited === 'rewarded') {
-    card.append(el('p', 'account-note', t('You joined with a friend’s code, and you both got your coins.')));
+    card.append(el('p', 'account-note', t('You joined with a code, and your reward is in. Now invite your friends!')));
   } else if (inv.canEnter) {
     const add = el('div', 'join-row');
     const input = el('input', 'code-input');
@@ -208,7 +283,7 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
         const r = await enterInvite(input.value);
         await refreshAccount();
         const said: Record<typeof r, string> = {
-          ok: t('Thanks! Your friend’s code is in.'),
+          ok: t('Thanks! The code is in: play {matches} matches for your reward.', { matches: INVITE_MATCHES }),
           unknown: t('No one has that code. Check it and try again.'),
           self: t('That’s your own code: you need a friend’s.'),
           already: t('You’ve already added a friend’s code.'),
@@ -218,17 +293,16 @@ function inviteCard(me: MeResponse, inv: NonNullable<MeResponse['invite']>, ctx:
         ctx.notify(said[r]);
       });
     add.append(input, go);
-    card.append(el('p', 'account-note', t('Did a friend or a creator invite you? Add their code in your first {days} days:', { days: INVITE_DAYS })), add);
+    card.append(el('p', 'account-note', t('Did a friend or a creator invite you? Add their code in your first {days} days to get your coins:', { days: INVITE_DAYS })), add);
   }
-  card.append(note);
-  if (me.creator) card.append(creatorBox(me.creator));
+  if (creator) card.append(creatorBox(creator));
   return card;
 }
 
 /** A creator's own numbers: their code, players who joined with it, and their share (totals only). */
 function creatorBox(c: NonNullable<MeResponse['creator']>): HTMLElement {
-  const box = el('div', 'account-verify');
-  box.append(el('p', '', t('🎥 Your creator code: {code}. Players who join with it get free coins, and you get {percent}% of what they spend for {months} months.', { code: c.code, percent: c.percent, months: c.months })));
+  const box = el('div', 'account-verify creator-box');
+  box.append(el('p', '', t('⭐ You’re a TardiGeddon creator: your ⭐ shows by your name online, and the creator medal emblem is yours to wear (✎ Customise team → Emblem).')));
   box.append(el('p', 'account-note', t('{n} players joined with your code, and {p} have bought coins.', { n: c.players, p: c.payers })));
   for (const x of c.totals) {
     const money = (minor: number) => new Intl.NumberFormat(lang(), { style: 'currency', currency: x.currency.toUpperCase() }).format(minor / 100);

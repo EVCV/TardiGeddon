@@ -48,7 +48,7 @@ export interface Member {
   /** Quick-play rating (signed in), for matching players of a similar level. */
   rating?: number;
   /** The Founder (🌱) or Early bird (🐣) badge others see by their name. */
-  badge?: 'founder' | 'earlybird';
+  badge?: 'founder' | 'earlybird' | 'creator';
   /**
    * Their game said they allow anonymous statistics (docs/USAGE.md). Only then
    * does the server count what they do: not if they turned them off, nor if
@@ -93,7 +93,7 @@ interface Slot {
   userId?: string;
   unlocked?: string[];
   owned?: string[];
-  badge?: 'founder' | 'earlybird';
+  badge?: 'founder' | 'earlybird' | 'creator';
   token: string;
   queue: InputFrame[];
   held: number;

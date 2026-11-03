@@ -17,7 +17,7 @@
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
 import { creatorCodeOf, creatorReports, migrateCreators, normaliseCreatorCode, recordCreatorPayout, saveCreator } from './creators';
-import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteStatus, isEarlyBird, isFounder, migrateRewards, packBadge, settleInvite } from './rewards';
+import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteNews, inviteStatus, isCreator, isEarlyBird, isFounder, migrateRewards, packBadge, peekInvite, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
@@ -94,6 +94,12 @@ const MAX_BODY = 64 * 1024;
 const APP_HANDOFF_MINUTES = 2;
 /** Base64url SHA-256, as the app makes its challenge from its verifier. */
 const sha256url = (s: string) => createHash('sha256').update(s).digest('base64url');
+
+/** The visitor's address: Fly's proxy puts it in fly-client-ip. */
+function clientIp(req: IncomingMessage): string {
+  const fly = req.headers['fly-client-ip'];
+  return (typeof fly === 'string' && fly) || req.socket.remoteAddress || 'unknown';
+}
 
 /** How long a ticket to join online play lasts. */
 const WS_TICKET_MS = 30_000;
@@ -568,6 +574,8 @@ export async function createAccounts(
     json(res, 200, { result: await enterInvite(db, user.id, code) });
   }
   const inviteTries = new Map<string, number[]>();
+  /** Invite-link lookups by address (GET /api/invite/peek): a few a minute is plenty. */
+  const peekTries = new Map<string, number[]>();
 
   /** The owner's creator codes (Sales page): list them, add or change one, record a payout. */
   async function creatorsApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
@@ -1146,8 +1154,16 @@ export async function createAccounts(
             // An invite whose new player has just confirmed their email.
             if (await settleInvite(db, user.id)) me.wallet = await walletOf(db, user.id);
             me.invite = { code: await friendCode(db, user.id), ...(await inviteStatus(db, user.id, user.createdAt)) };
+            // Invite rewards that came in since they last looked (told once), for a "you got coins" pop-up.
+            const news = await inviteNews(db, user.id);
+            if (news) {
+              me.inviteNews = news;
+              me.owned = await ownedItems(db, user.id);
+              me.wallet = await walletOf(db, user.id);
+            }
             // A creator with a code (server/creators.ts): their own numbers, totals only.
             const creator = await creatorCodeOf(db, user.id);
+            if (creator && (await isCreator(db, user.id))) me.creatorBadge = true;
             if (creator) {
               const [r] = await creatorReports(db, creator);
               me.creator = { code: r.code, percent: r.percent, months: r.months, players: r.players, payers: r.payers, totals: r.totals };
@@ -1183,6 +1199,17 @@ export async function createAccounts(
           await reportCpuMatch(req, res);
         } else if (path === '/api/invite' && req.method === 'POST') {
           await inviteApi(req, res);
+        } else if (path === '/api/invite/peek' && req.method === 'GET') {
+          // Public (an invite link opened before signing up): what the code is worth. Never a player's name.
+          const ip = clientIp(req);
+          const now = Date.now();
+          const recent = (peekTries.get(ip) ?? []).filter((t) => now - t < 60_000);
+          if (recent.length >= 20) json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+          else {
+            peekTries.set(ip, [...recent, now]);
+            if (peekTries.size > 10_000) peekTries.clear();
+            json(res, 200, await peekInvite(db, new URL(req.url ?? '', 'http://x').searchParams.get('code')));
+          }
         } else if ((path === '/api/admin/creators' && (req.method === 'GET' || req.method === 'POST')) || (path === '/api/admin/creators/paid' && req.method === 'POST')) {
           await creatorsApi(req, res, path);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
@@ -1223,12 +1250,13 @@ export async function createAccounts(
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' }> {
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' | 'creator' }> {
       // The sign-in cookie (website, Android app), else a ticket (iOS app).
       const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
       if (!userId) return { owned: [] };
       const r = (await ratingsOf(db, [userId])).get(userId)!;
-      const badge = await packBadge(db, userId);
+      // A creator's ⭐ comes first; then 🌱 or 🐣.
+      const badge = (await isCreator(db, userId)) ? 'creator' : await packBadge(db, userId);
       return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...(badge ? { badge } : {}) };
     },
     /** The game server says who's online and passes on invites. */

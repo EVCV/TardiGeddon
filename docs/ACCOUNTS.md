@@ -81,13 +81,22 @@ free without an account.
   Once the new player has confirmed their email and finished 3 matches,
   `settleInvite` gives both 100 free coins (free `coin_lot`s, so never counted
   as paid), the inviter for up to 10 friends a calendar month (UTC). It runs on `/api/me` and after
-  each match. Tries are limited to 5 a minute per player.
+  each match. Tries are limited to 5 a minute per player. Each side is told
+  once, with a pop-up (`invite.invitee_seen` / `inviter_seen`, reported as
+  `/api/me`'s `inviteNews`; `ui/rewardPop.ts`). An invite link opened while
+  signed out shows what the code is worth (`GET /api/invite/peek?code=`,
+  20 a minute per address; a creator's name, never a player's).
 - **Creator codes** (Terms 5.12; `server/creators.ts`): the owner adds a
   creator on the Sales page (code like `NINJA`, a name, optionally the email
   of their game account so they see their numbers on the Account page).
   Players type the code where a friend's code goes (or open
-  `…/play/?invite=NINJA`) in their first 7 days and get the usual invite
-  coins (`creator_player` records it; the `invite` row has no inviter). The
+  `…/play/?invite=NINJA`) in their first 7 days and get the creator reward:
+  `CREATOR_INVITE_COINS` (500) and the Superfan pack (`FAN_ITEMS`: hat, aim,
+  explosion; never sold), on the same terms as a friend's invite
+  (`creator_player` records it; the `invite` row has no inviter). A creator
+  whose account is linked shows a ⭐ (`isCreator`; it wins over 🌱/🐣
+  online) and may wear the creator medal emblem (`CREATOR_SHAPES`; the game
+  server swaps it for a plain one on anyone else's team). The
   creator earns `percent` (10) of an estimated net (`NET_SHARE`: less 20%
   VAT and 15% store or 5% Stripe fees) of what those players pay, for
   `months` (12) after each joins, worked out from `purchase` each time (a

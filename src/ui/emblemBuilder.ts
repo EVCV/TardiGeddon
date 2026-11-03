@@ -1,7 +1,8 @@
 // The team emblem builder: pick a shape, a picture, two colours and a
 // pattern from ready-made parts, or roll the dice. Free for everyone.
 
-import { EMBLEM_COLORS, EMBLEM_ICONS, EMBLEM_PATTERNS, EMBLEM_SHAPES, emblemString, emblemSvg, parseEmblem, randomEmblem, type Emblem } from '../render/emblems';
+import { CREATOR_SHAPES, EMBLEM_COLORS, EMBLEM_ICONS, EMBLEM_PATTERNS, EMBLEM_SHAPES, emblemString, emblemSvg, parseEmblem, randomEmblem, type Emblem } from '../render/emblems';
+import { account } from '../account/session';
 import { hex } from '../render/palette';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
@@ -20,7 +21,7 @@ const PATTERN_NAMES: Record<(typeof EMBLEM_PATTERNS)[number], string> = {
 /** The shapes' names (English: shown with t()). */
 const SHAPE_NAMES: Record<(typeof EMBLEM_SHAPES)[number], string> = {
   circle: tk('circle'), shield: tk('shield'), square: tk('square'), hexagon: tk('hexagon'), diamond: tk('diamond'),
-  star: tk('star'), heart: tk('heart'), pennant: tk('pennant'), cloud: tk('cloud'), burst: tk('burst'),
+  star: tk('star'), heart: tk('heart'), pennant: tk('pennant'), cloud: tk('cloud'), burst: tk('burst'), medal: tk('creator medal'),
 };
 
 /** Draw the builder into `box`; `onChange` gets the new emblem string. */
@@ -53,9 +54,12 @@ export function renderEmblemBuilder(box: HTMLElement, current: string, onChange:
     b.onclick = click;
     return b;
   };
-  row(t('Shape'), EMBLEM_SHAPES.map((shape, i) => {
+  // The creator medal is only for creators (⭐).
+  const creator = account().me?.creatorBadge === true;
+  row(t('Shape'), EMBLEM_SHAPES.flatMap((shape, i) => {
+    if (CREATOR_SHAPES.includes(i) && !creator && i !== e.shape) return [];
     const name = t(SHAPE_NAMES[shape]);
-    return choice(i === e.shape, name, emblemSvg(emblemString({ ...e, shape: i }), name), () => set('shape', i));
+    return [choice(i === e.shape, name, emblemSvg(emblemString({ ...e, shape: i }), name), () => set('shape', i))];
   }));
   row(t('Picture'), EMBLEM_ICONS.map((icon, i) => {
     const b = choice(i === e.icon, t('Picture {n}', { n: i + 1 }), null, () => set('icon', i), ' emblem-icon');

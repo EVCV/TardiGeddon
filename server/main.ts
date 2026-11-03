@@ -2,6 +2,7 @@
 // matches simulated here at 50 Hz. Run with `npm run server`
 // (PORT defaults to 8787).
 
+import { creatorOnlyEmblem } from '../src/render/emblems';
 import { createServer } from 'node:http';
 import { createHmac, randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -358,6 +359,8 @@ wss.on('connection', (ws: WebSocket, req) => {
       if (msg.v !== PROTOCOL_VERSION) return fail(tk('Please reload the page: the game has been updated.'));
       // Shop hats only for players who own them.
       msg.team = wearableTeam(msg.team, ownedItems);
+      // The creator medal emblem only for creators (⭐): anyone else gets a plain one.
+      if (msg.team && typeof msg.team === 'object' && creatorOnlyEmblem((msg.team as { emblem?: string }).emblem) && member.badge !== 'creator') msg.team = { ...msg.team, emblem: undefined };
       // Counted only when the game says so: older games never say, so they aren't counted.
       member.stats = msg.stats === true;
       if (msg.t === 'create' && !mayCreate()) return;
