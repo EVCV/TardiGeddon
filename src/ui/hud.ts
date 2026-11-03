@@ -486,7 +486,7 @@ export class Hud {
     if (blurb) {
       hint = blurb;
     } else if (humanTurn && turn.phase === 'aim' && me && s.race && !me.rope) {
-      hint = t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds });
+      hint = s.scheme.raceRounds > 1 ? t('Rope your way to the flag! Try {n} of {total}', { n: Math.ceil(turn.turnNumber / s.teams.length), total: s.scheme.raceRounds }) : t('Rope your way to the flag! Mind the mines.');
     } else if (help && humanTurn && turn.phase === 'aim' && me) {
       if (me.rope) hint = t('←/→ swing · ↑/↓ climb · Jump or Fire to let go');
       else if (def.kind === 'rope') hint = tap ? t('Drag from your tardigrade to aim, then Fire to shoot a silk line') : t('Aim, then Fire to shoot a silk line');

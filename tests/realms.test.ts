@@ -74,13 +74,18 @@ describe('weather', () => {
     s.weather.rng.a = a;
     s.scheme.crateChance = 0;
     const before = s.tardis.map((t) => [t.x, t.y]);
+    // Some start in caverns, under rock: those can't be thrown out, so they're set down.
+    const covered = s.tardis.filter((t) => {
+      for (let y = Math.round(t.y) - TARDI_R - 2; y >= 0; y--) if (s.terrain.mask[y * s.terrain.w + Math.round(t.x)]) return true;
+      return false;
+    }).length;
     runUntilPhase(s, 'aim');
     const ev: SimEvent[] = [];
     tick(s, { held: 0, pressed: 0, cmd: { t: 'skip' } }, ev);
     for (let i = 0; i < 3000 && !ev.some((e) => e.t === 'turnStart'); i++) tick(s, { held: 0, pressed: 0 }, ev);
     expect(ev.some((e) => e.t === 'tornado')).toBe(true);
-    // Thrown, not teleported: no teleports, and they flew high.
-    expect(ev.some((e) => e.t === 'teleport')).toBe(false);
+    // Thrown, not teleported (unless stuck under rock), and they flew high.
+    expect(ev.filter((e) => e.t === 'teleport').length).toBeLessThanOrEqual(covered);
     expect(s.tardis.filter((t, i) => Math.abs(t.x - before[i][0]) > 20).length).toBeGreaterThan(4);
     for (const t of s.tardis) {
       expect(circleCollides(s.terrain, t.x, t.y, TARDI_R)).toBe(false);
@@ -129,7 +134,7 @@ describe('weather', () => {
 });
 
 describe('armour', () => {
-  it('soaks up half of each hit until it is used up, then health takes it all', () => {
+  it('takes the whole of each hit while it lasts, then health takes the rest', () => {
     const s = createWorld({ seed: 4, teams: teams(2), scheme: { armour: 10, mapStyle: 'islands', mines: 0, drums: 0, crateChance: 0 } });
     const t = s.tardis[1];
     expect(t.armour).toBe(10);
@@ -138,10 +143,22 @@ describe('armour', () => {
     const ev: SimEvent[] = [];
     tick(s, { held: 0, pressed: 0, cmd: { t: 'skip' } }, ev);
     for (let i = 0; i < 3000 && !ev.some((e) => e.t === 'damage'); i++) tick(s, { held: 0, pressed: 0 }, ev);
-    // 30 damage: armour takes half (15), but only has 10.
+    // 30 damage: armour takes it all, but only has 10; health takes the other 20.
     expect(ev.find((e) => e.t === 'armour')).toEqual({ t: 'armour', id: t.id, amount: 10 });
     expect(t.armour).toBe(0);
     expect(t.hp).toBe(80);
+  });
+
+  it('a hit smaller than the armour leaves health untouched', () => {
+    const s = createWorld({ seed: 4, teams: teams(2), scheme: { armour: 50, mapStyle: 'islands', mines: 0, drums: 0, crateChance: 0 } });
+    const t = s.tardis[1];
+    runUntilPhase(s, 'aim');
+    t.pendingDmg = 30;
+    const ev: SimEvent[] = [];
+    tick(s, { held: 0, pressed: 0, cmd: { t: 'skip' } }, ev);
+    for (let i = 0; i < 3000 && !ev.some((e) => e.t === 'armour'); i++) tick(s, { held: 0, pressed: 0 }, ev);
+    expect(t.armour).toBe(20);
+    expect(t.hp).toBe(100);
   });
 
   it('is off unless the rules turn it on, and gone in sudden death', () => {

@@ -12,6 +12,7 @@ import { PALETTE, hex, shown, teamSymbol } from './palette';
 import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 import { arenaTheme, type ArenaTheme } from './arenas';
 import { WeatherView } from './weather';
+import { GroundWeather } from './groundWeather';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
@@ -69,6 +70,10 @@ export class GameRenderer {
   private hills = new Container();
   private hillsNear = new Container();
   private terrainView: TerrainView;
+  /** Snow settling and puddles growing on the land (weather). */
+  private ground: GroundWeather;
+  /** The land carrying on down under the water, so islands stand in the sea, not float on it. */
+  private roots = new Graphics();
   private entities = new Container();
   private projectiles = new Graphics();
   private overlay = new Graphics();
@@ -121,11 +126,15 @@ export class GameRenderer {
     this.weather = new WeatherView(state.weather.kind, state.terrain.w, !!theme.drift);
     app.stage.addChild(this.weather.back);
     this.terrainView = new TerrainView(state.terrain, theme);
+    this.ground = new GroundWeather(state.terrain, state.weather.kind);
+    this.drawRoots();
     this.world.addChild(
       this.hills,
       this.hillsNear,
       this.waterBack,
+      this.roots,
       this.terrainView.root,
+      this.ground.root,
       this.markers,
       this.course,
       this.objectLayer,
@@ -143,7 +152,7 @@ export class GameRenderer {
         // Popped before this view was made (a replay of the winning shot, a rejoin): its gravestone, not a tardi on 0.
         const grave = state.teams[t.team].grave;
         const color = shown(state.teams[t.team].color);
-        if (t.y < state.waterY) this.markers.addChild(grave === 'classic' ? makeHusk(t.x, t.y, color) : makeGrave(t.x, t.y, color, grave));
+        if (t.y < state.waterY && t.x > 0 && t.x < state.terrain.w) this.markers.addChild(grave === 'classic' ? makeHusk(t.x, t.y, color) : makeGrave(t.x, t.y, color, grave));
         continue;
       }
       const v = new TardiView(t, shown(state.teams[t.team].color), state.teams[t.team].hat, state.teams[t.team].skin, state.teams[t.team].dance, teamSymbol(state.teams[t.team].color));
@@ -211,7 +220,12 @@ export class GameRenderer {
       switch (e.t) {
         case 'explosion':
           this.watchAt(e.x, e.y, WATCH_HOLD);
-          this.terrainView.crater(e.x, e.y, e.r, e.rect);
+          // Rope Race blasts leave the course as it is (an empty rect): no crater to draw.
+          if (e.rect.w > 0) {
+            this.terrainView.crater(e.x, e.y, e.r, e.rect);
+            this.ground.landChanged();
+            if (e.rect.y + e.rect.h >= this.state.terrain.h - 1) this.drawRoots();
+          }
           this.spawnExplosion(e.x, e.y, e.r, this.state.teams[e.team]?.fx);
           break;
         case 'shot':
@@ -267,11 +281,18 @@ export class GameRenderer {
           }
           break;
         }
+        case 'swim':
+          // The easter egg: it can swim! Then it climbs out.
+          this.floatText(e.out ? tr(tk('Phew!')) : tr(tk('It can swim!')), e.x, e.y - 24, 0xffffff);
+          this.watchAt(e.x, e.y, WATCH_HOLD);
+          break;
         case 'drown': {
           const t = this.state.tardis.find((x) => x.id === e.id);
           if (t) {
-            this.floatText(tr(tk('Bye-bye!')), t.x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
-            this.watchAt(t.x, Math.min(t.y, this.state.waterY), WATCH_HOLD);
+            // Off the side of the map: say so at the edge, where it can be seen.
+            const x = Math.max(30, Math.min(this.state.terrain.w - 30, t.x));
+            this.floatText(tr(tk('Bye-bye!')), x, Math.min(t.y, this.state.waterY) - 20, 0xffffff);
+            this.watchAt(x, Math.min(t.y, this.state.waterY), WATCH_HOLD);
           }
           break;
         }
@@ -285,6 +306,7 @@ export class GameRenderer {
           break;
         case 'burn':
           this.terrainView.crater(e.x, e.y, 2.5, e.rect);
+          this.ground.landChanged();
           break;
         case 'gas':
           // Lingering green cloud
@@ -301,6 +323,7 @@ export class GameRenderer {
           break;
         case 'terrain':
           this.terrainView.repaint(e.rect);
+          this.ground.landChanged();
           break;
         case 'punch':
           this.particles.push({ x: e.x, y: e.y, vx: 0, vy: 0, life: 0.2, max: 0.2, r: 14, color: 0xfff6c2, kind: 'flash' });
@@ -545,6 +568,7 @@ export class GameRenderer {
     this.sky.height = height;
     this.drawAmbient(width, height, dt);
     this.weather.update(dt, width, height, s.wind, s.waterY);
+    this.ground.update(dt, s.waterY);
 
     // Tardis
     const active = activeTardi(s);
@@ -562,7 +586,9 @@ export class GameRenderer {
         this.pop(t.id, v.root.x, v.root.y, shown(s.teams[t.team].color), s.teams[t.team].grave);
         continue;
       }
-      if (!t.alive && t.y > s.waterY) {
+      if (!t.alive && !this.dying.has(t.id)) {
+        // Out of the game without a pop: drowned, or knocked off the side of the
+        // map (that counts as drowned). Not left hanging in the air on 0.
         v.root.visible = false;
         continue;
       }
@@ -753,7 +779,7 @@ export class GameRenderer {
         this.drawMarker(ov, cx, cy, 7, color, style);
         if (s.turn.charging && def.kind === 'charge' && s.scheme.aimGuide > 0) {
           // Shot-path guide (a match rule): dots along where it would fly at this power.
-          const path = predictPath(s, def.id, active, s.turn.aim, s.turn.power, s.turn.fuseSeconds * 50, s.scheme.aimGuide >= 2 ? 300 : 30);
+          const path = predictPath(s, def.id, active, s.turn.aim, s.turn.power, s.turn.fuseSeconds * 50, s.scheme.aimGuide >= 2 || def.projectile?.homing ? 300 : 30);
           const ox = ap.x - active.x;
           const oy = ap.y - active.y;
           path.forEach((q, i) => {
@@ -911,6 +937,45 @@ export class GameRenderer {
     }
   }
 
+  /**
+   * Where the land reaches the bottom of the map (under the water), it carries
+   * on down out of sight, spreading out a little like the foot of a hill, in
+   * the soil's colours: through the water it looks like an island standing
+   * in the sea instead of a lump floating on it.
+   */
+  private drawRoots(): void {
+    const t = this.state.terrain;
+    const g = this.roots;
+    g.clear();
+    const y0 = t.h - 1;
+    const depth = 900;
+    const [outline, soil, , light] = this.theme.soil;
+    // Runs of land along the bottom row; small gaps (a cave reaching the bottom) are filled in.
+    const runs: [number, number][] = [];
+    for (let x = 0; x < t.w; ) {
+      if (!isSolid(t, x, y0)) {
+        x++;
+        continue;
+      }
+      const x0 = x;
+      while (x < t.w && isSolid(t, x, y0)) x++;
+      const last = runs[runs.length - 1];
+      if (last && x0 - last[1] < 40) last[1] = x;
+      else runs.push([x0, x]);
+    }
+    runs.forEach(([x0, x1], i) => {
+      // Spread out with depth (a third as much as it goes down), but never into the next one.
+      const roomL = i > 0 ? (x0 - runs[i - 1][1]) / 2 : depth;
+      const roomR = i < runs.length - 1 ? (runs[i + 1][0] - x1) / 2 : depth;
+      const l = Math.min(depth / 3, roomL);
+      const r = Math.min(depth / 3, roomR);
+      g.poly([x0, y0 - 2, x1, y0 - 2, x1 + r, y0 + depth, x0 - l, y0 + depth]).fill(soil);
+      g.moveTo(x0, y0 - 2).lineTo(x0 - l, y0 + depth).moveTo(x1, y0 - 2).lineTo(x1 + r, y0 + depth).stroke({ width: 3, color: outline });
+      // A few pebbles, so it reads as the same rock.
+      for (let px = x0 + 8; px < x1 - 8; px += 37) g.circle(px, y0 + 18 + ((px * 13) % 30), 3 + ((px * 7) % 3)).fill(light);
+    });
+  }
+
   /** Twinkling stars, falling snow or rising embers (arena themes). */
   private drawAmbient(width: number, height: number, dt: number): void {
     const g = this.ambient;
@@ -1039,6 +1104,7 @@ export class GameRenderer {
     this.world.destroy({ children: true });
     // The terrain and sky are big canvas textures, made per match: free them, or each match leaves its copy on the GPU.
     this.terrainView.destroy();
+    this.ground.destroy();
     this.weather.destroy();
     this.sky.destroy({ texture: true, textureSource: true });
     for (const layer of [this.hills, this.hillsNear]) for (const c of layer.children) if (c instanceof Sprite) c.texture.destroy(true);

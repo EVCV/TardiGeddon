@@ -10,6 +10,7 @@ import { cloneWorld, girderFits, launchVelocity, ropeTrace, stepProjectile, acti
 import { circleCollides, surfaceBelow } from '../sim/terrain/terrain';
 import { BTN_DOWN, BTN_FIRE, BTN_LEFT, BTN_RIGHT, BTN_UP, EMPTY_INPUT, PRESS_JUMP, TICK_RATE, type InputFrame, type Projectile, type SimEvent, type Tardi, type WorldState } from '../sim/types';
 import { WEAPONS } from '../sim/weapons';
+import { planRace } from './race';
 
 export { CPU_SKILLS, type CpuSkill } from './skills';
 import type { CpuSkill } from './skills';
@@ -97,6 +98,9 @@ export class CpuPlayer {
   private tapped = false;
   /** The weapons it used last (newest first): it likes a change. */
   private recent: string[] = [];
+  /** Rope Race: the run being worked out, and the frames it settled on. */
+  private racing: Generator<void, InputFrame[] | null> | null = null;
+  private raceFrames: InputFrame[] = [];
 
   private readonly base: SkillDef;
   private skill: SkillDef;
@@ -116,6 +120,64 @@ export class CpuPlayer {
     this.skill = this.base;
   }
 
+  /**
+   * Rope Race: work out the run (ai/race.ts) while standing still, then press
+   * exactly those buttons. If the plan stops short, it waits to land and plans
+   * again from there.
+   */
+  private raceNext(s: WorldState): InputFrame {
+    const turn = s.turn;
+    if (this.planTurn !== turn.turnNumber) {
+      this.planTurn = turn.turnNumber;
+      this.skill = this.turnSkill();
+      this.racing = null;
+      this.raceFrames = [];
+      // A moment to look at the course first.
+      this.think = this.skill.human ? 40 + Math.floor(Math.random() * 50) : 10;
+    }
+    if (this.think > 0) {
+      // A person looks first (standing still, so the plan still fits the world it plays in).
+      this.think--;
+      if (!this.racing && !this.raceFrames.length) {
+        const t = activeTardi(s);
+        if (t && !t.airborne) this.startRacePlan(s);
+      }
+      this.stepRacePlan();
+      return EMPTY_INPUT;
+    }
+    if (this.raceFrames.length) return this.raceFrames.shift()!;
+    if (!this.racing) {
+      // Plan only from a standstill, so the world it plans on is the one it plays.
+      const t = activeTardi(s);
+      if (!t || t.airborne) return EMPTY_INPUT;
+      this.startRacePlan(s);
+    }
+    this.stepRacePlan();
+    // Still working it out: stand still meanwhile.
+    return this.racing ? EMPTY_INPUT : (this.raceFrames.shift() ?? EMPTY_INPUT);
+  }
+
+  private startRacePlan(s: WorldState): void {
+    const sloppy = this.skill.human ? Math.min(0.6, this.skill.spread / 400) : 0;
+    this.racing = planRace(s, sloppy);
+  }
+
+  /** Work on the run for a slice of this tick. */
+  private stepRacePlan(): void {
+    if (!this.racing) return;
+    const end = performance.now() + this.sliceMs;
+    for (;;) {
+      const r = this.racing.next();
+      if (r.done) {
+        this.racing = null;
+        // Nothing works from here: hop forward and try again.
+        this.raceFrames = r.value ?? [{ held: BTN_RIGHT, pressed: PRESS_JUMP }];
+        return;
+      }
+      if (performance.now() >= end) return;
+    }
+  }
+
   /** This turn's skill: usually as chosen, sometimes nudged by the player's form. */
   private turnSkill(): SkillDef {
     const b = this.base;
@@ -128,6 +190,7 @@ export class CpuPlayer {
   next(s: WorldState): InputFrame {
     const turn = s.turn;
     if (turn.phase !== 'aim') return EMPTY_INPUT;
+    if (s.race) return this.raceNext(s);
     // Walking: the worked-out frames play on even mid-hop, exactly as simulated.
     if (this.walkFrames && this.planTurn === turn.turnNumber && this.walkFrames.length) return this.walkFrames.shift()!;
     const t = activeTardi(s);

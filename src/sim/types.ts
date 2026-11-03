@@ -53,7 +53,7 @@ export interface Scheme {
   supers: number;
   /** Rope Race: no fighting, race from the start to the flag; fastest time wins. */
   race: boolean;
-  /** Rope Race: how many attempts each team gets. */
+  /** Rope Race: how many attempts each team gets (1 by default: one go each). */
   raceRounds: number;
   /** false = a team's own weapons don't hurt (or push) its own tardigrades. */
   friendlyFire: boolean;
@@ -106,7 +106,7 @@ export const DEFAULT_SCHEME: Scheme = {
   movement: true,
   supers: 0,
   race: false,
-  raceRounds: 3,
+  raceRounds: 1,
   friendlyFire: true,
   armour: 0,
   weather: true,
@@ -140,6 +140,11 @@ export interface Tardi {
   poison: boolean;
   /** Armour plates left: damage comes off these before health (Scheme.armour). */
   armour: number;
+  /**
+   * Swimming (an easter egg: now and then a tardigrade that falls in the water
+   * paddles to the shore instead of drowning): ticks it can keep going, 0 = not swimming.
+   */
+  swim: number;
 }
 
 export type ObjectKind = 'mine' | 'drum' | 'crate';
@@ -163,6 +168,8 @@ export interface MapObject {
   /** Crates: 'health' or a weapon id. */
   contents: string;
   amount: number;
+  /** Rope Race floating mines: hang in mid-air, never fall or get pushed. */
+  floating?: boolean;
 }
 
 /** A burning blob of sap (fire) or acid. Falls, settles, burns what it touches. */
@@ -241,6 +248,8 @@ export interface RaceState {
   goalY: number;
   /** Best time per team, in ticks (-1 = not finished yet). */
   best: number[];
+  /** Mines on the course (Scheme.mines): all back in place for every attempt, so every racer meets the same ones. */
+  hazards: { x: number; y: number; floating: boolean }[];
 }
 
 export interface Team {
@@ -318,6 +327,8 @@ export type SimEvent =
   | { t: 'shot'; x0: number; y0: number; x1: number; y1: number }
   | { t: 'splash'; x: number }
   | { t: 'drown'; id: number }
+  /** Fell in, but swims for it (Tardi.swim); `out` when it climbs out on the shore. */
+  | { t: 'swim'; id: number; x: number; y: number; out: boolean }
   | { t: 'damage'; id: number; amount: number }
   /** Leech Lobber: the shooter got some health back. */
   | { t: 'heal'; id: number; amount: number }

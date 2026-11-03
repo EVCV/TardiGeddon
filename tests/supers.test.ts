@@ -54,7 +54,7 @@ describe('Holy Water Droplet', () => {
     const early = run(s, 100);
     expect(early.some((e) => e.t === 'explosion')).toBe(false);
     const ev = run(s, 60);
-    expect(ev.some((e) => e.t === 'explosion' && e.r === 90)).toBe(true);
+    expect(ev.some((e) => e.t === 'explosion' && e.r === 115)).toBe(true);
     expect(activeTeam(s).ammo.holywater).toBe(0);
   });
 });
@@ -71,7 +71,7 @@ describe('Concrete Tun', () => {
     expect(s.projectiles.some((p) => p.weapon === 'tun')).toBe(true);
     const ev: SimEvent[] = [];
     for (let i = 0; i < 600 && s.projectiles.length > 0; i++) tick(s, { held: 0, pressed: 0 }, ev);
-    const blasts = ev.filter((e) => e.t === 'explosion' && e.r === 36);
+    const blasts = ev.filter((e) => e.t === 'explosion' && e.r === 44);
     expect(blasts.length).toBe(6);
     // Each slam is deeper than the last.
     const ys = blasts.map((e) => (e.t === 'explosion' ? e.y : 0));
@@ -87,7 +87,7 @@ describe('Microscope Slide Slam', () => {
     select(s, 'slideslam');
     tick(s, { held: BTN_FIRE, pressed: 0 }, []);
     const shards = s.projectiles.filter((p) => p.weapon === 'shard');
-    expect(shards.length).toBe(16); // 8 per 1000 px on a 2000 px map
+    expect(shards.length).toBe(20); // 10 per 1000 px on a 2000 px map
     const xs = shards.map((p) => p.x);
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(1000);
     const ev = runUntilPhase(s, 'start', 3000);

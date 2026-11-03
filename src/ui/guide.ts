@@ -111,7 +111,7 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       ],
     ),
     card('weapons', t('🎯 Kinds of weapon'), [
-      t('**Hold Fire, let go:** most weapons. Aim with ▲▼ (or drag from your tardigrade), hold Fire to charge, let go to shoot. Yellow dots show where the shot will fly (Match setup → Customise → Shot path guide). Rather not hold? Settings → Accessibility → Tap to fire.'),
+      t('**Hold Fire, let go:** most weapons. Aim with ▲▼ (or drag from your tardigrade), hold Fire to charge, let go to shoot. Yellow dots show where the shot will fly (Match setup → Customise → Shot path guide). Rather not hold? Settings → Game controls → Tap to fire.'),
       t('**Grenades and bombs** have a fuse: set it with the ⏱ button or keys 1–5.'),
       t('**Pick a spot:** strikes, Teleport and the Twig Girder. Tap or click the map to choose where, then press Fire. There’s no aiming, so ▲▼ disappear.'),
       t('**Twig Girder:** tap where to build, turn it with ▲▼, then Fire. It can rest on the ground or bridge a gap, but not be buried in it, or go through a tardigrade.'),
@@ -122,7 +122,7 @@ export function renderGuidePage(ctx: HubContext, onTutorial: () => void, onPract
       t('**Brine drums:** barrels of salty water. Hit one hard enough (one good blast) and it bursts: a big bang, then a spray of brine blobs that pop wherever they land. Keep your own team away from them, and use them to hurt anyone standing close.'),
       t('**Crates:** float down on parachutes. Walk into one to take it: weapon crates give you extra ammo, health crates heal and cure poison. A blast breaks crates open.'),
       t('**Poison** (the Cyanobloom Cloud) takes a little health at the start of every turn, but never pops a tardigrade on its own.'),
-      t('**Armour** (the Armoured game style, or Customise → Armour): the grey +number by a tardigrade’s health. It takes half of each hit until it’s used up, and is gone in sudden death.'),
+      t('**Armour** (the Armoured game style, or Customise → Armour): the grey +number by a tardigrade’s health. It takes the whole of each hit until it’s used up (health only goes down after that), and is gone in sudden death.'),
     ]),
     card('realms', t('🌍 Maps and weather'), [
       t('**Every match is a different kind of map:** {maps}. Pick one in Match setup → Customise → Map, or leave it on Surprise me.', { maps: MAP_STYLES.map((m) => t(m.name)).join(', ') }),

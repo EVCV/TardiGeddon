@@ -15,6 +15,20 @@ function drawMine(g: Graphics): void {
   g.ellipse(-1.5, -0.5, 2, 1).fill({ color: 0xffffff, alpha: 0.35 });
 }
 
+/** Rope Race: a mine held up in mid-air by a puffy spore balloon. */
+function drawFloatingMine(g: Graphics): void {
+  g.moveTo(0, -3).quadraticCurveTo(2, -8, 0, -12).stroke({ width: 1.2, color: O });
+  g.circle(0, -17, 6).fill(0xf2b8d8).stroke({ width: 1.4, color: O });
+  g.circle(-2, -19, 1.6).fill({ color: 0xffffff, alpha: 0.6 });
+  // Spikes all round: don't touch.
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    g.moveTo(Math.cos(a) * 4, 1 + Math.sin(a) * 3).lineTo(Math.cos(a) * 8, 1 + Math.sin(a) * 6).stroke({ width: 1.6, color: O });
+  }
+  g.ellipse(0, 1, 6, 4).fill(0x4a4658).stroke({ width: 1.4, color: O });
+  g.ellipse(-1.5, -0.5, 2, 1).fill({ color: 0xffffff, alpha: 0.35 });
+}
+
 function drawDrum(g: Graphics): void {
   g.roundRect(-7, -8, 14, 16, 3).fill(0x3a8fd6).stroke({ width: 1.6, color: O });
   g.moveTo(-7, -3).lineTo(7, -3).moveTo(-7, 3).lineTo(7, 3).stroke({ width: 1.2, color: 0x1f5e99 });
@@ -46,7 +60,8 @@ export class ObjectView {
 
   constructor(o: MapObject) {
     const g = new Graphics();
-    if (o.kind === 'mine') drawMine(g);
+    if (o.kind === 'mine' && o.floating) drawFloatingMine(g);
+    else if (o.kind === 'mine') drawMine(g);
     else if (o.kind === 'drum') drawDrum(g);
     else drawCrate(g, o.contents === 'health');
     this.root.addChild(g);
@@ -59,7 +74,8 @@ export class ObjectView {
   }
 
   update(o: MapObject, x: number, y: number, time: number): void {
-    this.root.position.set(x, y);
+    // Floating mines bob gently on their balloons.
+    this.root.position.set(x, o.floating ? y + Math.sin(time * 2 + o.id) * 2 : y);
     this.chute.visible = o.chute;
     if (o.chute) this.chute.rotation = Math.sin(time * 2.5 + o.id) * 0.12;
     if (o.kind === 'mine') {

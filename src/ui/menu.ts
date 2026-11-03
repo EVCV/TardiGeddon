@@ -81,9 +81,18 @@ interface Field {
   options: [string, number | boolean | string][];
   /** What it means, on hover. */
   hint?: string;
+  /** Only shown for Rope Race rules. */
+  raceOnly?: boolean;
 }
 
 const FIELDS: Field[] = [
+  {
+    key: 'raceRounds',
+    label: tk('Goes each'),
+    options: [['1', 1], ['2', 2], ['3', 3], ['5', 5]],
+    hint: tk('Rope Race: how many goes each team gets. The best time of all its goes counts.'),
+    raceOnly: true,
+  },
   { key: 'tardisPerTeam', label: tk('Tardigrades per team'), options: [['2', 2], ['3', 3], ['4', 4]] },
   { key: 'turnTime', label: tk('Turn time'), options: [[tk('20s'), 20], [tk('30s'), 30], [tk('45s'), 45], [tk('60s'), 60], [tk('90s'), 90]] },
   { key: 'roundTime', label: tk('Sudden death after'), options: [[tk('3 min'), 3], [tk('5 min'), 5], [tk('10 min'), 10], [tk('15 min'), 15], [tk('20 min'), 20]] },
@@ -111,7 +120,7 @@ const FIELDS: Field[] = [
     key: 'armour',
     label: tk('Armour'),
     options: [[tk('None'), 0], [tk('Light'), 25], [tk('Heavy'), 50]],
-    hint: tk('Armour plates soak up half of each hit until they are used up.'),
+    hint: tk('Armour plates take every hit until they are used up; only then does health go down.'),
   },
   {
     key: 'aimGuide',
@@ -339,6 +348,7 @@ export function buildLobby(
     keepPlaceAfter(root);
     panel.innerHTML = '';
     for (const base of FIELDS) {
+      if (base.raceOnly && !sc.race) continue;
       const label = document.createElement('label');
       label.textContent = t(base.label);
       if (base.hint) label.title = t(base.hint);

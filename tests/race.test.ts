@@ -53,17 +53,19 @@ describe('Rope Race', () => {
     expect(s.turn.phase).toBe('settle');
   });
 
-  it('a dunking sends you back to the start instead of killing you', () => {
+  it('a dunking sends you back to the start instead of killing you, and the clock keeps running', () => {
     const s = race();
     runUntilPhase(s, 'aim');
     const t = activeTardi(s)!;
     t.x = s.race!.goalX - 300;
     t.y = s.waterY + 20;
+    const timer = s.turn.timer;
     const ev = run(s, 1);
     expect(ev.some((e) => e.t === 'drown')).toBe(true);
     expect(t.alive).toBe(true);
     expect(t.x).toBe(s.race!.startX);
-    expect(s.turn.phase).toBe('settle');
+    expect(s.turn.phase).toBe('aim');
+    expect(s.turn.timer).toBe(timer - 1);
   });
 
   it('ends after the set number of tries, fastest best time winning', () => {
@@ -162,8 +164,10 @@ describe('Rope Race courses', () => {
       else times.push(time);
     }
     // The bot is crude (a person aims better when caught in a pit), but it
-    // still gets round almost every course well inside the 60 seconds.
-    expect(stuck).toBeLessThanOrEqual(3);
+    // still gets round almost every course well inside the 60 seconds. (The
+    // hard courses are meant to be hard: the CPU racer, tests/racecpu.test.ts,
+    // gets round them.)
+    expect(stuck).toBeLessThanOrEqual(6);
     expect(times.reduce((a, b) => a + b, 0) / times.length).toBeLessThan(25);
     // Some courses are quick, some take a lot longer: a mix of easy and hard.
     expect(Math.max(...times)).toBeGreaterThan(3 * Math.min(...times));
@@ -205,7 +209,8 @@ function unstick(s: WorldState, t: Tardi): Command {
  * finish pad, drops and walks to the flag. Returns seconds taken, or -1.
  */
 function ropeBot(seed: number): number {
-  const s = race(seed);
+  // The course itself: no mines in the way.
+  const s = createWorld({ seed, teams: [{ name: 'A', color: 1, cpu: false }, { name: 'B', color: 2, cpu: false }], scheme: { ...presetScheme('roperace'), mines: 0 } });
   runUntilPhase(s, 'aim');
   const start = s.tick;
   let prevFire = false;

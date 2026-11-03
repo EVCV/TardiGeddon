@@ -114,11 +114,19 @@ export function generateMap(o: MapOptions): Terrain {
  * little) above it, so from anywhere on the course the Silk Rope (ROPE_MAX,
  * 320) catches it ahead of you, and stretches that make each course its own.
  * Wide flat ground at the start and the flag, and a wall at each end.
+ *
+ * Every course has its own difficulty (more and wider pits, more of the hard
+ * stretches) and may climb or drop from start to flag. Some stretches give a
+ * choice of route: over or under a band of floating rocks.
  */
 function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
   const big = lattice1D(rng, o.w, 400);
   const small = lattice1D(rng, o.w, 60);
   const bumps = lattice1D(rng, o.w, 50);
+  /** 0 easy, 1 medium, 2 hard. */
+  const hard = rngInt(rng, 0, 2);
+  /** Climbs (+) or drops (-) this much from start to flag. */
+  const tilt = (rngFloat(rng) - 0.5) * (120 + 90 * hard);
   const base = o.h * 0.62;
   const end = o.w - MARGIN;
   // Where the ground is: a start pad, then pits and platforms, then the finish pad.
@@ -126,29 +134,35 @@ function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
   let x = MARGIN + RACE_PAD;
   ground.fill(1, MARGIN, x);
   while (x < end - RACE_PAD) {
-    x += rngFloat(rng) < 0.2 ? rngInt(rng, 200, 250) : rngInt(rng, 90, 190); // a pit, now and then a wide one
-    let to = Math.min(x + rngInt(rng, 130, 320), end);
+    x += rngFloat(rng) < 0.15 + 0.12 * hard ? rngInt(rng, 200, 250 + 20 * hard) : rngInt(rng, 90, 190); // a pit, now and then a wide one
+    let to = Math.min(x + rngInt(rng, 130 - 20 * hard, 320 - 60 * hard), end);
     if (to > end - RACE_PAD - 90) to = end; // no room for another pit: run on to the finish
     ground.fill(1, Math.min(x, end), to);
     x = to;
   }
   ground.fill(1, end - RACE_PAD, end);
-  // The ground's height: rolling, flattened at the pads.
+  // The ground's height: rolling, flattened at the pads, climbing or dropping along the way.
   const flat = (x: number): number => smooth(Math.max(0, Math.min(1, Math.min(x - MARGIN - RACE_PAD, end - RACE_PAD - x) / 200)));
-  const height = (x: number): number => base + (sample1D(big, x, 400) - 0.5) * 160 * flat(x);
+  const along = (x: number): number => Math.max(0, Math.min(1, (x - MARGIN) / (end - MARGIN))) - 0.5;
+  const height = (x: number): number => base - tilt * along(x) + (sample1D(big, x, 400) - 0.5) * 160 * flat(x);
   for (let x = MARGIN; x < end; x++) {
     if (ground[x]) fillDown(o, t, x, height(x) + (sample1D(small, x, 60) - 0.5) * 24 * flat(x), null, 1);
   }
   // Stretches with a twist, a different mix on every course: skylights (no
   // roof: fly across), high vaults where the rope only just reaches, low
-  // squeezes, the odd stalactite, and plain stretches. Each is short enough
-  // that the rope always catches something nearby.
+  // squeezes, the odd stalactite, plain stretches, and (more on harder
+  // courses) a gauntlet of stalactites under a high roof, and a split: a band
+  // of floating rocks to go over or under. Each is short enough that the
+  // rope always catches something nearby.
   const lift = new Float64Array(o.w); // raises (+) or lowers (-) the roof
   const open = new Uint8Array(o.w);
+  /** Rock drawn after the roof: [x0, x1, top(x), bottom(x)]. */
+  const extra: { x0: number; x1: number; top: (x: number) => number; bottom: (x: number) => number }[] = [];
   for (let fx = MARGIN + RACE_PAD + 80; ; ) {
-    fx += rngInt(rng, 60, 260);
-    const kind = rngInt(rng, 0, 4);
-    const w = kind === 0 ? rngInt(rng, 100, 200) : kind === 3 ? rngInt(rng, 30, 50) : rngInt(rng, 160, 320);
+    fx += rngInt(rng, 60, 260 - 50 * hard);
+    // Easy courses mostly get the first kinds; harder ones more of the last.
+    const kind = Math.min(6, rngInt(rng, 0, 4 + hard));
+    const w = kind === 0 ? rngInt(rng, 100, 200) : kind === 3 ? rngInt(rng, 30, 50) : kind >= 5 ? rngInt(rng, 300, 480) : rngInt(rng, 160, 320);
     if (fx + w > end - RACE_PAD - 80) break;
     for (let x = fx; x < fx + w; x++) {
       const ease = smooth(Math.min(1, Math.min(x - fx, fx + w - x) / 30));
@@ -156,6 +170,31 @@ function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
       else if (kind === 1) lift[x] = 55 * ease;
       else if (kind === 2) lift[x] = -90 * ease;
       else if (kind === 3) lift[x] = -70 * smooth(1 - Math.abs((2 * (x - fx)) / w - 1));
+      else if (kind >= 5) lift[x] = 170 * ease; // a high roof: out of reach from the ground
+    }
+    if (kind === 5) {
+      // Gauntlet: stalactites to swing from, one to the next.
+      for (let sx = fx + 40; sx < fx + w - 40; sx += rngInt(rng, 95, 135)) {
+        const half = rngInt(rng, 9, 15);
+        const tip = height(sx) - ROOF_GAP + rngInt(rng, -10, 30);
+        const cx = sx;
+        extra.push({ x0: sx - half, x1: sx + half, top: () => 0, bottom: (x) => tip - Math.abs(x - cx) * ((tip - (height(cx) - ROOF_GAP - 170)) / half) * 0.9 });
+      }
+    } else if (kind === 6) {
+      // Split: floating rocks halfway up: over them (roomy) or under them (tight, by the pits).
+      for (let rx = fx + 30; rx < fx + w - 60; ) {
+        const rw = rngInt(rng, 70, 120);
+        const mid = height(rx + rw / 2) - ROOF_GAP + 20 + rngInt(rng, -15, 15);
+        const x0 = rx;
+        const x1 = Math.min(rx + rw, fx + w - 30);
+        extra.push({
+          x0,
+          x1,
+          top: (x) => mid - 10 * smooth(1 - Math.abs((2 * (x - x0)) / (x1 - x0) - 1)),
+          bottom: (x) => mid + 6 + 22 * smooth(1 - Math.abs((2 * (x - x0)) / (x1 - x0) - 1)),
+        });
+        rx = x1 + rngInt(rng, 50, 95);
+      }
     }
     fx += w;
   }
@@ -166,6 +205,11 @@ function raceCourse(o: MapOptions, t: Terrain, rng: RngState): void {
     // Rock walls close the cave at both ends: no flying off past the flag.
     if (x < MARGIN + 10 || x >= end - 10) bottom = o.h;
     for (let y = 0; y < Math.floor(bottom); y++) t.mask[y * o.w + x] = 1;
+  }
+  for (const r of extra) {
+    for (let x = Math.max(0, Math.floor(r.x0)); x < Math.min(o.w, r.x1); x++) {
+      for (let y = Math.max(0, Math.floor(r.top(x))); y < Math.min(o.waterY - 40, r.bottom(x)); y++) t.mask[y * o.w + x] = 1;
+    }
   }
 }
 

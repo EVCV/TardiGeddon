@@ -657,6 +657,13 @@ export class Match {
           }
           break;
         case 'drown': sfx.gargle(); break;
+        case 'swim':
+          if (e.out) sfx.jump();
+          else {
+            findEgg('swimmer');
+            sfx.splash();
+          }
+          break;
         case 'finish': {
           sfx.collect();
           const tm = this.state.teams[e.team];

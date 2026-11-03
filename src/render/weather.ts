@@ -116,7 +116,9 @@ export class WeatherView {
       }
     }
 
-    // Rain and snow lean with the wind.
+    // Rain and snow lean with the wind, drawn like a cartoon: chunky outlined
+    // raindrops (a streak with a round drop at its head) and fat snowflakes,
+    // some round puffs and some six-armed stars, wobbling and turning as they fall.
     const rain = this.kind === 'rain' || this.kind === 'storm';
     for (const d of this.drops) {
       if (rain) {
@@ -132,13 +134,46 @@ export class WeatherView {
       }
       if (d.x < -0.02) d.x += 1.04;
       if (d.x > 1.02) d.x -= 1.04;
-      const x = d.x * width;
-      const y = d.y * height;
-      if (rain) f.moveTo(x, y).lineTo(x + wind * 6, y + 12);
-      else f.circle(x, y, d.r + 0.5);
     }
-    if (rain) f.stroke({ width: 1.4, color: 0xd8ecff, alpha: 0.55 });
-    else if (this.drops.length) f.fill({ color: 0xffffff, alpha: 0.9 });
+    if (rain) {
+      // Outline first, then the light inside on top: a bold cartoon line.
+      const lean = wind * 7;
+      for (const pass of [0, 1]) {
+        for (const d of this.drops) {
+          const x = d.x * width;
+          const y = d.y * height;
+          const len = 10 + d.r * 4;
+          f.moveTo(x - lean * (len / 16), y - len).lineTo(x, y);
+        }
+        f.stroke(pass === 0 ? { width: 5, color: 0x2a5a9a, alpha: 0.6, cap: 'round' } : { width: 2.8, color: 0xcfe8ff, alpha: 0.95, cap: 'round' });
+      }
+      for (const d of this.drops) f.circle(d.x * width, d.y * height, 2 + d.r * 0.8);
+      f.fill({ color: 0xeaf6ff, alpha: 0.95 }).stroke({ width: 1.2, color: 0x2a5a9a, alpha: 0.6 });
+    } else if (this.drops.length) {
+      this.drops.forEach((d, i) => {
+        const x = d.x * width;
+        const y = d.y * height;
+        const r = 2 + d.r * 1.6;
+        if (i % 3 === 0) {
+          // A six-armed flake, slowly turning.
+          const a0 = t * (0.6 + d.v) + d.p;
+          for (let k = 0; k < 3; k++) {
+            const a = a0 + (k * Math.PI) / 3;
+            f.moveTo(x - Math.cos(a) * r * 1.6, y - Math.sin(a) * r * 1.6).lineTo(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 1.6);
+          }
+          f.stroke({ width: 3.4, color: 0x7d97b8, alpha: 0.7, cap: 'round' });
+          for (let k = 0; k < 3; k++) {
+            const a = a0 + (k * Math.PI) / 3;
+            f.moveTo(x - Math.cos(a) * r * 1.6, y - Math.sin(a) * r * 1.6).lineTo(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 1.6);
+          }
+          f.stroke({ width: 1.8, color: 0xffffff, cap: 'round' });
+        } else {
+          // A soft round puff with a dark rim and a shine.
+          f.circle(x, y, r).fill({ color: 0xffffff, alpha: 0.95 }).stroke({ width: 1.3, color: 0x7d97b8, alpha: 0.75 });
+          f.circle(x - r * 0.35, y - r * 0.35, r * 0.35).fill({ color: 0xdff0ff, alpha: 0.9 });
+        }
+      });
+    }
 
     if (this.kind === 'fog') {
       // Slow drifting banks of mist, thicker low down.

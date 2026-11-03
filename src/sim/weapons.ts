@@ -443,7 +443,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     super: true,
     blurb: 'Superweapon: bounces, then a giant blast 3 seconds later.',
     icon: '💦',
-    projectile: { windFactor: 0, bounce: 0.3, playerFuse: false, radius: 90, damage: 100, speed: 14, fuseTicks: 150 },
+    projectile: { windFactor: 0, bounce: 0.3, playerFuse: false, radius: 115, damage: 150, speed: 14, fuseTicks: 150, knock: 0.75 },
   },
   tun: {
     id: 'tun',
@@ -454,7 +454,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     super: true,
     blurb: 'Superweapon: pick a spot. A concrete tun drops on it and smashes down through the rock.',
     icon: '🗿',
-    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 36, damage: 40, speed: 0, crusher: { slams: 6 } },
+    projectile: { windFactor: 0, bounce: null, playerFuse: false, radius: 44, damage: 60, speed: 0, crusher: { slams: 6 } },
   },
   slideslam: {
     id: 'slideslam',
@@ -465,7 +465,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     super: true,
     blurb: 'Superweapon: glass shards rain down at random all over the map. Anyone can be hit, you too.',
     icon: '🔬',
-    shower: { per1000: 8, weapon: 'shard' },
+    shower: { per1000: 10, weapon: 'shard' },
   },
   shard: {
     id: 'shard',
@@ -475,7 +475,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     shots: 1,
     hidden: true,
     icon: '•',
-    projectile: { windFactor: 0.3, bounce: null, playerFuse: false, radius: 26, damage: 28, speed: 0 },
+    projectile: { windFactor: 0.3, bounce: null, playerFuse: false, radius: 30, damage: 40, speed: 0 },
   },
   skip: {
     id: 'skip',

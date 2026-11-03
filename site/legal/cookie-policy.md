@@ -1,6 +1,6 @@
 # Cookie & Storage Policy
 
-**Effective Date:** 9 October 2026
+**Effective Date:** 3 November 2026
 **Last Modified:** 2 November 2026
 **Document Version:** v1.10
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
@@ -47,7 +47,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 2.1 Performance, Analytics, Targeting and Advertising
 
-2.1.1 We do not use performance, analytics, targeting, or advertising cookies or similar technologies. We count visits with Cloudflare Web Analytics, which does not set cookies or use your browser's storage (see our Privacy Policy, Section 2.4), so there is nothing for it in the table below. The game also sends anonymous play statistics to our own server (Privacy Policy, Sections 2.4.3 to 2.4.5). They use no cookies and store nothing on your device; the only storage involved is your choice, if you turn them off in Settings → Privacy (`tardigeddon.shareUsage` below), so that we respect it.
+2.1.1 We do not use performance, analytics, targeting, or advertising cookies or similar technologies. We count visits with Cloudflare Web Analytics, which does not set cookies or use your browser's storage (see our Privacy Policy, Section 2.4), so there is nothing for it in the table below. The game also sends anonymous play statistics to our own server (Privacy Policy, Sections 2.4.3 to 2.4.5). They use no cookies and store nothing on your device; the only storage involved is your choice in Settings → Privacy (`tardigeddon.shareUsage` below), so that we respect it.
 
 ## Section 3 — Specific Storage We Use
 
@@ -80,7 +80,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 | `tardigeddon.appNudge` | Local storage | TardiGeddon (first party) | That you chose "Don't remind me again" when the game mentioned our phone app, so it doesn't ask again. Only set if you choose it | Strictly necessary | Until you clear site data |
 | `tardigeddon.appNudgeShown` | Session storage | TardiGeddon (first party) | That the game has already mentioned our phone app on this visit, so it only does so once | Strictly necessary | Until you close the tab |
 | `tardigeddon.appSignIn` | Local storage | TardiGeddon (first party) | In our apps, a one-use code that checks a sign-in in your phone's browser came back to the app that started it | Strictly necessary | Until the sign-in finishes |
-| `tardigeddon.shareUsage` | Local storage | TardiGeddon (first party) | That you turned off "Share anonymous statistics" in Settings, so the game sends none. Only set if you turn them off | Strictly necessary | Until you turn them back on or clear site data |
+| `tardigeddon.shareUsage` | Local storage | TardiGeddon (first party) | That you turned off "Share anonymous statistics" in Settings, so the game sends none; or, if your browser sends a Do Not Track or Global Privacy Control signal, that you turned them on yourself. Only set if you make one of those choices | Strictly necessary | Until you turn them back on or clear site data |
 | `tardigeddon.owned` | Local storage | TardiGeddon (first party) | The shop items your account owns, so they stay unlocked when you play offline. Only set if you sign in | Strictly necessary | Until you sign out or clear site data |
 | `__Secure-better-auth.session_token` | Cookie (HTTP only, secure) | TardiGeddon game server (first party) | Keeps you signed in to your account. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
 | Sign-in token | iOS Keychain (on your device) | TardiGeddon game server (first party) | In our iOS app, keeps you signed in to your account instead of the cookie above, which iOS doesn't keep for apps. Only set if you sign in | Strictly necessary | 7 days after you last used it, or until you sign out |
@@ -111,7 +111,7 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 5.2 Do Not Track Signals
 
-5.2.1 Some browsers offer a "Do Not Track" (DNT) or "Global Privacy Control" (GPC) signal. We do not track you, but we respect both: while your browser sends either, the game sends no play statistics at all. If you would rather not be counted in our visit statistics at all, browser privacy settings or extensions that block cloudflareinsights.com will stop it; the game works the same either way.
+5.2.1 Some browsers offer a "Do Not Track" (DNT) or "Global Privacy Control" (GPC) signal. We do not track you, but we respect both: while your browser sends either, the game sends no play statistics at all, unless you turn "Share anonymous statistics" on yourself in Settings → Privacy (then we follow that choice, made for this game, until you turn it off again). If you would rather not be counted in our visit statistics at all, browser privacy settings or extensions that block cloudflareinsights.com will stop it; the game works the same either way.
 
 ## Section 6 — Legal Basis
 

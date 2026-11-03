@@ -44,6 +44,10 @@ const AIM_STEP_MIN = 2;
 const AIM_STEP_MAX = 16;
 /** Rope Race: how close (px) counts as touching the flag. */
 const RACE_GOAL_R = 22;
+/** Rope Race mines go off this soon after you come near (ticks): swing past quick, or get blown off course. */
+const RACE_MINE_FUSE = 12;
+/** Rope Race: no mines this close to the start or the flag. */
+const RACE_HAZARD_CLEAR = 300;
 export const AIM_MAX = ANGLE_QUARTER;
 export const POWER_STEP = 20;
 /**
@@ -60,6 +64,10 @@ const MAX_STEP_UP = 4;
 const START_TICKS = 60;
 const SETTLE_DELAY = 25;
 const SAFE_FALL = 90;
+/** Fall damage: 1 health for every this many px fallen past SAFE_FALL... */
+const FALL_PX_PER_HP = 3;
+/** ...up to this much from a single fall. */
+const FALL_DMG_MAX = 80;
 const JUMP_DELAY = 10;
 const MAX_FALL_SPEED = 14;
 export const ROPE_MAX = 320;
@@ -86,6 +94,15 @@ const FLAME_REACH = 9;
 const CRUSHER_R = 10;
 const FLAME_DMG = 2;
 const HOMING_TICKS = 120;
+/** Swimming (Tardi.swim): one dunking in this many, a tardigrade swims for it... */
+export const SWIM_ODDS = 12;
+/** ...paddling this fast (px/tick), for this long at most before it gives up and sinks. */
+const SWIM_SPEED = 0.9;
+const SWIM_TICKS = 15 * TICK_RATE;
+/** Homing Spore: its cruising speed while it steers (px/tick)... */
+const HOMING_SPEED = 8;
+/** ...and it goes off once this close to its target. */
+const HOMING_HIT = 10;
 const WALKER_R = 4;
 /** Hard cap on end-of-turn settling so a turn can never soft-lock. */
 const SETTLE_MAX = 20 * TICK_RATE;
@@ -153,7 +170,10 @@ export function createWorld(cfg: WorldConfig): WorldState {
     const seed = (cfg.seed + attempt * 7919) | 0;
     const terrain = custom ? { w, h, mask: custom.mask.slice() } : generateMap({ w, h, waterY, seed, ceiling: scheme.race, style });
     const rng = createRng(seed ^ 0x5eed);
-    const spots = findSpawns(terrain, waterY, needed, rng);
+    // A tardigrade a team starts in a cavern (not in practice, races or the tutorial):
+    // not every match is a straight shoot-out from the hilltops.
+    const caves = practice || scheme.race || scheme.respawn || scheme.tardisPerTeam < 2 ? 0 : cfg.teams.length;
+    const spots = findSpawns(terrain, waterY, needed, rng, [], caves);
     if (!spots) continue;
 
     const s: WorldState = {
@@ -241,6 +261,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
           chute: false,
           poison: false,
           armour: scheme.armour,
+          swim: 0,
         };
         s.tardis.push(t);
         team.tardiIds.push(t.id);
@@ -255,7 +276,7 @@ export function createWorld(cfg: WorldConfig): WorldState {
       const start = raceSpot(terrain, waterY, 1);
       const goal = raceSpot(terrain, waterY, -1);
       if (!start || !goal || goal.x - start.x < w / 2) continue;
-      s.race = { startX: start.x, startY: start.y - TARDI_R - 1, goalX: goal.x, goalY: goal.y - 24, best: s.teams.map(() => -1) };
+      s.race = { startX: start.x, startY: start.y - TARDI_R - 1, goalX: goal.x, goalY: goal.y - 24, best: s.teams.map(() => -1), hazards: [] };
       for (const t of s.tardis) {
         t.x = s.race.startX;
         t.y = s.race.startY;
@@ -263,8 +284,13 @@ export function createWorld(cfg: WorldConfig): WorldState {
     }
     // Bigger maps get proportionally more mines and drums.
     const scale = w / 2000;
-    placeObjects(s, 'mine', Math.round(scheme.mines * scale));
-    placeObjects(s, 'drum', Math.round(scheme.drums * scale));
+    if (s.race) {
+      // Rope Race: mines on the course to dodge (put out at the start of every attempt: beginTurn).
+      planRaceHazards(s, Math.round(scheme.mines * scale));
+    } else {
+      placeObjects(s, 'mine', Math.round(scheme.mines * scale));
+      placeObjects(s, 'drum', Math.round(scheme.drums * scale));
+    }
     s.turn.teamIdx = rngInt(rng, 0, s.teams.length - 1);
     if (cfg.firstTeam !== undefined) s.turn.teamIdx = cfg.firstTeam;
     beginTurn(s, s.turn.teamIdx, []);
@@ -282,23 +308,88 @@ function newObject(s: WorldState, kind: ObjectKind, x: number, y: number): MapOb
   return o;
 }
 
-/** Scatter mines/drums on the ground, keeping clear of tardis. */
+/**
+ * Scatter mines/drums on the ground, keeping clear of tardis. They're spread
+ * across the whole map (each gets its own strip of it to start with), on
+ * hilltops, slopes and cave floors alike, not bunched where nobody stands.
+ */
 function placeObjects(s: WorldState, kind: ObjectKind, count: number): void {
   const r = kind === 'mine' ? MINE_R : DRUM_R;
-  let placed = 0;
-  for (let tries = 0; tries < 600 + count * 80 && placed < count; tries++) {
-    const x = rngInt(s.rng, 40, s.terrain.w - 40);
-    const sy = surfaceBelow(s.terrain, x, 0);
-    if (sy < 0 || sy > s.waterY - 30) continue;
+  const tryAt = (x: number): boolean => {
+    const floors = floorsAt(s.terrain, s.waterY, x, 4 * r);
+    if (floors.length === 0) return false;
+    // Mostly on the ground surface, now and then down in a cave.
+    const sy = floors.length > 1 && rngInt(s.rng, 0, 3) === 0 ? floors[rngInt(s.rng, 1, floors.length - 1)] : floors[0];
+    if (sy > s.waterY - 30) return false;
     // Lift off sloped ground until the object fits.
     let y = sy - r - 1;
     while (circleCollides(s.terrain, x, y, r) && y > sy - r - 16) y--;
-    if (circleCollides(s.terrain, x, y, r)) continue;
-    if (s.tardis.some((t) => Math.abs(t.x - x) < 60 && Math.abs(t.y - y) < 60)) continue;
-    if (s.objects.some((o) => Math.abs(o.x - x) < 30 && Math.abs(o.y - y) < 30)) continue;
+    if (circleCollides(s.terrain, x, y, r)) return false;
+    if (s.tardis.some((t) => Math.abs(t.x - x) < 45 && Math.abs(t.y - y) < 45)) return false;
+    if (s.objects.some((o) => Math.abs(o.x - x) < 30 && Math.abs(o.y - y) < 30)) return false;
     const o = newObject(s, kind, x, y);
     if (kind === 'mine') o.dud = rngInt(s.rng, 0, 9) === 0;
-    placed++;
+    return true;
+  };
+  let placed = 0;
+  // One to each strip of the map first (a strip of sea gets skipped)...
+  const span = (s.terrain.w - 80) / Math.max(1, count);
+  for (let strip = 0; strip < count; strip++) {
+    const x0 = 40 + Math.floor(strip * span);
+    const x1 = Math.max(x0, 40 + Math.floor((strip + 1) * span) - 1);
+    for (let tries = 0; tries < 30; tries++) {
+      if (tryAt(rngInt(s.rng, x0, x1))) {
+        placed++;
+        break;
+      }
+    }
+  }
+  // ...then the rest anywhere.
+  for (let tries = 0; tries < 600 + count * 80 && placed < count; tries++) if (tryAt(rngInt(s.rng, 40, s.terrain.w - 40))) placed++;
+}
+
+/**
+ * Rope Race: where the course's mines go. Some sit on the ground; the rest
+ * float in mid-air in the cave (always over the pits), right where you swing.
+ */
+function planRaceHazards(s: WorldState, count: number): void {
+  const r = s.race!;
+  const t = s.terrain;
+  const lo = r.startX + RACE_HAZARD_CLEAR;
+  const hi = r.goalX - RACE_HAZARD_CLEAR;
+  if (hi <= lo) return;
+  for (let tries = 0; tries < count * 60 && r.hazards.length < count; tries++) {
+    const x = rngInt(s.rng, lo, hi);
+    let y = 0;
+    while (y < t.h && isSolid(t, x, y)) y++;
+    const roof = y;
+    while (y < s.waterY && !isSolid(t, x, y)) y++;
+    const floor = y;
+    const pit = floor >= s.waterY - 30;
+    const floating = pit || rngInt(s.rng, 0, 2) > 0;
+    let hy: number;
+    if (floating) {
+      const top = roof + 50;
+      const bottom = Math.min(floor, s.waterY) - 60;
+      if (bottom <= top) continue;
+      hy = rngInt(s.rng, top, bottom);
+      if (circleCollides(t, x, hy, 16)) continue;
+    } else {
+      hy = floor - MINE_R - 1;
+      while (circleCollides(t, x, hy, MINE_R) && hy > floor - MINE_R - 16) hy--;
+      if (circleCollides(t, x, hy, MINE_R)) continue;
+    }
+    if (r.hazards.some((h) => Math.abs(h.x - x) < 90 && Math.abs(h.y - hy) < 90)) continue;
+    r.hazards.push({ x, y: hy, floating });
+  }
+}
+
+/** Rope Race: every attempt meets the course's mines as they were at the start. */
+function resetRaceHazards(s: WorldState): void {
+  s.objects = s.objects.filter((o) => o.kind !== 'mine');
+  for (const h of s.race!.hazards) {
+    const o = newObject(s, 'mine', h.x, h.y);
+    if (h.floating) o.floating = true;
   }
 }
 
@@ -319,6 +410,37 @@ function raceSpot(terrain: Terrain, waterY: number, dir: 1 | -1): { x: number; y
   return null;
 }
 
+/**
+ * Every floor in the column at x above the water (the ground surface, x's
+ * top-most floor, first; then cave floors under it), as the y of the first
+ * solid pixel. `roomy` floors only: with at least `room` px of air above.
+ */
+function floorsAt(terrain: Terrain, waterY: number, x: number, room: number): number[] {
+  const out: number[] = [];
+  let air = 0;
+  for (let y = 0; y < waterY - 30; y++) {
+    if (!isSolid(terrain, x, y)) {
+      air++;
+      continue;
+    }
+    if (air >= room || (out.length === 0 && air === y)) out.push(y);
+    air = 0;
+  }
+  return out;
+}
+
+/** Room for a tardi to stand on the floor at (x, floorY): its centre, or null. */
+function standOn(terrain: Terrain, x: number, floorY: number): { x: number; y: number } | null {
+  const y = floorY - TARDI_R - 1;
+  if (circleCollides(terrain, x, y, TARDI_R) || !circleCollides(terrain, x, y + 2, TARDI_R)) return null;
+  return { x, y };
+}
+
+/**
+ * Free spots to stand, spread over the map. The first `caves` of them are in
+ * caverns (under rock, not open to the sky), when the map has any: those
+ * tardigrades have to blast, dig, rope or teleport their way out first.
+ */
 function findSpawns(
   terrain: WorldState['terrain'],
   waterY: number,
@@ -326,18 +448,25 @@ function findSpawns(
   rng: WorldState['rng'],
   /** Keep this far from each of these (e.g. mines). */
   avoid: { x: number; y: number }[] = [],
+  caves = 0,
 ): { x: number; y: number }[] | null {
   const spots: { x: number; y: number }[] = [];
+  const free = (p: { x: number; y: number }) =>
+    !spots.some((q) => Math.abs(q.x - p.x) < 50 && Math.abs(q.y - p.y) < 50) && !avoid.some((q) => Math.abs(q.x - p.x) < 60 && Math.abs(q.y - p.y) < 60);
+  // Cave spots first (a fixed number of tries: a map may have none).
+  for (let tries = 0; tries < 600 && spots.length < Math.min(caves, count); tries++) {
+    const x = rngInt(rng, 40, terrain.w - 40);
+    const floors = floorsAt(terrain, waterY, x, 3 * TARDI_R);
+    if (floors.length < 2) continue;
+    const p = standOn(terrain, x, floors[rngInt(rng, 1, floors.length - 1)]);
+    if (p && free(p)) spots.push(p);
+  }
   for (let tries = 0; tries < 2000 + count * 200 && spots.length < count; tries++) {
     const x = rngInt(rng, 40, terrain.w - 40);
     const sy = surfaceBelow(terrain, x, 0);
     if (sy < 0 || sy > waterY - 30) continue;
-    const y = sy - TARDI_R - 1;
-    if (circleCollides(terrain, x, y, TARDI_R)) continue;
-    if (!circleCollides(terrain, x, y + 2, TARDI_R)) continue;
-    if (spots.some((p) => Math.abs(p.x - x) < 50 && Math.abs(p.y - y) < 50)) continue;
-    if (avoid.some((p) => Math.abs(p.x - x) < 60 && Math.abs(p.y - y) < 60)) continue;
-    spots.push({ x, y });
+    const p = standOn(terrain, x, sy);
+    if (p && free(p)) spots.push(p);
   }
   return spots.length === count ? spots : null;
 }
@@ -569,7 +698,13 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
             turn.power = Math.min(POWER_MAX, turn.power + step);
           }
         }
-        if (fireReleased || turn.fullHold >= FULL_HOLD_TICKS) {
+        // Let go after charging for a single tick and the throw is called off,
+        // not fired: a tap quicker than a tick (or two quick taps with tap to
+        // fire) would drop the shot at your feet and blow you away.
+        if (fireReleased && turn.power <= step) {
+          turn.charging = false;
+          turn.power = 0;
+        } else if (fireReleased || turn.fullHold >= FULL_HOLD_TICKS) {
           fireProjectile(s, t, def, events);
           afterShot(s, def);
         }
@@ -680,6 +815,7 @@ function firePunch(s: WorldState, t: Tardi, def: WeaponDef, events: SimEvent[]):
       o.knocked = true;
       o.rope = null;
       o.chute = false;
+      o.fallStartY = o.y;
     }
   }
   launchJump(t, t.facing * 0.6, -4.6, events);
@@ -778,6 +914,11 @@ export function predictPath(
   if (!spec) return [];
   const { vx, vy } = launchVelocity(spec, t.facing, aim, power);
   const p: Projectile = { id: -1, weapon, x: t.x, y: t.y, vx, vy, fuse: spec.playerFuse ? fuseTicks : (spec.fuseTicks ?? -1), owner: t.id, age: 0, tx: 0, ty: 0, dir: 0, hits: 0 };
+  // The Homing Spore's guide follows it all the way to its target, as it will fly.
+  if (spec.homing && s.turn.target) {
+    p.tx = s.turn.target.x;
+    p.ty = s.turn.target.y;
+  }
   const out: { x: number; y: number }[] = [];
   for (let i = 0; i < maxTicks; i++) {
     const r = stepProjectile(s, p, null);
@@ -1010,15 +1151,19 @@ export function stepProjectile(s: WorldState, p: Projectile, events: SimEvent[] 
     p.vy *= 0.92;
   }
   if (spec.homing && p.age > HOMING_START && p.age < HOMING_START + HOMING_TICKS) {
-    // Steer towards the target instead of falling.
+    // Steer towards the target instead of falling, at a steady speed, turning
+    // harder close in so it closes on the target instead of circling it.
     const dx = p.tx - p.x;
     const dy = p.ty - p.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d > 1) {
-      const speed = Math.max(8, Math.sqrt(p.vx * p.vx + p.vy * p.vy));
-      p.vx = p.vx * 0.85 + (dx / d) * speed * 0.15;
-      p.vy = p.vy * 0.85 + (dy / d) * speed * 0.15;
-    }
+    if (d < HOMING_HIT) return { k: 'explode', x: p.x, y: p.y };
+    const turn = d < 90 ? 0.45 : 0.2;
+    const vx = p.vx * (1 - turn) + (dx / d) * HOMING_SPEED * turn;
+    const vy = p.vy * (1 - turn) + (dy / d) * HOMING_SPEED * turn;
+    const v = Math.sqrt(vx * vx + vy * vy);
+    const speed = Math.max(HOMING_SPEED, Math.min(v, HOMING_SPEED * 1.5));
+    p.vx = v > 0.01 ? (vx / v) * speed : (dx / d) * HOMING_SPEED;
+    p.vy = v > 0.01 ? (vy / v) * speed : (dy / d) * HOMING_SPEED;
   } else {
     p.vy += GRAVITY;
   }
@@ -1142,7 +1287,10 @@ export function explode(
   /** Knock-back multiplier (Gale Gourd). */
   knock = 1,
 ): number {
-  const rect = carveCircle(s.terrain, x, y, radius);
+  // Rope Race: blasts only push. The course never changes (every racer gets the
+  // same one) and nobody gets hurt; a blast doesn't end your go, it costs you time.
+  const race = s.race !== null;
+  const rect = race ? { x: Math.round(x), y: Math.round(y), w: 0, h: 0 } : carveCircle(s.terrain, x, y, radius);
   /** Damage done to other teams' tardis (Leech Lobber heals from it). */
   let dealt = 0;
   events.push({ t: 'explosion', x, y, r: radius, rect, team: s.turn.teamIdx });
@@ -1167,6 +1315,9 @@ export function explode(
     t.thrown = false;
     t.rope = null;
     t.chute = false;
+    // Fall damage counts from here (or the top of the flight), not from some old jump.
+    t.fallStartY = t.y;
+    if (race) continue;
     t.pendingDmg += dmg;
     if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
   }
@@ -1195,6 +1346,7 @@ export function explode(
     if (o.kind === 'mine' && o.fuse === -1 && !o.dud) {
       o.fuse = 1; // chain reaction: blast sets mines off at once
     }
+    if (o.floating) continue; // hangs where it is
     const imp = f * damage * 0.1 * knock;
     o.vx += (d < 1 ? 0 : dx / d) * imp;
     o.vy += (d < 1 ? -1 : dy / d) * imp - imp * 0.35;
@@ -1216,6 +1368,10 @@ export function explode(
 
 function updateTardi(s: WorldState, t: Tardi, events: SimEvent[]): void {
   const terrain = s.terrain;
+  if (t.swim > 0) {
+    updateSwim(s, t, events);
+    return;
+  }
   if (!t.airborne && !circleCollides(terrain, t.x, t.y + 1, TARDI_R)) {
     t.airborne = true;
     t.knocked = false;
@@ -1386,6 +1542,7 @@ function refillTargets(s: WorldState, events: SimEvent[]): void {
         chute: false,
         poison: false,
         armour: s.scheme.armour,
+        swim: 0,
       };
       s.tardis.push(t);
       team.tardiIds.push(t.id);
@@ -1402,12 +1559,12 @@ function sparedByTeam(s: WorldState, t: Tardi): boolean {
   return !s.scheme.friendlyFire && t.team === s.turn.teamIdx;
 }
 
-function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
+function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[], maySwim = true): void {
   if (s.race && (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60)) {
-    // Rope Race: a dunking just ends the attempt.
+    // Rope Race: a dunking sends you back to the start, and the clock keeps
+    // running (with one go each, it isn't over at the first slip).
     events.push({ t: 'drown', id: t.id });
     placeAtStart(s, t);
-    if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
     return;
   }
   if (immortal(s, t) && (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60)) {
@@ -1427,6 +1584,7 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
     if (t.id === s.turn.activeTardi && inControl(s)) endTurnNow(s);
     return;
   }
+  if (t.y > s.waterY + 4 && t.x > 0 && t.x < s.terrain.w && t.alive && maySwim && rngInt(s.rng, 0, SWIM_ODDS - 1) === 0 && startSwim(s, t, events)) return;
   if (t.y > s.waterY + 4 || t.x < -60 || t.x > s.terrain.w + 60) {
     if (s.practice && t.team !== 0 && t.alive) s.practice.popped++;
     t.alive = false;
@@ -1437,6 +1595,61 @@ function checkOutOfBounds(s: WorldState, t: Tardi, events: SimEvent[]): void {
     events.push({ t: 'drown', id: t.id });
     if (t.id === s.turn.activeTardi) endTurnNow(s);
   }
+}
+
+/** The way to the nearest shore (land at the waterline) from x, or 0 if there's none. */
+function shoreDir(s: WorldState, x: number): 1 | -1 | 0 {
+  const y = s.waterY - 3;
+  for (let d = 0; d < s.terrain.w; d += 4) {
+    if (x + d < s.terrain.w && isSolid(s.terrain, x + d, y)) return 1;
+    if (x - d >= 0 && isSolid(s.terrain, x - d, y)) return -1;
+  }
+  return 0;
+}
+
+/** Fell in the water, but this one can swim (an easter egg): it paddles for the nearest shore. */
+function startSwim(s: WorldState, t: Tardi, events: SimEvent[]): boolean {
+  const dir = shoreDir(s, Math.round(t.x));
+  if (dir === 0) return false;
+  t.swim = SWIM_TICKS;
+  t.facing = dir;
+  t.x = Math.max(TARDI_R, Math.min(s.terrain.w - TARDI_R, t.x));
+  t.y = s.waterY - 2;
+  t.vx = 0;
+  t.vy = 0;
+  t.airborne = true; // still moving: the turn waits for it
+  t.knocked = false;
+  t.thrown = false;
+  t.rope = null;
+  t.chute = false;
+  events.push({ t: 'swim', id: t.id, x: t.x, y: t.y, out: false });
+  if (t.id === s.turn.activeTardi) endTurnNow(s);
+  return true;
+}
+
+/** Paddling along the surface to the shore, then climbing out onto the nearest dry ground. */
+function updateSwim(s: WorldState, t: Tardi, events: SimEvent[]): void {
+  t.y = s.waterY - 2; // bobs on the surface (and rises with it in sudden death)
+  const nx = t.x + t.facing * SWIM_SPEED;
+  const ashore = circleCollides(s.terrain, nx, t.y, TARDI_R) || nx < TARDI_R || nx > s.terrain.w - TARDI_R;
+  if (!ashore) t.x = nx;
+  if (--t.swim > 0 && !ashore) return;
+  const spot = ashore ? safeGroundNear(s, Math.round(Math.max(40, Math.min(s.terrain.w - 40, t.x)))) : null;
+  t.swim = 0;
+  if (!spot) {
+    // Worn out (or nowhere to climb out): it sinks after all.
+    t.y = s.waterY + 10;
+    checkOutOfBounds(s, t, events, false);
+    return;
+  }
+  t.x = spot.x;
+  t.y = spot.y;
+  t.vx = 0;
+  t.vy = 0;
+  t.airborne = true;
+  t.knocked = false;
+  t.fallStartY = spot.y;
+  events.push({ t: 'swim', id: t.id, x: spot.x, y: spot.y, out: true });
 }
 
 /** A sensible weapon when the team's last one has run out (or isn't allowed). */
@@ -1597,7 +1810,7 @@ function updateObjects(s: WorldState, events: SimEvent[]): void {
           const dx = t.x - o.x;
           const dy = t.y - o.y;
           if (dx * dx + dy * dy < MINE_TRIGGER * MINE_TRIGGER) {
-            o.fuse = s.scheme.mineFuse * TICK_RATE;
+            o.fuse = s.race ? RACE_MINE_FUSE : s.scheme.mineFuse * TICK_RATE;
             events.push({ t: 'mineArmed', id: o.id });
             break;
           }
@@ -1639,6 +1852,7 @@ function updateObjects(s: WorldState, events: SimEvent[]): void {
     }
 
     // Physics
+    if (o.floating) continue;
     if (!o.airborne && !circleCollides(s.terrain, o.x, o.y + 1, r)) o.airborne = true;
     if (o.airborne) {
       if (o.chute) {
@@ -1780,10 +1994,13 @@ function wrapRope(terrain: Terrain, t: Tardi, rope: NonNullable<Tardi['rope']>):
 
 function land(s: WorldState, t: Tardi): void {
   t.chute = false;
-  if (!t.knocked && !t.thrown && s.scheme.fallDamage) {
+  // The further the drop (from the top of the jump, swing or blast), the more
+  // it hurts. Blasted ones count too: knocked off a cliff, the landing hurts.
+  // The tornado's throw never does (Tardi.thrown).
+  if (!t.thrown && s.scheme.fallDamage) {
     const fall = t.y - t.fallStartY;
     if (fall > SAFE_FALL) {
-      t.pendingDmg += Math.min(50, Math.round((fall - SAFE_FALL) / 3));
+      t.pendingDmg += Math.min(FALL_DMG_MAX, Math.round((fall - SAFE_FALL) / FALL_PX_PER_HP));
       if (t.id === s.turn.activeTardi) endTurnNow(s);
     }
   }
@@ -1801,7 +2018,11 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   if (++turn.settleTotal > SETTLE_MAX) {
     s.projectiles.length = 0;
     s.flames.length = 0;
-    for (const t of s.tardis) if (t.alive && t.airborne) land(s, t);
+    for (const t of s.tardis) {
+      if (!t.alive || !t.airborne) continue;
+      if (t.swim > 0) t.swim = 1; // out of time: it sinks next tick
+      else land(s, t);
+    }
   }
   const moving =
     s.projectiles.length > 0 ||
@@ -1819,15 +2040,16 @@ function updateSettle(s: WorldState, events: SimEvent[]): void {
   const hurt = s.tardis.filter((t) => t.alive && t.pendingDmg > 0);
   if (hurt.length > 0) {
     for (const t of hurt) {
-      // Armour takes half of each hit (rounded down) until it's used up.
-      const soak = Math.min(t.armour, Math.floor(t.pendingDmg / 2));
+      // Armour takes the whole hit while it lasts: health only goes down once
+      // the plates are gone (what's left of the hit that cracks them comes off health).
+      const soak = Math.min(t.armour, t.pendingDmg);
       if (soak > 0) {
         t.armour -= soak;
         t.pendingDmg -= soak;
         events.push({ t: 'armour', id: t.id, amount: soak });
       }
       t.hp = Math.max(0, t.hp - t.pendingDmg);
-      events.push({ t: 'damage', id: t.id, amount: t.pendingDmg });
+      if (t.pendingDmg > 0) events.push({ t: 'damage', id: t.id, amount: t.pendingDmg });
       t.pendingDmg = 0;
     }
     for (const t of hurt) {
@@ -1907,9 +2129,10 @@ function beginTurn(s: WorldState, teamIdx: number, events: SimEvent[]): void {
   turn.aim = 256;
   turn.aimHeld = 0;
   if (s.race) {
-    // Every attempt starts from the start line.
+    // Every attempt starts from the start line, with the course as it was.
     const t = getTardi(s, tardiId);
     if (t) placeAtStart(s, t);
+    resetRaceHazards(s);
     // Aimed up the course, where the first rope catches.
     turn.aim = (AIM_MAX * 5) >> 3;
   }
@@ -2076,7 +2299,7 @@ export function hashWorld(s: WorldState): number {
   for (const t of s.tardis) {
     mix(t.x); mix(t.y); mix(t.vx); mix(t.vy); mix(t.hp); mix(t.pendingDmg);
     mix(t.alive ? 1 : 0); mix(t.facing); mix(t.airborne ? 1 : 0); mix(t.chute ? 1 : 0);
-    mix(t.knocked ? 1 : 0); mix(t.thrown ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour);
+    mix(t.knocked ? 1 : 0); mix(t.thrown ? 1 : 0); mix(t.fallStartY); mix(t.poison ? 1 : 0); mix(t.armour); mix(t.swim);
     if (t.rope) {
       mix(t.rope.x); mix(t.rope.y); mix(t.rope.len);
       for (const b of t.rope.bends) { mix(b.x); mix(b.y); mix(b.side); }
@@ -2088,7 +2311,7 @@ export function hashWorld(s: WorldState): number {
   for (const o of s.objects) {
     mix(o.id); mix(o.x); mix(o.y); mix(o.vx); mix(o.vy); mix(o.fuse); mix(o.hp);
     mixStr(o.kind); mix(o.dud ? 1 : 0); mix(o.airborne ? 1 : 0); mix(o.chute ? 1 : 0);
-    mixStr(o.contents); mix(o.amount);
+    mixStr(o.contents); mix(o.amount); mix(o.floating ? 1 : 0);
   }
   for (const f of s.flames) {
     mix(f.x); mix(f.y); mix(f.vx); mix(f.vy); mix(f.life); mix(f.resting ? 1 : 0); mix(f.acid ? 1 : 0);
