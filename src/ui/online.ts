@@ -343,8 +343,16 @@ export function showOnline(
         row.append(pic, badge, mark, name);
       } else row.append(pic, badge, name);
       if (s.badge) {
-        const f = el('span', 'founder-badge', s.badge === 'creator' ? '⭐' : s.badge === 'founder' ? '🌱' : '🐣');
-        f.title = s.badge === 'creator' ? t('Creator: makes videos or streams about TardiGeddon') : s.badge === 'founder' ? t('Founder: here from the start') : t('Early bird: joined in the first months');
+        const BADGES = {
+          creator: ['⭐', t('Creator: makes videos or streams about TardiGeddon')],
+          patron: ['💖', t('Patron: backed TardiGeddon at launch')],
+          supporter: ['💛', t('Supporter: backed TardiGeddon at launch')],
+          founder: ['🌱', t('Founder: here from the start')],
+          earlybird: ['🐣', t('Early bird: joined in the first months')],
+        } as const;
+        const [mark, why] = BADGES[s.badge];
+        const f = el('span', 'founder-badge', mark);
+        f.title = why;
         f.setAttribute('aria-label', f.title);
         row.append(f);
       }

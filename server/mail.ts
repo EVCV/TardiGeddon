@@ -100,6 +100,21 @@ export function verifyEmail(to: string, name: string, url: string): Mail {
   };
 }
 
+/** Someone asked for email news: one email, with the link that subscribes them (double opt-in). */
+export function newsConfirmEmail(to: string, url: string): Mail {
+  return {
+    to,
+    subject: 'Confirm: TardiGeddon news by email',
+    ...layout(
+      'there',
+      'Someone (hopefully you) asked for TardiGeddon news at this address: new updates, events and offers, a few times a month at most. Click below to start getting them. You can unsubscribe from any of our emails with one click.',
+      'Yes, send me the news',
+      url,
+      "If you didn't ask for this, ignore this email: you won't hear from us again.",
+    ),
+  };
+}
+
 /**
  * To the owner: the unspent paid coins of players in Japan are getting close
  * to the Payment Services Act's ¥10 million limit (src/shop/japan.ts).

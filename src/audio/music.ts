@@ -137,6 +137,14 @@ export const TRACKS: Track[] = [
     arp: { wave: 'sine', gain: 0.03, octave: 24, pattern: 'x.x.x.x.x.x.x.x.' },
     drums: { kick: 'x.......x.......', snare: '....x.......x...', hat: '..x...x...x...x.', gain: 0.35 },
   },
+  // Never sold: the Patron pack (limited time).
+  {
+    id: 'patron', name: 'Patron’s Waltz', colors: ['#ff8fc8', '#8a2a5a'], bpm: 84, steps: 12, root: 65, scale: MAJOR, chords: [I, vi, IV, V], echo: 0.4,
+    lead: { wave: 'triangle', gain: 0.07, octave: 12, pattern: 'x--x.xx--.x.' },
+    bass: { wave: 'triangle', gain: 0.13, pattern: 'x.....o.....' },
+    arp: { wave: 'sine', gain: 0.03, octave: 24, pattern: '..x.x...x.x.' },
+    drums: { kick: 'x...........', snare: '......x.....', hat: '..x.x...x.x.', gain: 0.3 },
+  },
   {
     id: 'anthem', name: 'Founders’ Anthem', colors: ['#ffd84a', '#8a6a10'], bpm: 96, steps: 16, root: 60, scale: MAJOR, chords: [I, IV, V, I], echo: 0.36,
     lead: { wave: 'square', gain: 0.035, cutoff: 2200, octave: 12, pattern: 'x--.x.x.x---x-x.' },

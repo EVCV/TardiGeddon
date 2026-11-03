@@ -1,6 +1,6 @@
 # Children's Privacy Policy
 
-**Effective Date:** 9 October 2026
+**Effective Date:** 3 November 2026
 **Last Modified:** 31 October 2026
 **Document Version:** v1.10
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
@@ -45,7 +45,7 @@ TardiGeddon is a cartoon game, so we expect children to play it. This policy exp
 
 ### 1.2 Accounts and Purchases
 
-1.2.1 Accounts are optional and are only for people aged 13 or over. When someone creates an account, we ask them to confirm that they are 13 or older; signing in with Google or Apple includes the same confirmation. We think this self-declaration is proportionate to the low risk involved, in line with the UK Information Commissioner's Age Appropriate Design Code, because an account holds only a player name, an email address and the cosmetic items owned, is not visible to other players, cannot be used to contact anyone, and is never used for marketing or profiling. We do not ask for or store a date of birth.
+1.2.1 Accounts are optional and are only for people aged 13 or over. When someone creates an account, we ask them to confirm that they are 13 or older; signing in with Google or Apple includes the same confirmation. We think this self-declaration is proportionate to the low risk involved, in line with the UK Information Commissioner's Age Appropriate Design Code, because an account holds only a player name, an email address and the cosmetic items owned, is not visible to other players, cannot be used to contact anyone, and is never used for profiling. Email news is only sent to account holders and visitors aged 13 or over who tick a box to ask for it (never ticked for them), and stops with one click (Privacy Policy, Sections 2.2.6 and 8). We do not ask for or store a date of birth.
 
 1.2.2 If we learn that an account belongs to a child under 13, we will delete it (see Section 2.0).
 

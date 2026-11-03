@@ -14,7 +14,7 @@
 import type { Pool, PoolClient } from 'pg';
 import { START_RATING, newRatings } from '../src/stats/rank';
 import { createHash, randomInt } from 'node:crypto';
-import { GIFTS_PER_DAY, GIFT_ALPHABET, GIFT_MESSAGES, SHOP_ITEMS, bundle, bundlePrice, coinPack, giftable, normaliseGiftCode, packTotal, shopItem } from '../src/shop/catalog';
+import { GIFTS_PER_DAY, GIFT_ALPHABET, GIFT_MESSAGES, SHOP_ITEMS, bundle, bundlePrice, coinPack, giftable, normaliseGiftCode, packTotal, shopItem, supporterPack } from '../src/shop/catalog';
 import type { GiftSent, SalesReport } from '../src/account/session';
 import { sanitiseControls, type Controls } from '../src/input/controls';
 import { DEFAULT_JPY_PER_GBP, JAPAN_ALERTS, JAPAN_LIMIT_YEN, japanLevelsReached, japanYen, type UnspentRow } from '../src/shop/japan';
@@ -621,6 +621,15 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<boolean
         // A wallet below zero (after a refund) pays that back from these first.
         await settleLots(c, p.userId);
       }
+      else if (supporterPack(p.item)) {
+        // A supporter pack: its looks, kept with where they came from (a refund takes them back).
+        for (const item of supporterPack(p.item)!.items) {
+          await c.query(
+            `INSERT INTO inventory (user_id, item, source) SELECT $1, $2, 'supporter' WHERE EXISTS (SELECT 1 FROM "user" WHERE id = $1) ON CONFLICT DO NOTHING`,
+            [p.userId, item],
+          );
+        }
+      }
       else {
         // Items sold directly for money before coins existed.
         await c.query(
@@ -639,6 +648,13 @@ export async function recordPurchase(db: Pool, p: PaidCheckout): Promise<boolean
   } finally {
     c.release();
   }
+}
+
+/** The supporter badge an account shows (from its paid, unrefunded packs): 💖 patron, 💛 supporter, or none. */
+export async function supporterBadge(db: Pool, userId: string): Promise<'patron' | 'supporter' | null> {
+  const r = await db.query<{ item: string }>(`SELECT item FROM purchase WHERE user_id = $1 AND status = 'paid'`, [userId]);
+  const badges = r.rows.map((x) => supporterPack(x.item)?.badge).filter(Boolean);
+  return badges.includes('patron') ? 'patron' : badges.includes('supporter') ? 'supporter' : null;
 }
 
 /**
@@ -663,6 +679,12 @@ export async function revokePurchase(db: Pool, paymentIntent: string, status: 'r
         // Its own coins go; any already spent come off the player's other coins.
         await c.query('UPDATE coin_lot SET left_coins = 0, revoked = true WHERE purchase_id = $1', [row.id]);
         await settleLots(c, row.user_id);
+      } else if (supporterPack(row.item)) {
+        // Its looks go, except any another supporter pack they still have also gives.
+        const kept = await c.query<{ item: string }>(`SELECT item FROM purchase WHERE user_id = $1 AND status = 'paid'`, [row.user_id]);
+        const still = new Set(kept.rows.flatMap((k) => supporterPack(k.item)?.items ?? []));
+        const gone = supporterPack(row.item)!.items.filter((i) => !still.has(i));
+        if (gone.length) await c.query(`DELETE FROM inventory WHERE user_id = $1 AND item = ANY($2) AND source = 'supporter'`, [row.user_id, gone]);
       } else await c.query(`DELETE FROM inventory WHERE user_id = $1 AND item = $2 AND source = 'purchase'`, [row.user_id, row.item]);
     }
     await c.query('COMMIT');

@@ -8,11 +8,12 @@ import { mascotSvg } from './mascot';
 import { loadProfiles } from './teams';
 import { compact, statTile, totals } from './dashboard';
 import { SHOP_ITEMS, formatNumber } from '../shop/catalog';
-import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, enterInvite, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
+import { type MeResponse, type PlayerStats, wearHat, wearSkin, deleteAccount, enterInvite, setNews, managePurchases, refreshAccount, requestPasswordReset, resendConfirmation, resetPassword, signIn, signInWith, signOut, signUp } from '../account/session';
 import { CREATOR_INVITE_COINS, INVITE_COINS, INVITE_DAYS, INVITE_MATCHES, INVITE_MAX } from '../shop/rewards';
 import { webGameUrl } from '../native';
 import type { HubContext } from './hub';
 import { itemArt } from './shop';
+import { newsSignupBox, newsWording } from './newsSignup';
 import { lang, t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
@@ -157,6 +158,7 @@ export function renderAccountPage(me: MeResponse, ctx: HubContext, form: SignInS
   manage.append(out, del, legal);
   page.append(card);
   if (me.invite) page.append(inviteCard(me, me.invite, ctx));
+  if (me.user) page.append(newsSignupBox(ctx, 'account'));
   page.append(manage);
   return page;
 }
@@ -367,6 +369,15 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     );
     agree.append(box, text);
     form.append(agree);
+    // Email news: never ticked for them (Privacy Policy §8).
+    const news = el('label', 'account-check');
+    const newsBox = el('input');
+    newsBox.type = 'checkbox';
+    newsBox.name = 'news';
+    newsBox.checked = draft.news === '1';
+    newsBox.onchange = () => (draft.news = newsBox.checked ? '1' : '');
+    news.append(newsBox, el('span', '', newsWording()));
+    form.append(news);
   }
   const submit = el('button', 'big-btn', signup ? t('Create account') : t('Sign in'));
   submit.type = 'submit';
@@ -395,6 +406,8 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     }
     ctx.run(async () => {
       await (signup ? signUp(name!.value.trim(), email.value.trim(), pw.value) : signIn(email.value.trim(), pw.value));
+      // Asked for email news: it starts once the email is confirmed.
+      if (signup && draft.news === '1') await setNews(true, 'signup').catch(() => {});
       // Signing out later shows "Sign in", not "Create account".
       state.mode = 'signin';
       draft.password = '';

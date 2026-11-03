@@ -27,6 +27,8 @@ export const SKINS: SkinDef[] = [
   { id: 'ghost', name: 'Ghostly', body: 0xf4f6fb, shade: 0xc9d1e0, mouth: 0xa9b4c8, pattern: 'none', mark: 0 },
   { id: 'lava', name: 'Lava', body: 0xff8a4a, shade: 0xd8562a, mouth: 0xa83020, pattern: 'spots', mark: 0xffd84a },
   { id: 'strawberry', name: 'Strawberry', body: 0xf0525a, shade: 0xc83a44, mouth: 0x5aa83a, pattern: 'seeds', mark: 0xffe27a },
+  // The Supporter and Patron packs' (limited time, never in the shop).
+  { id: 'sunshine', name: 'Sunshine', body: 0xffd76a, shade: 0xf0b03a, mouth: 0xe07a3a, pattern: 'shine', mark: 0xfff4c0 },
   { id: 'zebra', name: 'Zebra', body: 0xf7f3ea, shade: 0xd6d0c4, mouth: 0x2b1b24, pattern: 'stripes', mark: 0x2b1b24 },
   { id: 'tiger', name: 'Tiger', body: 0xf5a03a, shade: 0xd77f1e, mouth: 0xe58b86, pattern: 'stripes', mark: 0x2b1b24 },
   { id: 'robot', name: 'Robo-Tardi', body: 0xc3cad6, shade: 0x8e97a8, mouth: 0x5d6678, pattern: 'rivets', mark: 0x6c7488 },

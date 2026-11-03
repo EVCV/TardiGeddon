@@ -21,7 +21,8 @@ import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
 import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
-import { account, onAccountChange, peekInvite, refreshAccount, savedInvite, takeInviteNews, wearHat, wearSkin } from '../account/session';
+import { account, newsAsked, onAccountChange, peekInvite, refreshAccount, savedInvite, setNews, takeInviteNews, wearHat, wearSkin } from '../account/session';
+import { newsWording } from './newsSignup';
 import { showRewardPop } from './rewardPop';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
@@ -201,6 +202,7 @@ export function showHub(
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
       if (me.creatorBadge) who.append(el('span', 'founder-badge', '⭐'));
+      else if (me.supporterBadge) who.append(el('span', 'founder-badge', me.supporterBadge === 'patron' ? '💖' : '💛'));
       else if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
       who.append(el('span', 'hub-me-name', me.user.name));
       who.onclick = () => go('account');
@@ -238,6 +240,11 @@ export function showHub(
     }
     // Invite rewards that came in (both sides), and a welcome for an invite link opened while signed out.
     if (shell.isConnected) showInviteNews(go);
+    // Signed in and never asked about email news: ask once (never ticked for them).
+    if (loaded && me?.user && me.newsletter && !me.newsletter.asked && !newsAskedThisVisit && tab === 'lobby') {
+      newsAskedThisVisit = true;
+      setTimeout(askAboutNews, 1500);
+    }
     if (loaded && me && !me.user && !inviteWelcomed) {
       const code = savedInvite();
       if (code) {
@@ -349,6 +356,21 @@ export function showHub(
 
 /** The invite-link welcome is shown once a visit. */
 let inviteWelcomed = false;
+/** The email news question: once a visit at most (and never again once answered). */
+let newsAskedThisVisit = false;
+
+/** "Want TardiGeddon news by email?": yes subscribes the account's email; "not now" doesn't ask again. */
+function askAboutNews(): void {
+  if (document.querySelector('.reward-overlay, .checkout-overlay, .editor-overlay')) return;
+  showRewardPop({
+    badge: '📬',
+    title: t('Want the news by email?'),
+    text: newsWording(),
+    button: t('📬 Yes please'),
+    go: () => void setNews(true, 'prompt').catch(() => {}),
+    other: { label: t('Not now'), go: () => void newsAsked().catch(() => {}) },
+  });
+}
 
 /** Invite rewards the server reported (src/account/session.ts takeInviteNews), as pop-ups: your own first, then your friends'. */
 function showInviteNews(go: (tab: HubTab) => void): void {

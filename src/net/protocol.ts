@@ -38,7 +38,7 @@ export interface LobbySlot {
   /** The player's id for blocking and reporting (humans only). */
   pid?: string;
   /** A creator's ⭐, the Founder (🌱) or the Early bird (🐣) badge. */
-  badge?: 'founder' | 'earlybird' | 'creator';
+  badge?: 'founder' | 'earlybird' | 'creator' | 'supporter' | 'patron';
 }
 
 /** A frame on the wire: 0 for "nothing pressed", else [held, pressed, cmd?]. */

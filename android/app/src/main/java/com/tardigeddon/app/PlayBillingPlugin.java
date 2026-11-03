@@ -200,6 +200,8 @@ public class PlayBillingPlugin extends Plugin implements PurchasesUpdatedListene
         o.put("id", p.getProducts().isEmpty() ? "" : p.getProducts().get(0));
         o.put("token", p.getPurchaseToken());
         o.put("pending", p.getPurchaseState() == Purchase.PurchaseState.PENDING);
+        // Supporter packs are kept (acknowledged, never consumed): once acknowledged, the server has them.
+        o.put("acknowledged", p.isAcknowledged());
         return o;
     }
 }

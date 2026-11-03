@@ -34,6 +34,8 @@ export const AIM_STYLES: AimStyle[] = [
   { id: 'sparkle', name: 'Sparkler', marker: 0xfff6c2, bar: [0xfff6c2, 0xffb02e], sparkle: [0xffffff, 0xfff27a, 0xffb02e] },
   { id: 'comet', name: 'Comet', marker: 0xbff3ff, bar: [0x7fd3f7, 0xffffff], shape: 'star', tail: true, glow: 0x7fd3f7 },
   { id: 'gold', name: 'Golden aim', marker: 0xffd84a, bar: [0xfff2a0, 0xe0a920], glow: 0xffd84a, sparkle: [0xfff6c2, 0xffd84a] },
+  // The Patron pack's (limited time, never in the shop).
+  { id: 'goldheart', name: 'Golden heart', marker: 0xffd84a, bar: [0xffb6dc, 0xffd84a], shape: 'heart', glow: 0xffb6dc, sparkle: [0xffffff, 0xffd84a, 0xff8fc8] },
   // The Superfan pack's (a creator's code; never sold).
   { id: 'spotlight', name: 'Spotlight', marker: 0xffd84a, bar: [0xb388ff, 0xffd84a], shape: 'star', glow: 0xfff2a0, sparkle: [0xffffff, 0xffd84a, 0xb388ff] },
 ];

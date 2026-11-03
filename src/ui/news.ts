@@ -3,6 +3,7 @@
 // website by src/news/feed.ts). Posts come in the player's language; they are
 // only ever shown as text, never as HTML.
 
+import { newsSignupBox } from './newsSignup';
 import { lang, t } from '../i18n/i18n';
 import { markNewsRead, newsPosts } from '../news/feed';
 import type { NewsPost } from '../news/news';
@@ -78,7 +79,7 @@ export function renderNewsPage(ctx: HubContext, state: NewsState): HTMLElement {
     pills.append(b);
   }
   head.append(pills);
-  page.append(head);
+  page.append(head, newsSignupBox(ctx, 'news'));
 
   const shown = postsIn(state.section, all);
   if (shown.length) page.append(...shown.map(postCard));

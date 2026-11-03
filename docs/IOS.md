@@ -487,7 +487,9 @@ review; external testers need a short beta review.
   the listing text, in `docs/STORE_LISTING.md`.
 - **App Privacy** labels: the same facts as Google's Data safety: email,
   name, user id, gameplay data, purchase history, user content (team names).
-  All **linked to the user**, **no tracking**, purpose App Functionality.
+  All **linked to the user**, **no tracking**, purpose App Functionality;
+  the email address also **Developer's Advertising or Marketing** (email
+  news, only for people who ask: `docs/NEWSLETTER.md`).
   Plus **Usage Data → Product Interaction** (the anonymous play counts,
   `docs/USAGE.md`), and **Diagnostics → Crash Data** (error counts by kind
   and place, never the message), **Diagnostics → Performance Data** (loading
