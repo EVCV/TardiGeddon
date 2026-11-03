@@ -87,17 +87,22 @@ test('turned off in Settings, nothing is sent', async ({ page }) => {
   expect(sent.length).toBe(0);
 });
 
-test("a browser that asks not to be tracked sends nothing, and can't be switched on", async ({ page }) => {
+test('a browser that asks not to be tracked sends nothing, until the player switches it on themselves', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, 'globalPrivacyControl', { get: () => true }));
   const sent = await catchReports(page);
   await page.goto('/');
   await openPrivacy(page);
   const toggle = page.getByRole('switch', { name: 'Share anonymous statistics' });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
-  await expect(toggle).toBeDisabled();
   await leave(page);
   await page.waitForTimeout(500);
   expect(sent.length).toBe(0);
+  // The player's own choice for this game beats the browser's general one.
+  await page.goto('/');
+  await openPrivacy(page);
+  await page.getByRole('switch', { name: 'Share anonymous statistics' }).click();
+  await expect(page.getByRole('switch', { name: 'Share anonymous statistics' })).toHaveAttribute('aria-checked', 'true');
+  expect(await page.evaluate(() => localStorage.getItem('tardigeddon.shareUsage'))).toBe('on');
 });
 
 test('errors are counted by kind and place only, never their message, and only a few per visit', async ({ page }) => {
