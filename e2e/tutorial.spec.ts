@@ -52,6 +52,8 @@ test('settings bind left-click to Fire, and the tutorial walks through the basic
   await page.mouse.move(640, 120);
   await page.mouse.down();
   await page.waitForTimeout(500);
+  // On a slow machine half a second can be only a tick or two of the game: hold until it has really charged.
+  await page.waitForFunction(() => ((window as unknown as { __tardi?: { state: { turn: { power: number } } } }).__tardi?.state.turn.power ?? 0) >= 200, undefined, { timeout: 15_000 });
   await page.mouse.up();
   await expect(coach).toContainText('Step 8 of', { timeout: 15_000 });
   expect(errors).toEqual([]);

@@ -3,7 +3,7 @@
 // Homing Spore closing on its target, and Rope Race mines.
 
 import { describe, expect, it } from 'vitest';
-import { activeTardi, createWorld, MIN_FIRE_POWER, SWIM_ODDS, TARDI_R, tick } from '../src/sim/world';
+import { activeTardi, createWorld, SWIM_ODDS, TARDI_R, tick } from '../src/sim/world';
 import { BTN_FIRE, EMPTY_INPUT, type SimEvent, type WorldState } from '../src/sim/types';
 import { presetScheme } from '../src/sim/schemes';
 import { circleCollides } from '../src/sim/terrain/terrain';
@@ -97,8 +97,8 @@ describe('firing', () => {
     expect(s.projectiles.length).toBe(0);
     expect(s.turn.charging).toBe(false);
     expect(s.turn.phase).toBe('aim');
-    // Held a moment longer, it throws.
-    run(s, MIN_FIRE_POWER / 20, { held: BTN_FIRE, pressed: 0 });
+    // Held for two ticks, it throws.
+    run(s, 2, { held: BTN_FIRE, pressed: 0 });
     run(s, 1, EMPTY_INPUT);
     expect(s.projectiles.length).toBe(1);
   });

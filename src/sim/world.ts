@@ -57,12 +57,6 @@ export const POWER_STEP = 20;
  */
 export const FULL_HOLD_TICKS = 20;
 export const POWER_MAX = 1000;
-/**
- * Let go of Fire below this power and the throw is called off, not fired: a
- * tap too quick to be meant (or two quick taps with tap to fire) would drop
- * the shot at your feet and blow you away.
- */
-export const MIN_FIRE_POWER = 3 * POWER_STEP;
 export const WIND_ACCEL = 0.05;
 /** Sideways speed a strike's drops start with at full wind (they keep drifting as they fall). */
 export const STRIKE_WIND_DRIFT = 2;
@@ -704,7 +698,10 @@ function handleControls(s: WorldState, input: InputFrame, events: SimEvent[]): v
             turn.power = Math.min(POWER_MAX, turn.power + step);
           }
         }
-        if (fireReleased && turn.power < MIN_FIRE_POWER) {
+        // Let go after charging for a single tick and the throw is called off,
+        // not fired: a tap quicker than a tick (or two quick taps with tap to
+        // fire) would drop the shot at your feet and blow you away.
+        if (fireReleased && turn.power <= step) {
           turn.charging = false;
           turn.power = 0;
         } else if (fireReleased || turn.fullHold >= FULL_HOLD_TICKS) {
