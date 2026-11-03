@@ -724,7 +724,12 @@ monetisation (cosmetics only, no ads, no power for sale).
 - Speech-bubble banter: CPU taunts and excuses, "Missed me!" on near misses,
   reactions to big hits and drownings.
 - Rope Race game style: a roofed course, swing from the start sign to the
-  chequered flag; fastest of 3 tries wins; a dunking just ends the try.
+  chequered flag; one go each by default (Customise → Goes each); fastest
+  wins; a dunking sends you back to the start with the clock still running.
+  Courses vary in difficulty (pits, climbs, stalactite gauntlets, a split
+  route over or under floating rocks) and have mines to dodge, some floating
+  (they push, never hurt or dig, and are all back for every go). The CPU
+  plans its whole run on copies of the world (`src/ai/race.ts`).
 - Quick play: a matchmaking queue (up to 4; starts with 2+ after a few
   seconds) with a "Play a CPU instead" button while you wait.
 - Aim feel: Up/Down start with fine 0.2° nudges and speed up the longer

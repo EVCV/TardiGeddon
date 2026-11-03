@@ -478,8 +478,7 @@ describe('online room: lag', () => {
     stepUntil(room, () => w().turn.phase === 'aim');
     const me = w().turn.teamIdx === 0 ? a : b;
     room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });
-    room.step();
-    room.step();
+    for (let i = 0; i < 6; i++) room.step();
     room.handle(me, { t: 'input', f: toWire({ held: 0, pressed: 0 }) });
     stepUntil(room, () => w().turn.phase !== 'aim' && w().turn.phase !== 'retreat');
     room.handle(me, { t: 'input', f: toWire({ held: BTN_FIRE, pressed: 0 }) });

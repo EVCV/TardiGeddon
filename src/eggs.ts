@@ -15,6 +15,7 @@ export const EGGS: Egg[] = [
   { id: 'duck', name: 'Rubber duck', riddle: 'Something yellow floats where tardigrades fear to swim. It would like a poke.' },
   { id: 'ufo', name: 'Visitors', riddle: 'Keep an eye on the sky. If someone drops by, wave (well, tap).' },
   { id: 'rainbow', name: 'Rainbow', riddle: 'When the sun comes out, look up. Not every time, mind.' },
+  { id: 'swimmer', name: 'Doggy paddle', riddle: 'Tardigrades can’t swim. Well… hardly ever. Fall in often enough and see.' },
   { id: 'tornado', name: 'Twister', riddle: 'Once in a great many turns, the wind decides where everyone stands.' },
   { id: 'tickle', name: 'Ticklish', riddle: 'The tardigrade in the lobby is ticklish. Very ticklish. Ten times ticklish.' },
   { id: 'milnesium', name: 'Space traveller', riddle: 'Name one of your tardigrades after the real one that survived a trip to space.' },

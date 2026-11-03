@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective Date:** 9 October 2026
+**Effective Date:** 3 November 2026
 **Last Modified:** 31 October 2026
 **Document Version:** v2.12
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
@@ -135,7 +135,7 @@ Our online game server counts in the same way, for online play: how long players
 
 2.4.4 These counts only ever contain values from a fixed list, which our server checks. They never include your name, your team or tardigrade names, your account, room codes, error messages, web addresses, the exact time or exact durations, or any identifier for you or your device. The game sends them to our own game server about once a minute, and when you leave the game, without cookies, and it stores nothing on your device to do so. Our server adds them straight away to totals for the day (for example, "40 matches against the Normal computer player today, 21 won by the player") and does not record the IP address they came from. So we cannot see who you are, pick out any one player's counts, follow a player from one day to the next, or link the counts to an account.
 
-2.4.5 You can turn the game's counts off at any time in Settings → Privacy → "Share anonymous statistics". They are also never sent while your browser sends a Global Privacy Control or Do Not Track signal. If you turn them off, the game remembers that choice on your device (see our Cookie & Storage Policy), and when you play online it tells our server, which then doesn't count your online play either.
+2.4.5 You can turn the game's counts off at any time in Settings → Privacy → "Share anonymous statistics". They are also not sent while your browser sends a Global Privacy Control or Do Not Track signal, unless you turn them on yourself in that same setting (your choice for this game then takes the place of your browser's general one, and you can turn them off again at any time). If you turn them off, the game remembers that choice on your device (see our Cookie & Storage Policy), and when you play online it tells our server, which then doesn't count your online play either.
 
 ### 2.5 Information You Send Us
 

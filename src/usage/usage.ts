@@ -16,7 +16,7 @@ const FLUSH_MS = 60_000;
 const queue = new Map<string, UsageEntry>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 
-export { usageBlockedByBrowser, usageSetting } from './consent';
+export { usageAllowed, usageBlockedByBrowser, usageSetting } from './consent';
 
 export function setUsageSetting(on: boolean): void {
   storeUsageSetting(on);

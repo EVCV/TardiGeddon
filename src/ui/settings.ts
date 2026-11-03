@@ -15,7 +15,7 @@ import { TEXT_SIZES, deviceTextScale, menuScale, phoneMenu, setTextSize, textSiz
 import { canUse, shopItem } from '../shop/catalog';
 import type { HubContext } from './hub';
 import { LEGAL } from './account';
-import { setUsageSetting, usageBlockedByBrowser, usageSetting } from '../usage/usage';
+import { setUsageSetting, usageAllowed, usageBlockedByBrowser } from '../usage/usage';
 import { accessSettings, saveAccessSettings, type AccessSettings, type DarkSetting } from './access';
 import { TEAM_SYMBOLS } from '../render/palette';
 import { LANGS, isLang, lang, langSetting, setLangSetting, t } from '../i18n/i18n';
@@ -42,12 +42,13 @@ export interface SettingsState {
   section: Section | null;
 }
 
-type Section = 'language' | 'text' | 'access' | 'sound' | 'touch' | 'keys' | 'blocked' | 'privacy' | 'about';
+type Section = 'language' | 'text' | 'access' | 'game' | 'sound' | 'touch' | 'keys' | 'blocked' | 'privacy' | 'about';
 /** Icon and name (English: shown with t()). */
 const SECTIONS: [Section, string, string][] = [
   ['language', '🌐', tk('Language')],
   ['keys', '⌨️', tk('Keyboard & mouse')],
   ['touch', '👆', tk('Touch controls')],
+  ['game', '🎮', tk('Game controls')],
   ['sound', '🔊', tk('Sound')],
   ['text', '🔤', tk('Text size')],
   ['access', '👁️', tk('Accessibility')],
@@ -177,7 +178,7 @@ export function renderSettingsPage(ctx: HubContext, state: SettingsState): HTMLE
   }
 
   const langCard = languageSettings();
-  root.append(status, langCard, keysCard, touchCard, soundCard, textSettings(ctx), accessCard(ctx, save), blockedSettings(ctx), privacySettings(ctx));
+  root.append(status, langCard, keysCard, touchCard, gameControlsCard(save), soundCard, textSettings(ctx), accessCard(ctx), blockedSettings(ctx), privacySettings(ctx));
 
   // One section at a time, beside the list of them (on a touch screen, touch controls first).
   const touchFirst = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -280,7 +281,33 @@ function textSettings(ctx: HubContext): HTMLElement {
 }
 
 /** Colour-blind friendly colours, high contrast and calmer effects (ui/access.ts). */
-function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => void): HTMLElement {
+/** How Fire works: tap to fire, and the power bar's speed and bounce. Kept with the controls (on the account when signed in). */
+function gameControlsCard(save: (next: Controls, note?: string) => void): HTMLElement {
+  const card = el('section', 'card settings-access settings-game');
+  card.dataset.section = 'game';
+  card.append(el('h2', 'card-title', `🎮 ${t('Game controls')}`));
+  const controlSwitch = (key: 'tapFire' | 'slowPower' | 'powerBounce', title: string, help: string) => {
+    const on = controls()[key];
+    const row = el('div', 'access-row');
+    const b = el('button', 'seg-btn' + (on ? ' on' : ''), on ? t('On') : t('Off'));
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-checked', String(on));
+    const name = el('b', '', title);
+    name.id = `access-${key.toLowerCase()}`;
+    b.setAttribute('aria-labelledby', name.id);
+    const label = el('div', 'access-text');
+    label.append(name, el('span', 'account-note', help));
+    b.onclick = () => save({ ...controls(), [key]: !on });
+    row.append(label, b);
+    card.append(row);
+  };
+  controlSwitch('tapFire', t('Tap to fire'), t('No holding: tap Fire once to start charging a shot and again to let go. Works with keys, mouse and touch.'));
+  controlSwitch('slowPower', t('Slower power bar'), t('Throws charge up at half speed, so it’s easier to let go at the right power while you learn. Only for you: other players keep their own.'));
+  controlSwitch('powerBounce', t('Power bar goes back down'), t('At full power the bar falls back and rises again until you let go, instead of throwing by itself.'));
+  return card;
+}
+
+function accessCard(ctx: HubContext): HTMLElement {
   const card = el('section', 'card settings-access');
   card.dataset.section = 'access';
   card.append(el('h2', 'card-title', `👁️ ${t('Accessibility')}`));
@@ -339,25 +366,6 @@ function accessCard(ctx: HubContext, save: (next: Controls, note?: string) => vo
     t('Team colours from a palette people with any kind of colour blindness can tell apart. On by itself if your device is set to tell things apart without colour (Differentiate Without Color or Colour correction).'),
   );
   toggle('highContrast', t('High contrast'), t('Solid panels, stronger outlines and bigger name tags in matches. On by itself if your device asks for more contrast.'));
-  // Tap to fire and the power bar: kept with the controls (on the account when signed in).
-  const controlSwitch = (key: 'tapFire' | 'slowPower' | 'powerBounce', title: string, help: string) => {
-    const on = controls()[key];
-    const row = el('div', 'access-row');
-    const b = el('button', 'seg-btn' + (on ? ' on' : ''), on ? t('On') : t('Off'));
-    b.setAttribute('role', 'switch');
-    b.setAttribute('aria-checked', String(on));
-    const name = el('b', '', title);
-    name.id = `access-${key.toLowerCase()}`;
-    b.setAttribute('aria-labelledby', name.id);
-    const label = el('div', 'access-text');
-    label.append(name, el('span', 'account-note', help));
-    b.onclick = () => save({ ...controls(), [key]: !on });
-    row.append(label, b);
-    card.append(row);
-  };
-  controlSwitch('tapFire', t('Tap to fire'), t('No holding: tap Fire once to start charging a shot and again to let go. Works with keys, mouse and touch.'));
-  controlSwitch('slowPower', t('Slower power bar'), t('Throws charge up at half speed, so it’s easier to let go at the right power while you learn. Only for you: other players keep their own.'));
-  controlSwitch('powerBounce', t('Power bar goes back down'), t('At full power the bar falls back and rises again until you let go, instead of throwing by itself.'));
   toggle(
     'captions',
     t('Sound captions'),
@@ -374,13 +382,12 @@ function privacySettings(ctx: HubContext): HTMLElement {
   const card = el('section', 'card settings-privacy');
   card.dataset.section = 'privacy';
   card.append(el('h2', 'card-title', `🔒 ${t('Privacy')}`));
-  const blocked = usageBlockedByBrowser();
-  const on = usageSetting() && !blocked;
+  const browserSays = usageBlockedByBrowser();
+  const on = usageAllowed();
   const row = el('div', 'access-row');
   const b = el('button', 'seg-btn' + (on ? ' on' : ''), on ? t('On') : t('Off'));
   b.setAttribute('role', 'switch');
   b.setAttribute('aria-checked', String(on));
-  b.disabled = blocked;
   const name = el('b', '', t('Share anonymous statistics'));
   name.id = 'privacy-usage';
   b.setAttribute('aria-labelledby', name.id);
@@ -395,7 +402,8 @@ function privacySettings(ctx: HubContext): HTMLElement {
   };
   row.append(label, b);
   card.append(row);
-  if (blocked) card.append(el('p', 'account-note', t('Your browser asks websites not to track you, so nothing is sent.')));
+  // The browser's "don't track me" is honoured until the player says otherwise here.
+  if (browserSays && !on) card.append(el('p', 'account-note', t('Your browser asks websites not to track you, so nothing is sent unless you turn this on here.')));
   const more = el('a', 'link-btn', t('How we use them (Privacy Policy)'));
   more.href = LEGAL + 'privacy-policy';
   more.target = '_blank';
@@ -463,20 +471,6 @@ function soundSettings(ctx: HubContext): HTMLElement {
     return box;
   };
   card.append(row(t('Music'), 'music', 'musicVol'), row(t('Sound effects'), 'effects', 'effectsVol', () => sfx.jump()));
-  // iPhone/iPad: the silent switch mutes the game unless the player says otherwise.
-  if (hasSilentSwitch()) {
-    const check = el('label', 'account-check');
-    const input = el('input');
-    input.type = 'checkbox';
-    input.checked = a.onSilent;
-    input.onchange = () => {
-      saveAudioSettings({ ...audioSettings(), onSilent: input.checked });
-      unlockAudio();
-      sfx.jump();
-    };
-    check.append(input, el('span', '', t('Play sound even when the phone is on silent')));
-    card.append(check);
-  }
   // iPhone/iPad: the silent switch mutes the game unless the player says otherwise.
   if (hasSilentSwitch()) {
     const check = el('label', 'account-check');

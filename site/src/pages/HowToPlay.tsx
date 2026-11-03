@@ -257,7 +257,7 @@ export function HowToPlay() {
             <strong>Poison</strong> takes a little health every turn, but never pops a tardigrade on its own.
           </li>
           <li>
-            <strong>Armour</strong> (the Armoured style) soaks up half of each hit until it cracks.
+            <strong>Armour</strong> (the Armoured style) takes every hit until it cracks; only then does health go down.
           </li>
         </ul>
       </Section>

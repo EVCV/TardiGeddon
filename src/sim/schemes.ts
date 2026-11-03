@@ -38,7 +38,7 @@ export const SCHEME_PRESETS: SchemePreset[] = [
   {
     id: 'armoured',
     name: 'Armoured',
-    blurb: 'Every tardigrade wears armour plates that soak up half of each hit until they crack. Long, tough battles.',
+    blurb: 'Every tardigrade wears armour plates that take every hit until they crack; only then does health go down. Long, tough battles.',
     scheme: { armour: 50 },
   },
   {
@@ -56,13 +56,13 @@ export const SCHEME_PRESETS: SchemePreset[] = [
   {
     id: 'roperace',
     name: 'Rope Race',
-    blurb: 'No fighting: swing on the Silk Rope from the start to the flag. Fastest time over 3 tries wins.',
+    blurb: 'No fighting: swing on the Silk Rope from the start to the flag, dodging the mines. One go each; the fastest time wins.',
     scheme: {
       race: true,
-      raceRounds: 3,
+      raceRounds: 1,
       tardisPerTeam: 1,
       weapons: { rope: -1, parachute: -1 },
-      mines: 0,
+      mines: 8,
       drums: 0,
       crateChance: 0,
       fallDamage: false,

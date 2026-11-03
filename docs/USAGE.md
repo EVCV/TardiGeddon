@@ -50,11 +50,14 @@ below.
    can't be picked out, and a player can't be followed from day to day.
 4. **Nothing stored on the device to send them.** Counts wait in memory
    and go about once a minute and when the game is hidden or closed. Lost
-   if offline. The only stored thing is the player's "off" choice
-   (`tardigeddon.shareUsage`, in the Cookie & Storage Policy's table).
+   if offline. The only stored thing is the player's choice: "off", or
+   "on" when it overrides the browser's signal (`tardigeddon.shareUsage`,
+   in the Cookie & Storage Policy's table).
 5. **Easy to refuse.** Settings → Privacy turns it off on that device. It's
    also off whenever the browser sends Global Privacy Control or Do Not
-   Track (the switch then shows as off and can't be turned on). When it's
+   Track, until the player turns the switch on themselves: their own choice
+   for this game takes the place of the browser's general one
+   (`usage/consent.ts`). When it's
    off, the game tells the online server (`stats: false`), which then doesn't
    count that player's quick-play wait or rooms either (nor a match or
    rematch that player is in).

@@ -162,7 +162,7 @@ describe('Friendly fire', () => {
     // Fire it at the floor between them and let it go off.
     me.x = 1115;
     s.turn.aim = 512; // straight down
-    run(s, 1, { held: BTN_FIRE, pressed: 0 });
+    run(s, 4, { held: BTN_FIRE, pressed: 0 });
     run(s, 1, EMPTY_INPUT);
     runUntilPhase(s, 'aim', 5000);
     expect(foe.poison || !foe.alive).toBe(true);

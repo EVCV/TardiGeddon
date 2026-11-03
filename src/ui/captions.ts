@@ -21,6 +21,7 @@ export function captionFor(e: SimEvent): string | null {
     case 'collect': return t('🎁 Crate picked up');
     case 'heal': return t('💚 Health back');
     case 'drown': return t('🫧 Glug glug');
+    case 'swim': return e.out ? null : t('🏊 Splish splash');
     case 'suddenDeath': return t('⏰ Sudden death!');
     case 'waterRise': return t('🌊 The water rises');
     case 'gas': return t('🤢 Poison gas');

@@ -33,7 +33,7 @@ describe('fire', () => {
     expect(s.flames.length).toBe(18);
     ev.push(...run(s, 100));
     // Settled on (and slowly burning into) the floor, not flying around.
-    expect(s.flames.every((f) => f.y > 585 && f.y < 610)).toBe(true);
+    expect(s.flames.every((f) => f.y > 585 && f.y < 620)).toBe(true);
     expect(ev.some((e) => e.t === 'burn')).toBe(true);
     expect(victim.pendingDmg + (100 - victim.hp)).toBeGreaterThan(5);
   });

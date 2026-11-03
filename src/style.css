@@ -1657,6 +1657,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .page-settings[data-section=language] > [data-section=language],
 .page-settings[data-section=text] > [data-section=text],
 .page-settings[data-section=access] > [data-section=access],
+.page-settings[data-section=game] > [data-section=game],
 .page-settings[data-section=sound] > [data-section=sound],
 .page-settings[data-section=blocked] > [data-section=blocked],
 .page-settings[data-section=privacy] > [data-section=privacy],
