@@ -35,55 +35,55 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
-    id: '2026-10-31-launch',
-    date: '2026-10-31',
+    id: '2026-12-01-launch',
+    date: '2026-12-01',
     kind: 'coming',
     text: {
       en: {
-        title: 'Launch day: 31 October',
+        title: 'New launch day: 1 December',
         body: [
-          'TardiGeddon opens to everyone on 31 October: in your browser, and as apps for Android, iPhone and iPad.',
-          '- Make an account by 31 October to get the Founder pack.',
+          'We’re taking a few more weeks to polish things: TardiGeddon now opens to everyone on 1 December, in your browser, and as apps for Android, iPhone and iPad.',
+          '- Make an account by 30 November to get the Founder pack.',
           '- The first 1,000 players also get the Early bird pack.',
         ],
       },
       es: {
-        title: 'Día del lanzamiento: 31 de octubre',
+        title: 'Nuevo día de lanzamiento: 1 de diciembre',
         body: [
-          'TardiGeddon se abre a todo el mundo el 31 de octubre: en tu navegador y como app para Android, iPhone y iPad.',
-          '- Crea una cuenta antes del 31 de octubre para conseguir el Pack Fundador.',
+          'Nos tomamos unas semanas más para pulir detalles: TardiGeddon se abre a todo el mundo el 1 de diciembre, en tu navegador y como app para Android, iPhone y iPad.',
+          '- Crea una cuenta antes del 30 de noviembre (incluido) para conseguir el Pack Fundador.',
           '- Los primeros 1000 jugadores también reciben el Pack Madrugador.',
         ],
       },
       'pt-BR': {
-        title: 'Dia do lançamento: 31 de outubro',
+        title: 'Novo dia de lançamento: 1º de dezembro',
         body: [
-          'O TardiGeddon abre para todos em 31 de outubro: no seu navegador e como app para Android, iPhone e iPad.',
-          '- Crie uma conta até 31 de outubro para ganhar o Pacote Fundador.',
+          'Vamos levar mais algumas semanas para caprichar: o TardiGeddon abre para todos em 1º de dezembro, no seu navegador e como app para Android, iPhone e iPad.',
+          '- Crie uma conta até 30 de novembro para ganhar o Pacote Fundador.',
           '- Os primeiros 1.000 jogadores também ganham o Pacote Madrugador.',
         ],
       },
       de: {
-        title: 'Starttag: 31. Oktober',
+        title: 'Neuer Starttag: 1. Dezember',
         body: [
-          'TardiGeddon startet am 31. Oktober für alle: im Browser und als App für Android, iPhone und iPad.',
-          '- Erstelle bis zum 31. Oktober ein Konto, um das Gründerpaket zu bekommen.',
+          'Wir nehmen uns noch ein paar Wochen zum Feinschliff: TardiGeddon startet am 1. Dezember für alle, im Browser und als App für Android, iPhone und iPad.',
+          '- Erstelle bis zum 30. November ein Konto, um das Gründerpaket zu bekommen.',
           '- Die ersten 1.000 Spieler bekommen außerdem das Frühaufsteher-Paket.',
         ],
       },
       fr: {
-        title: 'Jour du lancement : 31 octobre',
+        title: 'Nouveau jour de lancement : 1er décembre',
         body: [
-          'TardiGeddon ouvre à tout le monde le 31 octobre : dans ton navigateur, et en appli pour Android, iPhone et iPad.',
-          '- Crée un compte avant le 31 octobre pour obtenir le Pack Fondateur.',
+          'On prend quelques semaines de plus pour peaufiner : TardiGeddon ouvre à tout le monde le 1er décembre, dans ton navigateur, et en appli pour Android, iPhone et iPad.',
+          '- Crée un compte d’ici le 30 novembre pour obtenir le Pack Fondateur.',
           '- Les 1 000 premiers joueurs reçoivent aussi le Pack Lève-tôt.',
         ],
       },
       ja: {
-        title: 'リリース日：10月31日',
+        title: '新しいリリース日：12月1日',
         body: [
-          'TardiGeddonは10月31日に一般公開されます。ブラウザでも、Android・iPhone・iPadのアプリでも遊べます。',
-          '- 10月31日までにアカウントを作ると、ファウンダーパックがもらえます。',
+          '仕上げのため、もう数週間いただきます。TardiGeddonは12月1日に一般公開。ブラウザでも、Android・iPhone・iPadのアプリでも遊べます。',
+          '- 11月30日までにアカウントを作ると、ファウンダーパックがもらえます。',
           '- 最初の1,000人には、アーリーバードパックもプレゼント。',
         ],
       },

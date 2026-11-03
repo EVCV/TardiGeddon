@@ -1,7 +1,7 @@
 # Terms of Service
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 31 October 2026
+**Last Modified:** 3 November 2026
 **Document Version:** v2.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -232,7 +232,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.11 Founder and Early Bird Packs
 
-5.11.1 To thank the players who were with us from the start, accounts made by the end of 31 October 2026 (UTC), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), the Founder's bow (a victory dance), the Golden Garden world, the Founders' Anthem (match music), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. Founders also get the Early Bird pack (Section 5.11.2).
+5.11.1 To thank the players who were with us from the start, accounts made by the end of 30 November 2026 (UTC), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), the Founder's bow (a victory dance), the Golden Garden world, the Founders' Anthem (match music), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. Founders also get the Early Bird pack (Section 5.11.2).
 
 5.11.2 The first 1,000 accounts made by the end of 31 December 2026 (UTC) get the Early Bird pack: the Early bird eggshell (a hat), the Cracked egg (a gravestone), the Hatching dance, the Daybreak Meadow world, the Daybreak music, a 🐣 Early Bird badge (founders show 🌱 instead) and 100 free coins. We may extend either date or raise the number of accounts, and will say so in the game and on the Website.
 

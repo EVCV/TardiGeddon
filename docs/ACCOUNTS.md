@@ -110,7 +110,7 @@ free without an account.
   gravestone, dance, world and music track each), free coins and a badge,
   each given once (`founder` and `early_bird` tables) on the player's next
   `/api/me`, with a thank-you. **Founders** (🌱, 250 coins): accounts made up
-  to the end of `FOUNDER_UNTIL` (default 2026-10-31) and confirmed emails in
+  to the end of `FOUNDER_UNTIL` (default 2026-11-30, the eve of launch) and confirmed emails in
   `FOUNDER_EMAILS`; they get the Early bird pack too. **Early birds** (🐣, 100
   coins): the first `EARLY_BIRD_MAX` accounts (default 1000; 0 = no limit,
   ranked by when they were made) up to the end of `EARLY_BIRD_UNTIL` (default

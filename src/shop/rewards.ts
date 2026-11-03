@@ -37,4 +37,4 @@ export const FOUNDER_COINS = 250;
  * server's FOUNDER_UNTIL says another day. Emails in FOUNDER_EMAILS (testers
  * and helpers) are founders whenever they joined.
  */
-export const FOUNDER_UNTIL = '2026-10-31';
+export const FOUNDER_UNTIL = '2026-11-30';
