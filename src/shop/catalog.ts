@@ -443,7 +443,7 @@ export interface SupporterPack {
 }
 
 /** When supporter packs are on sale: from the start of `from` to the end of `until` (UTC). */
-export const SUPPORTER_SALE = { from: '2026-12-01', until: '2027-01-31' };
+export const SUPPORTER_SALE = { from: '2026-11-03', until: '2027-01-31' };
 
 const SUPPORTER_ITEMS = ['hat:supporter', 'skin:sunshine'];
 export const SUPPORTER_PACKS: SupporterPack[] = [

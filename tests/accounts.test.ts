@@ -693,8 +693,9 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const { cookie, id } = await signUp('supporter@example.com');
     const supporter = SUPPORTER_PACKS.find((p) => p.badge === 'supporter')!;
     const patron = SUPPORTER_PACKS.find((p) => p.badge === 'patron')!;
-    // Before the sale (these tests run before SUPPORTER_SALE.from): not on sale on the website.
-    expect(supporterSaleOn(Date.parse('2026-11-30T12:00:00Z'))).toBe(false);
+    // On sale from the start of SUPPORTER_SALE.from to the end of .until (UTC); outside it, not on the website.
+    expect(supporterSaleOn(Date.parse('2026-11-02T23:59:00Z'))).toBe(false);
+    expect(supporterSaleOn(Date.parse('2026-11-03T00:00:01Z'))).toBe(true);
     expect(supporterSaleOn(Date.parse('2027-01-31T23:00:00Z'))).toBe(true);
     expect(supporterSaleOn(Date.parse('2027-02-01T00:00:01Z'))).toBe(false);
     if (!supporterSaleOn()) {

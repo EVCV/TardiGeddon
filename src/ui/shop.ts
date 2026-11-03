@@ -144,7 +144,8 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   const body = el('div', 'shop-body');
   main.append(body);
   // Supporter packs (while their sale runs) on top of the coins and everything tabs.
-  if (me.supporterSale && me.shop && (state.category === 'coins' || state.category === 'all')) body.append(supporterSection(me, ctx));
+  const supporters = me.supporterSale && me.shop && (state.category === 'coins' || state.category === 'all') ? supporterSection(me, ctx) : null;
+  if (supporters) body.append(supporters);
   if (state.category === 'coins') body.append(coinPacks(me, ctx, state));
   else if (state.category === 'gift') body.append(giftsTab(me, ctx, state.gifts, giftName));
   else if (state.category === 'bundle') {
@@ -796,7 +797,11 @@ function saleEnds(): string {
  * Supporter packs, at the top of the shop while the sale runs: looks bought
  * in one go with money, never sold again after SUPPORTER_SALE.
  */
-function supporterSection(me: MeResponse, ctx: HubContext): HTMLElement {
+function supporterSection(me: MeResponse, ctx: HubContext): HTMLElement | null {
+  // In the apps, only packs the store sells (its product is live): until then, no section there at all.
+  if (inApp()) loadInAppPrices(ctx);
+  const packs = SUPPORTER_PACKS.filter((p) => !inApp() || inAppPrices?.[p.id]);
+  if (!packs.length) return null;
   const box = el('section', 'supporter-section');
   const head = el('div', 'supporter-head');
   head.append(
@@ -804,15 +809,14 @@ function supporterSection(me: MeResponse, ctx: HubContext): HTMLElement {
     el('p', 'supporter-sub', t('Limited time: on sale until {date}, then never again. Looks only, like everything here.', { date: saleEnds() })),
   );
   box.append(head);
-  if (inApp()) loadInAppPrices(ctx);
   const grid = el('div', 'supporter-grid');
-  for (const p of SUPPORTER_PACKS) {
+  for (const p of packs) {
     const owned = p.items.every((i) => me.owned.includes(i));
     const card = el('div', 'supporter-card' + (p.badge === 'patron' ? ' patron' : ''));
     const art = el('div', 'supporter-art');
     art.innerHTML = supporterArt(p);
     const buy = el('button', 'big-btn supporter-buy', owned ? t('✔ Yours') : packPrice(p));
-    buy.disabled = owned || (inApp() && !inAppPrices?.[p.id]);
+    buy.disabled = owned;
     buy.onclick = () => openCheckout(me, ctx, p, buy);
     card.append(art, el('b', 'supporter-name', t(p.name)), supporterItems(p), el('p', 'supporter-blurb', t(p.blurb)), buy);
     grid.append(card);

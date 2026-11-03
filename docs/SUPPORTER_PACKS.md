@@ -1,6 +1,6 @@
 # Supporter packs: setting them up
 
-Two packs of looks, bought with money in one go, on sale **1 December 2026 to
+Two packs of looks, bought with money in one go, on sale **3 November 2026 to
 31 January 2027** (UTC), then never again (Terms 5.13):
 
 | Pack | Price | Product id (Google Play and App Store) | Gives |
@@ -17,7 +17,9 @@ store, sending twice, refunds and the badge.
 
 **What you need to do:** nothing for Stripe; create two products in Play
 Console and two in App Store Connect (below), and ship the app update with
-them **before about 15 November**, so Apple's review is done by 1 December.
+them **as soon as you can**: the sale is already on in the browser, and the
+apps can sell the packs once Google has activated the products and Apple has
+reviewed them with an app update.
 
 ---
 
@@ -37,8 +39,8 @@ Checkout sends each pack's name and price with the order, so there's no
 product to create in the Stripe dashboard. VAT works as for coins (Managed
 Payments). The packs only appear while the sale is on.
 
-**You can try it before 1 December**: the owner's account (`ADMIN_EMAILS`)
-sees the packs and can buy them at any time. Use Stripe's test mode, or buy
+**The sale is on now** in the browser. The owner's account (`ADMIN_EMAILS`)
+also sees the packs outside the sale dates, for testing. Use Stripe's test mode, or buy
 one for real and refund it from the Stripe dashboard (the looks go back).
 
 ## 2. Google Play (Android)
@@ -84,7 +86,7 @@ covers it.
 
 3. **Review screenshot:** the Shop with the Supporter section, taken from the
    TestFlight build on an iPhone (sign in as the owner, who sees the packs
-   early). Add a **Review note**: "Cosmetic looks only. On sale 1 Dec 2026 to
+   early). Add a **Review note**: "Cosmetic looks only. On sale 3 Nov 2026 to
    31 Jan 2027. Restore purchases is in the Shop, under the packs."
 4. **Submit them with the next app version** (Apple reviews new in-app
    purchases with a build). Add both to the version's **In-App Purchases and
@@ -96,10 +98,11 @@ covers it.
 
 **App Privacy:** no change: "Purchases" is already declared.
 
-## 4. On 1 December
+## 4. Now: tell people
 
-The packs appear in the Shop by themselves on 1 December (UTC), in the
-browser and in the apps. Say so in the launch News post and on socials.
+The packs show in the Shop from the moment this is deployed (the browser
+straight away; each app once its store products are live). Say so in a News
+post and on socials; on launch day (1 December), say it again.
 
 ## 5. On 1 February: end the sale
 
