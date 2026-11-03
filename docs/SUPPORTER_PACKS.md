@@ -21,17 +21,13 @@ them **before about 15 November**, so Apple's review is done by 1 December.
 
 ---
 
-## 0. Before you start: the time limit (decide)
+## 0. The time limit (decided: a one-off)
 
 Terms 5.1.2 used to promise "We never show countdowns or time-limited offers".
 The packs are a time-limited offer, so 5.1.2 now says the launch Supporter
 packs are the only exception, and that their end date is always shown plainly
-(no countdowns, no "hurry"). If you'd rather keep the old promise, make the
-packs permanent instead: set `SUPPORTER_SALE.until` to a far date (e.g.
-`'2099-12-31'`), take "On sale until the end of January, then never again"
-out of the two blurbs in `SUPPORTER_PACKS` and the "Limited time" line in
-`supporterSection`, and put 5.1.2 back. Either way the stores' products are
-the same.
+(no countdowns, no "hurry"). Decided (3 Nov 2026): a one-off launch sale, never repeated, and no other
+time-limited or direct-money items after it.
 
 ---
 

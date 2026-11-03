@@ -38,7 +38,7 @@ The iOS app plan: `docs/IOS.md`.
   Stripe shop; off unless the server has `DATABASE_URL`. The server alone grants items. See `docs/ACCOUNTS.md`.
 - `src/native.ts` — what differs in the phone apps (back button, no Stripe in-app). Coins in the Android app: Google Play Billing (`src/shop/playBilling.ts` + `android/.../PlayBillingPlugin.java`; the server checks and grants each purchase in `server/googlePlay.ts`, never the app). See `docs/GOOGLE_PLAY.md` §7. Coins in the iOS app: Apple's in-app purchase (`src/shop/appStore.ts` + `ios/.../AppStorePlugin.swift`; the server checks Apple's signature and grants in `server/appStore.ts`); `src/shop/storeBilling.ts` fronts both stores. See `docs/IOS.md` §3.
 - `src/usage/` + `server/usage.ts` — anonymous play statistics (daily totals, no IDs, no cookies; Settings → Privacy turns them off). Only values from `src/usage/catalog.ts`, never free text; keep `site/legal/` and the store answers in step. See `docs/USAGE.md`.
-- Supporter packs (looks bought with money in one go, on sale 1 Dec 2026–31 Jan 2027, Terms 5.13): `SUPPORTER_PACKS` in `src/shop/catalog.ts`; store setup in `docs/SUPPORTER_PACKS.md`. Email news (opt-in only, double opt-in, sent from Utobo): `server/newsletter.ts`, `docs/NEWSLETTER.md`; keep Privacy Policy §2.2.6/§8 in step.
+- Supporter packs (a one-off: looks bought with money in one go, on sale 1 Dec 2026–31 Jan 2027 only, Terms 5.13): `SUPPORTER_PACKS` in `src/shop/catalog.ts`; store setup in `docs/SUPPORTER_PACKS.md`. Email news (opt-in only, double opt-in, sent from Utobo): `server/newsletter.ts`, `docs/NEWSLETTER.md`; keep Privacy Policy §2.2.6/§8 in step.
 - `src/news/` — News (release notes, coming soon, being fixed): posts in `news.ts` in all six languages, shown in the game (`ui/news.ts`) and at tardigeddon.com/news; the website build writes `/news.json` (the game and apps fetch it, so posts need no app update) and `/news.xml` (RSS). How to post: `docs/NEWS.md`.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
   Runs on one machine only (host), so it may use non-deterministic code.
@@ -53,7 +53,7 @@ The iOS app plan: `docs/IOS.md`.
   TestFlight; the owner merges.
 - Any gameplay change needs a sim test; keep `tests/soak.test.ts` green (it catches soft-locks).
 - Never copy Worms Armageddon assets or signature names (see plan §1).
-- Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only.
+- Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only. The one exception is the one-off launch Supporter packs (looks bought with money directly, 1 Dec 2026–31 Jan 2027, never sold again; Terms 5.13): don't add more time-limited or direct-money items (Terms 5.1.2 promises no other time-limited offers).
   Weapons unlock with Slime, which is earned by playing and must never be buyable or convertible from coins.
 
 ## Business facts (settled — don't ask the owner again)
