@@ -3,7 +3,10 @@
 // everything, and the first tap asks the browser to go fullscreen and lock to
 // landscape (Android honours this; iOS Safari can't lock, so the overlay is
 // what enforces it there). Installed apps get the same from the manifest's
-// "orientation": "landscape". Tablets and the big screen of an open foldable
+// "orientation": "landscape". The phone apps are full screen and landscape
+// already, so they never ask: in the iOS app, asking puts up the system's
+// "… is in full screen. Swipe down to exit" banner, with an ✕ that drops out
+// of it. Tablets and the big screen of an open foldable
 // (iPhone Duo's is ~626-669 wide upright) are wide enough to play upright too (the iPad app must work every way round:
 // docs/IOS.md §7). A window much narrower than its screen is a split screen,
 // where turning the phone wouldn't help, so it asks for a wider window instead.
@@ -13,6 +16,7 @@
 // a split screen dragged).
 
 import { t } from '../i18n/i18n';
+import { isNativeApp } from '../native';
 
 export function enforceLandscape(): void {
   document.documentElement.classList.add('touch');
@@ -42,6 +46,8 @@ export function enforceLandscape(): void {
   addEventListener('resize', show);
   document.body.appendChild(el);
 
+  // The apps: already full screen and landscape (the overlay still covers an upright iPad window that's too narrow).
+  if (isNativeApp()) return;
   const lock = async () => {
     try {
       if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' });
