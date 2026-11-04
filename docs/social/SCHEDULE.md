@@ -1,9 +1,12 @@
 # Scheduled posts: weeks of content in Sociamonials
 
-Status: **batch 1 scheduled** (4 Nov 2026). All 95 posts are booked in
+Status: **batch 1 scheduled** (4 Nov 2026). 92 posts are booked in
 Sociamonials, from Thu 5 Nov 2026 to Wed 27 Jan 2027, on Facebook, Instagram,
-X and Bluesky (videos on YouTube too). The list, with each post's
-Sociamonials id, is `store/social/queue/batch-1-scheduled.csv`.
+X, Bluesky, Threads, TikTok (photo posts) and Pinterest (each pin on its own
+board; questions aren't pinned). The teaser video goes to YouTube Shorts too.
+The three weaker clip videos were dropped; new vertical weapon shorts are to
+come (VIDEOS.md). The list, with each post's Sociamonials id, is
+`store/social/queue/batch-1-scheduled.csv`.
 **Don't import `batch-1.csv`**: that would post everything twice.
 
 **The idea:** the posts are made here, not typed by hand. Each post's words
