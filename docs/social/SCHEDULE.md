@@ -1,18 +1,21 @@
 # Scheduled posts: weeks of content in Sociamonials
 
-Status: **batch 1 ready** (4 Nov 2026): 12 weeks of posts, plus dated ones
-for the Founder pack, launch day, Christmas, New Year and the Supporter packs.
+Status: **batch 1 scheduled** (4 Nov 2026). All 95 posts are booked in
+Sociamonials, from Thu 5 Nov 2026 to Wed 27 Jan 2027, on Facebook, Instagram,
+X and Bluesky (videos on YouTube too). The list, with each post's
+Sociamonials id, is `store/social/queue/batch-1-scheduled.csv`.
+**Don't import `batch-1.csv`**: that would post everything twice.
 
 **The idea:** the posts are made here, not typed by hand. Each post's words
 live in `scripts/social/posts.ts`, and one command draws a picture card for
-each in the game's style and writes a CSV in Sociamonials' bulk-upload format.
-Sociamonials then puts them in its **queue**: each category has weekly time
-slots, and the queue fills each slot with the next post of that category. A
-scheduled Claude task adds a new month of posts on the 20th of each month
-(§5), so the queue never runs dry.
+each in the game's style (and writes a CSV in Sociamonials' bulk-upload
+format, kept as a fallback). Claude then books each post at its own date and
+time through the Sociamonials connector (§3). A scheduled Claude task does
+the same for a new month of posts on the 20th of each month (§5).
 
-Your part: set up the queue once (§2), import each batch (§3), and spend a
-few minutes a day replying to comments.
+Your part: nothing to import. Glance at the Sociamonials calendar now and
+then, cancel anything you don't like, and spend a few minutes a day replying
+to comments.
 
 ---
 
@@ -66,52 +69,54 @@ searches, so they use the words people type rather than our own names.
 Community questions don't go to Pinterest (leave Pinterest out of that slot).
 Set each board's category to **Games** (Tardigrade Facts: **Science**).
 
-- **LinkedIn:** leave it out of the queue. It's for company news (the launch,
+- **LinkedIn:** leave it out. It's for company news (the launch,
   a milestone), which you can post by hand.
 - **Facebook groups:** Facebook no longer lets any tool post into groups, so
   share to groups by hand (and only where the group's rules allow it).
 
-### Categories
+### Categories and queue slots
 
-In the queue schedule's **Category** list, delete the examples you don't
-need and **create these seven, spelt exactly like this** (the CSV uses the
-names):
+Not needed: Claude books every post at its own time (§3). Only set these up
+if you go back to importing CSVs by hand; then create the seven categories
+`Weapons`, `Tips`, `Tardigrade facts`, `Worlds and modes`, `Community`,
+`Play`, `Videos` (spelt exactly so) and give each the weekly slot in the
+table in §3.
 
-`Weapons` · `Tips` · `Tardigrade facts` · `Worlds and modes` · `Community` · `Play` · `Videos`
+## 3. How a batch is scheduled
 
-### Weekly queue slots (UK time)
+Claude does this through the Sociamonials connector (workspace
+"TardiGeddon"):
 
-One slot a day, plus the video slot. Times are a good start for a UK and
-European audience; Sociamonials' "Best times for clicks" can tune them later.
+1. Each card is copied into Sociamonials' media library (collection
+   "TardiGeddon posts batch <n>"), so posts don't depend on any other link.
+2. Each post is booked at its own time (UK), one slot a day:
 
-| Day | Time | Category | Networks |
-|---|---|---|---|
-| Mon | 12:00 | Weapons | all except YouTube |
-| Tue | 17:30 | Tips | all except YouTube |
-| Wed | 12:00 | Tardigrade facts | all except YouTube |
-| Wed | 18:30 | Videos | all, **with** YouTube |
-| Thu | 17:30 | Weapons | all except YouTube |
-| Fri | 17:30 | Worlds and modes | all except YouTube |
-| Sat | 10:00 | Community | all except YouTube and Pinterest (questions don't work as pins) |
-| Sun | 11:00 | Play | all except YouTube |
+   | Day | Time | Category |
+   |---|---|---|
+   | Mon | 12:00 | Weapons |
+   | Tue | 17:30 | Tips |
+   | Wed | 12:00 | Tardigrade facts |
+   | Wed | 18:30 | Videos (every third week) |
+   | Thu | 17:30 | Weapons |
+   | Fri | 17:30 | Worlds and modes |
+   | Sat | 10:00 | Community |
+   | Sun | 11:00 | Play |
 
-YouTube only takes videos, so it's only in the Videos slot.
+   Dated posts keep their own times. The account's weekly queue slots
+   aren't used (they're Sociamonials' examples), so they don't need changing.
+3. The list of what was booked, with Sociamonials' post ids, goes in
+   `store/social/queue/batch-<n>-scheduled.csv`.
 
-## 3. Import a batch
+**To change or stop a post:** open it in Sociamonials' calendar and edit or
+delete it, or ask Claude by its id (e.g. `weapon-tun`).
 
-1. **Merge the pull request first and wait for the website to deploy.**
-   The CSV points at pictures on `tardigeddon.com/social/posts/`, and
-   Sociamonials fetches them from there when you import. Check one opens,
-   e.g. tardigeddon.com/social/posts/weapon-bazooka.jpg.
-2. **Sociamonials → Bulk Upload (CSV)** → choose `store/social/queue/batch-1.csv`
-   (download it from GitHub: open the file, then the download button).
-3. Posts with no date go into the queue under their category, in order;
-   the 7 dated ones are scheduled at their own times.
-4. **Check a few in the calendar,** especially one of each kind (picture,
-   video, dated) on each network, before leaving it to run.
+**Networks not connected yet** (TikTok, Threads, Pinterest): posts booked
+before a network is connected don't go there. Once you connect one, ask
+Claude to add the remaining posts for it.
 
-If the import ever complains about line breaks inside posts, run the command
-in §4 with `--one-line` and import that file instead.
+**By hand instead (fallback):** Sociamonials → Bulk Upload (CSV) with
+`store/social/queue/batch-<n>.csv`, after the site has deployed the cards.
+Only for a batch Claude hasn't scheduled.
 
 ## 4. Making a batch (for whoever edits the posts)
 
@@ -134,11 +139,13 @@ picture's web address is built from it.
 ## 5. The monthly top-up (scheduled)
 
 A scheduled Claude task runs on the **20th of each month**. It writes the
-next batch (about four weeks: 8 weapon posts, 4 each of the others, and 2 to
-4 videos if there are new clips), using what's new in the game and in
-`src/news/news.ts`, adds dated posts for the month ahead (events, updates),
-draws it, and opens a pull request. You then read `batch-<n>.html`, merge,
-and import the CSV (§3). The queue stays about 12 weeks ahead.
+next batch (about four weeks: 8 weapon posts, 4 each of the others, and
+videos if there are new clips), using what's new in the game and in
+`src/news/news.ts`, adds dated posts for the weeks ahead, draws the cards,
+opens a pull request with them, and books the posts in Sociamonials after
+the last one already booked (§3), each at least a week ahead. You can read
+`batch-<n>.html` in the pull request and cancel anything in Sociamonials
+before it goes out. The calendar stays several weeks ahead.
 
 To stop or change it, ask Claude (it's a "scheduled task" on your account),
 or see the scheduled tasks list on claude.ai/code.
