@@ -43,7 +43,13 @@ const MAPS = { islands: 'Twin Isles', mainland: 'Mainland', archipelago: 'Archip
 const STYLES = { standard: 'Standard', quick: 'Quick', pro: 'Pro', chaos: 'Chaos', armoured: 'Armoured', bng: 'Bazookas and Grenades', artillery: 'Artillery' };
 
 const load = (seed) => JSON.parse(readFileSync(join(SCOUT, 'matches', `${seed}.json`), 'utf8'));
-const matches = () => readdirSync(join(SCOUT, 'matches')).filter((f) => f.endsWith('.json')).map((f) => load(f.replace('.json', '')));
+/** The game's replay limit (src/challenge/daily.ts MAX_FRAMES: 15 minutes); a longer one won't open. */
+const MAX_TICKS = TICK * 60 * 15;
+const matches = () =>
+  readdirSync(join(SCOUT, 'matches'))
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => load(f.replace('.json', '')))
+    .filter((m) => m.ticks <= MAX_TICKS);
 
 /**
  * The plan: a list of matches, each with the moments to film in order.
