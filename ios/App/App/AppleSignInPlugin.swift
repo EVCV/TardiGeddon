@@ -52,7 +52,13 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationCont
             call.resolve(["status": "error", "message": "no token"])
             return
         }
-        call.resolve(["status": "ok", "idToken": token])
+        // The one-use authorization code too: the server swaps it for a token it can
+        // revoke if the account is ever deleted (server/appleTokens.ts).
+        var result: [String: Any] = ["status": "ok", "idToken": token]
+        if let codeData = credential.authorizationCode, let code = String(data: codeData, encoding: .utf8) {
+            result["code"] = code
+        }
+        call.resolve(result)
     }
 
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
