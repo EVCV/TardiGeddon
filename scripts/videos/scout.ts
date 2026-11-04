@@ -20,7 +20,7 @@ import { MAP_STYLES } from '../../src/sim/terrain/generate';
 import { presetScheme } from '../../src/sim/schemes';
 import { WEAPONS } from '../../src/sim/weapons';
 import { encodeWorld } from '../../src/net/snapshot';
-import { packFrames } from '../../src/challenge/daily';
+import { MAX_FRAMES, packFrames } from '../../src/challenge/daily';
 import { presetTeamName } from '../../src/names';
 import { HATS } from '../../src/render/hats';
 import { SKINS } from '../../src/render/skins';
@@ -52,6 +52,8 @@ export interface ScoutedMatch {
   style: string;
   map: string;
   ticks: number;
+  /** Played to the end (not cut off at the replay limit). */
+  finished: boolean;
   winner: string | null;
   score: number;
   moments: Moment[];
@@ -114,7 +116,8 @@ export function playMatch(seed: number, teamRange: [number, number]): ScoutedMat
     moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal });
   };
 
-  const maxTicks = TICKS_PER_SECOND * 60 * 40;
+  // The game's replays hold at most 15 minutes (MAX_FRAMES); a longer match couldn't be filmed.
+  const maxTicks = MAX_FRAMES;
   while (s.turn.phase !== 'gameover' && s.tick < maxTicks) {
     const f = cpus[s.turn.teamIdx].next(s);
     frames.push(f);
@@ -155,6 +158,7 @@ export function playMatch(seed: number, teamRange: [number, number]): ScoutedMat
     style,
     map,
     ticks: s.tick,
+    finished: s.turn.phase === 'gameover',
     winner,
     score,
     moments: moments.sort((a, b) => a.from - b.from),
@@ -212,7 +216,8 @@ async function main(): Promise<void> {
   );
 
   results.sort((a, b) => b.score - a.score);
-  const kept = results.slice(0, keep);
+  // Only matches that finished inside the replay limit (a match cut off at 15 minutes has no ending to film).
+  const kept = results.filter((m) => m.finished).slice(0, keep);
   for (const m of kept) writeFileSync(join(out, 'matches', `${m.seed}.json`), JSON.stringify(m));
   // The best moments of all, for a "best of" video.
   const moments = kept
@@ -226,7 +231,7 @@ async function main(): Promise<void> {
     topMoments: moments.slice(0, 100),
   };
   writeFileSync(join(out, 'index.json'), JSON.stringify(index, null, 2));
-  console.log(`\n${results.length} matches in ${index.minutes} min. Kept the best ${kept.length} in ${out}/matches; the top moments are in ${out}/index.json.`);
+  console.log(`\n${results.length} matches (${results.filter((m) => m.finished).length} finished) in ${index.minutes} min. Kept the best ${kept.length} in ${out}/matches; the top moments are in ${out}/index.json.`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) void main().catch((e) => {

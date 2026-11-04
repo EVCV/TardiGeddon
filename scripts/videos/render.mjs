@@ -106,8 +106,19 @@ const OVERLAY_CSS = `
     color: #ffd84a; font: 2.4vh var(--title); z-index: 99996; }
 `;
 
-/** Open the game watching one replay, with the clock frozen at its start. */
+/** Open the game watching one replay, with the clock frozen at its start (three tries: a busy computer can be slow to load it). */
 async function openReplay(replay) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await openReplayOnce(replay);
+    } catch (e) {
+      if (attempt >= 3) throw e;
+      console.warn(`  the game was slow to open the replay (${e.message.split('\n')[0]}); trying again`);
+    }
+  }
+}
+
+async function openReplayOnce(replay) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
   await ctx.addInitScript(`window.__replay = ${JSON.stringify(replay)};`);
   await ctx.addInitScript(`try { localStorage.setItem('tardigeddon.arena', 'classic'); } catch {}`);
@@ -115,7 +126,12 @@ async function openReplay(replay) {
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.error('  page error:', e.message));
   await page.goto(new URL('?autostart=replay', GAME).href);
-  await page.waitForFunction(() => window.__tardi?.world?.tick >= 1, null, { timeout: 60_000 });
+  try {
+    await page.waitForFunction(() => window.__tardi?.world?.tick >= 1, null, { timeout: 120_000 });
+  } catch (e) {
+    await ctx.close();
+    throw e;
+  }
   await page.evaluate((css) => {
     const style = document.createElement('style');
     style.textContent = css;
