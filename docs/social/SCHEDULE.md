@@ -142,10 +142,11 @@ A scheduled Claude task runs on the **20th of each month**. It writes the
 next batch (about four weeks: 8 weapon posts, 4 each of the others, and
 videos if there are new clips), using what's new in the game and in
 `src/news/news.ts`, adds dated posts for the weeks ahead, draws the cards,
-opens a pull request with them, and books the posts in Sociamonials after
-the last one already booked (§3), each at least a week ahead. You can read
-`batch-<n>.html` in the pull request and cancel anything in Sociamonials
-before it goes out. The calendar stays several weeks ahead.
+and opens a pull request with them. Scheduled tasks can't use the
+Sociamonials connector, so the task ends by asking you to open a Claude
+session with it and say **"schedule social posts batch <n>"**; Claude then
+books them as in §3, after the last post already booked. The calendar stays
+several weeks ahead (batch 1 runs to 27 January).
 
 To stop or change it, ask Claude (it's a "scheduled task" on your account),
 or see the scheduled tasks list on claude.ai/code.
