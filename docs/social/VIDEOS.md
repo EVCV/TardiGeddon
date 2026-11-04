@@ -1,7 +1,7 @@
 # Videos: a weekly routine with no editing
 
-Status: **plan** (4 Nov 2026). The tools in §3 are to build; the rest is how
-we'll use them.
+Status: **long videos from CPU matches: built** (§3.6, 4 Nov 2026). The
+other tools in §3 are still to build; the rest is how we'll use them.
 
 **The idea:** nobody edits video by hand. TardiGeddon already replays any
 match exactly (the sim is deterministic: a replay is the recorded button
@@ -109,6 +109,52 @@ In this order; each step is useful on its own.
    (`store/social/youtube-thumb-template.png`).
 
 Roughly a week of work for steps 1 to 3, then a day each for 4 and 5.
+
+### 3.6 Long videos from CPU matches (built)
+
+No playing needed: the computer plays hundreds of matches against itself
+(2 to 10 teams, every map style and game style, random hats), and the best
+moments are filmed in the real game.
+
+1. **Scout** (about 20 minutes for 200 matches on a 4-core computer; nothing
+   is drawn):
+
+   ```bash
+   npm run videos:scout -- --matches 200 --teams 2-10
+   ```
+
+   Each turn is scored (damage, tardis popped, drowned, several at once,
+   superweapons, own goals). The best 40 matches are kept as replays in
+   `store/videos/scout/matches/`, with the top moments of all in
+   `store/videos/scout/index.json`. Same seeds, same matches, every time
+   (`--seed 201` for a fresh 200).
+2. **Film** (needs the game running: `npm run build`, then
+   `npx vite preview --port 4173` in another terminal; and `ffmpeg`):
+
+   ```bash
+   npm run videos:render -- best --teams 6 --minutes 8
+   ```
+
+   - `best`: the top moments of all, at most 3 per match and not too many of
+     one weapon, grouped by match and building up to the best. `--teams 6`
+     keeps only matches with 6 or more teams (**pure mayhem**).
+   - `match --seed 4`: one match's highlights in order, ending on the winning
+     shot and a "… win!" card.
+   - `--music track.mp3` adds a music bed (the game's own tracks, or YouTube's
+     Audio Library; never chart music). Without it the video is silent: the
+     game makes its sound live, which can't be filmed frame by frame.
+
+   Out comes `store/videos/<name>.mp4` (1920×1080, 30 fps) and `<name>.txt`, a
+   description with **YouTube chapters** (one per match). Filming runs about
+   4 to 8 video frames a second, so an 8-minute video takes about an hour;
+   leave it running.
+3. **Watch it**, then upload to YouTube (Studio, or Sociamonials' YouTube
+   profile), with the `.txt` as the description. Every match in it was played
+   by the computer: the description says so.
+
+Ideas for series: *10-team mayhem* (weekly), *one whole match* (`match`), a
+*best of the month*, and per map style (`--teams 2` plus a map filter, to
+add).
 
 ## 4. Rules for every video
 
