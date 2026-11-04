@@ -45,8 +45,26 @@ the command in §4 again.
 
 Connect: **Facebook Page, Instagram, Threads, X, Bluesky, TikTok, YouTube**,
 and **Pinterest** (worth it: the weapon, fact and world cards are just what
-Pinterest likes, and pins keep bringing visitors for months). Make a board
-called **TardiGeddon** on Pinterest first.
+Pinterest likes, and pins keep bringing visitors for months).
+
+### Pinterest boards
+
+**Make these on Pinterest before connecting it, spelt exactly like this**
+(the CSV names each pin's board, and Sociamonials quietly drops a pin whose
+board doesn't exist). Board names and descriptions are what Pinterest
+searches, so they use the words people type rather than our own names.
+
+| Board | Gets | Description (paste in) |
+|---|---|---|
+| `TardiGeddon Weapons` | Weapons | Every weapon in TardiGeddon, the free turn-based artillery game starring tardigrades: bazookas, grenades, strikes from the sky and superweapons like the Concrete Tun. |
+| `Tardigrade Facts` | Tardigrade facts | Real facts about tardigrades (water bears, moss piglets): tiny animals that survive space, freezing and drying out. With cartoon tardigrades from TardiGeddon. |
+| `Game Tips and Tricks` | Tips | Tips for TardiGeddon and turn-based artillery games: wind, fuses, aiming, mines and crates. Play free in your browser. |
+| `Game Worlds and Maps` | Worlds and modes | TardiGeddon's map styles and ways to play: floating sky islands, caverns, canyons, online with friends, daily challenges and up to 10 teams on one device. |
+| `Free Browser Games` | Play and Videos (and the dated posts) | TardiGeddon: a free browser game for computers, phones and tablets. No download, no ads, nothing to buy that helps you win. |
+| `Tardigrade Fan Art` | nothing yet | Save players' tardigrade drawings here by hand (with their permission and credit) once the fan art comes in. |
+
+Community questions don't go to Pinterest (leave Pinterest out of that slot).
+Set each board's category to **Games** (Tardigrade Facts: **Science**).
 
 - **LinkedIn:** leave it out of the queue. It's for company news (the launch,
   a milestone), which you can post by hand.

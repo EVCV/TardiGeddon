@@ -187,6 +187,17 @@ const COLUMNS = [
   'TikTokBrandedContent(YorN)', 'TikTokCarouselTitle',
 ] as const;
 
+/** The Pinterest board for each category (docs/social/SCHEDULE.md §2: make them, spelt exactly so, before importing). */
+const BOARD: Record<Category, string> = {
+  Weapons: 'TardiGeddon Weapons',
+  Tips: 'Game Tips and Tricks',
+  'Tardigrade facts': 'Tardigrade Facts',
+  'Worlds and modes': 'Game Worlds and Maps',
+  Community: '', // questions aren't pinned
+  Play: 'Free Browser Games',
+  Videos: 'Free Browser Games',
+};
+
 const imageUrl = (p: Post) => `${SITE}/social/posts/${p.id}.jpg`;
 
 function row(p: Post): Record<(typeof COLUMNS)[number], string> {
@@ -201,6 +212,7 @@ function row(p: Post): Record<(typeof COLUMNS)[number], string> {
     Object.assign(r, { 'Month(1-12)': String(m), 'Day(1-31)': String(day), Year: String(y), 'Hour(1-24)': String(h), 'Minute(0-59)': String(min) });
   }
   r.PinTitle = p.title;
+  r.PinterestBoard = BOARD[p.category];
   r.Category = p.category;
   r.AltText = p.alt;
   r.TeamNote = `${p.id} (scripts/social/posts.ts)`;
