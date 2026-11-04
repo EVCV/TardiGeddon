@@ -11,7 +11,7 @@ The iOS app plan: `docs/IOS.md`.
 - `npm run site:dev` / `site:build` — the public website (React + GSAP + Lenis + React Bits; see `docs/WEBSITE.md`; every page is prerendered to HTML, search setup in `docs/SEO.md`)
 - `npm run build:all` — site + game (at `/play/`) into `dist-site/`, as deployed to Cloudflare Pages (`docs/DEPLOY.md`)
 - `npm run app:build` — the Android and iOS apps (Capacitor, `android/`, `ios/`; `npm run app:ios` opens Xcode on a Mac); see `docs/APPS.md`, `docs/IOS.md`, and `docs/GOOGLE_PLAY.md` for the store (signed builds, listing, forms; images via `scripts/store-images.mjs`). Keep the Data safety answers and `site/legal/` in step with what the code stores
-- Social accounts (Discord, YouTube, …): `docs/social/`; their pictures and Shorts teaser via `npx tsx scripts/social-images.ts` → `store/social/`
+- Social accounts (Discord, YouTube, …): `docs/social/`; their pictures and Shorts teaser via `npx tsx scripts/social-images.ts` → `store/social/`; scheduled posts for Sociamonials (words in `scripts/social/posts.ts`) via `npx tsx scripts/social-posts.ts <batch>` → cards in `site/public/social/posts/`, CSV in `store/social/queue/` (`docs/social/SCHEDULE.md`)
 - `npm test` — unit + soak tests (Vitest). Set `TEST_DATABASE_URL` (an empty throwaway Postgres) to also run the accounts/shop tests
 - `npm run typecheck`, `npm run build`
 - `npm run e2e` — Playwright smoke tests (desktop + phone). In sandboxes with a

@@ -23,6 +23,8 @@ share: names, the bios, the voice and the rules.
 
 **Videos** for YouTube, TikTok, Reels and Facebook: the weekly routine and the tools that make them from the game itself are in [VIDEOS.md](VIDEOS.md).
 
+**Scheduled posts** (weeks of picture posts for Sociamonials' queue, made by `scripts/social-posts.ts`, plus contests): [SCHEDULE.md](SCHEDULE.md).
+
 Pictures for every platform: `npx tsx scripts/social-images.ts` writes them
 to `store/social/` (see the table at the end). They're drawn from the game's
 own art, so redraw them after the mascot or logo changes.
