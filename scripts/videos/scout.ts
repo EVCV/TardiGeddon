@@ -25,7 +25,7 @@ import { presetTeamName } from '../../src/names';
 import { HATS } from '../../src/render/hats';
 import { SKINS } from '../../src/render/skins';
 import type { CpuSkill } from '../../src/ai/skills';
-import type { InputFrame, SimEvent, WorldState } from '../../src/sim/types';
+import type { InputFrame, SimEvent } from '../../src/sim/types';
 
 const TICKS_PER_SECOND = 50;
 /** Game styles worth filming (Rope Race is its own thing). */
