@@ -21,6 +21,8 @@ share: names, the bios, the voice and the rules.
 | Patreon | (patreon.com/tardigeddon) | Plan, not started | [../PATREON.md](../PATREON.md) |
 | Steam | — | Plan, not started (no account yet) | [../STEAM.md](../STEAM.md) |
 
+**Videos** for YouTube, TikTok, Reels and Facebook: the weekly routine and the tools that make them from the game itself are in [VIDEOS.md](VIDEOS.md).
+
 Pictures for every platform: `npx tsx scripts/social-images.ts` writes them
 to `store/social/` (see the table at the end). They're drawn from the game's
 own art, so redraw them after the mascot or logo changes.
