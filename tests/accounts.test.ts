@@ -16,7 +16,8 @@ import { wearableTeam } from '../server/room';
 import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import { earlyBirdRule, founderRule, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
-import { EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
+import { SUPPORTER_PACKS, supporterSaleOn } from '../src/shop/catalog';
+import { CREATOR_INVITE_COINS, EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FAN_ITEMS, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
 import type { Mail } from '../server/mail';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
@@ -688,6 +689,125 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(cookie)).wallet.coins).toBe(200);
   });
 
+  it('sells supporter packs for money on every store, only while their sale runs: looks granted once, kept, badged and refundable', async () => {
+    const { cookie, id } = await signUp('supporter@example.com');
+    const supporter = SUPPORTER_PACKS.find((p) => p.badge === 'supporter')!;
+    const patron = SUPPORTER_PACKS.find((p) => p.badge === 'patron')!;
+    // On sale from the start of SUPPORTER_SALE.from to the end of .until (UTC); outside it, not on the website.
+    expect(supporterSaleOn(Date.parse('2026-11-02T23:59:00Z'))).toBe(false);
+    expect(supporterSaleOn(Date.parse('2026-11-03T00:00:01Z'))).toBe(true);
+    expect(supporterSaleOn(Date.parse('2027-01-31T23:00:00Z'))).toBe(true);
+    expect(supporterSaleOn(Date.parse('2027-02-01T00:00:01Z'))).toBe(false);
+    if (!supporterSaleOn()) {
+      expect((await me(cookie)).supporterSale).toBeUndefined();
+      expect((await post('/api/shop/checkout', { item: supporter.id, consent: true, grownUp: true }, cookie)).status).toBe(400);
+    }
+
+    // Stripe: paid, then the looks are on the account, with the 💛 badge.
+    expect(await sendWebhook('checkout.session.completed', { ...paid('cs_sup1', id, supporter.id), amount_total: supporter.price })).toBe(200);
+    let m = await me(cookie);
+    for (const item of supporter.items) expect(m.owned).toContain(item);
+    expect(m.supporterBadge).toBe('supporter');
+    expect(m.wallet.coins).toBe(0);
+
+    // Google Play: the Patron pack, acknowledged (kept), never consumed; sent again, nothing twice.
+    const tag = playAccountTag(id);
+    playPurchases.set('sp1', { productId: patron.storeId, purchaseState: 0, consumptionState: 0, acknowledgementState: 0, obfuscatedExternalAccountId: tag });
+    const r = await post('/api/shop/google', { productId: patron.storeId, token: 'sp1' }, cookie);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ coins: 0, pack: patron.id });
+    expect(acknowledged).toContain('sp1');
+    expect(consumed).not.toContain('sp1');
+    playPurchases.get('sp1')!.acknowledgementState = 1;
+    expect(await (await post('/api/shop/google', { productId: patron.storeId, token: 'sp1' }, cookie)).json()).toMatchObject({ coins: 0 });
+    m = await me(cookie);
+    for (const item of patron.items) expect(m.owned).toContain(item);
+    expect(m.supporterBadge).toBe('patron');
+
+    // Refunding the Supporter pack keeps what the Patron pack also gives (everything here).
+    await sendWebhook('charge.refunded', { id: 'ch_sup1', refunded: true, payment_intent: 'pi_cs_sup1' });
+    m = await me(cookie);
+    for (const item of patron.items) expect(m.owned).toContain(item);
+    // Refunding the Patron pack too: the looks and the badge go.
+    voided = [{ purchaseToken: 'sp1' }];
+    await accounts.checkVoided();
+    voided = [];
+    m = await me(cookie);
+    for (const item of patron.items) expect(m.owned).not.toContain(item);
+    expect(m.supporterBadge).toBeUndefined();
+
+    // The App Store: a non-consumable (a coin pack's id as one is refused, and vice versa).
+    const apple = (transactionId: string, over: Partial<AppStorePurchase> = {}): string => {
+      const signed = `signed-${transactionId}`;
+      applePurchases.set(signed, { transactionId, productId: supporter.storeId, consumable: false, appAccountToken: appStoreAccountToken(id), revoked: false, sandbox: false, region: 'GB', ...over });
+      return signed;
+    };
+    expect((await post('/api/shop/apple', { transaction: apple('s1', { consumable: true }) }, cookie)).status).toBe(400);
+    const a = await post('/api/shop/apple', { transaction: apple('s2') }, cookie);
+    expect(await a.json()).toMatchObject({ coins: 0, pack: supporter.id });
+    // Restore purchases sends it again: fine, nothing twice.
+    expect((await post('/api/shop/apple', { transaction: 'signed-s2' }, cookie)).status).toBe(200);
+    m = await me(cookie);
+    for (const item of supporter.items) expect(m.owned).toContain(item);
+    expect(m.supporterBadge).toBe('supporter');
+  });
+
+  it('sends email news only to people who ask: double opt-in, 13+, proof of consent, one-click unsubscribe, a list for Utobo', async () => {
+    // Anyone: an address and a 13+ tick; one email, and only its link subscribes.
+    expect((await post('/api/newsletter', { email: 'reader@example.com' })).status).toBe(400);
+    expect((await post('/api/newsletter', { email: 'not-an-email', over13: true })).status).toBe(400);
+    expect((await post('/api/newsletter', { email: 'Reader@Example.com', over13: true, source: 'news', lang: 'de' })).status).toBe(200);
+    const mail = await mailTo('reader@example.com', /TardiGeddon news/);
+    const token = linkToken(mail, 'subscribe');
+    expect(token).not.toBe('');
+    let row = await accounts.db.query<{ status: string; source: string; lang: string; wording: string }>(`SELECT status, source, lang, wording FROM newsletter WHERE email = 'reader@example.com'`);
+    expect(row.rows[0]).toMatchObject({ status: 'pending', source: 'news', lang: 'de' });
+    expect(row.rows[0].wording).toMatch(/unsubscribe at any time/);
+    expect(await (await post('/api/newsletter/confirm', { token: 'made-up' })).json()).toEqual({ ok: false });
+    expect(await (await post('/api/newsletter/confirm', { token })).json()).toEqual({ ok: true });
+    row = await accounts.db.query(`SELECT status FROM newsletter WHERE email = 'reader@example.com'`);
+    expect(row.rows[0].status).toBe('subscribed');
+    // Asking again once subscribed: no second email, and the same answer.
+    const before = sent.length;
+    expect((await post('/api/newsletter', { email: 'reader@example.com', over13: true })).status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(sent.length).toBe(before);
+    // One click and it stops; confirming again can't undo that.
+    expect(await (await post('/api/newsletter/unsubscribe', { token })).json()).toEqual({ ok: true });
+    expect(await (await post('/api/newsletter/confirm', { token })).json()).toEqual({ ok: false });
+    row = await accounts.db.query(`SELECT status FROM newsletter WHERE email = 'reader@example.com'`);
+    expect(row.rows[0].status).toBe('unsubscribed');
+
+    // An account: never on unless asked; with an unconfirmed email, it waits for the confirmation.
+    const { cookie, id } = await signUp('news-account@example.com');
+    expect((await me(cookie)).newsletter).toEqual({ status: 'no', asked: false });
+    expect((await post('/api/newsletter/account', { on: true, source: 'signup' })).status).toBe(401);
+    expect((await post('/api/newsletter/account', { on: true, source: 'signup' }, cookie)).status).toBe(200);
+    expect((await me(cookie)).newsletter).toEqual({ status: 'pending', asked: true });
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [id]);
+    expect((await me(cookie)).newsletter).toEqual({ status: 'subscribed', asked: true });
+    // Off from the Account page.
+    await post('/api/newsletter/account', { on: false, source: 'account' }, cookie);
+    expect((await me(cookie)).newsletter).toEqual({ status: 'no', asked: true });
+    // "Not now" to the question: asked, and still not subscribed.
+    const other = await signUp('news-not-now@example.com');
+    await post('/api/newsletter/asked', {}, other.cookie);
+    expect((await me(other.cookie)).newsletter).toEqual({ status: 'no', asked: true });
+
+    // The owner's lists for Utobo; nobody else's.
+    const signInAs = async (email: string) => (await post('/api/auth/sign-in/email', { email, password: 'correct horse' })).headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    const boss = await signInAs('boss@example.com');
+    expect((await fetch(base + '/api/admin/newsletter?list=subscribed', { headers: { cookie } })).status).toBe(404);
+    await post('/api/newsletter/account', { on: true, source: 'account' }, cookie);
+    const csv = await (await fetch(base + '/api/admin/newsletter?list=subscribed', { headers: { cookie: boss } })).text();
+    expect(csv.split('\n')[0]).toBe('email,name,source,language,subscribed_at,unsubscribed_at,consent_wording');
+    expect(csv).toContain('news-account@example.com');
+    expect(csv).not.toContain('reader@example.com');
+    const gone = await (await fetch(base + '/api/admin/newsletter?list=unsubscribed', { headers: { cookie: boss } })).text();
+    expect(gone).toContain('reader@example.com');
+    expect(await (await fetch(base + '/api/admin/newsletter', { headers: { cookie: boss } })).json()).toMatchObject({ subscribed: 1, unsubscribed: 1 });
+  });
+
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {
     expect((await post('/api/settings', { controls: defaultControls() })).status).toBe(401);
     const { cookie } = await signUp('settings@example.com');
@@ -732,6 +852,10 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const b = await signUp('invited@example.com');
     const code = (await me(a.cookie)).invite!.code;
     expect((await me(b.cookie)).invite).toMatchObject({ invited: 'no', canEnter: true });
+    // An invite link opened before signing up: what the code is worth, never whose it is.
+    const peek = async (c: string) => (await fetch(`${base}/api/invite/peek?code=${encodeURIComponent(c)}`)).json();
+    expect(await peek(code)).toEqual({ kind: 'friend', coins: INVITE_COINS });
+    expect(await peek('ZZZZZZZZ')).toEqual({ kind: 'unknown' });
     const invite = async (cookie: string, c: string) => ((await (await post('/api/invite', { code: c }, cookie)).json()) as { result: string }).result;
     expect(await invite(b.cookie, (await me(b.cookie)).invite!.code)).toBe('self');
     expect(await invite(a.cookie, (await me(b.cookie)).invite!.code)).toBe('newer'); // a newer account can't have invited an older one
@@ -746,14 +870,21 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     };
     for (let i = 0; i < 3; i++) await match();
     expect((await me(b.cookie)).wallet.coins).toBe(0);
-    // Confirmed: paid on the next look, to both, once.
+    expect((await me(b.cookie)).invite).toMatchObject({ invited: 'waiting', reward: INVITE_COINS, played: 3 });
+    // Confirmed: paid on the next look, to both, once, and each is told once.
     await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [b.id]);
-    expect((await me(b.cookie)).wallet.coins).toBe(INVITE_COINS);
-    expect((await me(b.cookie)).wallet.coins).toBe(INVITE_COINS);
+    const bm = await me(b.cookie);
+    expect(bm.wallet.coins).toBe(INVITE_COINS);
+    expect(bm.inviteNews).toEqual({ friends: 0, coins: 0, mine: { coins: INVITE_COINS, items: [] } });
+    const bm2 = await me(b.cookie);
+    expect(bm2.wallet.coins).toBe(INVITE_COINS);
+    expect(bm2.inviteNews).toBeUndefined();
     expect((await me(b.cookie)).invite).toMatchObject({ invited: 'rewarded', canEnter: false });
     const am = await me(a.cookie);
     expect(am.wallet.coins).toBe(INVITE_COINS);
     expect(am.invite).toMatchObject({ rewarded: 1, rewardedEver: 1, waiting: 0 });
+    expect(am.inviteNews).toEqual({ friends: 1, coins: INVITE_COINS });
+    expect((await me(a.cookie)).inviteNews).toBeUndefined();
     // Free coins: never counted as paid ones (Japan's figure, refunds).
     const lots = await accounts.db.query('SELECT paid, coins FROM coin_lot WHERE user_id = ANY($1)', [[a.id, b.id]]);
     expect(lots.rows.every((l) => l.paid === false)).toBe(true);
@@ -843,7 +974,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await accounts.playerFor({ cookie: other.cookie })).badge).toBeUndefined();
   });
 
-  it('gives creators a code: their players get the invite coins, and the creator a share of what they spend, which the owner pays', async () => {
+  it('gives creators a code: their players get the creator reward, and the creator a share of what they spend, which the owner pays', async () => {
     const signInAs = async (email: string) => {
       const r = await post('/api/auth/sign-in/email', { email, password: 'correct horse' });
       return r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
@@ -858,17 +989,27 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await admin('/api/admin/creators', { code: 'ninja', name: 'Ninja', email: 'nobody@example.com' })).status).toBe(400);
     expect((await admin('/api/admin/creators', { code: 'ninja', name: 'Ninja', email: 'streamer@example.com' })).status).toBe(200);
 
+    // The creator's ⭐ (and the creator medal emblem).
+    expect((await me(streamer.cookie)).creatorBadge).toBe(true);
+    expect((await me(boss)).creatorBadge).toBeUndefined();
+    // Their invite link says what it's worth, with their name.
+    expect(await (await fetch(`${base}/api/invite/peek?code=ninja`)).json()).toEqual({ kind: 'creator', name: 'Ninja', coins: CREATOR_INVITE_COINS, items: FAN_ITEMS });
+
     const fan = await signUp('fan@example.com');
     const r = await post('/api/invite', { code: 'ninja' }, fan.cookie);
     expect(((await r.json()) as { result: string }).result).toBe('ok');
     expect(((await (await post('/api/invite', { code: 'ninja' }, fan.cookie)).json()) as { result: string }).result).toBe('already');
-    // The usual invite reward for the fan (the creator gets money, not coins).
+    // The creator reward for the fan: more coins and the Superfan pack (the creator gets money, not coins).
     await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [fan.id]);
+    expect((await me(fan.cookie)).invite).toMatchObject({ invited: 'waiting', reward: CREATOR_INVITE_COINS, creator: 'Ninja', played: 0 });
     for (let i = 0; i < 3; i++) {
       accounts.resetLimits();
       await post('/api/stats/match', { won: false }, fan.cookie);
     }
-    expect((await me(fan.cookie)).wallet.coins).toBe(INVITE_COINS);
+    const fm = await me(fan.cookie);
+    expect(fm.wallet.coins).toBe(CREATOR_INVITE_COINS);
+    for (const item of FAN_ITEMS) expect(fm.owned).toContain(item);
+    expect(fm.inviteNews).toEqual({ friends: 0, coins: 0, mine: { coins: CREATOR_INVITE_COINS, items: FAN_ITEMS, creator: 'Ninja' } });
     expect((await me(streamer.cookie)).wallet.coins).toBe(0);
 
     // The fan buys coins (£1.99): the creator's share is 10% of the estimated net (less VAT and fees).

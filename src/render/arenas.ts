@@ -309,6 +309,20 @@ export const ARENAS: ArenaTheme[] = [
     soil: [0x4a3010, 0xb88a40, 0x9a6e2c, 0xffe08a],
     drift: { color: 0xffe066, up: true },
   },
+  {
+    // The Patron pack's (limited time, never in the shop): a rose-gold evening with drifting hearts of light.
+    id: 'patron',
+    name: 'Patron’s Palace',
+    skyTop: '#e88aa8',
+    skyBottom: '#ffe2c4',
+    hillFar: 0xd99ab0,
+    hillNear: 0xb87090,
+    water: 0x5a7ec8,
+    waterLight: 0xffd1e0,
+    grass: [0x7a3a5a, 0xe07aa0, 0xffc8da],
+    soil: [0x3e2030, 0x9a6070, 0x7e4a5a, 0xf0b0c0],
+    drift: { color: 0xffe6f0, up: true },
+  },
 ];
 
 /** "Surprise me": a different free (or owned) arena every match. */

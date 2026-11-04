@@ -15,16 +15,17 @@ import { giftName, giftsTab, newGiftsState, openGiftDialog, type GiftsState } fr
 import { loadProfiles, saveProfiles, updateProfile } from './teams';
 import { legalLink, withNodes } from './account';
 import { WEAPONS } from '../sim/weapons';
-import { BUNDLES, COIN_PACKS, SHOP_ITEMS, giftable, bundlePrice, bundleValue, shopItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem } from '../shop/catalog';
+import { BUNDLES, COIN_PACKS, SHOP_ITEMS, SUPPORTER_PACKS, SUPPORTER_SALE, giftable, bundlePrice, bundleValue, shopItem, promoItem, coinValue, formatNumber, formatPrice, packTotal, pencePerCoin, type Bundle, type CoinPack, type ShopItem, type SupporterPack } from '../shop/catalog';
 import { isNativeApp } from '../native';
 import { appStoreName, storePrices } from '../shop/storeBilling';
 import { ageSignal, coinRules, onAgeSignalStale, type AgeSignal } from '../shop/ageSignals';
-import { buyCoins, buyCoinsInApp, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
+import { buyCoins, buyCoinsInApp, restoreAppStorePurchases, chooseArena, chooseMusic, chooseSounds, chosenArena, chosenMusic, chosenSounds, managePurchases, unlock, wearHat, wearSkin, type MeResponse } from '../account/session';
 import type { TeamProfile } from './teams';
 import type { HubContext } from './hub';
-import { t } from '../i18n/i18n';
+import { lang, t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 import { usage } from '../usage/usage';
+import { showRewardPop } from './rewardPop';
 
 type Category = 'all' | 'hat' | 'skin' | 'aim' | 'fx' | 'dance' | 'grave' | 'arena' | 'music' | 'sound' | 'bundle' | 'weapon' | 'gift' | 'coins';
 
@@ -142,6 +143,9 @@ export function renderShop(me: MeResponse, ctx: HubContext, state: ShopState): H
   // The catalogue scrolls inside the box, so the box is the same size on every tab.
   const body = el('div', 'shop-body');
   main.append(body);
+  // Supporter packs (while their sale runs) on top of the coins and everything tabs.
+  const supporters = me.supporterSale && me.shop && (state.category === 'coins' || state.category === 'all') ? supporterSection(me, ctx) : null;
+  if (supporters) body.append(supporters);
   if (state.category === 'coins') body.append(coinPacks(me, ctx, state));
   else if (state.category === 'gift') body.append(giftsTab(me, ctx, state.gifts, giftName));
   else if (state.category === 'bundle') {
@@ -526,7 +530,7 @@ function loadAgeSignal(ctx: HubContext, packs: HTMLElement): void {
 }
 
 /** The pack's price as the player will pay it. */
-const packPrice = (p: CoinPack): string => (inApp() ? (inAppPrices?.[p.id] ?? '…') : formatPrice(p.price));
+const packPrice = (p: { id: string; price: number }): string => (inApp() ? (inAppPrices?.[p.id] ?? '…') : formatPrice(p.price));
 
 /** How many looks (you don't own) these coins could unlock, cheapest first; and whether that's all of them. */
 function lookCount(coins: number, owned: string[]): { n: number; all: boolean } {
@@ -603,11 +607,14 @@ function featureBanner(me: MeResponse, ctx: HubContext, state: ShopState): HTMLE
  * pack, what it costs, the ticks the law needs, and Pay. Esc, the ×, or a tap
  * outside closes it; focus goes back to the pack.
  */
-function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTMLElement): void {
-  usage('coinspack', { pack: pack.id });
+function openCheckout(me: MeResponse, ctx: HubContext, product: CoinPack | SupporterPack, from: HTMLElement): void {
+  // A supporter pack (looks, bought in one go) or a coin pack: the same dialog, the same ticks the law needs.
+  const supporter = 'storeId' in product ? product : null;
+  const pack = supporter ? null : (product as CoinPack);
+  if (pack) usage('coinspack', { pack: pack.id });
   const host = document.getElementById('ui') ?? document.body;
-  const look = PACK_LOOKS[pack.id] ?? { art: 'pouch', name: tk('Coins') };
-  const total = packTotal(pack);
+  const look = pack ? (PACK_LOOKS[pack.id] ?? { art: 'pouch', name: tk('Coins') }) : { art: 'pouch', name: supporter!.name };
+  const total = pack ? packTotal(pack) : 0;
   const overlay = el('div', 'editor-overlay checkout-overlay');
   const box = el('div', 'coin-dialog');
   box.setAttribute('role', 'dialog');
@@ -634,12 +641,19 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
   x.onclick = close;
 
   const art = el('div', 'coin-dialog-art');
-  art.innerHTML = packArt(look.art);
+  art.innerHTML = supporter ? supporterArt(supporter) : packArt(look.art);
   const title = el('h2', 'coin-dialog-title', t(look.name));
   title.id = 'coin-dialog-title';
-  const coins = el('div', 'coin-dialog-coins', t('🪙 {n} coins', { n: formatNumber(total) }));
-  const rate = inApp() ? '' : perCoin(pencePerCoin(pack));
-  const sub = el('div', 'coin-dialog-sub', pack.bonus ? t('{coins} + {bonus} bonus', { coins: formatNumber(pack.coins), bonus: formatNumber(pack.bonus) }) + (rate ? ` · ${rate}` : '') : rate);
+  let coins: HTMLElement;
+  let sub: HTMLElement;
+  if (pack) {
+    coins = el('div', 'coin-dialog-coins', t('🪙 {n} coins', { n: formatNumber(total) }));
+    const rate = inApp() ? '' : perCoin(pencePerCoin(pack));
+    sub = el('div', 'coin-dialog-sub', pack.bonus ? t('{coins} + {bonus} bonus', { coins: formatNumber(pack.coins), bonus: formatNumber(pack.bonus) }) + (rate ? ` · ${rate}` : '') : rate);
+  } else {
+    coins = supporterItems(supporter!);
+    sub = el('div', 'coin-dialog-sub', t(supporter!.blurb));
+  }
   // The pack on top (on the left on short landscape screens), what to do below (or beside).
   const head = el('div', 'coin-dialog-head');
   head.append(art, title, coins, sub);
@@ -647,12 +661,12 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
   box.append(x, head, body);
 
   if (!me.user) {
-    const b = el('button', 'big-btn', t('Sign in to buy coins'));
+    const b = el('button', 'big-btn', supporter ? t('Sign in to buy it') : t('Sign in to buy coins'));
     b.onclick = () => {
       close();
       ctx.go('account');
     };
-    body.append(el('p', 'account-note', t('Coins are kept on your account, so you need one to buy them. It only takes a moment.')), b);
+    body.append(el('p', 'account-note', supporter ? t('Looks are kept on your account, so you need one to buy them. It only takes a moment.') : t('Coins are kept on your account, so you need one to buy them. It only takes a moment.')), b);
   } else {
     const consent = el('label', 'account-check');
     const tick = el('input');
@@ -660,9 +674,11 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     const text = el('span');
     text.append(
       ...withNodes(
-        t("I want my {n} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected ({terms} §5).", {
-          n: formatNumber(total),
-        }),
+        supporter
+          ? t("I want my {name} straight away, and I understand that once it's delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected ({terms} §5).", { name: t(supporter.name) })
+          : t("I want my {n} coins straight away, and I understand that once they're delivered I lose my 14-day right to cancel. My other rights, such as if something doesn't work, aren't affected ({terms} §5).", {
+              n: formatNumber(total),
+            }),
         { terms: legalLink('terms-of-service', t('Terms')) },
       ),
     );
@@ -672,7 +688,7 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
     const adultTick = el('input');
     adultTick.type = 'checkbox';
     adult.append(adultTick, el('span', '', t("I'm 18 or over, or a parent or carer has said yes to this purchase.")));
-    const payLabel = t('Pay {price}', { price: packPrice(pack) });
+    const payLabel = t('Pay {price}', { price: packPrice(product) });
     const pay = el('button', 'big-btn coin-dialog-pay', payLabel);
     const error = el('p', 'coin-dialog-error');
     error.setAttribute('role', 'alert');
@@ -701,15 +717,20 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
       try {
         if (!inApp()) {
           // (Done or cancelled is counted when Stripe sends the player back.)
-          await buyCoins(pack.id, tick.checked, adultTick.checked);
+          await buyCoins(product.id, tick.checked, adultTick.checked);
           return;
         }
-        const r = await buyCoinsInApp(pack.id);
+        const r = await buyCoinsInApp(product.id);
         usage('checkout', { store, step: r.result === 'cancelled' ? 'cancel' : r.result });
         if (r.result === 'cancelled') return again();
         close();
+        if (supporter && r.result === 'done') return thankSupporter(supporter);
         ctx.notify(
-          r.result === 'done'
+          supporter
+            ? apple()
+              ? t('Thanks! Your payment is still going through: your pack will appear as soon as the App Store confirms it.')
+              : t('Thanks! Your payment is still going through: your pack will appear as soon as Google Play confirms it.')
+            : r.result === 'done'
             ? t('Thanks! {n} coins are in your wallet.', { n: formatNumber(r.coins || total) })
             : apple()
               ? t('Thanks! Your payment is still going through: the coins will appear as soon as the App Store confirms it.')
@@ -728,6 +749,90 @@ function openCheckout(me: MeResponse, ctx: HubContext, pack: CoinPack, from: HTM
   overlay.append(box);
   host.append(overlay);
   (box.querySelector<HTMLElement>('input, .big-btn') ?? x).focus();
+}
+
+/** A supporter pack's picture: your tardigrade in the pack's cap and skin. */
+function supporterArt(p: SupporterPack): string {
+  const team = loadProfiles()[0];
+  const hat = p.items.find((i) => i.startsWith('hat:'))?.slice(4) ?? wearHat(team.hat);
+  const skin = p.items.find((i) => i.startsWith('skin:'))?.slice(5) ?? wearSkin(team.skin);
+  return mascotSvg(team.color, hat, skin);
+}
+
+/** What's in a supporter pack: a little picture of each look, and its badge. */
+function supporterItems(p: SupporterPack): HTMLElement {
+  const row = el('div', 'supporter-items');
+  for (const id of p.items) {
+    const item = promoItem(id) ?? shopItem(id);
+    if (!item) continue;
+    const m = el('span', 'pack-eg-item');
+    m.title = t(item.name);
+    m.setAttribute('aria-label', t(item.name));
+    m.innerHTML = itemArt(item);
+    row.append(m);
+  }
+  const badge = el('span', 'supporter-badge-chip', p.badge === 'patron' ? '💖' : '💛');
+  badge.title = p.badge === 'patron' ? t('A 💖 badge by your name online') : t('A 💛 badge by your name online');
+  row.append(badge);
+  return row;
+}
+
+/** Bought: say thank you, with what came in it. */
+function thankSupporter(p: SupporterPack): void {
+  showRewardPop({
+    badge: p.badge === 'patron' ? '💖' : '💛',
+    title: t('Thank you!'),
+    text: t('You’re backing TardiGeddon at launch, and it means a lot. Your {name} is in: find the looks in ✎ Customise team and the World button.', { name: t(p.name) }),
+    items: p.items,
+    button: t('Brilliant!'),
+  });
+}
+
+/** The last day of the supporter sale, in the player's language. */
+function saleEnds(): string {
+  return new Date(`${SUPPORTER_SALE.until}T12:00:00Z`).toLocaleDateString(lang(), { day: 'numeric', month: 'long' });
+}
+
+/**
+ * Supporter packs, at the top of the shop while the sale runs: looks bought
+ * in one go with money, never sold again after SUPPORTER_SALE.
+ */
+function supporterSection(me: MeResponse, ctx: HubContext): HTMLElement | null {
+  // In the apps, only packs the store sells (its product is live): until then, no section there at all.
+  if (inApp()) loadInAppPrices(ctx);
+  const packs = SUPPORTER_PACKS.filter((p) => !inApp() || inAppPrices?.[p.id]);
+  if (!packs.length) return null;
+  const box = el('section', 'supporter-section');
+  const head = el('div', 'supporter-head');
+  head.append(
+    el('h3', 'supporter-title', t('💛 Back TardiGeddon at launch')),
+    el('p', 'supporter-sub', t('Limited time: on sale until {date}, then never again. Looks only, like everything here.', { date: saleEnds() })),
+  );
+  box.append(head);
+  const grid = el('div', 'supporter-grid');
+  for (const p of packs) {
+    const owned = p.items.every((i) => me.owned.includes(i));
+    const card = el('div', 'supporter-card' + (p.badge === 'patron' ? ' patron' : ''));
+    const art = el('div', 'supporter-art');
+    art.innerHTML = supporterArt(p);
+    const buy = el('button', 'big-btn supporter-buy', owned ? t('✔ Yours') : packPrice(p));
+    buy.disabled = owned;
+    buy.onclick = () => openCheckout(me, ctx, p, buy);
+    card.append(art, el('b', 'supporter-name', t(p.name)), supporterItems(p), el('p', 'supporter-blurb', t(p.blurb)), buy);
+    grid.append(card);
+  }
+  box.append(grid);
+  // Apple requires a way to get one-time purchases back (a new phone, a reinstall).
+  if (inApp() && apple() && me.user) {
+    const restore = el('button', 'link-btn supporter-restore', t('Restore purchases'));
+    restore.onclick = () =>
+      ctx.run(async () => {
+        const n = await restoreAppStorePurchases();
+        ctx.notify(n ? t('Your supporter packs are back.') : t('No supporter packs to restore on this Apple ID.'));
+      });
+    box.append(restore);
+  }
+  return box;
 }
 
 function coinPacks(me: MeResponse, ctx: HubContext, state: ShopState): HTMLElement {

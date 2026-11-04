@@ -1,0 +1,476 @@
+Message,Link,ImageURL,VideoURL,Month(1-12),Day(1-31),Year,Hour(1-24),Minute(0-59),PinTitle,Category,Watermark,HashtagGroup,VideoThumbnailURL,CTAGroup,FirstComment,Story(YorN),PinterestBoard,AltText,PostPreset,TeamNote,YouTubeTitle,YouTubeVisibility,YouTubeNotifySubscribers(YorN),YouTubeMadeForKids(YorN),YouTubeSyntheticMedia(YorN),TikTokVisibility,TikTokAllowComments(YorN),TikTokAllowDuet(YorN),TikTokAllowStitch(YorN),TikTokAIContent(YorN),TikTokYourBrand(YorN),TikTokBrandedContent(YorN),TikTokCarouselTitle
+"Meet the Spore Bazooka 🚀 The classic: aim, hold Fire, let go. It flies in a curve and the wind pushes it, so check the arrow before you fire.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-bazooka.jpg,,,,,,,Spore Bazooka,Weapons,,,,,,,TardiGeddon Weapons,"The Spore Bazooka's icon, 🚀, next to a cartoon tardigrade.",,weapon-bazooka (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Spore Bazooka
+"The Concrete Tun 🗿 Pick a spot, and a giant concrete tun drops from the sky and smashes down through the rock. Tiny tardigrades, very big problem.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #tardigrade",,https://tardigeddon.com/social/posts/weapon-tun.jpg,,,,,,,Concrete Tun,Weapons,,,,,,,TardiGeddon Weapons,"The Concrete Tun's icon, 🗿, next to a cartoon tardigrade.",,weapon-tun (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Concrete Tun
+"The Silk Rope 🕸️ Fire a line at the rock, swing across the map, climb with ▲▼ and let go with Jump. Hard to master, brilliant when you do.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-rope.jpg,,,,,,,Silk Rope,Weapons,,,,,,,TardiGeddon Weapons,"The Silk Rope's icon, 🕸️, next to a cartoon tardigrade.",,weapon-rope (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Silk Rope
+"The Pebble Grenade 💣 It bounces, and the wind leaves it alone. Set the fuse from 1 to 5 seconds and bank it off the rocks.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-grenade.jpg,,,,,,,Pebble Grenade,Weapons,,,,,,,TardiGeddon Weapons,"The Pebble Grenade's icon, 💣, next to a cartoon tardigrade.",,weapon-grenade (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Pebble Grenade
+"The Homing Spore 🎯 Tap a target first, then fire: it steers itself there. For when the wind just won’t behave.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-homing.jpg,,,,,,,Homing Spore,Weapons,,,,,,,TardiGeddon Weapons,"The Homing Spore's icon, 🎯, next to a cartoon tardigrade.",,weapon-homing (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Homing Spore
+"Sticky Dynamite 🧨 Drop it at your feet and run. Five seconds later: a very big bang.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-dynamite.jpg,,,,,,,Sticky Dynamite,Weapons,,,,,,,TardiGeddon Weapons,"The Sticky Dynamite's icon, 🧨, next to a cartoon tardigrade.",,weapon-dynamite (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Sticky Dynamite
+"The Holy Water Droplet 💦 A superweapon: it bounces, then a giant blast 3 seconds later. Throw it and stand well back.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-holywater.jpg,,,,,,,Holy Water Droplet,Weapons,,,,,,,TardiGeddon Weapons,"The Holy Water Droplet's icon, 💦, next to a cartoon tardigrade.",,weapon-holywater (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Holy Water Droplet
+"The Fire Punch 👊 Walk up close and punch the tardigrade next to you into the air. Best near a cliff edge… or the water.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-firepunch.jpg,,,,,,,Fire Punch,Weapons,,,,,,,TardiGeddon Weapons,"The Fire Punch's icon, 👊, next to a cartoon tardigrade.",,weapon-firepunch (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Fire Punch
+"The Rotifer Roller 🌀 It walks along the ground and over small steps, then blows up with a big blast. Point it the right way first!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-rotifer.jpg,,,,,,,Rotifer Roller,Weapons,,,,,,,TardiGeddon Weapons,"The Rotifer Roller's icon, 🌀, next to a cartoon tardigrade.",,weapon-rotifer (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Rotifer Roller
+"The Raindrop Strike 💧 Pick a spot and five raindrops fall on it from the sky. The wind pushes them, so aim a little upwind.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-airstrike.jpg,,,,,,,Raindrop Strike,Weapons,,,,,,,TardiGeddon Weapons,"The Raindrop Strike's icon, 💧, next to a cartoon tardigrade.",,weapon-airstrike (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Raindrop Strike
+"The Microscope Slide Slam 🔬 Glass shards rain down all over the map. Anyone can be hit… including you. Use with care (or don’t).
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-slideslam.jpg,,,,,,,Microscope Slide Slam,Weapons,,,,,,,TardiGeddon Weapons,"The Microscope Slide Slam's icon, 🔬, next to a cartoon tardigrade.",,weapon-slideslam (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Microscope Slide Slam
+"The Teleport ✨ Pick a spot and you’re there. It ends your go, so use it to escape, or to get the perfect angle for next time.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-teleport.jpg,,,,,,,Teleport,Weapons,,,,,,,TardiGeddon Weapons,"The Teleport's icon, ✨, next to a cartoon tardigrade.",,weapon-teleport (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Teleport
+"The Algae Cluster 🟢 It bounces, then bursts into five little bomblets. Great for tardigrades huddled together.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-cluster.jpg,,,,,,,Algae Cluster,Weapons,,,,,,,TardiGeddon Weapons,"The Algae Cluster's icon, 🟢, next to a cartoon tardigrade.",,weapon-cluster (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Algae Cluster
+"The Cyanobloom Cloud ☁️ It leaves a poison cloud, and poisoned tardigrades lose a little health every turn. Slow, but it adds up.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-cyanobloom.jpg,,,,,,,Cyanobloom Cloud,Weapons,,,,,,,TardiGeddon Weapons,"The Cyanobloom Cloud's icon, ☁️, next to a cartoon tardigrade.",,weapon-cyanobloom (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Cyanobloom Cloud
+"The Claw Shotgun 🔫 Fires straight, twice, with no wind to worry about. Two small blasts: one to knock them, one to finish.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-shotgun.jpg,,,,,,,Claw Shotgun,Weapons,,,,,,,TardiGeddon Weapons,"The Claw Shotgun's icon, 🔫, next to a cartoon tardigrade.",,weapon-shotgun (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Claw Shotgun
+"The Hot Sap Bomb 🔥 It spills burning sap, and anyone who touches it gets hurt. Lovely for blocking a path.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-sapbomb.jpg,,,,,,,Hot Sap Bomb,Weapons,,,,,,,TardiGeddon Weapons,"The Hot Sap Bomb's icon, 🔥, next to a cartoon tardigrade.",,weapon-sapbomb (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Hot Sap Bomb
+"Acid Rain 🌧️ Pick a spot and five acid drops fall on it. Mind the wind: it carries them.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-acidrain.jpg,,,,,,,Acid Rain,Weapons,,,,,,,TardiGeddon Weapons,"The Acid Rain's icon, 🌧️, next to a cartoon tardigrade.",,weapon-acidrain (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Acid Rain
+"The Mortar Pod 🌰 It blows up where it hits and throws out four fragments. Good for reaching round corners.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-mortar.jpg,,,,,,,Mortar Pod,Weapons,,,,,,,TardiGeddon Weapons,"The Mortar Pod's icon, 🌰, next to a cartoon tardigrade.",,weapon-mortar (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Mortar Pod
+"The Bacteria Bomb 🦠 Bounces, then bursts into five germs. Microscopic, but they still pack a punch.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-bacteria.jpg,,,,,,,Bacteria Bomb,Weapons,,,,,,,TardiGeddon Weapons,"The Bacteria Bomb's icon, 🦠, next to a cartoon tardigrade.",,weapon-bacteria (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Bacteria Bomb
+"The Leaf Parachute 🍃 Jump off something, then press Fire: you float down safely and can steer. Falls hurt, leaves don’t.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-parachute.jpg,,,,,,,Leaf Parachute,Weapons,,,,,,,TardiGeddon Weapons,"The Leaf Parachute's icon, 🍃, next to a cartoon tardigrade.",,weapon-parachute (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Leaf Parachute
+"The Twig Girder 🪵 Build a little bridge to cross a gap, or a wall to hide behind. ▲▼ turns it.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-girder.jpg,,,,,,,Twig Girder,Weapons,,,,,,,TardiGeddon Weapons,"The Twig Girder's icon, 🪵, next to a cartoon tardigrade.",,weapon-girder (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Twig Girder
+"The Gale Gourd 🌬️ Small damage, big push: it blows tardigrades a long way… ideally into the water. A season weapon, unlocked with Slime you earn by playing.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-gale.jpg,,,,,,,Gale Gourd,Weapons,,,,,,,TardiGeddon Weapons,"The Gale Gourd's icon, 🌬️, next to a cartoon tardigrade.",,weapon-gale (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Gale Gourd
+"The Earthworm Drill 🪱 It burrows into the ground before it blows up: perfect for tardigrades hiding under cover. A season weapon, unlocked with Slime you earn by playing.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-drill.jpg,,,,,,,Earthworm Drill,Weapons,,,,,,,TardiGeddon Weapons,"The Earthworm Drill's icon, 🪱, next to a cartoon tardigrade.",,weapon-drill (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Earthworm Drill
+"The Leech Lobber 💚 It blows up where it hits and heals you by half the damage it does. A season weapon, unlocked with Slime you earn by playing.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/weapon-leech.jpg,,,,,,,Leech Lobber,Weapons,,,,,,,TardiGeddon Weapons,"The Leech Lobber's icon, 💚, next to a cartoon tardigrade.",,weapon-leech (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Leech Lobber
+"Tip 💨 Check the wind before you fire. It pushes the Spore Bazooka and anything that falls from the sky, but it leaves grenades and bombs alone.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-wind.jpg,,,,,,,Check the wind,Tips,,,,,,,Game Tips and Tricks,"A tardigrade aiming a shot across the map, with the wind arrow at the top of the screen.",,tip-wind (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Check the wind
+"Tip 💣 Grenades and bombs bounce, then go off when the fuse runs out. Set it from 1 to 5 seconds (keys 1–5 on a keyboard). Short fuse for a direct throw, long fuse to bounce it in.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-fuse.jpg,,,,,,,Set the fuse,Tips,,,,,,,Game Tips and Tricks,"The words 1 to 5 seconds in big yellow letters, with a tardigrade beside them.",,tip-fuse (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Set the fuse
+"Tip 🎯 The yellow dots show where your shot starts to fly. Hold Fire to charge it, let go to throw. A little power goes a long way!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-dots.jpg,,,,,,,Follow the dots,Tips,,,,,,,Game Tips and Tricks,"A tardigrade aiming, with yellow dots showing the start of the shot’s path.",,tip-dots (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Follow the dots
+"Tip 🌧️ Strikes from the sky land right on your spot when there’s no wind, and drift when there is. Pick a spot a little upwind of your target.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-upwind.jpg,,,,,,,Aim upwind,Tips,,,,,,,Game Tips and Tricks,A big crater blasted into the map.,,tip-upwind (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Aim upwind
+"Tip 💥 Mines arm when a tardigrade comes close and go off a few seconds later. Some are duds… but would you bet on it? Knock your rivals into them instead.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-mines.jpg,,,,,,,Mind the mines,Tips,,,,,,,Game Tips and Tricks,"A tardigrade in a hard hat, looking careful.",,tip-mines (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Mind the mines
+"Tip 📦 Crates float down on parachutes. Walk into one: weapon crates give you ammo, health crates heal you and cure poison.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-crates.jpg,,,,,,,Grab the crates,Tips,,,,,,,Game Tips and Tricks,A tardigrade in a propeller cap.,,tip-crates (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Grab the crates
+"Tip 📱 On a phone or tablet, drag from your tardigrade to aim and drag the map to look around. In Settings you can make the buttons bigger, swap sides, or choose Tap to fire.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #mobilegames #browsergame",,https://tardigeddon.com/social/posts/tip-phone.jpg,,,,,,,Playing on a phone?,Tips,,,,,,,Game Tips and Tricks,"TardiGeddon on a phone, with the on-screen buttons.",,tip-phone (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Playing on a phone?
+"Tip 🕸️ Silk Rope: fire it at the rock, climb with ▲▼, and let go with Jump at the top of your swing to fly furthest. Practise in a Rope Race!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-rope.jpg,,,,,,,Swing like a pro,Tips,,,,,,,Game Tips and Tricks,A tardigrade swinging across the map on a silk rope.,,tip-rope (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Swing like a pro
+"Tip 🎓 New to TardiGeddon? Press “New? Learn to play” in the lobby for a short tutorial, then try Practice: targets to hit with unlimited ammo.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #browsergame",,https://tardigeddon.com/social/posts/tip-practice.jpg,,,,,,,Practise first,Tips,,,,,,,Game Tips and Tricks,The game’s lobby with Learn to play and Practice buttons.,,tip-practice (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Practise first
+"Tip ☠️ Poison takes a little health every turn, but it never finishes a tardigrade off on its own. Grab a health crate to cure it.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-poison.jpg,,,,,,,Poisoned?,Tips,,,,,,,Game Tips and Tricks,"A green, slightly poisoned tardigrade in a wizard hat.",,tip-poison (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Poisoned?
+"Tip 🎬 Every match is kept in Replays, and the results screen can play the winning shot again. Perfect for that once-in-a-lifetime throw.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #indiegame",,https://tardigeddon.com/social/posts/tip-replays.jpg,,,,,,,Watch it again,Tips,,,,,,,Game Tips and Tricks,A tardigrade wearing headphones.,,tip-replays (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Watch it again
+"Tip ⌨️ Every key and mouse button can be changed in Settings → Controls. Sign in and your controls follow you to any device.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #gamingtips #pcgaming",,https://tardigeddon.com/social/posts/tip-controls.jpg,,,,,,,"Your keys, your way",Tips,,,,,,,Game Tips and Tricks,A tardigrade in a graduation cap.,,tip-controls (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,"Your keys, your way"
+"Tardigrade fact 🐻 Tardigrades are nicknamed “water bears” (and “moss piglets”) for the way they lumber about on eight stubby, clawed legs. Ours carry bazookas.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-water-bears.jpg,,,,,,,Water bears,Tardigrade facts,,,,,,,Tardigrade Facts,The words 8 legs in big letters next to a cartoon tardigrade.,,fact-water-bears (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Water bears
+"Tardigrade fact 🔬 Most tardigrades are about half a millimetre long. Tiny. Indestructible. (In our game, also armed.)
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-size.jpg,,,,,,,Tiny,Tardigrade facts,,,,,,,Tardigrade Facts,The words 0.5 millimetres in big letters next to a cartoon tardigrade.,,fact-size (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Tiny
+"Tardigrade fact 💧 When their home dries out, tardigrades curl into a little barrel called a “tun” and almost stop living. Add water and they wake up. (Hence our Concrete Tun.)
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-tun.jpg,,,,,,,The tun,Tardigrade facts,,,,,,,Tardigrade Facts,The Concrete Tun superweapon icon next to a tardigrade.,,fact-tun (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,The tun
+"Tardigrade fact 🚀 In 2007, dried-out tardigrades spent days in open space, outside a spacecraft in orbit. When they got back to Earth, some of them came back to life.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #space",,https://tardigeddon.com/social/posts/fact-space.jpg,,,,,,,Space travellers,Tardigrade facts,,,,,,,Tardigrade Facts,A cartoon tardigrade in an astronaut helmet.,,fact-space (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Space travellers
+"Tardigrade fact 📜 Tardigrades were first described in 1773 by Johann Goeze, a German pastor, who called them “kleiner Wasserbär”: little water bear. The name stuck.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-1773.jpg,,,,,,,Since 1773,Tardigrade facts,,,,,,,Tardigrade Facts,The year 1773 in big letters next to a cartoon tardigrade.,,fact-1773 (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Since 1773
+"Tardigrade fact 🐢 “Tardigrade” means “slow stepper”, a name given in 1777 by the Italian scientist Lazzaro Spallanzani. Which is why in our game, it’s turn-based.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-slow-stepper.jpg,,,,,,,Slow steppers,Tardigrade facts,,,,,,,Tardigrade Facts,A cartoon tardigrade with a little sprout on its head.,,fact-slow-stepper (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Slow steppers
+"Tardigrade fact 🌍 Tardigrades live almost everywhere: on mountains, in the deep sea, in Antarctica, and quite possibly in the moss on your garden wall.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #nature",,https://tardigeddon.com/social/posts/fact-everywhere.jpg,,,,,,,Everywhere,Tardigrade facts,,,,,,,Tardigrade Facts,Rolling green hills in TardiGeddon’s Mainland map.,,fact-everywhere (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Everywhere
+"Tardigrade fact ❄️ Japanese scientists revived tardigrades from a sample of Antarctic moss that had been frozen for over 30 years. One of them went on to lay eggs.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-30-years.jpg,,,,,,,30 years on ice,Tardigrade facts,,,,,,,Tardigrade Facts,The words 30 years in big letters next to a cartoon tardigrade.,,fact-30-years (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,30 years on ice
+"Tardigrade fact 🧬 Scientists have described more than 1,300 species of tardigrade, and they keep finding new ones. We’ve only made one, but it has 50 hats.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-species.jpg,,,,,,,"1,300+ kinds",Tardigrade facts,,,,,,,Tardigrade Facts,"Three cartoon tardigrades in a beanie, a top hat and a crown.",,fact-species (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,"1,300+ kinds"
+"Tardigrade fact 🛡️ One kind of tardigrade makes a protein, named Dsup, that helps protect its DNA from radiation. Scientists are still working out how.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #science",,https://tardigeddon.com/social/posts/fact-dsup.jpg,,,,,,,Built-in shield,Tardigrade facts,,,,,,,Tardigrade Facts,A cartoon tardigrade in a knight’s helmet.,,fact-dsup (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Built-in shield
+"Tardigrade fact 🌕 In 2019, a spacecraft carrying dried-out tardigrades crash-landed on the Moon. Scientists think they probably didn’t survive the crash… but they’re still up there.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #space",,https://tardigeddon.com/social/posts/fact-moon.jpg,,,,,,,Moon landing,Tardigrade facts,,,,,,,Tardigrade Facts,A cartoon tardigrade with alien antennae.,,fact-moon (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Moon landing
+"Tardigrade fact 🌊 In the lab, dried-out tardigrades have survived pressures about six times greater than at the bottom of the deepest ocean.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #tardigrade #sciencefacts",,https://tardigeddon.com/social/posts/fact-pressure.jpg,,,,,,,Under pressure,Tardigrade facts,,,,,,,Tardigrade Facts,Six times in big letters next to a cartoon tardigrade.,,fact-pressure (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Under pressure
+"Map style: Twin Isles 🏝️ The classic. Two big islands, a lot of water, and every match a brand-new map.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-islands.jpg,,,,,,,Twin Isles,Worlds and modes,,,,,,,Game Worlds and Maps,Two big grassy islands over the water.,,world-islands (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Twin Isles
+"Map style: Sky Realms ☁️ Floating islands stacked over a low shore. Bring a Leaf Parachute.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-sky.jpg,,,,,,,Sky Realms,Worlds and modes,,,,,,,Game Worlds and Maps,Floating islands stacked above a low shore.,,world-sky (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Sky Realms
+"Play online 🌐 Quick play finds you a match with other players, or make a room and send your friends its 5-letter code. You can watch a room without playing, too.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #multiplayer #browsergame",,https://tardigeddon.com/social/posts/mode-online.jpg,,,,,,,Play online,Worlds and modes,,,,,,,Game Worlds and Maps,The online lobby with Quick play and a room code.,,mode-online (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Play online
+"Map style: Caverns 🕳️ A great hollow hill riddled with tunnels. Bouncy grenades love it. Your tardigrades might not.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-caverns.jpg,,,,,,,Caverns,Worlds and modes,,,,,,,Game Worlds and Maps,A hollow hill full of tunnels.,,world-caverns (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Caverns
+"Daily challenge 🏆 Every day: Target Smash and Rope Race, on the same map for everyone, with leaderboards. How high can you get today?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #dailychallenge #browsergame",,https://tardigeddon.com/social/posts/mode-challenge.jpg,,,,,,,Daily challenge,Worlds and modes,,,,,,,Game Worlds and Maps,The daily challenge screen with its leaderboard.,,mode-challenge (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Daily challenge
+"Map style: Canyon 🏜️ High cliffs either side of a deep valley, with a bridge of rock in between. Who’s brave enough to cross it?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-canyon.jpg,,,,,,,Canyon,Worlds and modes,,,,,,,Game Worlds and Maps,High cliffs either side of a deep valley.,,world-canyon (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Canyon
+"Hot-seat 🛋️ Up to 10 teams taking turns on one computer, phone or tablet. Perfect for the sofa. Less perfect for friendships.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #couchcoop #partygames",,https://tardigeddon.com/social/posts/mode-hotseat.jpg,,,,,,,Up to 10 teams,Worlds and modes,,,,,,,Game Worlds and Maps,"Four tardigrades in a party hat, a cowboy hat, a viking helmet and a crown.",,mode-hotseat (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Up to 10 teams
+"Map style: Spires 🗼 Tall rock towers rising out of the sea. One good push and it’s a long way down.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-spires.jpg,,,,,,,Spires,Worlds and modes,,,,,,,Game Worlds and Maps,Tall rock towers rising out of the sea.,,world-spires (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Spires
+"Game styles 🎛️ Standard, Quick, Pro, Chaos (a superweapon each!), Armoured, Artillery, Bazookas & Grenades and Rope Race. Or make your own rules in Customise.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #strategygame",,https://tardigeddon.com/social/posts/mode-styles.jpg,,,,,,,Game styles,Worlds and modes,,,,,,,Game Worlds and Maps,The match setup screen with the game styles.,,mode-styles (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Game styles
+"Map style: Archipelago 🏝️🏝️🏝️ Lots of little islands. Mind the gaps.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-archipelago.jpg,,,,,,,Archipelago,Worlds and modes,,,,,,,Game Worlds and Maps,Lots of small islands dotted over the water.,,world-archipelago (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Archipelago
+"Against the computer 🤖 Five levels, from Super easy to Expert. The tougher ones read the wind better and miss less. Have you beaten Expert yet?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #singleplayer",,https://tardigeddon.com/social/posts/mode-cpu.jpg,,,,,,,Beat the computer,Worlds and modes,,,,,,,Game Worlds and Maps,The words 5 levels in big letters next to a tardigrade.,,mode-cpu (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Beat the computer
+"Map style: Mainland ⛰️ One long stretch of rolling hills, with caves to hide in. A good one for long throws.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/world-mainland.jpg,,,,,,,Mainland,Worlds and modes,,,,,,,Game Worlds and Maps,A long stretch of rolling green hills.,,world-mainland (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Mainland
+"Question time 🤔 Which weapon do you reach for first? Tell us in the comments!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-favourite-weapon.jpg,,,,,,,Your favourite?,Community,,,,,,,,"The weapon panel, full of weapons.",,ask-favourite-weapon (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Your favourite?
+"This tardigrade needs a name 🤠 Best one in the comments wins our undying respect.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #tardigrade",,https://tardigeddon.com/social/posts/ask-name-tardi.jpg,,,,,,,Name this tardi,Community,,,,,,,,A mossy green tardigrade in a cowboy hat.,,ask-name-tardi (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Name this tardi
+"Superweapon showdown 💥 Concrete Tun 🗿, Holy Water Droplet 💦 or Microscope Slide Slam 🔬? Pick one in the comments.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-superweapon.jpg,,,,,,,Superweapon showdown,Community,,,,,,,,The icons of the three superweapons.,,ask-superweapon (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Superweapon showdown
+"Confession time 😅 What’s the worst own goal you’ve ever scored in TardiGeddon? Ours involved a Pebble Grenade, a wall, and a 5-second fuse.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-own-goal.jpg,,,,,,,Own goals,Community,,,,,,,,A tardigrade wearing a traffic cone.,,ask-own-goal (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Own goals
+"Which map style is your favourite? 🗺️ Twin Isles, Mainland, Archipelago, Sky Realms, Caverns, Canyon or Spires?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-map.jpg,,,,,,,Pick a map,Community,,,,,,,,The Canyon map: cliffs either side of a valley.,,ask-map (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Pick a map
+"We’re thinking about new worlds 🌍 Volcano? Ice? Outer space? Somewhere else? Tell us what you’d like to fight on next.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/ask-next-world.jpg,,,,,,,What next?,Community,,,,,,,,"A volcano, a snowflake and a galaxy.",,ask-next-world (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,What next?
+"Settle this once and for all 🚀💣 Are you Team Bazooka or Team Grenade?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-bazooka-grenade.jpg,,,,,,,Which are you?,Community,,,,,,,,A rocket and a bomb.,,ask-bazooka-grenade (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Which are you?
+"Our tardigrades have over 50 hats 🎩 What should the next one be? The best ideas might just end up in the game.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/ask-hat.jpg,,,,,,,Hat ideas,Community,,,,,,,,"Three tardigrades in a jester hat, a sombrero and a frog hat.",,ask-hat (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Hat ideas
+"What do you call your team? 🏷️ We’ve seen “The Moss Bosses” and “Tun Squad”. Beat that!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-team-name.jpg,,,,,,,Team names,Community,,,,,,,,Two tardigrades in ninja masks.,,ask-team-name (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Team names
+"Calling all artists 🎨 Draw a tardigrade (in a hat, ideally) and share it with us. We’d love to see them.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #fanart #tardigrade",,https://tardigeddon.com/social/posts/ask-fan-art.jpg,,,,,,,Draw a tardi,Community,,,,,,,,A tardigrade in an artist’s beret.,,ask-fan-art (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Draw a tardi
+"Which computer level do you play against? 🤖 Super easy, Easy, Normal, Hard, or are you brave enough for Expert?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gaming",,https://tardigeddon.com/social/posts/ask-cpu.jpg,,,,,,,Too good?,Community,,,,,,,,The word Expert with a question mark.,,ask-cpu (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Too good?
+"Rope Race 🕸️⏱️ What’s your best time? Today’s daily challenge has a leaderboard: show us where you are on it.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #speedrun",,https://tardigeddon.com/social/posts/ask-rope-time.jpg,,,,,,,Rope Race,Community,,,,,,,,A tardigrade swinging on a silk rope.,,ask-rope-time (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Rope Race
+"Tiny. Indestructible. Armed. 🐻💥 TardiGeddon is a free turn-based artillery game starring tardigrades.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,,https://tardigeddon.com/social/teaser.mp4,,,,,,Tiny. Indestructible. Armed.,Videos,,,,,,,Free Browser Games,"Gameplay: a tardigrade swings on a rope, a Concrete Tun falls, a team wins.",,play-teaser (scripts/social/posts.ts),"TardiGeddon: tiny, indestructible, armed #shorts",Public,Y,N,N,Public,Y,Y,Y,N,Y,N,
+"Free and fair 💚 No ads, nothing to download, and nothing to buy that helps you win. Money only buys looks; weapons unlock with Slime you earn by playing.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #freetoplay",,https://tardigeddon.com/social/posts/play-free.jpg,,,,,,,Free and fair,Play,,,,,,,Free Browser Games,A tardigrade with a halo.,,play-free (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Free and fair
+"Swing across the map with the Silk Rope 🕸️ Then drop something heavy on someone.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gameplay",,,https://tardigeddon.com/media/clip-rope.mp4,,,,,,Swing!,Videos,,,,,,,Free Browser Games,A tardigrade swinging across the map on a silk rope.,,play-rope-clip (scripts/social/posts.ts),Swinging across the map with the Silk Rope | TardiGeddon,Public,Y,N,N,Public,Y,Y,Y,N,Y,N,
+"Over 50 hats 🎩👑 Dress your team your way: top hats, crowns, Viking helmets, unicorns, and one that’s just a chick.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #cute",,https://tardigeddon.com/social/posts/play-hats.jpg,,,,,,,50+ hats,Play,,,,,,,Free Browser Games,"Four tardigrades in a top hat, a Viking helmet, a unicorn horn and a chick hat.",,play-hats (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,50+ hats
+"No download, no account needed 🌐 TardiGeddon plays in any modern browser on a computer, phone or tablet. Open it and play in seconds.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #browsergame #indiegame",,https://tardigeddon.com/social/posts/play-browser.jpg,,,,,,,Play anywhere,Play,,,,,,,Free Browser Games,A TardiGeddon match in progress.,,play-browser (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Play anywhere
+"Incoming! 🗿 The Concrete Tun smashes down through the rock. Nowhere is safe.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gameplay",,,https://tardigeddon.com/media/clip-tun.mp4,,,,,,Incoming!,Videos,,,,,,,Free Browser Games,A giant concrete tun falling on the map.,,play-tun-clip (scripts/social/posts.ts),Dropping a Concrete Tun | TardiGeddon,Public,Y,N,N,Public,Y,Y,Y,N,Y,N,
+"Make it yours 🛡️ Design your team’s own emblem and pick their hats, skins and graves. Your team, your style.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gamedev",,https://tardigeddon.com/social/posts/play-emblem.jpg,,,,,,,Your emblem,Play,,,,,,,Free Browser Games,The emblem builder.,,play-emblem (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Your emblem
+"Better with friends 🎉 Share your invite code from your account page: when a friend joins with it, you both get free coins for looks.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #multiplayer #indiegame",,https://tardigeddon.com/social/posts/play-friends.jpg,,,,,,,Bring a friend,Play,,,,,,,Free Browser Games,Two tardigrades in party hats.,,play-friends (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Bring a friend
+"Last tardi standing wins 🏆 Will it be yours?
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #gameplay",,,https://tardigeddon.com/media/clip-victory.mp4,,,,,,Last tardi standing,Videos,,,,,,,Free Browser Games,The winning team celebrating.,,play-victory-clip (scripts/social/posts.ts),Last tardigrade standing wins | TardiGeddon,Public,Y,N,N,Public,Y,Y,Y,N,Y,N,
+"TardiGeddon speaks six languages 🌍 English, Español, Português, Deutsch, Français and 日本語. Tell your friends abroad!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #browsergame",,https://tardigeddon.com/social/posts/play-languages.jpg,,,,,,,Six languages,Play,,,,,,,Free Browser Games,The number 6 next to a tardigrade.,,play-languages (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Six languages
+"Play your way ♿ Bigger text, dark mode, captions for the sounds, bigger touch buttons, and every key changeable. Find them all in Settings.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #accessiblegaming #indiegame",,https://tardigeddon.com/social/posts/play-access.jpg,,,,,,,Play your way,Play,,,,,,,Free Browser Games,A tardigrade wearing headphones.,,play-access (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Play your way
+"A free hat 🐻 Sign in, open the Shop’s 🎀 Gifts tab and type WATERBEAR for the Water bear hat. All the codes: tardigeddon.com/promo-codes
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #freebies #indiegame",,https://tardigeddon.com/social/posts/play-promo.jpg,,,,,,,Free hat,Play,,,,,,,Free Browser Games,A tardigrade in the Water bear hat.,,play-promo (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Free hat
+"Got five minutes? ⏱️ Pick the Quick style: short turns, less health, and sudden death after 5 minutes. Made for the bus, the queue, or the advert break.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #mobilegames #browsergame",,https://tardigeddon.com/social/posts/play-quick.jpg,,,,,,,Got 5 minutes?,Play,,,,,,,Free Browser Games,A tardigrade in a propeller cap.,,play-quick (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Got 5 minutes?
+"Feeling brave? 🤪 The Chaos style: mines everywhere, drums galore, a crate every turn, and a superweapon for everyone. Nobody is safe. Nobody.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #partygames",,https://tardigeddon.com/social/posts/play-chaos.jpg,,,,,,,Chaos,Play,,,,,,,Free Browser Games,Two tardigrades in a jester hat and a flame hat.,,play-chaos (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Chaos
+"Not in a fighting mood? 🕸️🏁 Try Rope Race: swing on the Silk Rope from the start to the flag, dodging the mines. Fastest time wins.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #speedrun",,https://tardigeddon.com/social/posts/play-rope-race.jpg,,,,,,,Rope Race,Play,,,,,,,Free Browser Games,A tardigrade swinging on a silk rope.,,play-rope-race (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Rope Race
+"Fancy a long one? 🛡️ In the Armoured style, every tardigrade wears armour plates that take every hit until they crack. Only then does health go down.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #strategygame",,https://tardigeddon.com/social/posts/play-armoured.jpg,,,,,,,Armoured,Play,,,,,,,Free Browser Games,Two tardigrades in knights’ helmets.,,play-armoured (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Armoured
+"Make a free TardiGeddon account by 30 November and get the Founder pack 👑 a hat, a grave, a victory dance, a golden world and its own music. Free, and it’s yours to keep.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #freebies",,https://tardigeddon.com/social/posts/dated-founder-1.jpg,,11,14,2026,11,0,Founder pack,Play,,,,,,,Free Browser Games,A tardigrade in the Founder hat.,,dated-founder-1 (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Founder pack
+"The free Founder pack 👑 is for accounts made by 30 November. Make yours at tardigeddon.com/play (Account page), and the first 1,000 players also get the Early bird pack 🐣
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #freebies",,https://tardigeddon.com/social/posts/dated-founder-2.jpg,,11,28,2026,11,0,Founder pack,Play,,,,,,,Free Browser Games,Two tardigrades in the Founder hat and the Early bird hat.,,dated-founder-2 (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Founder pack
+"TardiGeddon is out today! 🎉🐻💥 A free turn-based artillery game starring tardigrades, in your browser and on Android, iPhone and iPad. Thank you to everyone who played along the way.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #newgame",,https://tardigeddon.com/social/posts/dated-launch.jpg,,12,1,2026,10,0,We’re open!,Play,,,,,,,Free Browser Games,Three tardigrades celebrating in party hats and crowns.,,dated-launch (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,We’re open!
+"Want to back TardiGeddon? 💛 The launch Supporter packs are looks only (a hat, a skin, a badge; the Patron pack adds a world, music and an aim). On sale until 31 January, then never again.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #indiedev",,https://tardigeddon.com/social/posts/dated-supporter-1.jpg,,12,5,2026,11,0,Supporter packs,Play,,,,,,,Free Browser Games,A sunshine-yellow tardigrade in the Supporter heart cap.,,dated-supporter-1 (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Supporter packs
+"Merry Christmas from all the tardigrades 🎄 Hope your day is full of family, food and the occasional friendly Concrete Tun.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #merrychristmas #indiegame",,https://tardigeddon.com/social/posts/dated-christmas.jpg,,12,25,2026,10,0,Merry Christmas!,Play,,,,,,,Free Browser Games,Two tardigrades in Santa hats.,,dated-christmas (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Merry Christmas!
+"Happy New Year! 🎆 Thank you for a brilliant first month of TardiGeddon. New worlds, weapons and hats are on the way in 2027.
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #happynewyear #indiegame",,https://tardigeddon.com/social/posts/dated-new-year.jpg,,1,1,2027,11,0,Happy New Year!,Play,,,,,,,Free Browser Games,Three tardigrades in party hats.,,dated-new-year (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Happy New Year!
+"A reminder 💛 The launch Supporter packs are on sale until 31 January, and won’t be sold again after that. Looks only, never power. Thank you to everyone who has backed us!
+
+▶ Play free: tardigeddon.com/play
+
+#TardiGeddon #indiegame #indiedev",,https://tardigeddon.com/social/posts/dated-supporter-2.jpg,,1,24,2027,16,0,Supporter packs,Play,,,,,,,Free Browser Games,A sunshine-yellow tardigrade in the Supporter heart cap.,,dated-supporter-2 (scripts/social/posts.ts),,,,,,Public,Y,N,N,N,Y,N,Supporter packs

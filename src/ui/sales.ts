@@ -2,7 +2,7 @@
 // players spend coins and Slime on. Only shown to accounts listed in the
 // server's ADMIN_EMAILS (docs/ACCOUNTS.md); totals only, never who bought what.
 
-import { creators, payCreator, salesReport, saveCreator, type CreatorReport, type MeResponse, type SalesReport } from '../account/session';
+import { creators, downloadNewsletter, newsletterCounts, payCreator, salesReport, saveCreator, type CreatorReport, type MeResponse, type SalesReport } from '../account/session';
 import { bundle, coinPack, formatNumber, packTotal, shopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
 import { newUsageState, usageCards, type UsageState } from './usageReport';
@@ -18,6 +18,8 @@ export interface SalesState {
   creators: CreatorReport[] | null;
   /** Anonymous play statistics (ui/usageReport.ts). */
   usage: UsageState;
+  /** Email news numbers (server/newsletter.ts), once loaded. */
+  news?: { subscribed: number; pending: number; unsubscribed: number } | 'loading';
 }
 
 export function newSalesState(): SalesState {
@@ -150,6 +152,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
   refresh.onclick = () => {
     state.loadedDays = -1;
     state.creators = null;
+    state.news = undefined;
     state.usage.loadedDays = -1;
     ctx.rerender();
   };
@@ -255,9 +258,38 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
       ),
     ),
     creatorsCard(ctx, state),
+    newsletterCard(ctx, state),
     ...usageCards(ctx, state.usage, state.days),
   );
   return page;
+}
+
+/**
+ * Email news (server/newsletter.ts): how many have signed up, and the lists to
+ * import into Utobo. docs/NEWSLETTER.md has the steps.
+ */
+function newsletterCard(ctx: HubContext, state: SalesState): HTMLElement {
+  const box = el('div', 'creators');
+  if (state.news === undefined) {
+    state.news = 'loading';
+    newsletterCounts()
+      .then((n) => (state.news = n))
+      .catch(() => (state.news = { subscribed: 0, pending: 0, unsubscribed: 0 }))
+      .finally(() => ctx.rerender());
+  }
+  const n = state.news === 'loading' ? null : state.news;
+  box.append(
+    el('p', 'account-note', n ? `${formatNumber(n.subscribed)} subscribed · ${formatNumber(n.pending)} waiting to confirm · ${formatNumber(n.unsubscribed)} unsubscribed` : 'Loading…'),
+    el('p', 'account-note', 'Before each send, import "Subscribed" into the Utobo list called Newsletter, then "Unsubscribed" (as unsubscribed), so nobody who left is emailed. docs/NEWSLETTER.md has the steps.'),
+  );
+  const row = el('div', 'creator-form');
+  for (const [list, label] of [['subscribed', '⬇ Subscribed (CSV)'], ['unsubscribed', '⬇ Unsubscribed (CSV)']] as const) {
+    const b = el('button', 'hud-btn', label);
+    b.onclick = () => ctx.run(() => downloadNewsletter(list));
+    row.append(b);
+  }
+  box.append(row);
+  return card('📬 Email news', box);
 }
 
 /**
@@ -324,7 +356,7 @@ function creatorsCard(ctx: HubContext, state: SalesState): HTMLElement {
   box.append(
     form,
     note,
-    el('p', 'account-note', 'Shares are 10% for 12 months by default, of an estimate of what reaches you: prices less VAT and the store’s or Stripe’s cut. Refunded payments stop counting. Players type the code where a friend’s code goes (or open …/play/?invite=CODE) and get the friend-invite coins.'),
+    el('p', 'account-note', 'Shares are 10% for 12 months by default, of an estimate of what reaches you: prices less VAT and the store’s or Stripe’s cut. Refunded payments stop counting. Players type the code where a friend’s code goes (or open …/play/?invite=CODE) and get the creator reward: 500 free coins and the Superfan pack (hat, aim, explosion) once they’ve confirmed their email and played 3 matches. Link the creator’s own account (their email) and they get the ⭐ badge and the creator medal emblem.'),
   );
   return card('🎥 Creator codes', box);
 }

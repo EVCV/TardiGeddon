@@ -515,6 +515,30 @@ export const HATS: HatDef[] = [
     ],
   },
   {
+    // The Supporter and Patron packs' (sold only for a limited time, never in the shop): a knitted cap with a big gold heart.
+    id: 'supporter',
+    name: 'Supporter’s heart cap',
+    shapes: [
+      { k: 'circle', x: 0, y: -1.02, r: 0.26, fill: 'gold' },
+      { k: 'dome', x: 0, y: 0, r: 0.96, fill: 'team' },
+      { k: 'poly', pts: [-1.0, 0.12, -1.0, -0.14, 1.0, -0.14, 1.0, 0.12], fill: 'white' },
+      { k: 'circle', x: -0.16, y: -0.52, r: 0.2, fill: 'gold' },
+      { k: 'circle', x: 0.16, y: -0.52, r: 0.2, fill: 'gold' },
+      { k: 'poly', pts: [-0.35, -0.46, 0.35, -0.46, 0, -0.08], fill: 'gold' },
+    ],
+  },
+  {
+    // The Superfan pack's (a creator's code; never sold): a cap in the team's colour with a gold star and a pompom.
+    id: 'superfan',
+    name: 'Superfan cap',
+    shapes: [
+      { k: 'circle', x: 0, y: -1.06, r: 0.24, fill: 'white' },
+      { k: 'dome', x: 0, y: 0, r: 0.95, fill: 'team' },
+      { k: 'poly', pts: [-0.2, -0.05, 1.45, -0.05, 1.3, 0.14, -0.2, 0.14], fill: 'team' },
+      { k: 'poly', pts: [0, -0.86, 0.1, -0.6, 0.38, -0.6, 0.16, -0.43, 0.24, -0.16, 0, -0.32, -0.24, -0.16, -0.16, -0.43, -0.38, -0.6, -0.1, -0.6], fill: 'gold' },
+    ],
+  },
+  {
     // The Founder pack's (never sold): a gold crown with a sprout growing out of it.
     id: 'founder',
     name: 'Founder’s sprout crown',

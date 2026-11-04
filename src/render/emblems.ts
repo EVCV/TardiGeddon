@@ -4,7 +4,19 @@
 // so it's tiny to send and easy to check. DOM-free: the server checks emblems
 // with isEmblem, and the menu and HUD draw them with emblemSvg.
 
-export const EMBLEM_SHAPES = ['circle', 'shield', 'square', 'hexagon', 'diamond', 'star', 'heart', 'pennant', 'cloud', 'burst'] as const;
+export const EMBLEM_SHAPES = ['circle', 'shield', 'square', 'hexagon', 'diamond', 'star', 'heart', 'pennant', 'cloud', 'burst', 'medal'] as const;
+
+/** Shapes only creators (server/creators.ts, ⭐) may use: the creator medal, a rosette with ribbons. */
+export const CREATOR_SHAPES: readonly number[] = [EMBLEM_SHAPES.indexOf('medal')];
+
+/** Shapes anyone may use: the ones before the creator-only ones (the medal is last). */
+const PLAIN_SHAPES = Math.min(...CREATOR_SHAPES);
+
+/** Does this emblem use a creator-only part? (The server swaps it for a plain one for anyone else.) */
+export function creatorOnlyEmblem(s: string | undefined): boolean {
+  const e = parseEmblem(s);
+  return e !== null && CREATOR_SHAPES.includes(e.shape);
+}
 
 /** Pictures in the middle of the badge. */
 export const EMBLEM_ICONS = [
@@ -50,7 +62,7 @@ export function emblemString(e: Emblem): string {
 
 /** A different starting badge for each team slot. */
 export function defaultEmblem(slot: number): string {
-  return emblemString({ shape: slot % EMBLEM_SHAPES.length, icon: (slot * 7) % EMBLEM_ICONS.length, bg: slot % 8, fg: 11, pattern: slot % 3 });
+  return emblemString({ shape: slot % PLAIN_SHAPES, icon: (slot * 7) % EMBLEM_ICONS.length, bg: slot % 8, fg: 11, pattern: slot % 3 });
 }
 
 /** A random badge (the 🎲 button). */
@@ -59,11 +71,25 @@ export function randomEmblem(rand: () => number = Math.random): string {
   const bg = pick(EMBLEM_COLORS.length);
   let fg = pick(EMBLEM_COLORS.length);
   if (fg === bg) fg = (fg + 5) % EMBLEM_COLORS.length;
-  return emblemString({ shape: pick(PARTS[0]), icon: pick(PARTS[1]), bg, fg, pattern: pick(PARTS[4]) });
+  return emblemString({ shape: pick(PLAIN_SHAPES), icon: pick(PARTS[1]), bg, fg, pattern: pick(PARTS[4]) });
 }
 
 const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
 const INK = '#2b1b24';
+
+/** The creator medal: a rosette (a scalloped disc) above two ribbon tails, as one outline. */
+const MEDAL = (() => {
+  const pts: string[] = [];
+  const n = 28;
+  for (let i = 0; i <= n; i++) {
+    const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
+    const r = i % 2 ? 37 : 42;
+    pts.push(`${(50 + Math.cos(a) * r).toFixed(1)} ${(40 + Math.sin(a) * r).toFixed(1)}`);
+  }
+  const rosette = `M${pts.join(' L')} Z`;
+  const ribbons = 'M30 66 L18 98 L30 90 L38 98 L46 74 Z M70 66 L82 98 L70 90 L62 98 L54 74 Z';
+  return `${ribbons} ${rosette}`;
+})();
 
 /** The outline of each shape in a 100x100 box. */
 function shapePath(shape: (typeof EMBLEM_SHAPES)[number]): string {
@@ -78,6 +104,7 @@ function shapePath(shape: (typeof EMBLEM_SHAPES)[number]): string {
     case 'pennant': return 'M8 6 H92 V70 L50 96 L8 70 Z';
     case 'cloud': return 'M24 80 Q4 80 6 60 Q8 44 24 44 Q24 18 50 16 Q74 16 78 40 Q96 42 94 62 Q92 80 74 80 Z';
     case 'burst': return 'M50 2 L60 22 L82 12 L78 36 L98 44 L80 58 L92 80 L68 78 L60 98 L50 80 L40 98 L32 78 L8 80 L20 58 L2 44 L22 36 L18 12 L40 22 Z';
+    case 'medal': return MEDAL;
   }
 }
 
@@ -113,6 +140,7 @@ export function emblemSvg(s: string | undefined, label = 'Team emblem'): string 
     + `<defs><clipPath id="${id}"><path d="${path}"/></clipPath></defs>`
     + `<g clip-path="url(#${id})"><rect width="100" height="100" fill="${bg}"/><g opacity=".45">${patternSvg(EMBLEM_PATTERNS[e.pattern], fg)}</g></g>`
     + `<path d="${path}" fill="none" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>`
-    + `<text x="50" y="54" font-size="44" text-anchor="middle" dominant-baseline="middle">${EMBLEM_ICONS[e.icon]}</text>`
+    // (On the medal, the picture sits on the rosette, above the ribbons.)
+    + `<text x="50" y="${CREATOR_SHAPES.includes(e.shape) ? 42 : 54}" font-size="${CREATOR_SHAPES.includes(e.shape) ? 38 : 44}" text-anchor="middle" dominant-baseline="middle">${EMBLEM_ICONS[e.icon]}</text>`
     + `</svg>`;
 }

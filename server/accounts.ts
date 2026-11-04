@@ -17,7 +17,7 @@
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
 import { creatorCodeOf, creatorReports, migrateCreators, normaliseCreatorCode, recordCreatorPayout, saveCreator } from './creators';
-import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteStatus, isEarlyBird, isFounder, migrateRewards, packBadge, settleInvite } from './rewards';
+import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteNews, inviteStatus, isCreator, isEarlyBird, isFounder, migrateRewards, packBadge, peekInvite, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
@@ -32,13 +32,14 @@ import { NAME_PROBLEM_TEXT, nameProblem, presetTeamName, safeName, tidyName } fr
 import { tk } from '../src/i18n/tk';
 import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
-import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForStoreProduct, packTotal, promoFor, shopItem, type CoinPack } from '../src/shop/catalog';
+import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForStoreProduct, packTotal, promoFor, shopItem, supporterPack, supporterPackForStore, supporterSaleOn, type CoinPack, type SupporterPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
-import { japanAlertEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
+import { japanAlertEmail, newsConfirmEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
+import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, newsAsked, newsletterCounts, newsletterCsv, purgeNewsletter, setAccountNews, unsubscribeNews } from './newsletter';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult } from './store';
+import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult, supporterBadge } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { migrateUsage, usageCounter } from './usage';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
@@ -94,6 +95,12 @@ const MAX_BODY = 64 * 1024;
 const APP_HANDOFF_MINUTES = 2;
 /** Base64url SHA-256, as the app makes its challenge from its verifier. */
 const sha256url = (s: string) => createHash('sha256').update(s).digest('base64url');
+
+/** The visitor's address: Fly's proxy puts it in fly-client-ip. */
+function clientIp(req: IncomingMessage): string {
+  const fly = req.headers['fly-client-ip'];
+  return (typeof fly === 'string' && fly) || req.socket.remoteAddress || 'unknown';
+}
 
 /** How long a ticket to join online play lasts. */
 const WS_TICKET_MS = 30_000;
@@ -281,14 +288,16 @@ export async function createAccounts(
   await migrateFriends(db);
   await migrateCreators(db);
   await migrateRewards(db);
+  await migrateNewsletter(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
   const earlyBirds = earlyBirdRule(env);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
-  const purge = setInterval(() => void purgeExpired(db).catch((e) => console.error('purge failed', e)), 60 * 60_000);
+  const purge = setInterval(() => void Promise.all([purgeExpired(db), purgeNewsletter(db)]).catch((e) => console.error('purge failed', e)), 60 * 60_000);
   purge.unref();
   await purgeExpired(db);
+  await purgeNewsletter(db);
 
   // Managed Payments: Stripe is the seller (merchant of record) and handles VAT and sales tax
   // everywhere, sends its own receipts, and needs a tax code for what's sold.
@@ -435,9 +444,15 @@ export async function createAccounts(
     } catch {
       return json(res, 400, { error: tk('Bad request.') });
     }
-    // Money only ever buys coin packs; prices come from the catalogue, never the browser.
-    const item = typeof body.item === 'string' ? coinPack(body.item) : undefined;
-    if (!item) return json(res, 400, { error: tk('No such coin pack.') });
+    // Money only ever buys coin packs and (while their sale runs) supporter packs;
+    // prices come from the catalogue, never the browser.
+    const coinItem = typeof body.item === 'string' ? coinPack(body.item) : undefined;
+    const packItem = typeof body.item === 'string' ? supporterPack(body.item) : undefined;
+    if (!coinItem && !(packItem && supporterSaleFor(user))) return json(res, 400, { error: tk('No such coin pack.') });
+    const item: { id: string; price: number } = (coinItem ?? packItem)!;
+    const productName = coinItem
+      ? `TardiGeddon: ${formatNumber(packTotal(coinItem))} coins${coinItem.bonus ? ` (${formatNumber(coinItem.coins)} + ${formatNumber(coinItem.bonus)} bonus)` : ''}`
+      : `TardiGeddon: ${packItem!.name}`;
     // UK consumer law: digital content supplied straight away needs the buyer's express
     // consent and acknowledgement that they lose the 14-day right to cancel (Terms §5).
     if (body.consent !== true) return json(res, 400, { error: tk('Please confirm you want the coins straight away.') });
@@ -460,7 +475,7 @@ export async function createAccounts(
             unit_amount: item.price,
             // Catalogue prices include VAT. Must be said whenever Stripe works out tax, or it adds tax on top.
             ...(tax || managed ? { tax_behavior: 'inclusive' as const } : {}),
-            product_data: { name: `TardiGeddon: ${formatNumber(packTotal(item))} coins${item.bonus ? ` (${formatNumber(item.coins)} + ${formatNumber(item.bonus)} bonus)` : ''}`, ...(taxCode ? { tax_code: taxCode } : {}) },
+            product_data: { name: productName, ...(taxCode ? { tax_code: taxCode } : {}) },
           },
         },
       ],
@@ -484,6 +499,11 @@ export async function createAccounts(
       return json(res, 502, { error: testMode ? `Stripe said: ${why}` : tk("The shop couldn't start your payment. Please try again later.") });
     }
     json(res, 200, { url: session.url });
+  }
+
+  /** Supporter packs are on sale (SUPPORTER_SALE), or this is the owner trying them out before the sale. */
+  function supporterSaleFor(user: NonNullable<MeResponse['user']> | null): boolean {
+    return supporterSaleOn() || isAdmin(user);
   }
 
   /** The player's Stripe customer id, created on their first purchase. */
@@ -568,6 +588,58 @@ export async function createAccounts(
     json(res, 200, { result: await enterInvite(db, user.id, code) });
   }
   const inviteTries = new Map<string, number[]>();
+
+  /** Sign-ups for email news by address (a few a minute is plenty), and the routes (server/newsletter.ts). */
+  const newsTries = new Map<string, number[]>();
+  async function newsletterApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+    // The owner's list for Utobo: everyone subscribed (or unsubscribed), as a CSV download; and the counts.
+    if (path === '/api/admin/newsletter' && req.method === 'GET') {
+      if (!isAdmin(await userFrom(req.headers))) return json(res, 404, { error: tk('Not found.') });
+      const q = new URL(req.url ?? '', 'http://x').searchParams.get('list');
+      if (q !== 'subscribed' && q !== 'unsubscribed') return json(res, 200, await newsletterCounts(db));
+      res.writeHead(200, {
+        'content-type': 'text/csv; charset=utf-8',
+        'content-disposition': `attachment; filename="tardigeddon-newsletter-${q}-${new Date().toISOString().slice(0, 10)}.csv"`,
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      });
+      res.end(await newsletterCsv(db, q));
+      return;
+    }
+    if (req.method !== 'POST') return json(res, 404, { error: tk('Not found.') });
+    const body = await readJson(req);
+    if (path === '/api/newsletter') {
+      // Anyone: an address, and that they're 13 or over. The answer is the same whether or not it's already on the list.
+      const ip = clientIp(req);
+      const now = Date.now();
+      const recent = (newsTries.get(ip) ?? []).filter((t) => now - t < 60_000);
+      if (recent.length >= 5) return json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+      newsTries.set(ip, [...recent, now]);
+      if (newsTries.size > 10_000) newsTries.clear();
+      const email = cleanEmail(body?.email);
+      if (!email) return json(res, 400, { error: tk('That doesn’t look like an email address.') });
+      if (body?.over13 !== true) return json(res, 400, { error: tk('You need to be 13 or over to get our emails.') });
+      if (!mailer) return json(res, 503, { error: tk('Email news isn’t available just now. Please try again later.') });
+      const token = await askForNews(db, email, body?.source, body?.lang);
+      if (token) send(newsConfirmEmail(email, gameLink('subscribe', token)));
+      return json(res, 200, { ok: true });
+    }
+    if (path === '/api/newsletter/confirm') return json(res, 200, { ok: await confirmNews(db, body?.token) });
+    if (path === '/api/newsletter/unsubscribe') return json(res, 200, { ok: await unsubscribeNews(db, body?.token) });
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    if (path === '/api/newsletter/account') {
+      await setAccountNews(db, user, body?.on === true, body?.source, body?.lang);
+      return json(res, 200, { newsletter: await accountNews(db, user) });
+    }
+    if (path === '/api/newsletter/asked') {
+      await newsAsked(db, user.id);
+      return json(res, 200, { ok: true });
+    }
+    json(res, 404, { error: tk('Not found.') });
+  }
+  /** Invite-link lookups by address (GET /api/invite/peek): a few a minute is plenty. */
+  const peekTries = new Map<string, number[]>();
 
   /** The owner's creator codes (Sales page): list them, add or change one, record a payout. */
   async function creatorsApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
@@ -794,9 +866,13 @@ export async function createAccounts(
       return json(res, 503, { error: tk('Something went wrong. Please try again.') });
     }
     if (!p) return json(res, 400, { error: tk("The App Store doesn't know that purchase.") });
-    // Only coin packs, priced in App Store Connect; never trust the app's word for what was bought.
-    const pack = packForStoreProduct(p.productId);
-    if (!pack || !p.consumable) return json(res, 400, { error: tk('No such coin pack.') });
+    // Only coin packs (consumables) and supporter packs (non-consumables), priced in App
+    // Store Connect; never trust the app's word for what was bought. A supporter pack
+    // bought while on sale is granted whenever it reaches us (a restore, a late signal).
+    const coins = packForStoreProduct(p.productId);
+    const supporter = supporterPackForStore(p.productId);
+    const pack: { id: string; price: number } | undefined = coins && p.consumable ? coins : supporter && !p.consumable ? supporter : undefined;
+    if (!pack) return json(res, 400, { error: tk('No such coin pack.') });
     if (p.revoked) return json(res, 400, { error: tk('That purchase was cancelled.') });
     // Bought while signed in to a different account: not this player's.
     if (p.appAccountToken !== appStoreAccountToken(user.id)) {
@@ -818,7 +894,7 @@ export async function createAccounts(
       const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
       return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: tk('That purchase has already been used.') });
     }
-    json(res, 200, { ok: true, coins: packTotal(pack) });
+    json(res, 200, coins && pack === coins ? { ok: true, coins: packTotal(coins) } : { ok: true, coins: 0, pack: pack.id });
   }
 
   /** Apple tells us about refunds (App Store Server Notifications v2): the coins are taken back. */
@@ -862,8 +938,8 @@ export async function createAccounts(
     const body = await readJson(req);
     const productId = typeof body?.productId === 'string' ? body.productId : '';
     const token = typeof body?.token === 'string' && body.token.length <= 4000 ? body.token : '';
-    // Only coin packs, priced in the Play Console; never trust the app's word for what was bought.
-    const pack = packForStoreProduct(productId);
+    // Only coin packs and supporter packs, priced in the Play Console; never trust the app's word for what was bought.
+    const pack = packForStoreProduct(productId) ?? supporterPackForStore(productId);
     if (!pack || !token) return json(res, 400, { error: tk('No such coin pack.') });
     // The app reports a new purchase twice at once (its Buy button, and Google's
     // "purchases updated" signal). Done side by side, both would try to consume it
@@ -882,7 +958,9 @@ export async function createAccounts(
   }
 
   /** Check one Google Play purchase with Google, grant it once, and consume it. */
-  async function settlePlayPurchase(res: ServerResponse, user: NonNullable<MeResponse['user']>, pack: CoinPack, productId: string, token: string): Promise<void> {
+  async function settlePlayPurchase(res: ServerResponse, user: NonNullable<MeResponse['user']>, pack: CoinPack | SupporterPack, productId: string, token: string): Promise<void> {
+    // Supporter packs are bought once and kept: acknowledged, never consumed.
+    const keep = 'storeId' in pack;
     if (!play) return json(res, 503, { error: tk('Buying in the app is not open yet.') });
     const p = await play.getProduct(productId, token);
     if (!p) return json(res, 400, { error: tk("Google Play doesn't know that purchase.") });
@@ -893,7 +971,7 @@ export async function createAccounts(
       return json(res, 403, { error: tk('That purchase was made on a different TardiGeddon account. Sign in to that account to get the coins.') });
     }
     const id = `gplay:${createHash('sha256').update(token).digest('hex')}`;
-    if (p.consumptionState === 1) {
+    if (p.consumptionState === 1 || (keep && p.acknowledgementState === 1)) {
       // Already delivered (consumed after we granted it): nothing more to do, if it was ours.
       const known = await db.query('SELECT 1 FROM purchase WHERE id = $1 AND user_id = $2', [id, user.id]);
       return known.rowCount ? json(res, 200, { ok: true, coins: 0 }) : json(res, 409, { error: tk('That purchase has already been used.') });
@@ -911,6 +989,11 @@ export async function createAccounts(
     // Not consumed (Google down, or it refused): the app sends it again next time, which
     // grants nothing twice and tries again. Meanwhile it's acknowledged, so Google
     // doesn't refund it after three days (which would take the coins back).
+    if (keep) {
+      // Not acknowledged within 3 days, Google refunds it: the app sends it again until this works.
+      await play.acknowledge(productId, token).catch((e: unknown) => console.error('google play acknowledge failed', e));
+      return json(res, 200, { ok: true, coins: 0, pack: pack.id });
+    }
     await play.consume(productId, token).catch(async (e: unknown) => {
       console.error('google play consume failed', e);
       if (p.acknowledgementState !== 1) await play.acknowledge(productId, token).catch((e2: unknown) => console.error('google play acknowledge failed', e2));
@@ -947,7 +1030,7 @@ export async function createAccounts(
       o.payment_status === 'paid'
     ) {
       const meta = (o.metadata ?? {}) as Record<string, string>;
-      if (meta.userId && meta.item && (coinPack(meta.item) || shopItem(meta.item))) {
+      if (meta.userId && meta.item && (coinPack(meta.item) || shopItem(meta.item) || supporterPack(meta.item))) {
         await recordPurchase(db, {
           sessionId: String(o.id),
           userId: meta.userId,
@@ -1146,8 +1229,22 @@ export async function createAccounts(
             // An invite whose new player has just confirmed their email.
             if (await settleInvite(db, user.id)) me.wallet = await walletOf(db, user.id);
             me.invite = { code: await friendCode(db, user.id), ...(await inviteStatus(db, user.id, user.createdAt)) };
+            // Invite rewards that came in since they last looked (told once), for a "you got coins" pop-up.
+            const news = await inviteNews(db, user.id);
+            if (news) {
+              me.inviteNews = news;
+              me.owned = await ownedItems(db, user.id);
+              me.wallet = await walletOf(db, user.id);
+            }
             // A creator with a code (server/creators.ts): their own numbers, totals only.
             const creator = await creatorCodeOf(db, user.id);
+            if (creator && (await isCreator(db, user.id))) me.creatorBadge = true;
+            // Email news: whether they get it, and whether the game has asked yet.
+            me.newsletter = await accountNews(db, user);
+            // Supporter packs: on sale now (or the owner trying them out), and the badge of any bought.
+            if (supporterSaleFor(user)) me.supporterSale = true;
+            const backed = await supporterBadge(db, user.id);
+            if (backed) me.supporterBadge = backed;
             if (creator) {
               const [r] = await creatorReports(db, creator);
               me.creator = { code: r.code, percent: r.percent, months: r.months, players: r.players, payers: r.payers, totals: r.totals };
@@ -1183,6 +1280,19 @@ export async function createAccounts(
           await reportCpuMatch(req, res);
         } else if (path === '/api/invite' && req.method === 'POST') {
           await inviteApi(req, res);
+        } else if (path.startsWith('/api/newsletter') || path.startsWith('/api/admin/newsletter')) {
+          await newsletterApi(req, res, path);
+        } else if (path === '/api/invite/peek' && req.method === 'GET') {
+          // Public (an invite link opened before signing up): what the code is worth. Never a player's name.
+          const ip = clientIp(req);
+          const now = Date.now();
+          const recent = (peekTries.get(ip) ?? []).filter((t) => now - t < 60_000);
+          if (recent.length >= 20) json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+          else {
+            peekTries.set(ip, [...recent, now]);
+            if (peekTries.size > 10_000) peekTries.clear();
+            json(res, 200, await peekInvite(db, new URL(req.url ?? '', 'http://x').searchParams.get('code')));
+          }
         } else if ((path === '/api/admin/creators' && (req.method === 'GET' || req.method === 'POST')) || (path === '/api/admin/creators/paid' && req.method === 'POST')) {
           await creatorsApi(req, res, path);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
@@ -1223,12 +1333,13 @@ export async function createAccounts(
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' }> {
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' | 'creator' | 'supporter' | 'patron' }> {
       // The sign-in cookie (website, Android app), else a ticket (iOS app).
       const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
       if (!userId) return { owned: [] };
       const r = (await ratingsOf(db, [userId])).get(userId)!;
-      const badge = await packBadge(db, userId);
+      // A creator's ⭐ comes first; then 💖 or 💛 (supporter packs); then 🌱 or 🐣.
+      const badge = (await isCreator(db, userId)) ? 'creator' : ((await supporterBadge(db, userId)) ?? (await packBadge(db, userId)));
       return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...(badge ? { badge } : {}) };
     },
     /** The game server says who's online and passes on invites. */

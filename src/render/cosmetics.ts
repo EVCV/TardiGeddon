@@ -34,6 +34,10 @@ export const AIM_STYLES: AimStyle[] = [
   { id: 'sparkle', name: 'Sparkler', marker: 0xfff6c2, bar: [0xfff6c2, 0xffb02e], sparkle: [0xffffff, 0xfff27a, 0xffb02e] },
   { id: 'comet', name: 'Comet', marker: 0xbff3ff, bar: [0x7fd3f7, 0xffffff], shape: 'star', tail: true, glow: 0x7fd3f7 },
   { id: 'gold', name: 'Golden aim', marker: 0xffd84a, bar: [0xfff2a0, 0xe0a920], glow: 0xffd84a, sparkle: [0xfff6c2, 0xffd84a] },
+  // The Patron pack's (limited time, never in the shop).
+  { id: 'goldheart', name: 'Golden heart', marker: 0xffd84a, bar: [0xffb6dc, 0xffd84a], shape: 'heart', glow: 0xffb6dc, sparkle: [0xffffff, 0xffd84a, 0xff8fc8] },
+  // The Superfan pack's (a creator's code; never sold).
+  { id: 'spotlight', name: 'Spotlight', marker: 0xffd84a, bar: [0xb388ff, 0xffd84a], shape: 'star', glow: 0xfff2a0, sparkle: [0xffffff, 0xffd84a, 0xb388ff] },
 ];
 
 export function aimStyle(id: string | undefined): AimStyle {
@@ -63,6 +67,8 @@ export const FX_STYLES: FxStyle[] = [
   { id: 'fireworks', name: 'Fireworks', flash: 0xffffff, smoke: [0x6b5d63], extra: { kind: 'star', colors: [0xff5fa8, 0xffd84a, 0x4ff0ff, 0x7dff6a, 0xb18cff] } },
   { id: 'rainbow', name: 'Rainbow blast', flash: 0xffffff, smoke: RAINBOW, extra: { kind: 'star', colors: RAINBOW } },
   { id: 'gold', name: 'Golden blast', flash: 0xfff2a0, smoke: [0xe0b84a, 0xc9a23a], debris: [0xffd84a, 0xe0a920], extra: { kind: 'coin', colors: [0xffd84a, 0xfff2a0] } },
+  // The Superfan pack's (a creator's code; never sold): gold and purple stars, like a crowd cheering.
+  { id: 'fanfare', name: 'Fanfare', flash: 0xfff6c2, smoke: [0x8f5bd6, 0x6b5d63], extra: { kind: 'star', colors: [0xffd84a, 0xb388ff, 0xffffff] } },
 ];
 
 export function fxStyle(id: string | undefined): FxStyle {

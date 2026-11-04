@@ -100,6 +100,8 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.2.5 Account emails. We send you an email with a link to confirm your email address when you create an account (and again if you ask), and an email with a link to choose a new password if you use "Forgot password?". These are service emails needed to keep your account secure, not marketing, and we only send them when you sign up or ask for one. Each email contains your player name and a one-time link. A password reset link works once, for one hour; we store its code until it is used or expires, then delete it. An email confirmation link works for 24 hours and is not stored by us. If you did not ask for an email, you can ignore it.
 
+2.2.6 Email news (only if you ask for it). If you tick "Email me TardiGeddon news" (when you create an account, on the Account or News page, or when the game asks you once), or sign up on our Website with your email address, we send you news about TardiGeddon: new updates, events and offers, a few times a month at most. Nobody is signed up without asking, and the box is never ticked for you. With an account, the news goes to your account's email address once it is confirmed; without one, we first send a single email with a link, and only that link signs you up. You must be 13 or over. We keep, as a record of your consent: your email address, your player name if you have an account, when and where you signed up, the words you agreed to, your language, and when you confirmed or unsubscribed. You can unsubscribe at any time, straight away, with the link in every news email or on the Account or News page.
+
 ### 2.3 Purchases
 
 2.3.1 Payments are handled by Stripe on its own secure payment page. Your card or other payment details go directly to Stripe; we never see or store your full card number.
@@ -175,6 +177,8 @@ Our online game server counts in the same way, for online play: how long players
 
 3.1.3 Legal obligation: where we must keep or disclose information by law, including keeping records of sales for tax purposes (Section 3.0.8).
 
+3.1.3A Consent: email news, only if you sign up for it (Section 2.2.6). You can withdraw your consent at any time by unsubscribing.
+
 3.1.4 Storing your settings on your device is strictly necessary to provide the features you use, as described in our Cookie & Storage Policy.
 
 ## Section 4 — How We Share Your Information
@@ -186,6 +190,8 @@ Our online game server counts in the same way, for online play: how long players
 4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files, and provides our visit statistics), Fly.io, Inc. (which runs the online game server in its London region, which also receives the game's play statistics) and Neon (which hosts our account database, and the daily totals of play statistics, in London, on Amazon Web Services). They process data such as IP addresses and, for Neon, the account and purchase data described in Sections 2.2 and 2.3, to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
 
 4.0.3 20i Limited, a UK company, acting as our processor, which sends the account emails described in Section 2.2.5 on our behalf from its mail servers in the United Kingdom. It receives your email address, your player name and the content of the email, and keeps delivery logs for a limited time under its own policies.
+
+4.0.3A Utobo, the email service we use to send email news (Section 2.2.6), acting as our processor. It receives only the email addresses (and player names) of people who have signed up, to send the news and handle unsubscribes, under a contract that includes data protection obligations.
 
 4.0.4 Stripe, which takes payments for us as the merchant of record. For the payment, and the tax and accounting records that go with it, Stripe is an independent controller of your data under its own privacy policy at https://stripe.com/privacy; it also uses payment information for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
 
@@ -224,6 +230,8 @@ Our online game server counts in the same way, for online play: how long players
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
 5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, your game stats, your friends list and your daily challenge scores: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle. Records of gifts you sent or claimed stay while the other account exists, so it can still claim or see them, but the link to your deleted account is removed.
+
+5.1.4A Email news (Section 2.2.6): while you are signed up. If you unsubscribe, we keep your email address and the dates on a "do not email" list, so you are never sent news again by mistake, and your consent record for up to 2 years after, as proof of what you agreed to. A sign-up that is never confirmed is deleted after 30 days. If you delete your account, its email news record is deleted with it.
 
 5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
 
@@ -275,9 +283,9 @@ Our online game server counts in the same way, for online play: how long players
 
 ## Section 8 — Marketing Communications
 
-### 8.0 No Marketing
+### 8.0 Email News Only If You Ask
 
-8.0.1 We do not send marketing communications, and the game does not show adverts. Creating an account does not sign you up for marketing. If this changes, we will only send marketing with your consent, and you will always be able to opt out.
+8.0.1 The game does not show adverts. Creating an account does not sign you up for anything: we only send email news (Section 2.2.6) to people who ask for it, and every news email has a one-click unsubscribe link. Unsubscribing does not affect your account or the account emails in Section 2.2.5. We never send news by text message, never share your email address for anyone else's marketing, and never use it for profiling or targeted advertising.
 
 ## Section 9 — Children's Privacy
 

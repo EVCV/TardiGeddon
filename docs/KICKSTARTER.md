@@ -5,7 +5,10 @@ pay to keep the servers running and fund the next year of updates, and get
 **thank-you rewards that are cosmetic only** (the same rule as the shop:
 nothing that wins matches, never Slime or weapons, see CLAUDE.md).
 
-Status: **plan, not started.** Decisions still open are listed in §9.
+Status: **getting ready** (3 Nov 2026). The game launches on **Tue 1 Dec
+2026**; the campaign runs **Tue 19 Jan to Thu 18 Feb 2027** (§2). Setup
+steps are in §10 and the page text, ready to paste, in §11. Decisions still
+open are listed in §9.
 
 ---
 
@@ -34,20 +37,40 @@ What the money pays for (show this as a simple chart on the page):
 
 ## 2. When
 
-The game launches on 31 Oct 2026, and the in-game early bird pack runs to the
-end of the year. Don't run the Kickstarter at the same time as the free early
-bird giveaway or over Christmas. **Recommended: a 30-day campaign from
-early February 2027** (for example Tuesday 2 Feb to Thursday 4 Mar), when there
-are three months of players and an audience to ask.
+The game's launch moved to **Tuesday 1 December 2026** (after Black Friday and
+Cyber Monday, so launch news isn't buried under sales; three weeks to fix
+anything before Apple's and Google's slow Christmas weeks; and on the stores
+for the Christmas Day rush of new phones). Founders: accounts made by the end
+of 30 November. Early bird: the first 1,000 accounts by the end of 31 December.
 
-| When          | What                                                                 |
-| ------------- | -------------------------------------------------------------------- |
-| November      | Decide goal and rewards (§9). Build backer codes and the Hall of Backers (§5) |
-| December      | Kickstarter pre-launch page live ("Notify me on launch"). Link it from the website, Discord and socials |
-| January       | Trailer (60–90 s of real play), GIFs, press kit, creator outreach. Weekly Shorts/TikToks |
-| Launch week   | Launch on a Tuesday, about 2pm UK (morning in the US). Email the list and Discord, and post everywhere on day one |
-| During        | An update every 3–4 days. Reveal stretch goals as they're reached. A big push in the last 48 hours |
-| After         | Backer survey, then codes out within 2 weeks, then the Hall of Backers goes live, then an update |
+**The campaign: Tuesday 19 January to Thursday 18 February 2027 (30 days).**
+Not in December: launch week needs all hands, the Christmas weeks are the
+worst time to ask for money, and Kickstarter's review slows down over the
+holidays. Mid-January to mid-February gives:
+
+- six weeks of real players (and the Christmas new-phone wave) to ask;
+- January's payday (around the 25th) inside the campaign, and pledges are
+  only charged when it ends;
+- time to build backer codes and make a trailer from real launch footage.
+
+| When                 | What                                                                 |
+| -------------------- | -------------------------------------------------------------------- |
+| **Now (Nov 3–13)**   | Kickstarter account, company and bank details, identity check (§10). Draft the project. Publish the **pre-launch page** ("Notify me on launch") as soon as Kickstarter allows |
+| Nov 14–30            | Pre-launch link on the website, Discord and socials. Short videos weekly. Decide goal and tiers (§9) |
+| **Tue 1 Dec**        | Game launch. Website banner: "Follow our Kickstarter". (Never in the apps: §6) |
+| Dec 2–16             | Build backer codes, backer items and the Hall of Backers (§5). Record launch footage for the trailer |
+| **By Thu 17 Dec**    | Project finished and **submitted for review** (before the holidays) |
+| Jan 4–18             | Trailer, press kit, creators lined up (creator codes: §8). Countdown posts |
+| **Tue 19 Jan, 2pm UK** | Launch. Email, Discord, socials, creators, website banner on day one |
+| During               | An update every 3–4 days; stretch goals as they're reached; a big push in the last 48 hours |
+| **Thu 18 Feb**       | Ends. Funds arrive about 2 weeks later (early March) |
+| By early March       | Backer survey, then codes out, then the Hall of Backers goes live |
+
+**If you'd rather go sooner:** run it alongside the launch, Tue 1 Dec to Tue
+22 Dec (21 days, ends before Christmas). It catches launch buzz, but splits
+attention in the busiest week, leaves no time to build backer codes first, and
+asks for money in the dearest month of the year. Only if the pre-launch page
+has lots of followers by the end of November.
 
 The first 48 hours decide most campaigns: aim to have about a third of the
 goal pledged by then. That only happens with followers lined up beforehand,
@@ -71,6 +94,11 @@ As a starting point (replace with real figures): if running costs are about
 
 All digital, all cosmetic, delivered in the game. Exclusive to backers (they
 never go on sale in the shop). Each tier includes everything below it.
+
+**Every backer is an early bird:** each backer code also gives the Early
+bird pack (`grantEarlyBird`), even after the first 1,000 or 31 December. It
+costs nothing, makes the cheapest tier feel worth it, and fits "the people
+who were here first".
 
 | Tier                 | Pledge | Limit | Reward                                                         |
 | -------------------- | ------ | ----- | -------------------------------------------------------------- |
@@ -190,12 +218,13 @@ Post-v1):
 ## 9. Decisions for the owner
 
 1. **Goal:** the real 12-month running costs (§3).
-2. **Launch month:** February 2027 recommended (§2).
+2. **Dates:** game on Tue 1 Dec 2026, campaign Tue 19 Jan to Thu 18 Feb 2027 (§2), or the faster December option.
 3. **Tiers and prices:** as in §4, or changed.
 4. **iOS:** hide backer items in the iOS app, or show them and accept the
    App Review risk (§6).
 5. **VAT:** accountant's advice (§7).
 6. **Physical rewards:** none this time (recommended), or a sticker sheet.
+7. **Creator payments:** the monthly payout file now, Stripe Connect later (§12).
 
 Sources: Kickstarter's rules on rewards ([help
 centre](https://help.kickstarter.com/hc/en-us/articles/115005134333-Can-Kickstarter-be-used-to-fund-anything)),
@@ -205,3 +234,112 @@ Kickstarter and VAT ([help
 centre](https://help.kickstarter.com/hc/en-us/articles/115005139493-Are-creators-based-in-the-EU-and-UK-responsible-for-VAT)),
 and Apple's [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 (2.2, 3.1.1, 3.1.3(b)).
+
+---
+
+## 10. Setting up Kickstarter (start today)
+
+Check each step against Kickstarter's own help pages as you go: their rules
+and screens change, and this list is from general knowledge, not checked
+against their site today.
+
+1. **Account:** kickstarter.com → Sign up, with the business email
+   (support@tardigeddon.com forwards to you). Turn on two-step sign-in.
+2. **Start a project:** category **Games → Video Games**, country **United
+   Kingdom**, currency **GBP**. Name it "TardiGeddon".
+3. **Who's running it:** choose a business, **EVCV Limited** (company number
+   13570383, 28 Oak Tree Lane, Cookhill, Alcester, B49 5LH). Kickstarter asks
+   for a director's ID and date of birth, the company's details, and a **UK
+   business bank account** in the company's name (pledges are paid there).
+   The identity check can take a day or two.
+4. **Pre-launch page:** fill in the title, subtitle, image and category (§11),
+   then publish the pre-launch page. It gets its own link with a **Notify me
+   on launch** button. Put that link on the website, Discord and socials.
+5. **Draft the rest** (story, rewards, FAQ, risks: §11) over November and
+   December; preview links can be shared with friends for feedback.
+6. **Submit for review by Thu 17 Dec.** Review usually takes a few days, but
+   can take longer, especially near the holidays. Once approved, you choose
+   the moment to launch.
+7. **Launch on Tue 19 Jan at about 2pm UK**, length 30 days.
+8. **Before launch:** the accountant's VAT answer (§7), the Terms and Privacy
+   updates (§5.5), and backer codes working end to end (§5).
+
+---
+
+## 11. Page text (ready to paste, edit freely)
+
+**Title:** TardiGeddon
+
+**Subtitle** (135 characters at most):
+> A free turn-based artillery game starring tardigrades. Help keep it free and growing, and get exclusive looks for your team.
+
+**Pre-launch page blurb:**
+> TardiGeddon is a turn-based artillery game where tiny, indestructible
+> tardigrades fight it out with bazookas, grenades, superweapons and a silk
+> rope. It's free on the web, Android, iPhone and iPad, with no ads and
+> nothing to buy that wins matches. We're coming to Kickstarter to fund the
+> next year of servers and updates. Tap "Notify me on launch" to hear the
+> moment we go live, and grab an early-backer price in the first 48 hours.
+
+**Story (campaign page), in this order:**
+
+1. **The hook** (with the trailer): "Tiny. Indestructible. Armed." One
+   sentence on what it is, then "and you can play it right now, free" with
+   the link to tardigeddon.com/play (the website, never the app stores: §6).
+2. **What it is:** turn-based artillery like the classics; tardigrades;
+   weapons (a GIF each of three favourites); online play, CPU opponents,
+   Rope Race, daily challenges; six languages.
+3. **Why Kickstarter:** "TardiGeddon is free and will stay free. There are no
+   ads and you can't buy power: the shop only sells looks. Your backing pays
+   for the servers and the next year of new realms, weapons and music, so it
+   can stay that way."
+4. **Where the money goes:** the chart from §1.
+5. **Rewards:** the tier table (§4) as a picture, with each item shown on a
+   tardigrade. "Every backer also gets the Early bird pack."
+6. **Stretch goals** (free for everyone): §4's list, as picture cards.
+7. **Who we are:** EVCV Limited, a small UK studio; a photo; why tardigrades.
+8. **Risks and challenges** (Kickstarter asks for this): "The game is already
+   out and the rewards are digital and built by us, so they can be delivered
+   within two weeks of the campaign ending. Stretch goals depend on the money
+   raised; we'll show progress in updates."
+
+**FAQ:**
+- *Is the game free?* Yes, and it stays free. Backing is a thank-you, not a
+  ticket.
+- *Do rewards give an advantage?* No. Every reward is cosmetic.
+- *How do I get my rewards?* After the campaign you'll get a code by email.
+  Enter it on the Account page at tardigeddon.com (signed in), and the items
+  appear on every device you play on.
+- *Can I get coins or Slime?* No: rewards are looks only.
+- *Which platforms?* Web, Android, iPhone and iPad.
+
+**Launch-day post** (Discord, socials):
+> We're live on Kickstarter! 🐻💥 TardiGeddon is free and stays free:
+> back it to keep the servers running and the updates coming, and get
+> backer-only looks for your team. The first 48 hours have an early-backer
+> price. [link]
+
+---
+
+## 12. Paying creators their share
+
+What creators earn is already worked out on the Sales page (`server/creators.ts`).
+Today the owner pays it by hand. Ways to make that quicker, cheapest first:
+
+1. **Monthly payout file (recommended to start).** A button on the Sales
+   page downloads what each creator is owed as a file for **Wise Business**
+   batch payments (or PayPal Payouts): upload it, approve once, and everyone
+   is paid; then "Mark all paid" records it. Five minutes a month, works for
+   creators in any country, and nothing new holds your money.
+2. **Stripe Connect** (once there are 20 or more paid creators). Each creator
+   signs up once through a Stripe link (Stripe checks their identity, bank
+   and tax details), and the server pays them every month automatically.
+   Costs: Stripe charges per active creator account per month and per payout.
+   Two things to settle with Stripe first: whether Connect works alongside
+   Managed Payments (Stripe is the seller there), and that the creators'
+   share of App Store and Google Play money has to be topped up into the
+   Stripe balance, because that money arrives in the bank, not at Stripe.
+3. Whichever you pick: keep each creator's agreement (Terms 5.12.3), and ask
+   the accountant how to record the payments (they're the creator's income;
+   US creators may need a tax form).
+

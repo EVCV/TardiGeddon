@@ -1,7 +1,7 @@
 # Terms of Service
 
-**Effective Date:** 9 October 2026
-**Last Modified:** 31 October 2026
+**Effective Date:** 3 November 2026
+**Last Modified:** 3 November 2026
 **Document Version:** v2.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -134,13 +134,15 @@ Please read these Terms of Service carefully before using TardiGeddon. This docu
 - **Slime** is earned by playing (see Section 5.6). It cannot be bought. You can spend it to unlock season weapons and some cosmetic items.
 - **Coins** are bought with real money in coin packs (see Section 5.1). You can spend them only on cosmetic items (such as hats, skins, aim styles, explosion effects and arena themes), which change how your team, or your own view of the game, looks and never how it plays. You can also spend them on gifts of cosmetic items for other players (Section 5.8).
 
+The launch Supporter packs (Section 5.13) are the only items you can buy with money directly; like everything else, they are cosmetic only.
+
 There is no way to exchange coins for Slime, so money can never buy a gameplay advantage. There are no loot boxes or random paid rewards: you always see exactly what you are unlocking before you unlock it.
 
 ### 5.1 Buying Coins
 
 5.1.1 You need an account to buy coins. If you are under 18, you must have permission from a parent or guardian before buying anything. Before every purchase, we ask you to confirm that you are 18 or over or that a parent or guardian has agreed to it. In our Android app, the shop also takes account of the age range Google Play provides, where you or a parent or carer share it: it reminds players under 18 that a parent or carer may need to approve purchases, and buying coins is switched off while a parent or carer has not approved the latest version of the app in Google Family Link, or while Google Play needs you to confirm your age (see our Privacy Policy, Section 2.0.4). In our iOS app, where the law requires it, the shop takes account of the age range Apple provides in the same way, and reminds players under 18 that a parent or guardian may need to approve purchases through Apple's Ask to Buy (see our Privacy Policy, Section 2.0.4A).
 
-5.1.2 Coin packs are priced in pounds sterling, including VAT or any similar sales tax for your country. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or time-limited offers to pressure you into buying. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page, which may also show you the price in your own currency; your bank or card issuer may charge fees for payments in a foreign currency.
+5.1.2 Coin packs are priced in pounds sterling, including VAT or any similar sales tax for your country. Bigger packs include bonus coins, so a coin costs less in a bigger pack: from about 1p a coin in the smallest pack to about 0.77p in the biggest. Each pack shows how many coins it gives, including any bonus coins, its price, and its price per coin. Bonus coins are the same as any other coins. Wherever coin prices are shown, you can see what they are worth in pounds (as a range, from the biggest pack's price per coin to the smallest's). We never show countdowns or use pressure to make you buy. The only things sold for a limited time are the launch Supporter packs (Section 5.13), which always show, plainly, the date their sale ends. The price you pay is the price shown when you confirm your order. Payments are taken by Stripe on its secure payment page, which may also show you the price in your own currency; your bank or card issuer may charge fees for payments in a foreign currency.
 
 5.1.3 When you confirm your order and your payment succeeds, a contract is made between you and EVCV Limited for the coin pack. Payments are processed by Stripe, which acts as the merchant of record for the payment: it takes the payment, under any terms it shows on its payment page; works out, collects and pays the VAT or sales tax that applies to your purchase; sends a receipt to the email address you give on its payment page; and can help with questions about the payment itself. Nothing in this Section affects your legal rights.
 
@@ -232,7 +234,7 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.11 Founder and Early Bird Packs
 
-5.11.1 To thank the players who were with us from the start, accounts made by the end of 31 October 2026 (UTC), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), the Founder's bow (a victory dance), the Golden Garden world, the Founders' Anthem (match music), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. Founders also get the Early Bird pack (Section 5.11.2).
+5.11.1 To thank the players who were with us from the start, accounts made by the end of 30 November 2026 (UTC), and the testers and helpers we invite, get the Founder pack: the Founder's sprout crown (a hat), the Founder's plaque (a gravestone), the Founder's bow (a victory dance), the Golden Garden world, the Founders' Anthem (match music), a 🌱 Founder badge shown beside your name, including to other players in online games, and 250 free coins. Founders also get the Early Bird pack (Section 5.11.2).
 
 5.11.2 The first 1,000 accounts made by the end of 31 December 2026 (UTC) get the Early Bird pack: the Early bird eggshell (a hat), the Cracked egg (a gravestone), the Hatching dance, the Daybreak Meadow world, the Daybreak music, a 🐣 Early Bird badge (founders show 🌱 instead) and 100 free coins. We may extend either date or raise the number of accounts, and will say so in the game and on the Website.
 
@@ -240,11 +242,21 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 5.12 Creator Codes
 
-5.12.1 Some content creators (for example streamers and video makers) have a creator code from us. If you enter one where a friend's code goes, within the first 7 days after making your account (or open the creator's invite link before signing up), you get the same reward as for a friend's invite (Section 5.10.1). A creator code takes the place of a friend's code: each account can use one or the other, once.
+5.12.1 Some content creators (for example streamers and video makers) have a creator code from us. If you enter one where a friend's code goes, within the first 7 days after making your account (or open the creator's invite link before signing up), then once you have confirmed your email address and finished 3 matches (online or against the computer), you get 500 free coins and the Superfan pack: the Superfan cap (a hat), the Spotlight aim and the Fanfare explosion effect. Its items are never sold, and stay yours on the same terms as any other item (Section 5.4); its coins are free coins, as in Section 5.10.2. A creator code takes the place of a friend's code: each account can use one or the other, once.
 
 5.12.2 When you use a creator's code, the creator receives a share of what you spend on coins for a time (at present, 10% of what reaches us after VAT and store or payment fees, for 12 months), paid by us out of our own share. It does not change what you pay or what you get. The creator only sees totals (how many players used their code and how much they earned), never who you are or what you bought.
 
-5.12.3 Creators are bound by a separate agreement with us, including a duty to make clear to their audience that they earn from their code. Creator codes must not be sold, and using one with extra accounts or automated means breaks these Terms (Section 4.1). We may change or end creator codes at any time.
+5.12.3 A creator whose own account we link to their code shows a ⭐ creator badge beside their name, including to other players in online games, and may use the creator medal emblem; both last while they have an active creator code with us.
+
+5.12.4 Creators are bound by a separate agreement with us, including a duty to make clear to their audience that they earn from their code. Creator codes must not be sold, and using one with extra accounts or automated means breaks these Terms (Section 4.1). We may change or end creator codes at any time.
+
+### 5.13 Supporter Packs
+
+5.13.1 To support TardiGeddon at its launch, you can buy a Supporter pack (£9.99) or a Patron pack (£19.99) with money, in one purchase. The Supporter pack gives the Supporter's heart cap (a hat), the Sunshine skin and a 💛 Supporter badge shown beside your name, including to other players in online games. The Patron pack gives everything in the Supporter pack, plus the Patron's Palace world, the Patron's Waltz (match music), the Golden heart aim and a 💖 Patron badge instead. They are sold from 3 November 2026 to 31 January 2027 (UTC), and never again after that.
+
+5.13.2 The rules for buying coins apply to Supporter packs too: you need an account, and the confirmations before you pay (Section 5.1.1); the prices include VAT or the tax for your country; on our Website Stripe takes the payment (Section 5.1.3), and in our Android and iOS apps Google Play or Apple does, as the seller, at the price it shows (Sections 5.1.5 and 5.1.5A). The pack's items are added to your account straight away. You lose the right to cancel once they are delivered (Section 5.2), and your rights if something is faulty are not affected (Section 5.3).
+
+5.13.3 A pack's items are cosmetic only. They stay yours on the same terms as any other item (Section 5.4), cannot be given as gifts, and are never sold separately. In the iOS app, "Restore purchases" in the Shop brings back the packs bought with your Apple ID. If a payment for a pack is refunded or disputed, its items and badge are taken back from your account (except any items another pack you still have also gives).
 
 ## Section 6 — Intellectual Property
 

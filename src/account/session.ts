@@ -16,9 +16,9 @@ import { signInSheet, webSignInAvailable } from './webSignIn';
 import { googleAccountPicker, nativeSignInAvailable, newChallenge, openBrowserTab, parseSignInLink, takeVerifier } from './nativeSignIn';
 import { appleSheet, appleSignInAvailable } from './appleSignIn';
 import { playBillingAvailable, playBuy, playUnfinished } from '../shop/playBilling';
-import { appStoreAvailable, appStoreBuy, appStoreFinish, appStoreUnfinished, type AppStorePurchase } from '../shop/appStore';
+import { appStoreAvailable, appStoreBuy, appStoreFinish, appStoreOwned, appStoreUnfinished, type AppStorePurchase } from '../shop/appStore';
 import { controls, sanitiseControls, setControls, type Controls } from '../input/controls';
-import { t } from '../i18n/i18n';
+import { lang, t } from '../i18n/i18n';
 
 /** What GET /api/me returns. */
 export interface MeResponse {
@@ -60,8 +60,21 @@ export interface MeResponse {
   earlyBirdNew?: boolean;
   /** A creator (server/creators.ts): their code and how it's doing, totals only (amounts in the currency's smallest unit). */
   creator?: { code: string; percent: number; months: number; players: number; payers: number; totals: { currency: string; earned: number; paid: number; owed: number }[] };
-  /** Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand. */
-  invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean };
+  /**
+   * Inviting friends (src/shop/rewards.ts): this player's code (their friend code) and how their invites stand.
+   * Invited themselves: the coins they get (`reward`; more with a creator's code), the creator's name, and matches played so far.
+   */
+  invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean; reward?: number; creator?: string; played?: number };
+  /** Invite rewards that came in since last time (said once): friends who joined with this player's code, and their own. */
+  inviteNews?: { friends: number; coins: number; mine?: { coins: number; items: string[]; creator?: string } };
+  /** An active creator (server/creators.ts): shows the ⭐ badge and may use the creator medal emblem. */
+  creatorBadge?: boolean;
+  /** Email news (server/newsletter.ts): subscribed, waiting for the account's email to be confirmed, or not; and whether the game has asked. */
+  newsletter?: { status: 'subscribed' | 'pending' | 'no'; asked: boolean };
+  /** Supporter packs are on sale (src/shop/catalog.ts SUPPORTER_SALE), or the owner is trying them out. */
+  supporterSale?: boolean;
+  /** Bought a supporter pack: 💖 patron or 💛 supporter. */
+  supporterBadge?: 'patron' | 'supporter';
 }
 
 /** The owner's sales page: totals only, never who bought what. */
@@ -120,6 +133,15 @@ const OWNED_KEY = 'tardigeddon.owned';
 
 /** null until loaded, or when the server is unreachable / has accounts turned off. */
 let me: MeResponse | null = null;
+/** Invite rewards the server reported, until the hub's pop-up has shown them. */
+let inviteNewsWaiting: MeResponse['inviteNews'] | null = null;
+
+/** Invite rewards waiting to be shown (once: taking them clears them). */
+export function takeInviteNews(): MeResponse['inviteNews'] | null {
+  const n = inviteNewsWaiting;
+  inviteNewsWaiting = null;
+  return n;
+}
 let loaded = false;
 const listeners = new Set<() => void>();
 
@@ -159,6 +181,8 @@ function set(next: MeResponse | null): void {
   // Signed in with saved controls: use them (signed out, this visit's settings stay).
   const saved = next?.user ? sanitiseControls(next.controls) : null;
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
+  // Invite rewards are reported once: keep them until a screen shows them (takeInviteNews).
+  if (next?.inviteNews) inviteNewsWaiting = next.inviteNews;
   me = next;
   loaded = true;
   if (next) {
@@ -374,6 +398,68 @@ export function saveInvite(code: string | null): void {
 }
 
 export type InviteResult = 'ok' | 'unknown' | 'self' | 'already' | 'late' | 'newer';
+
+/** The owner's email news numbers (Sales page). */
+export function newsletterCounts(): Promise<{ subscribed: number; pending: number; unsubscribed: number }> {
+  return call('/api/admin/newsletter');
+}
+
+/** The owner downloads the list for Utobo: everyone subscribed, or everyone who has unsubscribed (a CSV file). */
+export async function downloadNewsletter(list: 'subscribed' | 'unsubscribed'): Promise<void> {
+  const base = apiBase();
+  if (!base) throw new Error(t('Accounts are not available here.'));
+  const tokens = signsInWithToken();
+  const sent = tokens ? await authToken() : null;
+  const r = await fetch(`${base}/api/admin/newsletter?list=${list}`, { credentials: tokens ? 'omit' : 'include', headers: sent ? { authorization: `Bearer ${sent}` } : {} });
+  if (!r.ok) throw new Error(t('Something went wrong. Please try again.'));
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tardigeddon-newsletter-${list}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** Where a news sign-up came from (kept as proof of consent: server/newsletter.ts). */
+export type NewsSource = 'signup' | 'account' | 'prompt' | 'news' | 'website';
+
+/** Email news for an address (signed out): the server emails a link that subscribes it. */
+export async function askForNews(email: string, over13: boolean, source: NewsSource): Promise<void> {
+  await call('/api/newsletter', { email, over13, source, lang: lang() });
+}
+
+/** Email news on the signed-in account: on or off. */
+export async function setNews(on: boolean, source: NewsSource): Promise<void> {
+  await call('/api/newsletter/account', { on, source, lang: lang() });
+  await refreshAccount();
+}
+
+/** The one-time question in the game was answered "not now". */
+export async function newsAsked(): Promise<void> {
+  await call('/api/newsletter/asked', {});
+  await refreshAccount();
+}
+
+/** The link in the confirm email (?subscribe=TOKEN), or an unsubscribe link (?unsubscribe=TOKEN). */
+export async function confirmNews(token: string): Promise<boolean> {
+  return (await call<{ ok: boolean }>('/api/newsletter/confirm', { token })).ok;
+}
+export async function unsubscribeNews(token: string): Promise<boolean> {
+  return (await call<{ ok: boolean }>('/api/newsletter/unsubscribe', { token })).ok;
+}
+
+/** What an invite link's code is worth (server/rewards.ts peekInvite): a creator's (with their name), a friend's, or nothing. */
+export type InvitePeek = { kind: 'creator'; name: string; coins: number; items: string[] } | { kind: 'friend'; coins: number } | { kind: 'unknown' };
+
+export async function peekInvite(code: string): Promise<InvitePeek> {
+  try {
+    return await call<InvitePeek>(`/api/invite/peek?code=${encodeURIComponent(code)}`);
+  } catch {
+    return { kind: 'unknown' };
+  }
+}
 
 /** Say which friend invited this player (src/shop/rewards.ts). */
 export async function enterInvite(code: string): Promise<InviteResult> {
@@ -684,6 +770,25 @@ export async function buyCoinsInApp(packId: string): Promise<{ result: 'done'; c
   const done = await call<{ coins?: number }>('/api/shop/google', { productId: r.productId, token: r.token });
   await refreshAccount();
   return { result: 'done', coins: done.coins ?? 0 };
+}
+
+/**
+ * Restore purchases (iOS; Apple requires it for one-time purchases): the
+ * supporter packs this Apple ID owns are sent to the server, which grants any
+ * this account doesn't have yet. Resolves to how many it found.
+ */
+export async function restoreAppStorePurchases(): Promise<number> {
+  if (!me?.user || !appStoreAvailable()) return 0;
+  const owned = await appStoreOwned(true);
+  for (const p of owned) {
+    try {
+      await grantAppStorePurchase(p);
+    } catch {
+      // e.g. bought on another TardiGeddon account: it stays with that account.
+    }
+  }
+  await refreshAccount();
+  return owned.length;
 }
 
 /**

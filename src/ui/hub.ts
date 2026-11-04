@@ -15,13 +15,15 @@ import { loadProfiles } from './teams';
 import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
-import { EARLY_BIRD_COINS, FOUNDER_COINS } from '../shop/rewards';
+import { EARLY_BIRD_COINS, FOUNDER_COINS, INVITE_MATCHES } from '../shop/rewards';
 import { newSalesState, renderSalesPage } from './sales';
 import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
 import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
-import { account, onAccountChange, refreshAccount, wearHat, wearSkin } from '../account/session';
+import { account, newsAsked, onAccountChange, peekInvite, refreshAccount, savedInvite, setNews, takeInviteNews, wearHat, wearSkin } from '../account/session';
+import { newsWording } from './newsSignup';
+import { showRewardPop } from './rewardPop';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
@@ -199,7 +201,9 @@ export function showHub(
       };
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
-      if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
+      if (me.creatorBadge) who.append(el('span', 'founder-badge', '⭐'));
+      else if (me.supporterBadge) who.append(el('span', 'founder-badge', me.supporterBadge === 'patron' ? '💖' : '💛'));
+      else if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
       who.append(el('span', 'hub-me-name', me.user.name));
       who.onclick = () => go('account');
       right.append(coins, slime, who);
@@ -233,6 +237,23 @@ export function showHub(
       status = me.founderNew
         ? t('🌱 Thanks for being here from the start! Your Founder and Early bird packs are in: two worlds, two music tracks, two dances, two hats, two gravestones and {coins} coins. Find them in ✎ Customise team and the World button.', { coins: FOUNDER_COINS + EARLY_BIRD_COINS })
         : t('🐣 Thanks for joining early! Your Early bird pack is in: a world, a music track, a dance, a hat, a gravestone and {coins} coins. Find them in ✎ Customise team and the World button.', { coins: EARLY_BIRD_COINS });
+    }
+    // Invite rewards that came in (both sides), and a welcome for an invite link opened while signed out.
+    if (shell.isConnected) showInviteNews(go);
+    // Signed in and never asked about email news: ask once (never ticked for them).
+    if (loaded && me?.user && me.newsletter && !me.newsletter.asked && !newsAskedThisVisit && tab === 'lobby') {
+      newsAskedThisVisit = true;
+      setTimeout(askAboutNews, 1500);
+    }
+    if (loaded && me && !me.user && !inviteWelcomed) {
+      const code = savedInvite();
+      if (code) {
+        inviteWelcomed = true;
+        void welcomeInvite(code, () => {
+          signInState.mode = 'signup';
+          go('account');
+        });
+      }
     }
     notice.innerHTML = '';
     const shown = status || (me?.preview && !previewDismissed ? t("Preview build: accounts and payments aren't connected here, so signing in and buying won't work.") : '');
@@ -331,6 +352,74 @@ export function showHub(
       go('account');
     },
   };
+}
+
+/** The invite-link welcome is shown once a visit. */
+let inviteWelcomed = false;
+/** The email news question: once a visit at most (and never again once answered). */
+let newsAskedThisVisit = false;
+
+/** "Want TardiGeddon news by email?": yes subscribes the account's email; "not now" doesn't ask again. */
+function askAboutNews(): void {
+  if (document.querySelector('.reward-overlay, .checkout-overlay, .editor-overlay')) return;
+  showRewardPop({
+    badge: '📬',
+    title: t('Want the news by email?'),
+    text: newsWording(),
+    button: t('📬 Yes please'),
+    go: () => void setNews(true, 'prompt').catch(() => {}),
+    other: { label: t('Not now'), go: () => void newsAsked().catch(() => {}) },
+  });
+}
+
+/** Invite rewards the server reported (src/account/session.ts takeInviteNews), as pop-ups: your own first, then your friends'. */
+function showInviteNews(go: (tab: HubTab) => void): void {
+  const news = takeInviteNews();
+  if (!news) return;
+  const friends = () => {
+    if (!news.friends) return;
+    showRewardPop({
+      badge: '🥳',
+      title: news.friends === 1 ? t('A friend joined!') : t('{n} friends joined!', { n: news.friends }),
+      text: news.friends === 1
+        ? t('A friend made an account with your code and played their first matches, so you both get coins. Keep inviting!')
+        : t('{n} friends made accounts with your code and played their first matches, so you all get coins. Keep inviting!', { n: news.friends }),
+      coins: news.coins,
+      button: t('Brilliant!'),
+      other: { label: t('Invite more friends'), go: () => go('account') },
+    });
+  };
+  const mine = news.mine;
+  if (!mine) return friends();
+  showRewardPop({
+    badge: mine.creator ? '⭐' : '🎁',
+    title: t('Your reward is in!'),
+    text: mine.creator
+      ? t('Thanks for joining with {name}’s code! Here are {coins} free coins and the Superfan pack. Find the looks in ✎ Customise team.', { name: mine.creator, coins: mine.coins })
+      : t('Thanks for joining with a friend’s code! You both got {coins} free coins. Spend them in the Shop.', { coins: mine.coins }),
+    coins: mine.coins,
+    items: mine.items,
+    button: t('Brilliant!'),
+    go: friends,
+  });
+}
+
+/** Opened a friend's or creator's invite link, signed out: say what they'll get for making an account. */
+async function welcomeInvite(code: string, signUp: () => void): Promise<void> {
+  const p = await peekInvite(code);
+  if (p.kind === 'unknown') return;
+  showRewardPop({
+    badge: p.kind === 'creator' ? '⭐' : '🎁',
+    title: p.kind === 'creator' ? t('{name} invited you!', { name: p.name }) : t('A friend invited you!'),
+    text: p.kind === 'creator'
+      ? t('Make your account and play {matches} matches to get {coins} free coins and the Superfan pack: looks you can’t buy.', { matches: INVITE_MATCHES, coins: p.coins })
+      : t('Make your account and play {matches} matches: you get {coins} free coins, and so does your friend.', { matches: INVITE_MATCHES, coins: p.coins }),
+    coins: p.coins,
+    items: p.kind === 'creator' ? p.items : [],
+    button: t('Make my account'),
+    go: signUp,
+    other: { label: t('Maybe later') },
+  });
 }
 
 declare const __APP_VERSION__: string;

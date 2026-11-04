@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { NEWS, type NewsPost } from '../../../src/news/news';
 import { postsIn, type NewsSection } from '../../../src/news/sections';
 import { PLAY_URL } from '../config';
+import { NewsSignup } from '../components/NewsSignup';
 
 const EMAIL = 'support@tardigeddon.com';
 
@@ -81,6 +82,7 @@ export function News() {
         What’s coming to TardiGeddon, problems we’re fixing, and what changed in each update. The game shows the same
         news, in your language: <b>📰 News</b> in the lobby. Follow along with the <a href="/news.xml">RSS feed</a>.
       </p>
+      <NewsSignup />
       {SECTIONS.map((s) => {
         const posts = postsIn(s.id, NEWS);
         return (

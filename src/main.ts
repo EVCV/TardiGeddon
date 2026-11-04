@@ -8,7 +8,7 @@ import { applyAccess } from './ui/access';
 import { initDeviceDisplay } from './ui/device';
 import { lang, loadLang, t } from './i18n/i18n';
 import { setUsagePlace, startUsage, usage, usageLoad } from './usage/usage';
-import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount, saveInvite } from './account/session';
+import { confirmEmail, finishStorePurchases, listenForAppSignIn, refreshAccount, saveInvite, confirmNews, unsubscribeNews } from './account/session';
 import { showHub, type Hub } from './ui/hub';
 import type { Match, MatchMode } from './match';
 import { choosePractice } from './ui/learn';
@@ -206,6 +206,16 @@ async function boot(): Promise<void> {
   // Taken out of the address bar straight away, so they don't linger in history.
   const reset = params.get('reset');
   const verify = params.get('verify');
+  // Email news links: the confirm link from our email (?subscribe=TOKEN), or an unsubscribe link.
+  const subscribe = params.get('subscribe');
+  const unsubscribe = params.get('unsubscribe');
+  if (subscribe || unsubscribe) {
+    history.replaceState(null, '', location.pathname);
+    void (subscribe ? confirmNews(subscribe) : unsubscribeNews(unsubscribe!)).then(
+      (ok) => hub?.go('news', ok ? (subscribe ? t('Thanks! You’ll get TardiGeddon news by email.') : t('Done: no more news emails.')) : t('That link has expired or was already used.')),
+      () => hub?.go('news', t("Can't reach the server. Check your connection and try again.")),
+    );
+  }
   if (reset || verify) history.replaceState(null, '', location.pathname);
   if (reset) hub?.resetPassword(reset);
 
@@ -257,7 +267,9 @@ async function boot(): Promise<void> {
   });
 
   // Who's signed in (and what they own); the menu updates when this lands.
-  const before = (await refreshAccount())?.wallet.coins ?? 0;
+  const first = await refreshAccount();
+  const before = first?.wallet.coins ?? 0;
+  const ownedBefore = first?.owned.length ?? 0;
   // A friend's link: their code waits in the Friends panel (signed in), or the screen says to sign in.
   if (isFriendCode(friend) && !auto && !room && hub) online();
   // Android app: back from signing in with Apple in a browser tab.
@@ -279,11 +291,17 @@ async function boot(): Promise<void> {
     history.replaceState(null, '', location.pathname);
     if (shop === 'done' || shop === 'cancel') usage('checkout', { store: 'stripe', step: shop });
     if (shop === 'done') {
-      hub?.go('shop', t('Thanks! Your coins will appear in your wallet in a moment.'));
-      // Stripe tells the server a few seconds after paying, so check back a few times.
+      hub?.go('shop', t('Thanks! What you bought will appear in a moment.'));
+      // Stripe tells the server a few seconds after paying, so check back a few times
+      // (for coins, or a supporter pack's looks).
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 2000));
-        if (((await refreshAccount())?.wallet.coins ?? 0) > before) break;
+        const now = await refreshAccount();
+        if ((now?.wallet.coins ?? 0) > before) break;
+        if ((now?.owned.length ?? 0) > ownedBefore) {
+          if (now?.supporterBadge) hub?.go('shop', t('Thank you for backing TardiGeddon! Your pack is in: find the looks in ✎ Customise team and the World button.'));
+          break;
+        }
       }
     } else hub?.go('shop', t('Payment cancelled: nothing was charged.'));
   }

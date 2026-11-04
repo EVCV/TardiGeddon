@@ -16,6 +16,7 @@ public class AppStorePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "buy", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "unfinished", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finish", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "owned", returnType: CAPPluginReturnPromise),
     ]
 
     private var updates: Task<Void, Never>?
@@ -97,6 +98,29 @@ public class AppStorePlugin: CAPPlugin, CAPBridgedPlugin {
                 await signed.unsafePayloadValue.finish()
             }
             call.resolve()
+        }
+    }
+
+    /// Supporter packs (non-consumables) this Apple ID owns, for Restore purchases.
+    /// With `sync`, Apple checks its servers first (it may ask the player to sign in).
+    @objc func owned(_ call: CAPPluginCall) {
+        let sync = call.getBool("sync") ?? false
+        Task {
+            if sync {
+                do {
+                    try await AppStore.sync()
+                } catch {
+                    call.reject("The App Store couldn't restore your purchases. Please try again.")
+                    return
+                }
+            }
+            var purchases: [[String: Any]] = []
+            for await signed in Transaction.currentEntitlements {
+                if signed.unsafePayloadValue.productType == .nonConsumable {
+                    purchases.append(Self.describe(signed))
+                }
+            }
+            call.resolve(["purchases": purchases])
         }
     }
 

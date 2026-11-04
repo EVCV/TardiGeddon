@@ -218,11 +218,11 @@ account), purpose **App functionality** and **Account management**:
 
 | Data type | What it is in TardiGeddon |
 |---|---|
-| Personal info → Email address | the account's email |
+| Personal info → Email address | the account's email; and, only for those who ask for it, email news (`docs/NEWSLETTER.md`): for this one, also tick the purposes **Developer communications** and **Advertising or marketing** |
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
 | App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites and creator codes (which account invited which, or which creator's code a player used, for the rewards and the creator's share), the Founder or Early bird badge (seen by other players online), items owned, coin and Slime balances, control settings |
-| Financial info → Purchase history | coin packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
+| Financial info → Purchase history | coin packs and supporter packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → App interactions** for the anonymous play counts
 (`docs/USAGE.md`: pages opened, matches and how long, shots per weapon,

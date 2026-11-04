@@ -321,6 +321,11 @@ export function storeProductId(pack: CoinPack): string {
   return STORE_PRODUCT_IDS[pack.id] ?? pack.id.replace(':', '_');
 }
 
+/** Everything sold in the phone apps' stores, by our id: coin packs and supporter packs, with their store product ids. */
+export function storeProducts(): { id: string; storeId: string }[] {
+  return [...COIN_PACKS.map((p) => ({ id: p.id, storeId: storeProductId(p) })), ...SUPPORTER_PACKS.map((p) => ({ id: p.id, storeId: p.storeId }))];
+}
+
 /** The coin pack a Google Play or App Store product id sells, if any. */
 export function packForStoreProduct(productId: string): CoinPack | undefined {
   return COIN_PACKS.find((p) => storeProductId(p) === productId);
@@ -401,12 +406,80 @@ export const PROMO_ITEMS: ShopItem[] = [
   { id: 'dance:hatch', kind: 'dance', ref: 'hatch', name: 'Hatching', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
   { id: 'arena:dawn', kind: 'arena', ref: 'dawn', name: 'Daybreak Meadow', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
   { id: 'music:daybreak', kind: 'music', ref: 'daybreak', name: 'Daybreak', blurb: 'Early bird pack: for the players who joined in the first months.', rarity: 'epic' },
+  { id: 'hat:supporter', kind: 'hat', ref: 'supporter', name: 'Supporter’s heart cap', blurb: 'Supporter pack: for the players who backed TardiGeddon at launch.', rarity: 'legendary' },
+  { id: 'skin:sunshine', kind: 'skin', ref: 'sunshine', name: 'Sunshine', blurb: 'Supporter pack: for the players who backed TardiGeddon at launch.', rarity: 'legendary' },
+  { id: 'arena:patron', kind: 'arena', ref: 'patron', name: 'Patron’s Palace', blurb: 'Patron pack: for the players who backed TardiGeddon at launch.', rarity: 'legendary' },
+  { id: 'music:patron', kind: 'music', ref: 'patron', name: 'Patron’s Waltz', blurb: 'Patron pack: for the players who backed TardiGeddon at launch.', rarity: 'legendary' },
+  { id: 'aim:goldheart', kind: 'aim', ref: 'goldheart', name: 'Golden heart', blurb: 'Patron pack: for the players who backed TardiGeddon at launch.', rarity: 'legendary' },
+  { id: 'hat:superfan', kind: 'hat', ref: 'superfan', name: 'Superfan cap', blurb: 'Superfan pack: for players who joined with a creator’s code.', rarity: 'epic' },
+  { id: 'aim:spotlight', kind: 'aim', ref: 'spotlight', name: 'Spotlight', blurb: 'Superfan pack: for players who joined with a creator’s code.', rarity: 'epic' },
+  { id: 'fx:fanfare', kind: 'fx', ref: 'fanfare', name: 'Fanfare', blurb: 'Superfan pack: for players who joined with a creator’s code.', rarity: 'epic' },
   { id: 'hat:founder', kind: 'hat', ref: 'founder', name: 'Founder’s sprout crown', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
   { id: 'grave:founder', kind: 'grave', ref: 'founder', name: 'Founder’s plaque', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
   { id: 'dance:bow', kind: 'dance', ref: 'bow', name: 'Founder’s bow', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
   { id: 'arena:golden', kind: 'arena', ref: 'golden', name: 'Golden Garden', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
   { id: 'music:anthem', kind: 'music', ref: 'anthem', name: 'Founders’ Anthem', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
 ];
+
+/**
+ * Supporter packs: looks bought with money in one go (Stripe on the website,
+ * Google Play and the App Store in the apps), only while SUPPORTER_SALE runs,
+ * then never again. Each is a one-time product in each store (Google Play
+ * "one-time product", App Store "non-consumable") under its `storeId`; the
+ * server grants its items, and a refund takes them back. Looks only, like
+ * everything else money buys (CLAUDE.md).
+ */
+export interface SupporterPack {
+  id: string;
+  name: string;
+  blurb: string;
+  /** Pence, VAT included (Stripe); the stores set their own prices from this. */
+  price: number;
+  /** Google Play and App Store product id (never reusable, so it has the year in it). */
+  storeId: string;
+  /** The badge it gives: 💛 supporter, 💖 patron. */
+  badge: 'supporter' | 'patron';
+  items: string[];
+}
+
+/** When supporter packs are on sale: from the start of `from` to the end of `until` (UTC). */
+export const SUPPORTER_SALE = { from: '2026-11-03', until: '2027-01-31' };
+
+const SUPPORTER_ITEMS = ['hat:supporter', 'skin:sunshine'];
+export const SUPPORTER_PACKS: SupporterPack[] = [
+  {
+    id: 'supporter:2026',
+    name: 'Supporter pack',
+    blurb: 'Back TardiGeddon at launch: the heart cap, the Sunshine skin and a 💛 badge by your name online. On sale until the end of January, then never again.',
+    price: 999,
+    storeId: 'supporter_2026',
+    badge: 'supporter',
+    items: SUPPORTER_ITEMS,
+  },
+  {
+    id: 'patron:2026',
+    name: 'Patron pack',
+    blurb: 'Everything in the Supporter pack, plus the Patron’s Palace world, the Patron’s Waltz, the Golden heart aim and a 💖 badge. On sale until the end of January, then never again.',
+    price: 1999,
+    storeId: 'patron_2026',
+    badge: 'patron',
+    items: [...SUPPORTER_ITEMS, 'arena:patron', 'music:patron', 'aim:goldheart'],
+  },
+];
+
+export function supporterPack(id: string): SupporterPack | undefined {
+  return SUPPORTER_PACKS.find((p) => p.id === id);
+}
+
+/** The supporter pack a Google Play or App Store product id sells, if any. */
+export function supporterPackForStore(productId: string): SupporterPack | undefined {
+  return SUPPORTER_PACKS.find((p) => p.storeId === productId);
+}
+
+/** Are supporter packs on sale at this moment? */
+export function supporterSaleOn(now = Date.now()): boolean {
+  return now >= Date.parse(SUPPORTER_SALE.from) && now < Date.parse(SUPPORTER_SALE.until) + 86_400_000;
+}
 
 export function promoItem(id: string): ShopItem | undefined {
   return PROMO_ITEMS.find((i) => i.id === id);

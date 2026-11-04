@@ -12,6 +12,14 @@ export const INVITE_MATCHES = 3;
 export const INVITE_DAYS = 7;
 
 /**
+ * A creator's code (server/creators.ts) is worth more to the new player who
+ * uses it: these coins (instead of INVITE_COINS)...
+ */
+export const CREATOR_INVITE_COINS = 500;
+/** ...and the Superfan pack: looks never sold. (The creator earns a share of spend instead: Terms 5.12.) */
+export const FAN_ITEMS = ['hat:superfan', 'aim:spotlight', 'fx:fanfare'];
+
+/**
  * The Early bird pack: looks never sold, a 🐣 badge and some coins, for the
  * first EARLY_BIRD_MAX accounts made up to EARLY_BIRD_UNTIL (the server's
  * settings of the same names can change both).
@@ -29,4 +37,4 @@ export const FOUNDER_COINS = 250;
  * server's FOUNDER_UNTIL says another day. Emails in FOUNDER_EMAILS (testers
  * and helpers) are founders whenever they joined.
  */
-export const FOUNDER_UNTIL = '2026-10-31';
+export const FOUNDER_UNTIL = '2026-11-30';
