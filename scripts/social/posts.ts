@@ -656,7 +656,7 @@ export const POSTS: Post[] = [
     tags: ['happynewyear', 'indiegame'], alt: 'Three tardigrades in party hats.',
   },
   {
-    id: 'dated-supporter-2', batch: 1, category: 'Play', date: '2027-01-24 11:00',
+    id: 'dated-supporter-2', batch: 1, category: 'Play', date: '2027-01-24 16:00',
     title: 'Supporter packs', text: 'On sale until 31 January, then never again. Looks only.',
     art: { tardis: [{ color: GOLD, hat: 'supporter', skin: 'sunshine' }] },
     message: 'A reminder 💛 The launch Supporter packs are on sale until 31 January, and won’t be sold again after that. Looks only, never power. Thank you to everyone who has backed us!',
