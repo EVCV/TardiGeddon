@@ -467,7 +467,7 @@ const most = Math.max(...p.parts.map((g) => g.m.teams));
 const ytTitle = opt(
   'yt-title',
   mode === 'match'
-    ? `One whole ${most}-team match, start to finish | TardiGeddon`
+    ? `${most} teams, 1 winner: a whole match in ${Math.max(1, Math.round(frameNo / FPS / 60))} minutes | TardiGeddon`
     : p.title === 'Pure mayhem'
       ? `${most} teams, 1 winner: pure tardigrade mayhem | TardiGeddon`
       : `${p.title}: the best shots | TardiGeddon`,
@@ -480,15 +480,14 @@ const desc = [
   `Title: ${ytTitle}`,
   '',
   'Description:',
-  `${intro} Every match here was played by the computer, so you can see what the CPU can do: up to 10 teams on one map, 29 weapons, and maps you can blow to pieces.`,
+  `${intro} Every match here was played by the computer, so you can see what the CPU can do: ${most > 3 ? 'up to 10 teams on one map' : 'one on one, or three-way'}, 29 weapons, and maps you can blow to pieces.`,
   '',
   '▶ Play free in your browser (no download, no ads): https://tardigeddon.com/play',
   '📱 Also on Android, iPhone and iPad.',
   '💬 Discord: https://tardigeddon.com/discord',
   '',
-  'Chapters:',
-  ...chapters.map((c, i) => `${stamp(i === 0 ? 0 : c.at)} ${c.title}`),
-  '',
+  // YouTube shows chapters only with three or more.
+  ...(chapters.length >= 3 ? ['Chapters:', ...chapters.map((c, i) => `${stamp(i === 0 ? 0 : c.at)} ${c.title}`), ''] : []),
   '#TardiGeddon #indiegame #browsergame',
   '',
   'Tags: TardiGeddon, tardigrade game, water bear, artillery game, turn based strategy, browser game, free game, indie game, local multiplayer, CPU vs CPU',
