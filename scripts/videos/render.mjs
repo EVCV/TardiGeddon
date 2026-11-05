@@ -492,7 +492,7 @@ const ytTitle = opt(
 );
 const intro =
   mode === 'match'
-    ? `${most} teams of tardigrades, one map, one winner: the best moments of a whole match of TardiGeddon, the free turn-based artillery game.`
+    ? `${most} teams of tardigrades, one map, one winner: the best moments of a whole match of TardiGeddon (${MAPS[p.parts[0].m.map] ?? p.parts[0].m.map}, ${STYLES[p.parts[0].m.style] ?? p.parts[0].m.style} style), the free turn-based artillery game.`
     : `${p.title}: the best moments from ${p.parts.length} matches of TardiGeddon, the free turn-based artillery game starring tardigrades.`;
 const desc = [
   `Title: ${ytTitle}`,
