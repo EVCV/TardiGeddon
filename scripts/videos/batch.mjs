@@ -25,7 +25,13 @@ const recipe = JSON.parse(readFileSync(join(dir, 'batch.json'), 'utf8'));
 const out = join(root, 'store/videos', batch);
 mkdirSync(out, { recursive: true });
 const win = process.platform === 'win32';
-const run = (cmd, args) => execFileSync(cmd, args, { cwd: root, stdio: 'inherit', shell: win });
+// Windows needs a shell to find npm/npx (they are .cmd files), and a shell
+// splits arguments at spaces, so quote those. Everything else runs directly.
+const quote = (a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
+const run = (cmd, args) => {
+  const sh = win && (cmd === 'npm' || cmd === 'npx');
+  execFileSync(cmd, sh ? args.map(quote) : args, { cwd: root, stdio: 'inherit', shell: sh });
+};
 const GAME = 'http://localhost:4173/';
 
 const up = () => fetch(GAME).then((r) => r.ok, () => false);

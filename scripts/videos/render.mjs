@@ -334,8 +334,10 @@ function encode(name, musicOpt) {
   if (musicOpt.startsWith('game:')) {
     music = join(dir, 'music.wav');
     console.log(`  music: the game's "${musicOpt.slice(5)}" track`);
-    // (Windows needs a shell to find npx.)
-    execFileSync('npx', ['tsx', join(here, 'music.ts'), musicOpt.slice(5), String(Math.ceil(length) + 2), music], { stdio: 'inherit', shell: process.platform === 'win32' });
+    // (Windows needs a shell to find npx, and a shell splits at spaces: quote.)
+    const win = process.platform === 'win32';
+    const args = ['tsx', join(here, 'music.ts'), musicOpt.slice(5), String(Math.ceil(length) + 2), music];
+    execFileSync('npx', win ? args.map((a) => (/\s/.test(a) ? `"${a}"` : a)) : args, { stdio: 'inherit', shell: win });
   }
   const input = ['-framerate', String(FPS), '-i', join(dir, '%06d.jpg')];
   // Even loudness (YouTube's -14 LUFS), a fade in and a fade out.
