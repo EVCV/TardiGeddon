@@ -121,6 +121,9 @@ const OVERLAY_CSS = `
   .replay-bar, .watching-badge, .toast { display: none !important; }
   /* Nobody can press the menu or sound buttons in a video. */
   .hud-btn:not(.hud-fuse):not(.hud-weapon) { visibility: hidden !important; }
+  /* The thumbnail: only the game's picture and our text (no timer, wind or buttons). */
+  body.thumbing * { visibility: hidden !important; }
+  body.thumbing canvas, body.thumbing #vid-thumb, body.thumbing #vid-thumb * { visibility: visible !important; }
   #vid-thumb { position: fixed; inset: 0; display: none; z-index: 99995; pointer-events: none;
     background: linear-gradient(90deg, rgba(26, 16, 32, 0.78) 0%, rgba(26, 16, 32, 0.35) 45%, rgba(26, 16, 32, 0) 70%); }
   #vid-thumb .lines { position: absolute; left: 5vh; top: 12vh; font-family: var(--title); line-height: 1; }
@@ -258,6 +261,7 @@ async function thumbnail(page) {
     t.querySelector('.l1').textContent = a;
     t.querySelector('.l2').textContent = b;
     t.style.display = 'block';
+    document.body.classList.add('thumbing');
     for (const id of ['vid-cap', 'vid-tag']) document.getElementById(id).dataset.was = document.getElementById(id).style.display;
     document.getElementById('vid-cap').style.display = 'none';
     document.getElementById('vid-tag').style.display = 'none';
@@ -275,6 +279,7 @@ async function thumbnail(page) {
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', png, '-vf', 'scale=1920:1080', '-q:v', '3', join(OUT, `${p.name}-thumb.jpg`)]);
   await page.evaluate((zoom) => {
     document.getElementById('vid-thumb').style.display = 'none';
+    document.body.classList.remove('thumbing');
     for (const id of ['vid-cap', 'vid-tag']) document.getElementById(id).style.display = document.getElementById(id).dataset.was ?? '';
     // Back to the video's zoom before this frame is kept.
     const r = window.__tardi.renderer;
