@@ -204,8 +204,12 @@ tokens can't be exchanged without it; the website's are revoked with
 3. On your computer, in the folder with the file:
 
    ```bash
-   fly secrets set APPLE_TEAM_ID=XXXXXXXXXX APPLE_KEY_ID=YYYYYYYYYY APPLE_PRIVATE_KEY="$(cat AuthKey_YYYYYYYYYY.p8)"
+   fly secrets set -a tardigeddon-server APPLE_TEAM_ID=XXXXXXXXXX APPLE_KEY_ID=YYYYYYYYYY APPLE_PRIVATE_KEY="$(cat AuthKey_YYYYYYYYYY.p8)"
    ```
+
+   On Windows PowerShell, use `"$(Get-Content -Raw .\AuthKey_YYYYYYYYYY.p8)"`
+   for the key (the server also copes with the key on one line). `-a` names
+   the app, so it works from any folder.
 
 4. Check: sign in with Apple in the TestFlight app, then Account → Delete
    account. Within a minute, on the iPhone: Settings → your name → **Sign in

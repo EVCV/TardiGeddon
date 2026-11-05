@@ -35,8 +35,21 @@ export interface AppleKeyEnv {
 export function appleKeyFromEnv(env: AppleKeyEnv): AppleKey | null {
   const teamId = env.APPLE_TEAM_ID?.trim();
   const keyId = env.APPLE_KEY_ID?.trim();
-  const privateKey = env.APPLE_PRIVATE_KEY?.replace(/\\n/g, '\n').trim();
+  const privateKey = pemKey(env.APPLE_PRIVATE_KEY);
   return teamId && keyId && privateKey ? { teamId, keyId, privateKey } : null;
+}
+
+/**
+ * The .p8 key as PEM, however it was pasted into the secret: as is, with \n for
+ * newlines, or on one line with spaces (PowerShell's "$(cat file)" does that).
+ */
+function pemKey(raw: string | undefined): string | undefined {
+  const text = raw?.replace(/\\n/g, '\n').trim();
+  if (!text) return undefined;
+  const m = /-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/.exec(text);
+  if (!m) return text;
+  const body = m[2].replace(/\s+/g, '');
+  return `-----BEGIN ${m[1]}-----\n${body.match(/.{1,64}/g)!.join('\n')}\n-----END ${m[1]}-----`;
 }
 
 const b64url = (v: string | Buffer) => Buffer.from(v).toString('base64url');

@@ -13,6 +13,9 @@ describe('Sign in with Apple tokens (revoked when an account is deleted)', () =>
     expect(appleKeyFromEnv({ APPLE_TEAM_ID: 'T', APPLE_KEY_ID: 'K' })).toBeNull();
     const k = appleKeyFromEnv({ APPLE_TEAM_ID: ' T ', APPLE_KEY_ID: 'K', APPLE_PRIVATE_KEY: pem.replace(/\n/g, '\\n') });
     expect(k).toEqual({ teamId: 'T', keyId: 'K', privateKey: pem.trim() });
+    // PowerShell's "$(cat AuthKey.p8)" puts the file's lines on one line with spaces: still the same key.
+    const oneLine = appleKeyFromEnv({ APPLE_TEAM_ID: 'T', APPLE_KEY_ID: 'K', APPLE_PRIVATE_KEY: pem.trim().split('\n').join(' ') });
+    expect(appleClientSecret(oneLine!, 'com.tardigeddon.app').split('.')).toHaveLength(3);
   });
 
   it('makes a client secret Apple accepts: ES256, signed with our key, for one client, five minutes', () => {
