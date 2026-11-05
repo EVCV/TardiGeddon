@@ -62,9 +62,11 @@ for (const { out, size } of STORES) {
     const bg = patron
       ? 'radial-gradient(circle at 50% 46%, #ffe68a 0%, #b06ad0 38%, #5a2a7a 75%, #3b1a50 100%)'
       : 'radial-gradient(circle at 50% 42%, #c4ecfb 0%, #7fd3f7 55%, #68a8e8 100%)';
-    await page.setContent(`<html><body style="margin:0;width:${size}px;height:${size}px;display:grid;place-items:center;background:${bg};position:relative">
-      ${mascotSvg(0xe04848, hat, skin)}
-      <div style="position:absolute;right:${size * 0.08}px;top:${size * 0.07}px;font-size:${size * 0.2}px;line-height:1">${patron ? '💖' : '💛'}</div></body></html>`);
+    // Google Play crops product icons to a hexagon (and the App Store rounds the
+    // corners), so the badge sits top centre and the tardigrade a little lower.
+    await page.setContent(`<html><body style="margin:0;width:${size}px;height:${size}px;background:${bg};position:relative">
+      <div style="position:absolute;left:0;right:0;top:${size * 0.08}px;text-align:center;font-size:${size * 0.17}px;line-height:1">${patron ? '💖' : '💛'}</div>
+      <div style="position:absolute;inset:${size * 0.22}px 0 0 0;display:grid;place-items:center;height:${size * 0.66}px">${mascotSvg(0xe04848, hat, skin)}</div></body></html>`);
     await page.evaluate((fill) => {
       const svg = document.querySelector('svg')!;
       const b = svg.getBBox();
@@ -72,7 +74,7 @@ for (const { out, size } of STORES) {
       svg.setAttribute('viewBox', `${b.x + b.width / 2 - side / 2} ${b.y + b.height / 2 - side / 2} ${side} ${side}`);
       svg.setAttribute('width', String(fill));
       svg.setAttribute('height', String(fill));
-    }, size * 0.74);
+    }, size * 0.64);
     await page.screenshot({ path: `${out}/${pack.storeId}.png` });
   }
   await page.close();
