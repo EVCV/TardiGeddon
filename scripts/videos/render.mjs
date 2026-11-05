@@ -76,11 +76,23 @@ function plan() {
   if (mode === 'match') {
     const m = load(opt('seed', ''));
     const min = Number(opt('min-score', '120'));
-    let ms = m.moments.filter((x) => x.score >= min);
-    if (ms.length > 40) ms = [...ms].sort((a, b) => b.score - a.score).slice(0, 40).sort((a, b) => a.from - b.from);
-    // Always end on the last shot (the winning one).
+    // At most --per-weapon moments of one weapon (the best of each): in Chaos every team
+    // has a superweapon and fires it early, which would make the video one weapon over and over.
+    const perWeapon = Number(opt('per-weapon', '2'));
     const last = m.moments.at(-1);
-    if (last && !ms.includes(last)) ms.push(last);
+    const count = new Map();
+    let ms = [...m.moments]
+      .filter((x) => x.score >= min && x !== last)
+      .sort((a, b) => b.score - a.score)
+      .filter((x) => {
+        const n = count.get(x.weapon) ?? 0;
+        count.set(x.weapon, n + 1);
+        return n < perWeapon;
+      })
+      .slice(0, 40)
+      .sort((a, b) => a.from - b.from);
+    // Always end on the last shot (the winning one).
+    if (last) ms.push(last);
     return { title: opt('title', `${m.teams} teams · ${MAPS[m.map] ?? m.map} · ${STYLES[m.style] ?? m.style}`), name: opt('name', `match-${m.seed}`), parts: [{ m, moments: ms, ending: true }] };
   }
   const target = Number(opt('minutes', '8')) * 60;
@@ -96,7 +108,7 @@ function plan() {
   for (const { m, x } of pool) {
     if (seconds >= target) break;
     if ((byMatch.get(m.seed) ?? 0) >= perMatch) continue;
-    if ((byWeapon.get(x.weapon) ?? 0) >= Math.max(2, Math.ceil(target / 90))) continue;
+    if ((byWeapon.get(x.weapon) ?? 0) >= Number(opt('per-weapon', '3'))) continue;
     chosen.push({ m, x });
     byMatch.set(m.seed, (byMatch.get(m.seed) ?? 0) + 1);
     byWeapon.set(x.weapon, (byWeapon.get(x.weapon) ?? 0) + 1);
