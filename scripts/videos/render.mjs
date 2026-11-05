@@ -4,7 +4,9 @@
 //   npm run build && npx vite preview --port 4173        (the game, in another terminal)
 //   node scripts/videos/render.mjs best  [--minutes 8] [--per-match 3] [--teams 6]
 //   node scripts/videos/render.mjs match --seed 4         (one whole match's highlights, to the winner)
-//   options: --scout store/videos/scout  --out store/videos  --music track.mp3
+//   node scripts/videos/render.mjs shorts [--count 8]     (vertical 1080×1920 Shorts / TikTok / Reels: one moment each)
+//   options: --scout store/videos/scout  --out store/videos
+//            --music game:boss (the default: the game's own tracks, see music.ts list) | track.mp3 | none
 //            --max-teams 3 (only small matches)  --name duels  --zoom 1.35
 //            --title "Best shots"  --thumb "BEST|SHOTS" (the thumbnail's two lines)
 //
@@ -14,9 +16,9 @@
 // Each frame is drawn on a virtual clock (site/capture/virtual-clock.js), so the
 // video is smooth however slow the computer is. Between moments the replay is
 // fast-forwarded without filming. Captions and title cards are drawn in the page
-// in the game's own fonts. Sound: the game makes its sound live, which can't be
-// filmed on a virtual clock, so the video is silent unless --music is given
-// (only the game's own tracks or YouTube's Audio Library: docs/social/README.md).
+// in the game's own fonts. Sound: the game's music, rendered to a file
+// (music.ts); its sound effects are made live and can't be filmed frame by
+// frame. Any other music must be licensed for this (docs/social/README.md).
 // Needs ffmpeg with libx264. Set PW_CHROMIUM_PATH to use a preinstalled Chromium.
 
 import { chromium } from '@playwright/test';
@@ -33,15 +35,19 @@ const opt = (name, fallback) => {
   return i >= 0 ? args[i + 1] : fallback;
 };
 const mode = args[0] ?? 'best';
+const SHORTS = mode === 'shorts';
 const SCOUT = opt('scout', 'store/videos/scout');
 const OUT = opt('out', 'store/videos');
 const GAME = process.env.GAME_URL ?? 'http://localhost:4173/';
 // Laid out as a 1280×720 screen and drawn 1.5× (1920×1080): the game's text and
 // tardis come out the size a viewer expects, not tiny as on a big monitor.
-const [W, H] = opt('size', '1280x720').split('x').map(Number);
-const SCALE = Number(opt('scale', '1.5'));
+// Shorts: a 540×960 phone screen drawn 2× (1080×1920).
+const [W, H] = opt('size', SHORTS ? '540x960' : '1280x720').split('x').map(Number);
+const SCALE = Number(opt('scale', SHORTS ? '2' : '1.5'));
 /** Closer than the game's own camera: the tardis fill more of the picture. */
 const ZOOM = Number(opt('zoom', '1.35'));
+/** Shorts: a set zoom (a tall screen would otherwise fit the whole map's width and show tiny tardis). */
+const ZOOM_ABS = Number(opt('zoom-abs', SHORTS ? '1.25' : '0'));
 const FPS = 30;
 const FRAME_MS = 1000 / FPS;
 const TICK = 50; // sim ticks per second
@@ -128,6 +134,12 @@ const OVERLAY_CSS = `
   #vid-card .small { font-size: 4vh; font-family: var(--body); opacity: 0.9; }
   #vid-cap { position: fixed; left: 50%; top: 9vh; transform: translateX(-50%); padding: 1.2vh 2.6vh; border-radius: 1.4vh;
     background: rgba(43, 27, 36, 0.82); color: #fff; font: 3.6vh var(--title); z-index: 99996; display: none; white-space: nowrap; }
+  @media (orientation: portrait) {
+    #vid-cap { top: 13vh; font-size: 3.2vh; white-space: normal; width: 86vw; text-align: center; line-height: 1.25; }
+    #vid-tag { right: auto !important; left: 50%; transform: translateX(-50%); top: 6.5vh !important; }
+    #vid-card .big { font-size: 7vh; }
+    #vid-card .small { font-size: 3.2vh; }
+  }
   #vid-tag { position: fixed; right: 1.5vh; top: 1.5vh; padding: 0.8vh 1.6vh; border-radius: 1vh; background: rgba(43, 27, 36, 0.7);
     color: #ffd84a; font: 2.4vh var(--title); z-index: 99996; }
 `;
@@ -180,14 +192,14 @@ let dir = '';
 let cdp = null;
 
 /** Film `n` frames, calling `each(i)` in the page before each one (and `at[i]()` after drawing frame i, before it's kept). */
-async function film(page, n, each = '', at = {}) {
+async function film(page, n, each = '', at = {}, ms = FRAME_MS) {
   for (let i = 0; i < n; i++) {
-    await page.evaluate(([ms, src, i, n, zoom]) => {
+    await page.evaluate(([ms, src, i, n, zoom, abs]) => {
       if (src) new Function('i', 'n', src)(i, n);
       const r = window.__tardi.renderer;
-      r.camera.zoom = r.defaultZoom() * zoom;
+      r.camera.zoom = abs || r.defaultZoom() * zoom;
       window.__virt.step(ms);
-    }, [FRAME_MS, each, i, n, ZOOM]);
+    }, [ms, each, i, n, ZOOM, ZOOM_ABS]);
     if (at[i]) await at[i]();
     const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
     writeFileSync(join(dir, `${String(frameNo++).padStart(6, '0')}.jpg`), Buffer.from(data, 'base64'));
@@ -285,6 +297,121 @@ async function filmMoment(page, x, last, thumb) {
   await page.evaluate(() => (document.getElementById('vid-cap').style.display = 'none'));
 }
 
+/** Join the frames in `dir` into `<OUT>/<name>.mp4`, with music (game:<id>, a file, or none). */
+function encode(name, musicOpt) {
+  const out = join(OUT, `${name}.mp4`);
+  let music = musicOpt;
+  const length = frameNo / FPS;
+  if (musicOpt.startsWith('game:')) {
+    music = join(dir, 'music.wav');
+    console.log(`  music: the game's "${musicOpt.slice(5)}" track`);
+    execFileSync('npx', ['tsx', join(here, 'music.ts'), musicOpt.slice(5), String(Math.ceil(length) + 2), music], { stdio: 'inherit' });
+  }
+  const input = ['-framerate', String(FPS), '-i', join(dir, '%06d.jpg')];
+  // Even loudness (YouTube's -14 LUFS), a fade in and a fade out.
+  const audio =
+    music !== 'none' && existsSync(music)
+      ? ['-stream_loop', '-1', '-i', music, '-shortest', '-af', `loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=in:d=${SHORTS ? 0.3 : 1},afade=t=out:st=${Math.max(0, length - (SHORTS ? 1.5 : 3))}:d=${SHORTS ? 1.5 : 3}`, '-c:a', 'aac', '-b:a', '192k', '-ar', '48000']
+      : ['-an'];
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...input, ...audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: 'inherit' });
+  return out;
+}
+
+if (SHORTS) {
+  await shorts();
+  process.exit(0);
+}
+
+/**
+ * Shorts: the best moments, one per match and at most two of a weapon. Each is
+ * the moment (starting on the action), the hit again in slow motion, and a
+ * "Play free" card: 15 to 25 seconds, with one of the game's tracks.
+ */
+async function shorts() {
+  const count = Number(opt('count', '8'));
+  const minTeams = Number(opt('teams', '2'));
+  const maxTeams = Number(opt('max-teams', '10'));
+  const tracks = opt('music', 'game:boss,game:chiptune,game:disco,game:classic,game:daybreak,game:shanty').split(',');
+  const pool = matches()
+    .filter((m) => m.teams >= minTeams && m.teams <= maxTeams)
+    .flatMap((m) => m.moments.map((x) => ({ m, x })))
+    .sort((a, b) => b.x.score - a.x.score);
+  const picked = [];
+  const used = new Set();
+  const weapons = new Map();
+  for (const c of pool) {
+    if (picked.length >= count) break;
+    if (used.has(c.m.seed) || (weapons.get(c.x.weapon) ?? 0) >= 2) continue;
+    picked.push(c);
+    used.add(c.m.seed);
+    weapons.set(c.x.weapon, (weapons.get(c.x.weapon) ?? 0) + 1);
+  }
+  if (!picked.length) {
+    console.error('Nothing to film: run the scout first (npx tsx scripts/videos/scout.ts).');
+    process.exit(1);
+  }
+  mkdirSync(OUT, { recursive: true });
+  const prefix = opt('name', `short-${new Date().toISOString().slice(0, 10)}`);
+  const list = [];
+  for (const [n, { m, x }] of picked.entries()) {
+    const name = `${prefix}-${n + 1}`;
+    dir = join(TMP, name);
+    rmSync(dir, { recursive: true, force: true });
+    mkdirSync(dir, { recursive: true });
+    frameNo = 0;
+    const t0 = Date.now();
+    const where = `${m.teams} teams · ${MAPS[m.map] ?? m.map}`;
+    // 1. The moment, from just before the shot, with the hook on top.
+    let { ctx, page } = await openReplay(m.replay);
+    cdp = await ctx.newCDPSession(page);
+    await seek(page, Math.max(x.from, (x.peak ?? x.to) - 6 * TICK));
+    const start = await page.evaluate(() => window.__tardi.world.tick);
+    const frames = Math.round(((x.to - start) / TICK) * FPS);
+    await page.evaluate((label) => {
+      const c = document.getElementById('vid-cap');
+      c.textContent = label;
+      c.style.display = 'block';
+    }, `${x.label} 💥 ${where}`);
+    await film(page, frames, `document.getElementById('vid-fade').style.opacity = String(Math.max(0, 1 - i / 4));`);
+    await ctx.close();
+    // 2. The hit again, at half speed.
+    ({ ctx, page } = await openReplay(m.replay));
+    cdp = await ctx.newCDPSession(page);
+    const peak = x.peak ?? x.to - 2 * TICK;
+    await seek(page, Math.max(0, peak - 1.2 * TICK));
+    await page.evaluate(() => {
+      const c = document.getElementById('vid-cap');
+      c.textContent = 'Again, slowly 🐢';
+      c.style.display = 'block';
+    });
+    await film(page, FPS * 4, FADE_IN, {}, FRAME_MS / 2);
+    // 3. The end card.
+    await page.evaluate(() => (document.getElementById('vid-cap').style.display = 'none'));
+    await card(page, 'Play free', 'tardigeddon.com/play', 60);
+    await ctx.close();
+    const out = encode(name, tracks[n % tracks.length]);
+    const secs = Math.round(frameNo / FPS);
+    // Words for posting: the same text suits YouTube Shorts, TikTok, Reels and Facebook.
+    const title = `${x.label} in a ${m.teams}-team match 💥`;
+    const caption = `${x.label} 💥 ${m.teams} teams, one map. Free turn-based artillery game starring tardigrades. Play free: tardigeddon.com/play`;
+    const text = [
+      `Title (YouTube Shorts): ${title.slice(0, 90)} #Shorts`,
+      '',
+      `Caption (TikTok, Reels, Facebook, Shorts description): ${caption}`,
+      '',
+      'Hashtags: #TardiGeddon #indiegame #gaming #tardigrade #browsergame',
+      '',
+      `Length: ${secs} s, 1080×1920. Every match is played by the computer. Made for kids: No. Altered or synthetic content: No.`,
+    ].join('\n');
+    writeFileSync(join(OUT, `${name}.txt`), text + '\n');
+    rmSync(dir, { recursive: true, force: true });
+    list.push(`${out} (${secs} s): ${x.label}, ${where}`);
+    console.log(`  ${name}: ${x.label}, ${where} (${secs} s, filmed in ${Math.round((Date.now() - t0) / 1000)} s)`);
+  }
+  await browser.close();
+  console.log(`\n${list.length} shorts:\n${list.join('\n')}`);
+}
+
 const p = plan();
 if (!p.parts.length || !p.parts.some((g) => g.moments.length)) {
   console.error(`Nothing to film: run the scout first (npx tsx scripts/videos/scout.ts), or lower --teams / --min-score.`);
@@ -315,11 +442,9 @@ for (const [gi, g] of p.parts.entries()) {
 }
 await browser.close();
 
-const out = join(OUT, `${p.name}.mp4`);
-const music = opt('music', '');
-const input = ['-framerate', String(FPS), '-i', join(dir, '%06d.jpg')];
-const audio = music && existsSync(music) ? ['-stream_loop', '-1', '-i', music, '-shortest', '-af', `afade=t=out:st=${Math.max(0, frameNo / FPS - 3)}:d=3`, '-c:a', 'aac', '-b:a', '160k'] : ['-an'];
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...input, ...audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: 'inherit' });
+// Music: the game's own tracks by default (game:<id>, rendered by music.ts), a file of
+// your own (licensed for this), or none.
+const out = encode(p.name, opt('music', `game:${mode === 'match' ? 'disco' : p.title === 'One on one' ? 'classic' : 'boss'}`));
 // YouTube chapters: paste these into the description (the first must be 0:00).
 const stamp = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const most = Math.max(...p.parts.map((g) => g.m.teams));

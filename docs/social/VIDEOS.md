@@ -146,9 +146,22 @@ run all of this in the cloud and send you the files.
      keeps only matches with 6 or more teams (**pure mayhem**).
    - `match --seed 4`: one match's highlights in order, ending on the winning
      shot and a "… win!" card.
-   - `--music track.mp3` adds a music bed (the game's own tracks, or YouTube's
-     Audio Library; never chart music). Without it the video is silent: the
-     game makes its sound live, which can't be filmed frame by frame.
+   - **Music is built in:** each video gets one of the game's own tracks
+     (Boss Battle for mayhem, Moss Skirmish for duels, Disco Droplet for a
+     whole match), rendered to a file by `scripts/videos/music.ts` and evened
+     out to YouTube's loudness. They're ours, so no licence or Content ID
+     claims. `--music game:spooky` picks another (`npx tsx
+     scripts/videos/music.ts list`), `--music track.mp3` uses a file of your
+     own (licensed for this; it stays out of the repository), `--music none`
+     is silent. The game's sound effects are made live and can't be filmed.
+   - `shorts --count 8`: **vertical Shorts** (1080×1920) for YouTube Shorts,
+     TikTok, Reels and Facebook: one big moment each (one per match, at most
+     two per weapon), starting on the action, then the hit again in slow
+     motion and a "Play free" card, 15 to 25 seconds, each with a different
+     game track. Each gets a `.txt` with the Shorts title and a caption that
+     suits every platform.
+   - **Which is which:** whole matches and compilations go to YouTube only
+     (16:9, long, with chapters); everything else is a Short.
 
    - `--max-teams 3` keeps only small matches (one on one), `--name` and
      `--title` name the video, `--thumb "BEST|SHOTS"` sets the thumbnail's
