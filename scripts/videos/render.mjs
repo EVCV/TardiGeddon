@@ -187,6 +187,17 @@ async function openReplayOnce(replay) {
   return { ctx, page };
 }
 
+/**
+ * The screenshot session. Playwright draws the page at SCALE, but the raw
+ * screenshot call only keeps that with its own device size set: without it the
+ * frames come out at the layout size (1280×720, not 1920×1080).
+ */
+async function screenSession(ctx, page) {
+  const s = await ctx.newCDPSession(page);
+  await s.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: SCALE, mobile: false });
+  return s;
+}
+
 let frameNo = 0;
 let dir = '';
 let cdp = null;
@@ -363,7 +374,7 @@ async function shorts() {
     const where = `${m.teams} teams · ${MAPS[m.map] ?? m.map}`;
     // 1. The moment, from just before the shot, with the hook on top.
     let { ctx, page } = await openReplay(m.replay);
-    cdp = await ctx.newCDPSession(page);
+    cdp = await screenSession(ctx, page);
     await seek(page, Math.max(x.from, (x.peak ?? x.to) - 6 * TICK));
     const start = await page.evaluate(() => window.__tardi.world.tick);
     const frames = Math.round(((x.to - start) / TICK) * FPS);
@@ -376,7 +387,7 @@ async function shorts() {
     await ctx.close();
     // 2. The hit again, at half speed.
     ({ ctx, page } = await openReplay(m.replay));
-    cdp = await ctx.newCDPSession(page);
+    cdp = await screenSession(ctx, page);
     const peak = x.peak ?? x.to - 2 * TICK;
     await seek(page, Math.max(0, peak - 1.2 * TICK));
     await page.evaluate(() => {
@@ -428,7 +439,7 @@ const best = p.parts.flatMap((g) => g.moments).reduce((a, b) => (b.score > a.sco
 
 for (const [gi, g] of p.parts.entries()) {
   const { ctx, page } = await openReplay(g.m.replay);
-  cdp = await ctx.newCDPSession(page);
+  cdp = await screenSession(ctx, page);
   if (gi === 0) await card(page, 'TardiGeddon', p.title, 90);
   chapters.push({ at: frameNo / FPS, title: `${g.m.teams} teams · ${MAPS[g.m.map] ?? g.m.map} · ${STYLES[g.m.style] ?? g.m.style}` });
   if (mode === 'best') await card(page, `${g.m.teams} teams`, `${MAPS[g.m.map] ?? g.m.map} · ${STYLES[g.m.style] ?? g.m.style}`, 60);
