@@ -116,6 +116,12 @@ No playing needed: the computer plays hundreds of matches against itself
 (2 to 10 teams, every map style and game style, random hats), and the best
 moments are filmed in the real game.
 
+**On your own computer (Windows), once:** install Node.js 22
+(nodejs.org), Git, and ffmpeg (`winget install ffmpeg` in PowerShell, then
+open a new window). Then in the TardiGeddon folder: `npm ci` and
+`npx playwright install chromium`. Or just ask Claude in a session: it can
+run all of this in the cloud and send you the files.
+
 1. **Scout** (about 20 minutes for 200 matches on a 4-core computer; nothing
    is drawn):
 
@@ -144,8 +150,14 @@ moments are filmed in the real game.
      Audio Library; never chart music). Without it the video is silent: the
      game makes its sound live, which can't be filmed frame by frame.
 
-   Out comes `store/videos/<name>.mp4` (1920×1080, 30 fps) and `<name>.txt`, a
-   description with **YouTube chapters** (one per match). Filming runs about
+   - `--max-teams 3` keeps only small matches (one on one), `--name` and
+     `--title` name the video, `--thumb "BEST|SHOTS"` sets the thumbnail's
+     two lines, `--scout store/videos/scout-big` picks another scout's matches.
+
+   Out comes `store/videos/<name>.mp4` (1920×1080, 30 fps), `<name>-thumb.jpg`
+   (the YouTube thumbnail: the best moment, zoomed in, with big text) and
+   `<name>.txt`: the title, description with **YouTube chapters** (one per
+   match), tags and the upload answers. Filming runs about
    4 to 8 video frames a second, so an 8-minute video takes about an hour;
    leave it running.
 3. **Watch it**, then upload to YouTube (Studio, or Sociamonials' YouTube

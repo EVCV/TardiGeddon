@@ -41,6 +41,8 @@ export interface Moment {
   label: string;
   weapon: string;
   pops: number;
+  /** The big moment (the first blast that hurt someone): the thumbnail's frame. */
+  peak: number;
   drowned: number;
   damage: number;
   ownGoal: boolean;
@@ -102,7 +104,7 @@ export function playMatch(seed: number, teamRange: [number, number]): ScoutedMat
   const teamOf = new Map(s.tardis.map((t) => [t.id, t.team]));
 
   // The turn being scored.
-  let turn = { team: -1, start: 0, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0 };
+  let turn = { team: -1, start: 0, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0, blast: -1, hit: -1 };
   const close = (end: number) => {
     if (turn.fire < 0) return;
     const w = WEAPONS[turn.weapon];
@@ -113,7 +115,7 @@ export function playMatch(seed: number, teamRange: [number, number]): ScoutedMat
     const to = Math.min(end, Math.max(turn.last, turn.fire) + 2 * TICKS_PER_SECOND, turn.fire + 20 * TICKS_PER_SECOND);
     const what = w?.name ?? turn.weapon;
     const bits = [turn.pops ? `${turn.pops} popped` : '', turn.drowned ? `${turn.drowned} in the water` : '', turn.ownGoal ? 'own goal!' : ''].filter(Boolean);
-    moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal });
+    moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, peak: turn.hit >= 0 ? turn.hit : turn.blast >= 0 ? turn.blast : turn.fire, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal });
   };
 
   // The game's replays hold at most 15 minutes (MAX_FRAMES); a longer match couldn't be filmed.
@@ -125,15 +127,17 @@ export function playMatch(seed: number, teamRange: [number, number]): ScoutedMat
     for (const e of events) {
       if (e.t === 'turnStart') {
         close(s.tick);
-        turn = { team: e.team, start: s.tick, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0 };
+        turn = { team: e.team, start: s.tick, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0, blast: -1, hit: -1 };
       } else if (e.t === 'fire') {
         if (turn.fire < 0) turn.fire = s.tick;
         turn.weapon = e.weapon;
       } else if (e.t === 'damage') {
         turn.damage += e.amount;
+        if (turn.hit < 0) turn.hit = s.tick;
         turn.last = s.tick;
       } else if (e.t === 'explosion') {
         turn.blasts++;
+        turn.blast = s.tick;
         turn.last = s.tick;
       } else if (e.t === 'death' || e.t === 'drown') {
         if (e.t === 'death') turn.pops++;
