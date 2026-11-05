@@ -126,7 +126,8 @@ function plan() {
 
 const browser = await chromium.launch({
   executablePath: process.env.PW_CHROMIUM_PATH || undefined,
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'],
+  // Linux servers have no graphics card: draw in software there. On your own PC the graphics card is faster.
+  args: [...(process.platform === 'linux' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : []), '--autoplay-policy=no-user-gesture-required'],
 });
 
 const OVERLAY_CSS = `
@@ -333,7 +334,8 @@ function encode(name, musicOpt) {
   if (musicOpt.startsWith('game:')) {
     music = join(dir, 'music.wav');
     console.log(`  music: the game's "${musicOpt.slice(5)}" track`);
-    execFileSync('npx', ['tsx', join(here, 'music.ts'), musicOpt.slice(5), String(Math.ceil(length) + 2), music], { stdio: 'inherit' });
+    // (Windows needs a shell to find npx.)
+    execFileSync('npx', ['tsx', join(here, 'music.ts'), musicOpt.slice(5), String(Math.ceil(length) + 2), music], { stdio: 'inherit', shell: process.platform === 'win32' });
   }
   const input = ['-framerate', String(FPS), '-i', join(dir, '%06d.jpg')];
   // Even loudness (YouTube's -14 LUFS), a fade in and a fade out.

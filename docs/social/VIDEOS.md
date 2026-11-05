@@ -177,6 +177,24 @@ run all of this in the cloud and send you the files.
    profile), with the `.txt` as the description. Every match in it was played
    by the computer: the description says so.
 
+### 3.8 A batch on your own PC
+
+Each batch's replays are kept in `store/video-batches/<batch>/` with a
+`batch.json` recipe, so any computer can film the same videos: the sim plays
+a replay out identically everywhere. One command films the lot into
+`store/videos/<batch>/` (videos, thumbnails, texts, and the music as MP3s),
+starting the game itself:
+
+```bash
+npm run videos:batch -- 2026-11-05
+```
+
+Once, on Windows: install Node.js 22 (nodejs.org) and ffmpeg (`winget install
+ffmpeg`, then open a new PowerShell window), then in the TardiGeddon folder
+`git pull`, `npm ci` and `npx playwright install chromium`. A batch takes a
+few hours (faster on a PC with a graphics card than in the cloud); leave it
+running, and run the same command again after an interruption to carry on.
+
 ### 3.7 Straight to Google Drive
 
 `node scripts/videos/upload-drive.mjs` uploads everything in `store/videos/`
