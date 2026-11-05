@@ -408,7 +408,8 @@ async function shorts() {
     const out = encode(name, tracks[n % tracks.length]);
     const secs = Math.round(frameNo / FPS);
     // Words for posting: the same text suits YouTube Shorts, TikTok, Reels and Facebook.
-    const title = `${x.label} in a ${m.teams}-team match 💥`;
+    const article = m.teams === 8 ? 'an' : 'a';
+    const title = `${x.label.replace(', own goal!', ' (own goal!)')} in ${article} ${m.teams}-team match 💥`;
     const caption = `${x.label} 💥 ${m.teams} teams, one map. Free turn-based artillery game starring tardigrades. Play free: tardigeddon.com/play`;
     const text = [
       `Title (YouTube Shorts): ${title.slice(0, 90)} #Shorts`,

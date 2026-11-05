@@ -177,6 +177,41 @@ run all of this in the cloud and send you the files.
    profile), with the `.txt` as the description. Every match in it was played
    by the computer: the description says so.
 
+### 3.7 Straight to Google Drive
+
+`node scripts/videos/upload-drive.mjs` uploads everything in `store/videos/`
+(videos, thumbnails, texts) into **TardiGeddon videos** in Google Drive
+(`YouTube/` and `Shorts/`), skipping files already there. It works from a
+cloud session, so finished videos never need downloading. (The Google Drive
+connector can't do this: it only takes a file written out in the chat,
+which is far too big for a video.)
+
+It needs a Google sign-in for the uploader, made once:
+
+1. **A Google Cloud project for tools** (keep it apart from the game's sign-in
+   project): console.cloud.google.com → New project → "TardiGeddon tools".
+2. **APIs & Services → Library → Google Drive API → Enable.**
+3. **Google Auth Platform → Branding:** app name "TardiGeddon video
+   uploader", your email. **Audience:** External, then **Publish app**
+   ("In production"; in "Testing" the sign-in stops working after 7 days).
+   No verification is needed: the uploader only asks for `drive.file`.
+4. **Clients → Create client → Web application**, name "Video uploader",
+   Authorised redirect URI `https://developers.google.com/oauthplayground`.
+   Copy the **Client ID** and **Client secret**.
+5. **developers.google.com/oauthplayground** → ⚙ (top right) → tick **Use
+   your own OAuth credentials**, paste both. On the left, type the scope
+   `https://www.googleapis.com/auth/drive.file` → **Authorize APIs** → sign
+   in with the Google account whose Drive you want → **Exchange
+   authorization code for tokens** → copy the **Refresh token**.
+6. **The cloud environment's settings** (the environment menu in a Claude
+   Code session's title bar → Edit), as environment variables:
+   `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`. Never
+   paste them into a chat. New sessions pick them up.
+
+`drive.file` means the uploader only sees what it made itself: it can't read
+or change anything else in the Drive. To cut it off, remove "TardiGeddon video
+uploader" at myaccount.google.com → Security → Third-party connections.
+
 Ideas for series: *10-team mayhem* (weekly), *one whole match* (`match`), a
 *best of the month*, and per map style (`--teams 2` plus a map filter, to
 add).
