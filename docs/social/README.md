@@ -18,8 +18,11 @@ share: names, the bios, the voice and the rules.
 | Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Name kept; not set up yet | [REDDIT.md](REDDIT.md) |
 | itch.io | [tardigeddon.itch.io/tardigeddon](https://tardigeddon.itch.io/tardigeddon) | Live (links out to the game) | |
 | IGDB | [igdb.com/games/tardigeddon](https://www.igdb.com/games/tardigeddon) | Submitted | |
-| Patreon | (patreon.com/tardigeddon) | Plan, not started | [../PATREON.md](../PATREON.md) |
+| Pinterest | (pinterest.com/tardigeddon) | Not set up yet | [PROFILES.md](PROFILES.md) |
+| Patreon | (patreon.com/tardigeddon) | Plan, not started | [../PATREON.md](../PATREON.md), [PROFILES.md](PROFILES.md) |
 | Steam | — | Plan, not started (no account yet) | [../STEAM.md](../STEAM.md) |
+
+**Profile text** (bios, names, About) for Pinterest, Patreon, Instagram, Threads, X, Facebook, Twitch, itch.io and LinkedIn: [PROFILES.md](PROFILES.md).
 
 **Videos** for YouTube, TikTok, Reels and Facebook: the weekly routine and the tools that make them from the game itself are in [VIDEOS.md](VIDEOS.md).
 
