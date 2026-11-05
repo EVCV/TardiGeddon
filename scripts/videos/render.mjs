@@ -369,7 +369,10 @@ async function shorts() {
   mkdirSync(OUT, { recursive: true });
   const prefix = opt('name', `short-${new Date().toISOString().slice(0, 10)}`);
   const list = [];
+  // --from 3: carry on from the third (the first two are already made).
+  const from = Number(opt('from', '1'));
   for (const [n, { m, x }] of picked.entries()) {
+    if (n + 1 < from) continue;
     const name = `${prefix}-${n + 1}`;
     dir = join(TMP, name);
     rmSync(dir, { recursive: true, force: true });
