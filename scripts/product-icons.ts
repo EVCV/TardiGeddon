@@ -6,13 +6,18 @@
 //
 //   PW_CHROMIUM_PATH=… npx tsx scripts/product-icons.ts
 //
+// Also the launch Supporter packs (docs/SUPPORTER_PACKS.md): the shop's own
+// picture, the tardigrade in the pack's cap and skin, with its badge, on
+// sky blue (Supporter) or purple and gold (Patron).
+//
 // Writes store/google-play/products/<product id>.png and
 // store/app-store/products/<product id>.png, and all-packs.png: the six
 // together, for where App Store Connect takes one image for every pack.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { packArt } from '../src/ui/coinArt';
-import { COIN_PACKS, storeProductId } from '../src/shop/catalog';
+import { COIN_PACKS, SUPPORTER_PACKS, storeProductId } from '../src/shop/catalog';
+import { mascotSvg } from '../src/ui/mascot';
 
 // The same pictures as the shop's PACK_LOOKS (src/ui/shop.ts).
 const ART: Record<string, string> = {
@@ -48,6 +53,27 @@ for (const { out, size } of STORES) {
       svg.setAttribute('height', String(fill));
     }, size * 0.78);
     await page.screenshot({ path: `${out}/${storeProductId(pack)}.png` });
+  }
+  for (const pack of SUPPORTER_PACKS) {
+    const hat = pack.items.find((i) => i.startsWith('hat:'))!.slice(4);
+    const skin = pack.items.find((i) => i.startsWith('skin:'))!.slice(5);
+    const patron = pack.badge === 'patron';
+    // Supporter: the coin packs' sky; Patron: a royal purple with a golden glow.
+    const bg = patron
+      ? 'radial-gradient(circle at 50% 46%, #ffe68a 0%, #b06ad0 38%, #5a2a7a 75%, #3b1a50 100%)'
+      : 'radial-gradient(circle at 50% 42%, #c4ecfb 0%, #7fd3f7 55%, #68a8e8 100%)';
+    await page.setContent(`<html><body style="margin:0;width:${size}px;height:${size}px;display:grid;place-items:center;background:${bg};position:relative">
+      ${mascotSvg(0xe04848, hat, skin)}
+      <div style="position:absolute;right:${size * 0.08}px;top:${size * 0.07}px;font-size:${size * 0.2}px;line-height:1">${patron ? '💖' : '💛'}</div></body></html>`);
+    await page.evaluate((fill) => {
+      const svg = document.querySelector('svg')!;
+      const b = svg.getBBox();
+      const side = Math.max(b.width, b.height) + 8;
+      svg.setAttribute('viewBox', `${b.x + b.width / 2 - side / 2} ${b.y + b.height / 2 - side / 2} ${side} ${side}`);
+      svg.setAttribute('width', String(fill));
+      svg.setAttribute('height', String(fill));
+    }, size * 0.74);
+    await page.screenshot({ path: `${out}/${pack.storeId}.png` });
   }
   await page.close();
 }
