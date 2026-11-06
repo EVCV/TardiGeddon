@@ -172,7 +172,19 @@ async function openReplay(replay) {
   }
 }
 
+// The team colours (src/render/palette.ts TEAM_COLORS). Replays scouted before 6 Nov 2026
+// saved each team's slot (0-9) as its colour, which draws every name, health number and
+// turn banner near-black; colour is only looks (not in the sim's hash), so swap it here.
+const TEAM_COLORS = [0xe04848, 0x3a7be0, 0x3cb34a, 0xe0a020, 0x9b59d0, 0xf07a2a, 0x23b5c8, 0xe85fa8, 0x9a6b3f, 0x7d8a99];
+function withTeamColours(replay) {
+  const start = JSON.parse(replay.start);
+  if (!start.teams?.some((t) => t.color < TEAM_COLORS.length)) return replay;
+  for (const t of start.teams) if (t.color < TEAM_COLORS.length) t.color = TEAM_COLORS[t.color];
+  return { ...replay, start: JSON.stringify(start) };
+}
+
 async function openReplayOnce(replay) {
+  replay = withTeamColours(replay);
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: SCALE });
   await ctx.addInitScript(`window.__replay = ${JSON.stringify(replay)};`);
   await ctx.addInitScript(`try { localStorage.setItem('tardigeddon.arena', 'classic'); } catch {}`);

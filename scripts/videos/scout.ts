@@ -24,6 +24,7 @@ import { MAX_FRAMES, packFrames } from '../../src/challenge/daily';
 import { presetTeamName } from '../../src/names';
 import { HATS } from '../../src/render/hats';
 import { SKINS } from '../../src/render/skins';
+import { TEAM_COLORS } from '../../src/render/palette';
 import type { CpuSkill } from '../../src/ai/skills';
 import type { InputFrame, SimEvent } from '../../src/sim/types';
 
@@ -93,7 +94,7 @@ export function playMatch(seed: number, teamRange: [number, number]): ScoutedMat
   const skins = SKINS.map((s) => s.id);
   const s = createWorld({
     seed,
-    teams: [...names].map((name, i) => ({ name, color: i % 10, cpu: true, hat: pick(r, hats), skin: r() < 0.5 ? pick(r, skins) : undefined })),
+    teams: [...names].map((name, i) => ({ name, color: TEAM_COLORS[i % TEAM_COLORS.length], cpu: true, hat: pick(r, hats), skin: r() < 0.5 ? pick(r, skins) : undefined })),
     scheme: { ...base, tardisPerTeam, mapStyle: map, armour: map === 'sky' && !base.armour ? 30 : base.armour },
   });
   const start = encodeWorld(s);
