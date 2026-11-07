@@ -61,6 +61,45 @@ If you'd ever rather have a professional finish a trailer, the same tool
 exports the raw footage at full quality, so an editor (e.g. a freelancer,
 for a few hundred pounds) gets perfect clips to work with.
 
+### How often, and how much AI (settled 7 Nov 2026)
+
+| | Per week | When (UK) |
+|---|---|---|
+| Long gameplay video (YouTube) | 1 | Saturday |
+| Shorts (YouTube, TikTok, Reels, Facebook) | 3 | Mon, Wed, Fri |
+| …of which with an AI trailer bit | at most 1 | Wednesday |
+
+Shorts and TikTok rank each video on whether people watch it to the end, not
+on how often we post, so three good ones beat a daily stream of weak ones.
+After four weeks, check views per Short: if they're low, drop to two a week
+rather than posting more. Keep about a month of videos made ahead.
+
+**AI trailer bits** (made in Montaj with Gemini video and a Gemini voice):
+
+- Gameplay is the video. The AI part is a 3 to 8 second "movie trailer"
+  opener or punchline, at most a quarter of the Short.
+- It is never passed off as gameplay: it's obviously a trailer scene, then a
+  hard cut to the real game.
+- It stays on-model: Gemini gets our own character art as reference
+  (`store/social/game-cover.png`).
+- Say so when posting: TikTok "AI-generated content" and YouTube "altered or
+  synthetic content" on in Sociamonials (`tiktok.ai_generated_content`,
+  `youtube.synthetic_media`).
+- Cost: Gemini video is about $0.10 a second (an 8 s clip about $0.80).
+
+**Narration on the long videos:** Claude writes a script timed to the
+chapters, the owner records it in their own (cloned) voice, and Montaj mixes
+it in with the music ducked under it. Tick YouTube's "altered or synthetic"
+box for a cloned voice.
+
+**Thumbnails:** every long video has `<name>-thumb.jpg` (from the renderer)
+and every Short a `<name>-cover.jpg` (the frame where the Montaj pop-up
+lands), in `store/videos/<batch>/final/`. Sociamonials only attaches a video
+cover on Facebook, Instagram, Pinterest, LinkedIn and Google Business
+(`video_thumbnail_url`). For YouTube, upload the thumbnail in YouTube Studio
+after the video goes up (Shorts: pick the frame in the YouTube app); for
+TikTok, pick the cover in the app.
+
 ## 2. The weekly routine (about 45 minutes)
 
 1. **Play** a few matches as normal (against the CPU or online). When
@@ -244,9 +283,10 @@ add).
 - **Kids watch:** cartoon explosions are fine; keep titles and captions
   friendly, no "rage", no bait.
 - **Captions** on everything; British spelling.
-- **AI:** footage is the real game. If a voiceover is ever made with an AI
-  voice, YouTube and TikTok ask you to say so when uploading; your own voice
-  needs nothing.
+- **AI:** gameplay footage is always the real game. AI trailer bits are
+  allowed in some Shorts (§1, "How often, and how much AI"), clearly as
+  trailer scenes, never as gameplay. Any AI picture or voice (a cloned voice
+  too) means ticking the AI / synthetic content box when posting.
 - **Made for kids? (YouTube):** answer "No" (the audience is everyone,
   teens and adults included), as in YOUTUBE.md.
 
