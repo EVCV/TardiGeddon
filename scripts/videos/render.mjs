@@ -499,7 +499,7 @@ const most = Math.max(...p.parts.map((g) => g.m.teams));
 const ytTitle = opt(
   'yt-title',
   mode === 'match'
-    ? `${most} teams, 1 winner: a whole match in ${Math.max(1, Math.round(frameNo / FPS / 60))} minutes | TardiGeddon`
+    ? ((n) => `${most} teams, 1 winner: a whole match in ${n} minute${n === 1 ? '' : 's'} | TardiGeddon`)(Math.max(1, Math.round(frameNo / FPS / 60)))
     : p.title === 'Pure mayhem'
       ? `${most} teams, 1 winner: pure tardigrade mayhem | TardiGeddon`
       : `${p.title}: the best shots | TardiGeddon`,
