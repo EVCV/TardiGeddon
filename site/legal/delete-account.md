@@ -1,8 +1,8 @@
 # Delete Your TardiGeddon Account
 
 **Effective Date:** 17 October 2026
-**Last Modified:** 31 October 2026
-**Document Version:** v1.2
+**Last Modified:** 4 November 2026
+**Document Version:** v1.3
 **Applies To:** TardiGeddon by EVCV Limited: the game at https://tardigeddon.com/play, the TardiGeddon apps on Google Play and the App Store, and its online game server
 
 ---
@@ -35,7 +35,7 @@ This page explains how to delete your TardiGeddon account, or just some of your 
 
 2.0.2 Everything the account owns and has earned: shop items, coins and Slime (coins can't be refunded once the account is gone), the record of where your coins came from, and your game stats.
 
-2.0.3 Your control settings saved to the account, and every sign-in session.
+2.0.3 Your control settings saved to the account, and every sign-in session. If you signed in with Apple, we also ask Apple to revoke our sign-in token, so TardiGeddon no longer shows in the apps using your Apple ID (in your Apple ID settings, under Sign in with Apple).
 
 2.0.4 Copies in our database provider's backups are overwritten within its normal backup cycle.
 

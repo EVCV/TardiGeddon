@@ -1,0 +1,11 @@
+{
+  "about": "The first batch (5 Nov 2026): 3 YouTube videos and 10 Shorts, from the matches in scout-big/ (6 to 10 teams) and scout-duels/ (2 or 3 teams). Run: npm run videos:batch -- 2026-11-05",
+  "jobs": [
+    { "name": "pure-mayhem-1", "args": ["best", "--scout", "scout-big", "--teams", "6", "--minutes", "8", "--per-match", "2", "--per-weapon", "6", "--title", "Pure mayhem"] },
+    { "name": "one-on-one-1", "args": ["best", "--scout", "scout-duels", "--max-teams", "3", "--minutes", "6", "--per-match", "2", "--per-weapon", "4", "--title", "One on one", "--thumb", "ONE|ON ONE"] },
+    { "name": "ten-team-match-1", "args": ["match", "--scout", "scout-big", "--seed", "1078", "--min-score", "100"] },
+    { "name": "short-big", "shorts": 6, "args": ["shorts", "--scout", "scout-big", "--count", "6"] },
+    { "name": "short-duel", "shorts": 4, "args": ["shorts", "--scout", "scout-duels", "--count", "4"] }
+  ],
+  "music": ["boss", "chiptune", "disco", "classic", "daybreak", "shanty"]
+}

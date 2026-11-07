@@ -19,7 +19,10 @@
     "app:build": "tsc --noEmit && vite build --mode app && cap sync",
     "app:android": "cap open android",
     "app:ios": "cap open ios",
-    "i18n": "tsx scripts/i18n.ts"
+    "i18n": "tsx scripts/i18n.ts",
+    "videos:scout": "tsx scripts/videos/scout.ts",
+    "videos:render": "node scripts/videos/render.mjs",
+    "videos:batch": "node scripts/videos/batch.mjs"
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",

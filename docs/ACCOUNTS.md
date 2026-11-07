@@ -433,6 +433,9 @@ what players own now. Run it again any time to move the start to now.
   the client secret (Better Auth's Apple docs explain the steps). Then
   `fly secrets set APPLE_CLIENT_ID=… APPLE_CLIENT_SECRET=…`. The Apple
   client secret expires after at most 6 months, so diarise renewing it.
+- **Apple key** (`APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`): lets
+  the server revoke Apple's tokens when an account is deleted, as Apple
+  requires. Steps in `docs/IOS.md` §2b.
 
 Check: the sign-in screen shows "Continue with Google / Apple".
 

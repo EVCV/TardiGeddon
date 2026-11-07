@@ -215,7 +215,7 @@ const freq = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 /** One playing track: its own volume (for fading) and its step scheduler. */
 class Player {
   private gain: GainNode;
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof setInterval> | undefined;
   private next: number;
   private step = 0;
   private tune: (number | null)[];
@@ -225,9 +225,11 @@ class Player {
   private arpN = 0;
 
   constructor(
-    private ctx: AudioContext,
+    private ctx: BaseAudioContext,
     out: AudioNode,
     readonly track: Track,
+    /** Booked a tenth of a second ahead as it plays; false for bookTrack (all at once). */
+    live = true,
   ) {
     this.tune = melody(track);
     this.stepDur = 60 / track.bpm / 4;
@@ -252,8 +254,18 @@ class Player {
     for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
     this.noise = b;
     this.next = ctx.currentTime + 0.1;
+    if (!live) return;
     this.timer = setInterval(() => this.schedule(), 25);
     this.schedule();
+  }
+
+  /** Book every note up to `seconds` in one go (an offline context renders them). */
+  bookAll(seconds: number): void {
+    while (this.next < seconds) {
+      this.playStep(this.step, this.next);
+      this.next += this.stepDur;
+      this.step = (this.step + 1) % (this.track.steps * this.track.chords.length * 2);
+    }
   }
 
   /** Fade out and stop. */
@@ -399,6 +411,14 @@ export function previewMusic(id: string | null): void {
 
 export function previewingMusic(): string | null {
   return previewing;
+}
+
+/**
+ * The video tools (scripts/videos/music.ts): a whole track booked into an
+ * OfflineAudioContext, which renders it to a file faster than real time.
+ */
+export function bookTrack(ctx: BaseAudioContext, out: AudioNode, id: string, seconds: number): void {
+  new Player(ctx, out, musicTrack(id), false).bookAll(seconds);
 }
 
 /** Start the music once the AudioContext exists (after the first tap or key press). */

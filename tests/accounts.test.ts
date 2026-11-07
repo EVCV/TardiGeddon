@@ -23,6 +23,7 @@ import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
 import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
 import { appStoreAccountToken, type AppStoreApi, type AppStorePurchase } from '../server/appStore';
+import type { AppleTokenApi } from '../server/appleTokens';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -115,6 +116,13 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   // No Apple in tests: an Apple ID token is "signed" if its nonce is one we handed out.
   const appleNonces = new Set<string>();
   const appleIdToken = async (_token: string, nonce?: string) => !!nonce && appleNonces.has(nonce);
+  // No Apple in tests: codes the fake "issued" for an Apple user, and the tokens it was given back.
+  const appleCodes = new Map<string, string>();
+  const appleRevoked: { token: string; clientId: string }[] = [];
+  const appleTokens: AppleTokenApi = {
+    exchange: async (code) => (appleCodes.has(code) ? { refreshToken: `refresh-${code}`, sub: appleCodes.get(code)! } : null),
+    revoke: async (token, _hint, clientId) => void appleRevoked.push({ token, clientId }),
+  };
   /** An Apple ID token's shape (header.payload.signature), as iOS's sheet gives one. */
   const appleToken = (claims: Record<string, unknown>) =>
     [{ alg: 'RS256', kid: 'test' }, { iss: 'https://appleid.apple.com', aud: 'com.tardigeddon.app', ...claims }, 'sig']
@@ -138,7 +146,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', FOUNDER_UNTIL: '2000-01-01', FOUNDER_EMAILS: 'Founder@example.com', EARLY_BIRD_UNTIL: '2000-01-01', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
-      { stripe, mailer, play, appStore, appleIdToken },
+      { stripe, mailer, play, appStore, appleIdToken, appleTokens },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM creator_payout; DELETE FROM creator_player; DELETE FROM creator; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -1377,6 +1385,31 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const linked = await apple({ sub: 'apple-2', email: 'apple-old@example.com', email_verified: true }, 'n2');
     expect(linked.status).toBe(401);
     expect(((await linked.json()) as { message?: string }).message).toBe('account not linked');
+  });
+
+  it('gives Apple its token back when an account made with Apple is deleted', async () => {
+    const app = (path: string, body: unknown, token = '') =>
+      fetch(base + path, { method: 'POST', headers: { origin: IOS_APP, 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+    appleNonces.add('n-del');
+    const r = await app('/api/auth/sign-in/social', { provider: 'apple', idToken: { token: appleToken({ sub: 'apple-del', email: 'apple-del@example.com', email_verified: true }), nonce: 'n-del' } });
+    expect(r.status).toBe(200);
+    const token = r.headers.get('set-auth-token') ?? '';
+
+    // The sheet's code: kept only for this account's own Apple user, and only when signed in.
+    appleCodes.set('code-other', 'someone-else');
+    appleCodes.set('code-mine', 'apple-del');
+    expect((await app('/api/app/apple-code', { code: 'code-mine' })).status).toBe(401);
+    expect(await (await app('/api/app/apple-code', { code: 'code-other' }, token)).json()).toEqual({ kept: false });
+    expect(await (await app('/api/app/apple-code', { code: 'never-issued' }, token)).json()).toEqual({ kept: false });
+    expect(await (await app('/api/app/apple-code', { code: 'code-mine' }, token)).json()).toEqual({ kept: true });
+    // An email-and-password account has no Apple user: nothing kept.
+    const plain = await signUp('no-apple@example.com');
+    expect(await (await post('/api/app/apple-code', { code: 'code-mine' }, plain.cookie)).json()).toEqual({ kept: false });
+
+    const del = await app('/api/auth/delete-user', {}, token);
+    expect(del.status).toBe(200);
+    expect(appleRevoked).toEqual([{ token: 'refresh-code-mine', clientId: 'com.tardigeddon.app' }]);
+    expect((await accounts.db.query(`SELECT 1 FROM apple_token`)).rowCount).toBe(0);
   });
 
   it('signs the iOS app in with a token, joins online play with a one-use ticket, and never gives the website the token', async () => {

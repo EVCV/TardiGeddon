@@ -663,6 +663,8 @@ async function signInInApp(provider: string): Promise<void> {
     } catch (e) {
       throw (e as { raw?: string }).raw === 'account not linked' ? new Error(t('An account with this email already exists. Sign in with your email and password, confirm your email, then you can use Apple.')) : e;
     }
+    // So Apple's token can be revoked if the account is ever deleted (nothing to show the player).
+    if (r.code) void call('/api/app/apple-code', { code: r.code }).catch(() => undefined);
     await refreshAccount();
     return;
   }
