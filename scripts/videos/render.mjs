@@ -237,6 +237,8 @@ async function film(page, n, each = '', at = {}, ms = FRAME_MS) {
       if (src) new Function('i', 'n', src)(i, n);
       const r = window.__tardi.renderer;
       r.camera.zoom = abs || r.defaultZoom() * zoom;
+      // The steady camera: no whip pans between cluster drops and blasts.
+      r.camera.steady = true;
       window.__virt.step(ms);
     }, [ms, each, i, n, ZOOM, ZOOM_ABS]);
     if (at[i]) await at[i]();
