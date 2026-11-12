@@ -19,6 +19,7 @@ import {
   dayUK,
   opensAt,
   viewAt,
+  winnerTotal,
   type Giveaway as Contest,
   type GiveawayStatus,
 } from '../giveaways';
@@ -46,7 +47,6 @@ function useNow(): number {
 }
 
 /** How many players win in all. */
-const winnerTotal = (g: Contest) => g.prizes.reduce((n, p) => n + p.count, 0);
 
 function Status({ g, status }: { g: Contest; status: GiveawayStatus }) {
   if (status === 'open') return <p className="promo-status">✅ Open now: closes {dayTimeUK(closesAt(g))}</p>;

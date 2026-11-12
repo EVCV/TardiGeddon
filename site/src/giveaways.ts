@@ -120,6 +120,9 @@ export function dayTimeUK(ms: number): string {
   return `${dayUK(ms)}, ${time} UK time`;
 }
 
+/** How many winners a giveaway has, over every prize tier. */
+export const winnerTotal = (g: Giveaway) => g.prizes.reduce((n, p) => n + p.count, 0);
+
 /** "1 December" (no year), in UK time. */
 export function dayShortUK(ms: number): string {
   return new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'Europe/London' });

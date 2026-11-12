@@ -789,3 +789,8 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
   .giveaway-frame iframe { height: 1500px; }
 }
 .prize-img { display: block; width: 100%; height: auto; border: var(--line) solid var(--ink); border-radius: calc(var(--radius) * 0.6); margin: 8px 0 12px; }
+/* The giveaway strip above the header (Layout.tsx GiveawayBanner). */
+.giveaway-banner { margin: 0; background: var(--accent); border-bottom: var(--line) solid var(--ink); text-align: center; font-size: 15px; line-height: 1.35; }
+.giveaway-banner a { display: block; padding: 8px 16px; color: var(--ink); text-decoration: none; font-weight: 600; }
+.giveaway-banner a:hover .giveaway-banner-go, .giveaway-banner a:focus-visible .giveaway-banner-go { text-decoration: underline; }
+.giveaway-banner-go { white-space: nowrap; font-weight: 800; }
