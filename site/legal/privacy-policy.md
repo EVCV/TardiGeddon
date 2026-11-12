@@ -150,6 +150,14 @@ Our online game server counts in the same way, for online play: how long players
 
 2.6.2 We do not intentionally collect special category personal data (such as data concerning health, religion, or sexual orientation), and you should not include any in your Team Details or messages to us.
 
+### 2.7 Contests and Giveaways
+
+2.7.1 If you enter one of our contests or giveaways (for example the Launch Giveaway, whose Official Rules are at https://tardigeddon.com/legal/launch-giveaway-rules), we collect what you give on its entry page: your first name, email address and the country you live in, your confirmation that you are 13 or over (and, if under 18, that a parent or guardian agrees), your player name if you give it, your answers to any bonus questions, which bonus actions you completed, who referred you or whom you referred with your referral link, and when you entered. The entry page, run for us by Sociamonials, also records technical information such as your IP address, to stop duplicate and automated entries.
+
+2.7.2 If you win, we also keep the TardiGeddon account the prize went to, what you won, and any confirmation from your parent or guardian. Winners are announced by player name only.
+
+2.7.3 Entering a contest does not sign you up for our email news (Section 2.2.6).
+
 ## Section 3 — How We Use Your Information
 
 ### 3.0 Purposes of Processing
@@ -168,6 +176,8 @@ Our online game server counts in the same way, for online play: how long players
 
 3.0.7 If you buy something: to take payment through Stripe (or, in our apps, Google Play or the App Store), deliver the item, handle refunds and disputes, and prevent fraud.
 
+3.0.7A If you enter a contest or giveaway: to check you can enter, count your entries, prevent cheating, pick and contact winners, give prizes and announce winners by player name (Section 2.7).
+
 3.0.8 To comply with legal obligations, such as keeping accounting and tax records, and to respond to lawful requests from public authorities.
 
 ### 3.1 Legal Basis for Processing (UK/EU GDPR)
@@ -177,6 +187,8 @@ Our online game server counts in the same way, for online play: how long players
 3.1.2 Legitimate interests: keeping the Services and accounts secure and fair, preventing payment fraud, answering your messages, and counting visits and how the game is played so we can improve the Services (Sections 3.0.3, 3.0.4, 3.0.5 and 3.0.7). You can object to the game's play statistics at any time by turning them off (Section 2.4.5). These interests do not override your rights, because we use very little data and keep it only as long as described in Section 5.
 
 3.1.3 Legal obligation: where we must keep or disclose information by law, including keeping records of sales for tax purposes (Section 3.0.8).
+
+3.1.2A Contests and giveaways: performance of a contract, running the contest you entered under its Official Rules, and legitimate interests, stopping duplicate and automated entries (Section 3.0.7A).
 
 3.1.3A Consent: email news, only if you sign up for it (Section 2.2.6). You can withdraw your consent at any time by unsubscribing.
 
@@ -193,6 +205,8 @@ Our online game server counts in the same way, for online play: how long players
 4.0.3 20i Limited, a UK company, acting as our processor, which sends the account emails described in Section 2.2.5 on our behalf from its mail servers in the United Kingdom. It receives your email address, your player name and the content of the email, and keeps delivery logs for a limited time under its own policies.
 
 4.0.3A Utobo, the email service we use to send email news (Section 2.2.6), acting as our processor. It receives only the email addresses (and player names) of people who have signed up, to send the news and handle unsubscribes, under a contract that includes data protection obligations.
+
+4.0.3B Sociamonials, the service that hosts the entry pages of our contests and giveaways (Section 2.7), acting as our processor. It receives and stores the entry details described in Section 2.7.1 to run the entry page and the prize draw, under a contract that includes data protection obligations.
 
 4.0.4 Stripe, which takes payments for us as the merchant of record. For the payment, and the tax and accounting records that go with it, Stripe is an independent controller of your data under its own privacy policy at https://stripe.com/privacy; it also uses payment information for its own purposes such as fraud prevention and legal compliance (see Section 2.3.3).
 
@@ -212,7 +226,7 @@ Our online game server counts in the same way, for online play: how long players
 
 ### 4.2 International Transfers
 
-4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon and Stripe) are based in the United States or operate worldwide networks, and 20i may use subcontractors outside the United Kingdom, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
+4.2.1 Our game server and account database are hosted in London, but several of our providers (including Cloudflare, Fly.io, Neon, Stripe and Sociamonials) are based in the United States or operate worldwide networks, and 20i may use subcontractors outside the United Kingdom, so some data may be processed outside the United Kingdom. Where this happens, we rely on recognised safeguards, such as the UK Extension to the EU–US Data Privacy Framework or the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.
 
 4.2.2 You may request further information about these safeguards by contacting privacy@tardigeddon.com.
 
@@ -241,6 +255,8 @@ Our online game server counts in the same way, for online play: how long players
 5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies. The game's play statistics are only ever kept as daily totals, which are deleted after 25 months.
 
 5.1.8 Player reports (Section 2.1.6): for up to 24 months after we have dealt with them, so we can spot repeated problems, unless the law requires longer.
+
+5.1.9 Contest and giveaway entries (Section 2.7): deleted within 3 months after the winners are announced. For winners, we keep their player name, the prize, the account it went to and any parent or guardian confirmation for 2 years, in case of questions about the prize. The prizes themselves stay on the account like any other item (Section 5.1.4).
 
 ## Section 6 — Your Rights
 
