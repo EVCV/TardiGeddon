@@ -39,7 +39,7 @@ import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, ne
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult, supporterBadge } from './store';
+import { NO_STATS, earnSlime, replaceStripeCustomerId, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult, supporterBadge } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { migrateUsage, usageCounter } from './usage';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
@@ -478,8 +478,7 @@ export async function createAccounts(
     cancel.searchParams.set('shop', 'cancel');
     let session: { url: string | null };
     try {
-      const customer = await stripeCustomer(user);
-      session = await stripe.checkout.sessions.create({
+      session = await withCustomer(user, (customer) => stripe!.checkout.sessions.create({
       mode: 'payment',
       line_items: [
         {
@@ -505,7 +504,7 @@ export async function createAccounts(
       ...(managed || env.STRIPE_INVOICES === 'off' ? {} : { invoice_creation: { enabled: true } }),
       success_url: back.toString(),
       cancel_url: cancel.toString(),
-      });
+      }));
     } catch (e) {
       // Usually a Stripe setting (e.g. no business name yet). Shown to players only with test keys.
       const why = e instanceof Error ? e.message : String(e);
@@ -526,6 +525,29 @@ export async function createAccounts(
     if (known) return known;
     const c = await stripe!.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
     return setStripeCustomerId(db, user.id, c.id);
+  }
+
+  /** Stripe says the customer doesn't exist (in this account, or in live mode). */
+  function missingCustomer(e: unknown): boolean {
+    const err = e as { code?: unknown; param?: unknown; message?: unknown };
+    return err?.code === 'resource_missing' && (err.param === 'customer' || /No such customer/.test(String(err.message)));
+  }
+
+  /**
+   * Runs a Stripe call with the player's customer. If Stripe no longer knows the saved
+   * one (made with test keys, or deleted in the dashboard), a new customer replaces it
+   * and the call is tried once more.
+   */
+  async function withCustomer<T>(user: NonNullable<MeResponse['user']>, call: (customer: string) => Promise<T>): Promise<T> {
+    const customer = await stripeCustomer(user);
+    try {
+      return await call(customer);
+    } catch (e) {
+      if (!missingCustomer(e)) throw e;
+      console.warn('stripe: saved customer unknown to Stripe, making a new one');
+      const c = await stripe!.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      return call(await replaceStripeCustomerId(db, user.id, customer, c.id));
+    }
   }
 
   /** Stripe's own page where players see their purchases, download receipts and update billing details. */

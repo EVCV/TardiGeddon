@@ -1057,6 +1057,26 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(((await r.json()) as { error: string }).error).toContain('business name');
   });
 
+  it('replaces a saved Stripe customer that Stripe no longer knows (e.g. made with test keys)', async () => {
+    const { cookie } = await signUp('oldcustomer@example.com');
+    expect((await post('/api/shop/checkout', { item: 'coins:200', consent: true, grownUp: true }, cookie)).status).toBe(200);
+    const stale = checkouts.at(-1)!.customer;
+    const real = stripe.checkout.sessions.create;
+    stripe.checkout.sessions.create = (async (p: Stripe.Checkout.SessionCreateParams) => {
+      if (p.customer === stale) throw Object.assign(new Error(`No such customer: '${stale}'`), { code: 'resource_missing', param: 'customer' });
+      return real(p);
+    }) as unknown as typeof real;
+    const r = await post('/api/shop/checkout', { item: 'coins:200', consent: true, grownUp: true }, cookie);
+    stripe.checkout.sessions.create = real;
+    expect(r.status).toBe(200);
+    const fresh = checkouts.at(-1)!.customer;
+    expect(fresh).toMatch(/^cus_test_/);
+    expect(fresh).not.toBe(stale);
+    // The new one is kept: the next checkout uses it straight away.
+    await post('/api/shop/checkout', { item: 'coins:200', consent: true, grownUp: true }, cookie);
+    expect(checkouts.at(-1)!.customer).toBe(fresh);
+  });
+
   it('emails a reset link into the game, which sets a new password and signs out everywhere', async () => {
     const { cookie } = await signUp('forgetful@example.com');
     expect((await me(cookie)).mail).toBe(true);
