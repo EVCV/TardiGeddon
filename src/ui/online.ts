@@ -345,6 +345,7 @@ export function showOnline(
       if (s.badge) {
         const BADGES = {
           creator: ['⭐', t('Creator: makes videos or streams about TardiGeddon')],
+          winner: ['🏆', t('Launch Winner: won the 2026–27 launch giveaway')],
           patron: ['💖', t('Patron: backed TardiGeddon at launch')],
           supporter: ['💛', t('Supporter: backed TardiGeddon at launch')],
           founder: ['🌱', t('Founder: here from the start')],

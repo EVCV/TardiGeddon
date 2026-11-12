@@ -16,12 +16,13 @@ import { buildLobby, type Lobby, type MatchSetup } from './menu';
 import { newSignInState, renderAccountPage, renderStatsPage } from './account';
 import { newShopState, renderShop } from './shop';
 import { EARLY_BIRD_COINS, FOUNDER_COINS, INVITE_MATCHES } from '../shop/rewards';
+import { promoItem, shopItem } from '../shop/catalog';
 import { newSalesState, renderSalesPage } from './sales';
 import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
 import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
-import { account, newsAsked, onAccountChange, peekInvite, refreshAccount, savedInvite, setNews, takeInviteNews, wearHat, wearSkin } from '../account/session';
+import { account, newsAsked, onAccountChange, peekInvite, refreshAccount, savedInvite, setNews, takeInviteNews, takePrizeNews, wearHat, wearSkin } from '../account/session';
 import { newsWording } from './newsSignup';
 import { showRewardPop } from './rewardPop';
 import { t } from '../i18n/i18n';
@@ -202,6 +203,7 @@ export function showHub(
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
       if (me.creatorBadge) who.append(el('span', 'founder-badge', '⭐'));
+      else if (me.winnerBadge) who.append(el('span', 'founder-badge', '🏆'));
       else if (me.supporterBadge) who.append(el('span', 'founder-badge', me.supporterBadge === 'patron' ? '💖' : '💛'));
       else if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
       who.append(el('span', 'hub-me-name', me.user.name));
@@ -240,6 +242,8 @@ export function showHub(
     }
     // Invite rewards that came in (both sides), and a welcome for an invite link opened while signed out.
     if (shell.isConnected) showInviteNews(go);
+    // A contest prize the owner put on this account (told once).
+    if (shell.isConnected) showPrizeNews();
     // Signed in and never asked about email news: ask once (never ticked for them).
     if (loaded && me?.user && me.newsletter && !me.newsletter.asked && !newsAskedThisVisit && tab === 'lobby') {
       newsAskedThisVisit = true;
@@ -401,6 +405,33 @@ function showInviteNews(go: (tab: HubTab) => void): void {
     items: mine.items,
     button: t('Brilliant!'),
     go: friends,
+  });
+}
+
+/** Looks (and the 🏆 badge) the owner gave as a contest prize (src/account/session.ts takePrizeNews), as a pop-up. */
+function showPrizeNews(): void {
+  const news = takePrizeNews();
+  if (!news || (!news.items.length && !news.badge)) return;
+  // A few looks are named; a big prize (every Shop look) is counted, with pictures of the never-sold ones first.
+  const few = news.items.length <= 6;
+  const items = [...news.items].sort((a, b) => Number(!!promoItem(b)) - Number(!!promoItem(a)));
+  const names = items.map((id) => t((shopItem(id) ?? promoItem(id))?.name ?? id)).join(', ');
+  const n = news.items.length;
+  const text = !n
+    ? t('Congratulations! The 🏆 Launch Winner badge is now by your name.')
+    : news.badge
+      ? few
+        ? t('Congratulations! {items} are now in your collection, and the 🏆 Launch Winner badge is by your name. Find the looks in ✎ Customise team.', { items: names })
+        : t('Congratulations! {n} new looks are now in your collection, and the 🏆 Launch Winner badge is by your name. Find the looks in ✎ Customise team.', { n })
+      : few
+        ? t('Congratulations! {items} are now in your collection. Find them in ✎ Customise team.', { items: names })
+        : t('Congratulations! {n} new looks are now in your collection. Find them in ✎ Customise team.', { n });
+  showRewardPop({
+    badge: '🏆',
+    title: t('You won a prize!'),
+    text,
+    items: items.slice(0, 6),
+    button: t('Brilliant!'),
   });
 }
 

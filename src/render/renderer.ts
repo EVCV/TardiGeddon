@@ -8,8 +8,8 @@ import { WEAPONS } from '../sim/weapons';
 import { TerrainView } from './terrainView';
 import { TardiView, type Mood } from './tardiView';
 import { ObjectView } from './objectView';
-import { PALETTE, hex, shown, teamSymbol } from './palette';
-import { aimStyle, fxStyle, mixColor, rainbowAt, type AimStyle } from './cosmetics';
+import { PALETTE, VIEW, hex, shown, teamSymbol } from './palette';
+import { aimStyle, crownShape, fxStyle, laurelLeaves, mixColor, rainbowAt, type AimStyle } from './cosmetics';
 import { arenaTheme, type ArenaTheme } from './arenas';
 import { WeatherView } from './weather';
 import { GroundWeather } from './groundWeather';
@@ -36,9 +36,9 @@ interface Particle {
   max: number;
   r: number;
   color: number;
-  kind: 'flash' | 'smoke' | 'debris' | 'spark' | 'confetti';
+  kind: 'flash' | 'smoke' | 'debris' | 'spark' | 'confetti' | 'ring';
   /** Bits thrown out by explosion effects and aim styles (shop cosmetics). */
-  shape?: 'heart' | 'star' | 'coin' | 'snow' | 'bit';
+  shape?: 'heart' | 'star' | 'coin' | 'snow' | 'bit' | 'crown';
   /** Gravity per 60 fps frame. */
   grav?: number;
 }
@@ -542,8 +542,9 @@ export class GameRenderer {
         life: 1.2, max: 1.2, r: 1.5 + Math.random() * 1.5, color: st.debris ? st.debris[i % st.debris.length] : this.theme.soil[2], kind: 'debris',
       });
     }
-    if (st.extra) {
-      const { kind, colors } = st.extra;
+    for (const extra of [st.extra, st.also]) {
+      if (!extra) continue;
+      const { kind, colors } = extra;
       const count = Math.round(r / 1.5) + 6;
       for (let i = 0; i < count; i++) {
         const a = -Math.PI * (0.1 + Math.random() * 0.8);
@@ -551,13 +552,15 @@ export class GameRenderer {
         const life = 1 + Math.random() * 0.8;
         this.particles.push({
           x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-          life, max: life, r: kind === 'snow' ? 1.5 + Math.random() * 1.5 : 3 + Math.random() * 2.5,
+          life, max: life, r: kind === 'snow' ? 1.5 + Math.random() * 1.5 : kind === 'crown' ? 4 + Math.random() * 2.5 : 3 + Math.random() * 2.5,
           color: colors[i % colors.length], kind: 'spark',
           shape: kind === 'confetti' ? 'bit' : kind,
           grav: kind === 'snow' ? 0.03 : kind === 'star' ? 0.06 : 0.12,
         });
       }
     }
+    // Rings of light spreading out (each a little bigger and slower than the last).
+    st.rings?.forEach((color, i) => this.particles.push({ x, y, vx: 0, vy: 0, life: 0.5 + i * 0.25, max: 0.5 + i * 0.25, r: r * (1.7 + i * 0.7), color, kind: 'ring' }));
     if (r >= 20) this.floatText(r >= 30 ? tr(tk('POW!')) : tr(tk('BIFF!')), x, y - r - 10, 0xffd84a);
   }
 
@@ -819,7 +822,7 @@ export class GameRenderer {
             // Comet: sparks streaming back off the tip.
             this.particles.push({
               x: ap.x + dx * len, y: ap.y + dy * len, vx: -dx * (1 + Math.random()) + (Math.random() - 0.5), vy: -dy * (1 + Math.random()) + (Math.random() - 0.5),
-              life: 0.45, max: 0.45, r: 2 + Math.random() * 2, color: Math.random() < 0.5 ? 0xffffff : 0x7fd3f7, kind: 'spark', shape: 'star',
+              life: 0.45, max: 0.45, r: 2 + Math.random() * 2, color: style.sparkle ? style.sparkle[Math.floor(Math.random() * style.sparkle.length)] : Math.random() < 0.5 ? 0xffffff : 0x7fd3f7, kind: 'spark', shape: 'star',
             });
           }
         }
@@ -858,6 +861,12 @@ export class GameRenderer {
     ov.moveTo(x - arm, y).lineTo(x - gap, y).moveTo(x + gap, y).lineTo(x + arm, y);
     ov.moveTo(x, y - arm).lineTo(x, y - gap).moveTo(x, y + gap).lineTo(x, y + arm);
     ov.stroke({ width: 2, color });
+    if (style.emblem === 'laurel') {
+      for (const leaf of laurelLeaves(x, y, r)) ov.poly(leaf).fill(color).stroke({ width: 1, color: PALETTE.outline, alpha: 0.85 });
+    } else if (style.emblem === 'crown') {
+      // A little crown over the ring, bobbing a touch.
+      ov.poly(crownShape(x, y - r * 2.1 - Math.sin(this.time * 4) * r * 0.1, r * 0.95)).fill(color).stroke({ width: 1.3, color: PALETTE.outline });
+    }
   }
 
   /** Sparkler / golden aim: a few sparkles fizzing round the marker. */
@@ -899,6 +908,8 @@ export class GameRenderer {
         g.circle(p.x, p.y, p.r * (0.8 - k * 0.3)).fill({ color: p.color, alpha: k });
       } else if (p.kind === 'smoke') {
         g.circle(p.x, p.y, p.r * (1.6 - k * 0.6)).fill({ color: p.color, alpha: k * 0.55 });
+      } else if (p.kind === 'ring') {
+        g.circle(p.x, p.y, p.r * (0.25 + 0.75 * (1 - k * k))).stroke({ width: 1 + 4 * k, color: p.color, alpha: k * 0.9 });
       } else if (p.shape) {
         drawBit(g, p.shape, p.x, p.y, p.r, p.color, Math.min(1, k * 2), this.time + p.r);
       } else if (p.kind === 'confetti') {
@@ -981,6 +992,7 @@ export class GameRenderer {
     const g = this.ambient;
     g.clear();
     const th = this.theme;
+    if (th.scenery) this.drawSkyScenery(g, width, height, th.scenery);
     const stars = th.stars ? 70 : 0;
     this.ambientBits.forEach((b, i) => {
       if (i < stars) {
@@ -996,6 +1008,116 @@ export class GameRenderer {
       const x = b.x * width + Math.sin(this.time * 0.8 + b.p) * 12;
       g.circle(x, b.y * height, b.r + 0.6).fill({ color: d.color, alpha: d.up ? 0.75 : 0.9 });
     });
+  }
+
+  /**
+   * A victory arena's sky: a low sun, and fireworks going up and bursting at
+   * random places, each one different (worked out from the time, so nothing
+   * is stored). With Calmer effects on they hang still, as if frozen mid-burst.
+   */
+  private drawSkyScenery(g: Graphics, width: number, height: number, sc: NonNullable<ArenaTheme['scenery']>): void {
+    const m = Math.min(width, height);
+    const sx = width * 0.72;
+    const sy = height * 0.5;
+    const sr = m * 0.15;
+    g.circle(sx, sy, sr * 2.2).fill({ color: sc.sun, alpha: 0.12 });
+    g.circle(sx, sy, sr * 1.5).fill({ color: sc.sun, alpha: 0.2 });
+    g.circle(sx, sy, sr).fill({ color: sc.sun, alpha: 0.95 }).stroke({ width: 3, color: mixColor(sc.sun, 0xd8501a, 0.55), alpha: 0.8 });
+    const fade = VIEW.dark ? 0.8 : 1;
+    const bursts = VIEW.calm ? 3 : 4;
+    for (let i = 0; i < bursts; i++) {
+      const period = 3.4 + i * 0.55;
+      const at = this.time + i * 1.7;
+      const n = Math.floor(at / period);
+      const u = VIEW.calm ? 0.5 : (at - n * period) / period;
+      // Where and how big: a different answer each time round (a hash of which firework and which go).
+      const seed = VIEW.calm ? i * 11 + 3 : n * 7 + i * 13;
+      const bx = width * (0.1 + 0.8 * hash01(seed));
+      const by = height * (0.1 + 0.3 * hash01(seed + 1));
+      const reach = m * (0.1 + 0.07 * hash01(seed + 2));
+      const color = sc.fireworks[(n + i) % sc.fireworks.length];
+      if (u < 0.2) {
+        // Going up: a bright dot with a short trail.
+        const py = by + (1 - u / 0.2) * height * 0.3;
+        g.circle(bx, py, 2.2).fill({ color: 0xffffff, alpha: fade });
+        g.circle(bx, py + 7, 1.6).circle(bx, py + 13, 1.1).fill({ color, alpha: 0.6 * fade });
+        continue;
+      }
+      // Bursting: streaks fly out, slow down, droop and fade, with a smaller ring of sparks in another colour inside.
+      const t = (u - 0.2) / 0.8;
+      const alpha = (1 - t) * (1 - t) * fade;
+      const out = reach * (1 - (1 - t) * (1 - t));
+      const droop = t * t * reach * 0.55;
+      const a0 = hash01(seed + 3) * 6.283;
+      for (let j = 0; j < 16; j++) {
+        const a = a0 + (j * Math.PI) / 8;
+        const c = Math.cos(a);
+        const sn = Math.sin(a);
+        g.moveTo(bx + c * out * 0.68, by + sn * out * 0.68 + droop * 0.65).lineTo(bx + c * out, by + sn * out + droop);
+      }
+      g.stroke({ width: 3 * (1 - t) + 1, color, alpha, cap: 'round' });
+      for (let j = 0; j < 16; j++) {
+        const a = a0 + (j * Math.PI) / 8;
+        g.circle(bx + Math.cos(a) * out, by + Math.sin(a) * out + droop, 1.6 * (1 - t) + 1);
+      }
+      g.fill({ color: 0xffffff, alpha: alpha * 0.9 });
+      const inner = sc.fireworks[(n + i + 2) % sc.fireworks.length];
+      for (let j = 0; j < 10; j++) {
+        const a = a0 + 0.2 + (j * Math.PI) / 5;
+        g.circle(bx + Math.cos(a) * out * 0.5, by + Math.sin(a) * out * 0.5 + droop * 0.5, 2.2 * (1 - t) + 1);
+      }
+      g.fill({ color: inner, alpha });
+    }
+  }
+
+  /** A victory arena's banners and bunting: poles along the near hills, a banner on each, strings of flags between. */
+  private drawBanners(layer: Container, w: number, h: number, flags: readonly number[]): void {
+    const g = new Graphics();
+    const O = PALETTE.outline;
+    const base = h - 170;
+    const gap = 360;
+    const first = Math.round(HILL_LEFT / 2 / gap);
+    const last = Math.round((w - HILL_LEFT / 2) / gap);
+    const tops: [number, number][] = [];
+    for (let k = first; k <= last; k++) {
+      const x = k * gap;
+      tops.push([x, hillTop(x, base, 70, 0.007) - 150]);
+    }
+    // Bunting first, so the poles stand in front of it.
+    for (let k = 0; k < tops.length - 1; k++) {
+      const [x0, y0] = tops[k];
+      const [x1, y1] = tops[k + 1];
+      const cx = (x0 + x1) / 2;
+      const cy = (y0 + y1) / 2 + 55;
+      g.moveTo(x0, y0 + 6).quadraticCurveTo(cx, cy + 8, x1, y1 + 6).stroke({ width: 2, color: O });
+      for (let i = 0; i < 8; i++) {
+        const f = (i + 0.5) / 8;
+        const px = (1 - f) * (1 - f) * x0 + 2 * f * (1 - f) * cx + f * f * x1;
+        const py = (1 - f) * (1 - f) * (y0 + 6) + 2 * f * (1 - f) * (cy + 8) + f * f * (y1 + 6);
+        g.poly([px - 10, py - 1, px + 10, py - 1, px, py + 22]).fill(flags[(k * 8 + i) % flags.length]).stroke({ width: 2, color: O });
+      }
+    }
+    tops.forEach(([x, y], k) => {
+      const ground = hillTop(x, base, 70, 0.007);
+      // The pole, a gold ball on top, and a banner hanging from a bar with a swallow tail.
+      g.roundRect(x - 3.5, y, 7, ground - y + 8, 2).fill(0xe0a920).stroke({ width: 2, color: O });
+      g.circle(x, y - 2, 7).fill(0xffd84a).stroke({ width: 2, color: O });
+      g.roundRect(x - 2, y + 14, 56, 5, 2).fill(0xe0a920).stroke({ width: 1.8, color: O });
+      const bc = flags[k % 2 ? 2 : 0];
+      g.poly([x + 6, y + 19, x + 48, y + 19, x + 48, y + 92, x + 27, y + 76, x + 6, y + 92]).fill(bc).stroke({ width: 2.2, color: O });
+      g.poly([x + 10, y + 23, x + 44, y + 23, x + 44, y + 28, x + 10, y + 28]).fill(0xffd84a);
+      // A gold star on it.
+      const sx = x + 27;
+      const sy = y + 52;
+      const star: number[] = [];
+      for (let i = 0; i < 10; i++) {
+        const a = (i * Math.PI) / 5 - Math.PI / 2;
+        const rr = i % 2 === 0 ? 11 : 5;
+        star.push(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr);
+      }
+      g.poly(star).fill(0xffd84a).stroke({ width: 1.5, color: O });
+    });
+    layer.addChild(g);
   }
 
   /**
@@ -1015,6 +1137,7 @@ export class GameRenderer {
       sprite.scale.set(HILL_SCALE);
       layer.addChild(sprite);
     }
+    if (this.theme.scenery) this.drawBanners(this.hillsNear, w, h, this.theme.scenery.flags);
   }
 
   /** Is the player choosing a spot on the map for this weapon? */
@@ -1127,7 +1250,7 @@ function barColor(style: AimStyle, f: number, t: number, i: number, time: number
 }
 
 /** A little shape thrown out by effects: a heart, a star, a coin, a snowflake or a scrap of confetti. */
-function drawBit(g: Graphics, shape: 'heart' | 'star' | 'coin' | 'snow' | 'bit', x: number, y: number, r: number, color: number, alpha: number, spin: number): void {
+function drawBit(g: Graphics, shape: 'heart' | 'star' | 'coin' | 'snow' | 'bit' | 'crown', x: number, y: number, r: number, color: number, alpha: number, spin: number): void {
   const O = PALETTE.outline;
   if (shape === 'heart') {
     g.moveTo(x, y + r)
@@ -1149,6 +1272,8 @@ function drawBit(g: Graphics, shape: 'heart' | 'star' | 'coin' | 'snow' | 'bit',
     g.ellipse(x, y, w, r).fill({ color, alpha }).stroke({ width: 1.2, color: O, alpha });
   } else if (shape === 'snow') {
     g.circle(x, y, r).fill({ color, alpha });
+  } else if (shape === 'crown') {
+    g.poly(crownShape(x, y, r * 0.8)).fill({ color, alpha }).stroke({ width: 1, color: O, alpha: alpha * 0.8 });
   } else {
     const w = r * 1.4 * Math.abs(Math.sin(spin * 6));
     g.rect(x - w / 2, y - r * 0.6, w + 0.5, r * 1.2).fill({ color, alpha });
@@ -1391,6 +1516,20 @@ function makeGrave(x: number, y: number, color: number, id: string): Graphics {
       g.roundRect(-9, -3, 18, 10, 2).fill(0xf0b400);
       g.roundRect(-8, 12, 16, 4, 2).fill(color);
       break;
+    case 'champion': {
+      // Marble steps, a pillar with a team-coloured ribbon, and a gold crown on a purple cushion.
+      g.roundRect(-17, 12, 34, 8, 2).fill(0xd9d2c4).stroke({ width: 2.2, color: O });
+      g.roundRect(-13, 5, 26, 8, 2).fill(0xe6dfd0).stroke({ width: 2.2, color: O });
+      g.roundRect(-9, -9, 18, 15, 2).fill(0xf6f0e2).stroke({ width: 2.2, color: O });
+      g.rect(-9, -2, 18, 5).fill(color).stroke({ width: 1.5, color: O });
+      g.circle(0, 0.5, 2.4).fill(0xffd84a).stroke({ width: 1.2, color: O });
+      g.roundRect(-12, -13, 24, 5, 1.5).fill(0xffd84a).stroke({ width: 2, color: O });
+      g.ellipse(0, -15.5, 9, 3.2).fill(0x8f5bd6).stroke({ width: 1.8, color: O });
+      g.poly([-8, -15, -8, -26, -4, -21, 0, -28, 4, -21, 8, -26, 8, -15]).fill(0xffd84a).stroke({ width: 2, color: O });
+      g.circle(0, -18.5, 1.9).fill(0xe04848).stroke({ width: 1, color: O });
+      for (const [sx, sy, sr] of [[-14, -24, 4], [14, -19, 3]] as const) g.poly([sx, sy - sr, sx + sr * 0.3, sy - sr * 0.3, sx + sr, sy, sx + sr * 0.3, sy + sr * 0.3, sx, sy + sr, sx - sr * 0.3, sy + sr * 0.3, sx - sr, sy, sx - sr * 0.3, sy - sr * 0.3]).fill(0xffffff).stroke({ width: 1, color: O });
+      break;
+    }
     case 'egg':
       g.ellipse(0, 2, 13, 18).fill(0xfff6e0).stroke({ width: 2.5, color: O });
       g.moveTo(-12, -2).lineTo(-6, 3).lineTo(-1, -3).lineTo(4, 3).lineTo(8, -2).lineTo(12, 1).stroke({ width: 2, color: O });
@@ -1400,6 +1539,17 @@ function makeGrave(x: number, y: number, color: number, id: string): Graphics {
   g.scale.set(s);
   g.position.set(x, y + 9 - 20 * s);
   return g;
+}
+
+/** Where the top of a row of hills is at x (the shape makeHillTexture draws, and what the banners stand on). */
+function hillTop(x: number, base: number, amp: number, freq: number): number {
+  return base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4;
+}
+
+/** A steady pseudo-random number in [0, 1) from a whole number: the same answer every time. */
+function hash01(n: number): number {
+  const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
 }
 
 /** The hills picture: from this far left of the map, this far above the water, at 1/HILL_SCALE size (they're soft shapes). */
@@ -1420,7 +1570,7 @@ function makeHillTexture(w: number, h: number, color: number, amp: number, base:
   ctx.beginPath();
   ctx.moveTo(HILL_LEFT, h + 3000);
   for (let x = HILL_LEFT; x <= w - HILL_LEFT; x += 25) {
-    ctx.lineTo(x, base - Math.sin(x * freq) * amp - Math.sin(x * freq * 2.7 + 1) * amp * 0.4);
+    ctx.lineTo(x, hillTop(x, base, amp, freq));
   }
   ctx.lineTo(w - HILL_LEFT, h + 3000);
   ctx.closePath();

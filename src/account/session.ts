@@ -10,6 +10,7 @@ import type { UsageReport } from '../usage/catalog';
 import { serverUrl, setTicketSource } from '../net/client';
 import { authToken, saveAuthToken, signsInWithToken } from './token';
 import { canUse, unlockedWeapons } from '../shop/catalog';
+import { withEveryone } from '../shop/prizeRules';
 import { isNativeApp } from '../native';
 import { App } from '@capacitor/app';
 import { signInSheet, webSignInAvailable } from './webSignIn';
@@ -67,6 +68,10 @@ export interface MeResponse {
   invite?: { code: string; rewarded: number; rewardedEver: number; waiting: number; invited: 'no' | 'waiting' | 'rewarded'; canEnter: boolean; reward?: number; creator?: string; played?: number };
   /** Invite rewards that came in since last time (said once): friends who joined with this player's code, and their own. */
   inviteNews?: { friends: number; coins: number; mine?: { coins: number; items: string[]; creator?: string } };
+  /** The owner gave this player contest prizes since last time (said once; server/prizes.ts): the looks, now in `owned`. */
+  prizeNews?: { items: string[]; badge?: 'winner' };
+  /** Has the 🏆 Launch Winner badge (a contest prize; server/prizes.ts): shown by the name, below ⭐ and above 💖 💛 🌱 🐣. */
+  winnerBadge?: boolean;
   /** An active creator (server/creators.ts): shows the ⭐ badge and may use the creator medal emblem. */
   creatorBadge?: boolean;
   /** Email news (server/newsletter.ts): subscribed, waiting for the account's email to be confirmed, or not; and whether the game has asked. */
@@ -142,6 +147,15 @@ export function takeInviteNews(): MeResponse['inviteNews'] | null {
   inviteNewsWaiting = null;
   return n;
 }
+/** Contest prizes the server reported, until the hub's pop-up has shown them. */
+let prizeNewsWaiting: MeResponse['prizeNews'] | null = null;
+
+/** Contest prizes waiting to be shown (once: taking them clears them). */
+export function takePrizeNews(): MeResponse['prizeNews'] | null {
+  const n = prizeNewsWaiting;
+  prizeNewsWaiting = null;
+  return n;
+}
 let loaded = false;
 const listeners = new Set<() => void>();
 
@@ -183,6 +197,7 @@ function set(next: MeResponse | null): void {
   if (saved && JSON.stringify(saved) !== JSON.stringify(controls())) setControls(saved);
   // Invite rewards are reported once: keep them until a screen shows them (takeInviteNews).
   if (next?.inviteNews) inviteNewsWaiting = next.inviteNews;
+  if (next?.prizeNews) prizeNewsWaiting = next.prizeNews;
   me = next;
   loaded = true;
   if (next) {
@@ -197,12 +212,13 @@ function set(next: MeResponse | null): void {
 
 /** Items owned by the last signed-in player on this device (works offline). */
 export function ownedItems(): string[] {
-  if (me) return me.owned;
+  // Plus the looks everyone has (EVERYONE_ITEMS), signed in or not.
+  if (me) return withEveryone(me.owned);
   try {
     const v = JSON.parse(localStorage.getItem(OWNED_KEY) ?? '[]') as unknown;
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+    return withEveryone(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
   } catch {
-    return [];
+    return withEveryone([]);
   }
 }
 
@@ -575,6 +591,36 @@ export async function saveCreator(c: { code: string; name: string; email?: strin
 
 export async function payCreator(code: string, amount: number, currency: string, note: string): Promise<CreatorReport[]> {
   return (await call<{ creators: CreatorReport[] }>('/api/admin/creators/paid', { code, amount, currency, note })).creators;
+}
+
+/** One contest prize the owner gave, as the Sales page lists it (server/prizes.ts). */
+export interface PrizeRow {
+  at: string;
+  email: string;
+  name: string;
+  items: string[];
+  note: string;
+  /** The badge this grant gave, if any. */
+  badge: 'winner' | null;
+}
+
+/** What giving a prize did: the looks that were new, the ones the player already had, the 🏆 badge if newly given, and who it went to. */
+export interface PrizeResult {
+  granted: string[];
+  alreadyOwned: string[];
+  badge: 'winner' | null;
+  hasBadge: boolean;
+  player: { name: string; email: string; emailVerified: boolean };
+}
+
+/** The owner only: give looks to one player (by email) as a contest prize. */
+export function givePrize(email: string, items: string[], note: string, badge: 'winner' | null = null): Promise<PrizeResult> {
+  return call<PrizeResult>('/api/admin/prize', { email, items, note, ...(badge ? { badge } : {}) });
+}
+
+/** The owner only: the last 100 prizes given. */
+export async function recentPrizes(): Promise<PrizeRow[]> {
+  return (await call<{ prizes: PrizeRow[] }>('/api/admin/prizes')).prizes;
 }
 
 /** The owner's sales figures for the last `days` days (0 = all time). */

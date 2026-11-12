@@ -65,7 +65,7 @@ on the site anyway.
   tiny History-API router). Pages live in `site/src/pages/`: Home, How to play
   (`/how-to-play`), Weapons (`/weapons`), Leaderboards, Help & support
   (`/support`), Easter eggs, Promo codes (`/promo-codes`), Press kit
-  (`/press`) and the legal pages.
+  (`/press`), the Giveaway (`/giveaway`) and the legal pages.
 - **Every page is written to its own HTML file at build time**
   (`site/src/entry-server.tsx` + `site/prerender.mjs`, run by
   `npm run site:build`), with its own title, description, share tags and
@@ -78,6 +78,19 @@ on the site anyway.
   `docs/SEO.md`. The header menu (`NAV` in
   `site/src/components/Layout.tsx`) lists the main ones; on phones it is a
   slide-out panel behind the ☰ button.
+- **Giveaway** (`/giveaway`): the contests are a plain list in `site/src/giveaways.ts`
+  (`slug`, `title`, `opens`/`closes` in ISO UTC, `entryUrl` (the Sociamonials form,
+  embedded in an iframe), `rulesPath`, `prizes`, `winners`). The page works out from
+  the date which contest to show: open → the entry form; before it opens → "Opens
+  1 December" with the prizes (no form); closed with no winners yet → "Entries are
+  closed"; closed with winners → listed under "Past winners" (player names only,
+  grouped by prize tier, newest first). The build shows the state at build time and
+  the browser corrects it at once and every 30 s. To run a new contest, add an entry
+  to `GIVEAWAYS`; to announce winners, fill that contest's `winners`
+  (`{ tier, playerName }`, the tier matching a `prizes` tier) and redeploy. In
+  `npm run site:dev`, `/giveaway?now=2026-12-05T12:00:00Z` pretends it is that
+  moment. The form is framed, so `frame-src https://app.socialmi.co.uk` is in the CSP
+  in `site/public/_headers`; a different form host needs adding there too.
 - Every 20–40 s a tardi swings across the screen on a silk rope
   (`site/src/components/RopeSwinger.tsx`, mounted in `Layout`): one small
   element moved with GSAP transforms, no taps, started only after the page

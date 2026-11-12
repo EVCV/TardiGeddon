@@ -6,7 +6,7 @@
 import type { Graphics } from 'pixi.js';
 import { PALETTE, hex } from './palette';
 
-type Fill = 'team' | 'ink' | 'white' | 'gold' | 'red' | 'green' | 'blue' | 'pink' | 'brown' | 'grey' | 'orange' | 'purple' | 'black' | 'glass' | 'silver' | 'cyan';
+type Fill = 'team' | 'ink' | 'white' | 'gold' | 'red' | 'green' | 'blue' | 'pink' | 'brown' | 'grey' | 'orange' | 'purple' | 'black' | 'glass' | 'silver' | 'cyan' | 'amber' | 'cream' | 'crimson';
 
 type Shape =
   | { k: 'circle'; x: number; y: number; r: number; fill: Fill }
@@ -552,6 +552,38 @@ export const HATS: HatDef[] = [
       { k: 'circle', x: 0.56, y: -0.22, r: 0.11, fill: 'green' },
     ],
   },
+  {
+    // The Launch Winner set's (a launch giveaway prize; never sold): a golden trophy cup with a "1" medal, worn like a hat.
+    id: 'launchwinner',
+    name: 'Launch Winner’s cup',
+    shapes: [
+      { k: 'poly', pts: ring(-1.2, -1.52, 0.56, 0.62, 0.46), fill: 'gold' },
+      { k: 'poly', pts: ring(1.2, -1.52, 0.56, 0.62, 0.46), fill: 'gold' },
+      { k: 'poly', pts: [-0.72, 0.12, -0.6, -0.4, 0.6, -0.4, 0.72, 0.12], fill: 'amber' },
+      { k: 'poly', pts: [-0.3, -0.4, -1.06, -1.3, -1.06, -2.0, 1.06, -2.0, 1.06, -1.3, 0.3, -0.4], fill: 'gold' },
+      { k: 'poly', pts: [-1.18, -2.0, -1.16, -2.4, 1.16, -2.4, 1.18, -2.0], fill: 'amber' },
+      { k: 'circle', x: 0, y: -1.48, r: 0.6, fill: 'cream' },
+      { k: 'poly', pts: [-0.06, -1.76, 0.07, -1.76, 0.07, -1.2, -0.06, -1.2], fill: 'ink' },
+      { k: 'poly', pts: [-0.06, -1.76, -0.34, -1.56, -0.06, -1.6], fill: 'ink' },
+    ],
+  },
+  {
+    // The Launch Champion set's (a launch giveaway prize for the top winners; never sold): a tall jewelled crown over red velvet.
+    id: 'champion',
+    name: 'Champion’s crown',
+    shapes: [
+      { k: 'poly', pts: [-1.32, -0.45, -1.22, -1.4, -0.8, -0.92, -0.52, -1.6, -0.28, -1.0, 0, -2.0, 0.28, -1.0, 0.52, -1.6, 0.8, -0.92, 1.22, -1.4, 1.32, -0.45], fill: 'gold' },
+      { k: 'poly', pts: [-1.34, 0.12, -1.36, -0.55, 1.36, -0.55, 1.34, 0.12], fill: 'crimson' },
+      { k: 'circle', x: -1.22, y: -1.56, r: 0.24, fill: 'white' },
+      { k: 'circle', x: -0.52, y: -1.76, r: 0.24, fill: 'white' },
+      { k: 'circle', x: 0, y: -2.18, r: 0.3, fill: 'white' },
+      { k: 'circle', x: 0.52, y: -1.76, r: 0.24, fill: 'white' },
+      { k: 'circle', x: 1.22, y: -1.56, r: 0.24, fill: 'white' },
+      { k: 'circle', x: 0, y: -0.2, r: 0.3, fill: 'cyan' },
+      { k: 'circle', x: -0.8, y: -0.2, r: 0.22, fill: 'gold' },
+      { k: 'circle', x: 0.8, y: -0.2, r: 0.22, fill: 'gold' },
+    ],
+  },
 ];
 
 export function hatById(id: string): HatDef {
@@ -592,6 +624,12 @@ function fillColor(f: Fill, team: number): number {
       return 0xd6dbe4;
     case 'cyan':
       return 0x7fd3f7;
+    case 'amber':
+      return 0xe0a920;
+    case 'cream':
+      return 0xfff3c8;
+    case 'crimson':
+      return 0xc8283e;
   }
 }
 

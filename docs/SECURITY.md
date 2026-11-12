@@ -86,7 +86,10 @@ the owner needs to keep doing. Last full review: 10 October 2026.
 **The website and game** (Cloudflare Pages, `site/public/_headers`)
 - Content-Security-Policy: only our own scripts (plus Cloudflare's analytics
   beacon), no inline scripts, no `eval` (Pixi runs without it via
-  `pixi.js/unsafe-eval`), connections only to us and the game server.
+  `pixi.js/unsafe-eval`), connections only to us and the game server. The
+  only page we put in a frame is a contest's entry form from Sociamonials
+  (`frame-src https://app.socialmi.co.uk`, for /giveaway), loaded only when
+  the visitor presses "Show the entry form".
 - No other site may put ours in a frame (no clickjacking of the shop or
   account pages); HTTPS only (HSTS); no MIME sniffing.
 - Everything players type is shown with `textContent`, never as HTML. So

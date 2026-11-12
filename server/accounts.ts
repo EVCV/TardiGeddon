@@ -16,6 +16,8 @@
 
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { givePrize, migratePrizes, prizeBadge, prizeItems, prizeNews, prizeNote, recentPrizes, winnerBadge } from './prizes';
+import { withEveryone } from '../src/shop/prizeRules';
 import { creatorCodeOf, creatorReports, migrateCreators, normaliseCreatorCode, recordCreatorPayout, saveCreator } from './creators';
 import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteNews, inviteStatus, isCreator, isEarlyBird, isFounder, migrateRewards, packBadge, peekInvite, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
@@ -288,6 +290,7 @@ export async function createAccounts(
   await migrateFriends(db);
   await migrateCreators(db);
   await migrateRewards(db);
+  await migratePrizes(db);
   await migrateNewsletter(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
@@ -670,6 +673,22 @@ export async function createAccounts(
     const note = typeof body?.note === 'string' ? body.note.slice(0, 200) : '';
     if (!(await recordCreatorPayout(db, code, amount, currency, note))) return json(res, 404, { error: 'No such creator.' });
     json(res, 200, { creators: await creatorReports(db) });
+  }
+
+  /** The owner's contest prizes (Sales page): give looks to one player by email, and the recent grants (server/prizes.ts). */
+  async function prizesApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const admin = await userFrom(req.headers);
+    if (!admin || !isAdmin(admin)) return json(res, 404, { error: tk('Not found.') });
+    if (req.method === 'GET') return json(res, 200, { prizes: await recentPrizes(db) });
+    const body = await readJson(req);
+    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+    if (!email || email.length > 320) return json(res, 400, { error: 'Give the player’s email.' });
+    const badge = prizeBadge(body?.badge);
+    const picked = prizeItems(body?.items, badge !== null);
+    if ('error' in picked) return json(res, 400, { error: picked.error });
+    const r = await givePrize(db, admin.id, email, picked.items, prizeNote(body?.note), badge);
+    if (!r) return json(res, 404, { error: 'No game account has that email.' });
+    json(res, 200, r);
   }
 
   /** Spend coins or Slime on a shop item. */
@@ -1196,7 +1215,7 @@ export async function createAccounts(
           const user = await userFrom(req.headers);
           const me: MeResponse = {
             user,
-            owned: user ? await ownedItems(db, user.id) : [],
+            owned: withEveryone(user ? await ownedItems(db, user.id) : []),
             wallet: user ? await walletOf(db, user.id) : { coins: 0, slime: 0 },
             stats: user ? await playerStats(db, user.id) : { ...NO_STATS },
             // Whether coins can be bought (Slime unlocks work without Stripe).
@@ -1220,7 +1239,7 @@ export async function createAccounts(
             if ((founder || earlyBird) && (await grantEarlyBird(db, user.id))) me.earlyBirdNew = true;
             if (founder && (await grantFounder(db, user.id))) me.founderNew = true;
             if (me.earlyBirdNew || me.founderNew) {
-              me.owned = await ownedItems(db, user.id);
+              me.owned = withEveryone(await ownedItems(db, user.id));
               me.wallet = await walletOf(db, user.id);
             }
             const badge = await packBadge(db, user.id);
@@ -1233,9 +1252,17 @@ export async function createAccounts(
             const news = await inviteNews(db, user.id);
             if (news) {
               me.inviteNews = news;
-              me.owned = await ownedItems(db, user.id);
+              me.owned = withEveryone(await ownedItems(db, user.id));
               me.wallet = await walletOf(db, user.id);
             }
+            // Contest prizes the owner gave since they last looked (told once; server/prizes.ts).
+            const prize = await prizeNews(db, user.id);
+            if (prize) {
+              me.prizeNews = prize;
+              me.owned = withEveryone(await ownedItems(db, user.id));
+            }
+            // The 🏆 Launch Winner badge (a contest prize; server/prizes.ts).
+            if (await winnerBadge(db, user.id)) me.winnerBadge = true;
             // A creator with a code (server/creators.ts): their own numbers, totals only.
             const creator = await creatorCodeOf(db, user.id);
             if (creator && (await isCreator(db, user.id))) me.creatorBadge = true;
@@ -1295,6 +1322,8 @@ export async function createAccounts(
           }
         } else if ((path === '/api/admin/creators' && (req.method === 'GET' || req.method === 'POST')) || (path === '/api/admin/creators/paid' && req.method === 'POST')) {
           await creatorsApi(req, res, path);
+        } else if ((path === '/api/admin/prize' && req.method === 'POST') || (path === '/api/admin/prizes' && req.method === 'GET')) {
+          await prizesApi(req, res);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
           await friendsApi(req, res, path);
         } else if (path === '/api/challenge/submit' && req.method === 'POST') {
@@ -1333,14 +1362,14 @@ export async function createAccounts(
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' | 'creator' | 'supporter' | 'patron' }> {
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' | 'creator' | 'winner' | 'supporter' | 'patron' }> {
       // The sign-in cookie (website, Android app), else a ticket (iOS app).
       const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
-      if (!userId) return { owned: [] };
+      if (!userId) return { owned: withEveryone([]) };
       const r = (await ratingsOf(db, [userId])).get(userId)!;
-      // A creator's ⭐ comes first; then 💖 or 💛 (supporter packs); then 🌱 or 🐣.
-      const badge = (await isCreator(db, userId)) ? 'creator' : ((await supporterBadge(db, userId)) ?? (await packBadge(db, userId)));
-      return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...(badge ? { badge } : {}) };
+      // A creator's ⭐ comes first; then 🏆 (a contest's Launch Winner); then 💖 or 💛 (supporter packs); then 🌱 or 🐣.
+      const badge = (await isCreator(db, userId)) ? 'creator' : (await winnerBadge(db, userId)) ? 'winner' : ((await supporterBadge(db, userId)) ?? (await packBadge(db, userId)));
+      return { userId, owned: withEveryone(await ownedItems(db, userId)), rating: r.rating, ...(badge ? { badge } : {}) };
     },
     /** The game server says who's online and passes on invites. */
     setPresence(p: Presence): void {

@@ -9,6 +9,7 @@ import { SOCIAL } from '../social';
 import { holdScroll } from '../motion/SmoothScroll';
 import { RopeSwinger } from './RopeSwinger';
 import { appsLine } from './AppStores';
+import { closesAt, dayShortUK, viewAt, winnerTotal } from '../giveaways';
 
 /** The site's pages, in menu order. */
 export const NAV = [
@@ -17,6 +18,7 @@ export const NAV = [
   { to: '/weapons', label: 'Weapons' },
   { to: '/leaderboards', label: 'Leaderboards' },
   { to: '/news', label: 'News' },
+  { to: '/giveaway', label: 'Giveaway' },
   { to: '/support', label: 'Help & support' },
 ];
 
@@ -118,12 +120,32 @@ function MobileMenu() {
   );
 }
 
+/**
+ * A strip above the header while a giveaway is open (site/src/giveaways.ts),
+ * linking to /giveaway. Our own link: no third-party scripts or cookies
+ * (Sociamonials' pop-up and sticky-tab widgets would load both on every page).
+ */
+function GiveawayBanner() {
+  const path = usePath();
+  const { current, status } = viewAt(Date.now());
+  if (!current || status !== 'open' || path === '/giveaway') return null;
+  return (
+    <p className="giveaway-banner">
+      <Link to="/giveaway">
+        <span aria-hidden="true">🏆</span> {current.title}: {winnerTotal(current)} prizes, free to enter until {dayShortUK(closesAt(current))}.{' '}
+        <span className="giveaway-banner-go">Enter free →</span>
+      </Link>
+    </p>
+  );
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   return (
     <>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+      <GiveawayBanner />
       <header className="site-header">
         <Link to="/" className="brand" aria-label="TardiGeddon home">
           <Mascot className="brand-mascot" label="" />

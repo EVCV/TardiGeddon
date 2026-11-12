@@ -21,6 +21,7 @@ export const LEGAL_PAGES: LegalPage[] = [
   { slug: 'copyright-policy', label: 'Copyright' },
   { slug: 'third-party-licences', label: 'Third-Party Licences' },
   { slug: 'legal-notice', label: 'Legal Notice' },
+  { slug: 'launch-giveaway-rules', label: 'Launch Giveaway Rules' },
 ];
 
 const files = import.meta.glob<string>(['../legal/*.md', '!../legal/README.md'], { query: '?raw', import: 'default' });

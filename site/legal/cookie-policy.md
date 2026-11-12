@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 2 November 2026
-**Document Version:** v1.10
+**Last Modified:** 12 November 2026
+**Document Version:** v1.11
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -93,9 +93,11 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 4.0 Third-Party Providers
 
-4.0.1 We do not embed third-party analytics, advertising, social media plug-ins, or videos that set cookies. Our hosting provider may use strictly necessary security measures (for example, to protect the Website from attacks), as described in its own privacy policy.
+4.0.1 We do not embed third-party analytics, advertising, social media plug-ins, or videos that set cookies. The only third-party content we embed is a contest's entry form, and only when you ask for it (Section 4.0.3). Our hosting provider may use strictly necessary security measures (for example, to protect the Website from attacks), as described in its own privacy policy.
 
 4.0.2 When you buy something, you leave the game for Stripe's payment page (checkout.stripe.com), and if you sign in with Google or Apple, you visit their sign-in page. Those pages are run by Stripe, Google or Apple, which may set their own cookies, for example to prevent fraud, as described in their own cookie and privacy policies. We do not control those cookies.
+
+4.0.3 Our giveaway page (https://tardigeddon.com/giveaway) can show the entry form for a contest, which is run for us by Sociamonials (see our Privacy Policy, Section 2.7). The form only loads when you press "Show the entry form", or if you open the entry page directly. Sociamonials then sets a session cookie on its own site to keep your entry together while you fill it in, as described in its own policies. We do not use it for anything else.
 
 ## Section 5 — Managing Your Preferences
 
