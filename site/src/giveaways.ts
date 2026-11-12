@@ -45,7 +45,7 @@ export const GIVEAWAYS: Giveaway[] = [
     title: 'TardiGeddon Launch Giveaway',
     opens: '2026-11-12T00:00:00Z',
     closes: '2027-01-31T23:59:59Z',
-    entryUrl: 'https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29221/',
+    entryUrl: 'https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29222/',
     rulesPath: '/legal/launch-giveaway-rules',
     prizes: [
       {

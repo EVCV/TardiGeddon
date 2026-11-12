@@ -3,7 +3,7 @@
 **Effective Date:** 12 November 2026
 **Last Modified:** 12 November 2026
 **Document Version:** v1.0
-**Applies To:** the TardiGeddon Launch Giveaway, entered at https://tardigeddon.com/giveaway or on its entry page at https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29221/ (the "Giveaway")
+**Applies To:** the TardiGeddon Launch Giveaway, entered at https://tardigeddon.com/giveaway or on its entry page at https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29222/ (the "Giveaway")
 
 ---
 
