@@ -139,6 +139,34 @@ The rules for the words are at the top of `scripts/social/posts.ts` and in
 spelling). Never change the `id` of a post that's been imported: its
 picture's web address is built from it.
 
+### Batch 3: the Launch Giveaway series
+
+`npx tsx scripts/social-posts.ts 3` makes 22 posts (13 Nov 2026 to 31 Jan 2027,
+all dated, 19:30 UK time except the closing day at 10:00) promoting the
+TardiGeddon Launch Giveaway, one angle each: kick-off, the three prize tiers,
+the Founder pack tie-in, launch day, each Champion and Winner look, how to
+enter, bonus entries, friends, who can enter, how winners are picked, the
+closing week and the closing day. The facts are only those in
+`site/legal/launch-giveaway-rules.md`; `--check` also refuses urgency or
+countdown words, "share/tag/like to enter", "lottery/raffle", anything that
+hints buying helps, and dates outside the giveaway.
+
+- Category **Giveaway**: each post ends with `🏆 Enter free: tardigeddon.com/giveaway`
+  (not the Play link) and carries "13+" and "Rules at the link".
+- **Never pinned to Pinterest** (pins outlive the giveaway): `BOARD.Giveaway` is
+  empty, so the CSV's PinterestBoard is blank, the TeamNote says "NOT for
+  Pinterest" and `--check` fails if a board is ever set. When booking, leave
+  Pinterest out of the networks.
+- Three posts are **videos** (kick-off, Champion's Arena and Fanfare, closing
+  week): 1080×1920, 20 to 30 seconds, captions burned in, game footage and prize
+  pictures, silent sound track (add a platform's own sound if you like). They are
+  drawn by `scripts/social/giveaway-videos.ts` into
+  `site/public/social/giveaway-<id>.mp4` (needs ffmpeg), and also go to YouTube
+  Shorts and TikTok.
+- The cards use the prize pictures (`site/public/media/giveaway/`) or the looks
+  drawn by `src/ui/cosmeticArt.ts`.
+- If the prizes or dates in the Official Rules change, change the posts too.
+
 ## 5. The monthly top-up (scheduled)
 
 A scheduled Claude task runs on the **20th of each month**. It writes the
