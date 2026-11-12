@@ -34,7 +34,16 @@ export interface RewardPop {
 
 const CONFETTI = ['#ffd84a', '#e04848', '#3a7be0', '#5aa83a', '#b388ff', '#ff8ac0'];
 
+/** Pop-ups waiting for the open one to close: only one owns focus and the page behind at a time. */
+const waiting: RewardPop[] = [];
+let open = false;
+
 export function showRewardPop(p: RewardPop): void {
+  if (open) {
+    waiting.push(p);
+    return;
+  }
+  open = true;
   const host = document.getElementById('ui') ?? document.body;
   const overlay = el('div', 'editor-overlay reward-overlay');
   const box = el('div', 'reward-pop');
@@ -49,6 +58,9 @@ export function showRewardPop(p: RewardPop): void {
     document.removeEventListener('keydown', onKey);
     if (behind) behind.inert = false;
     before?.focus?.();
+    open = false;
+    const next = waiting.shift();
+    if (next) showRewardPop(next);
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') close();
