@@ -486,13 +486,22 @@ export function promoItem(id: string): ShopItem | undefined {
 }
 
 /**
+ * Looks made only as contest prizes (in PROMO_ITEMS, never sold). Add their
+ * ids here so the Sales page can give them.
+ */
+export const PRIZE_ITEMS: string[] = [];
+
+/**
  * Looks the owner can give a player as a contest prize (server/prizes.ts, the
- * Sales page): any cosmetic, sold or never sold. Never weapons (they unlock
- * with Slime), coins, Slime or packs.
+ * Sales page): any Shop look, a promo-code look, or a prize-only look. Never
+ * weapons (they unlock with Slime), coins, Slime or packs, and never the
+ * Founder, Early bird, creator (Superfan) or Supporter looks: the Terms
+ * promise those only to the players who qualify or buy them (5.11–5.13).
  */
 export function prizeLook(id: string): ShopItem | undefined {
-  const item = shopItem(id) ?? promoItem(id);
-  return item && item.kind !== 'weapon' ? item : undefined;
+  const shop = shopItem(id);
+  if (shop) return shop.kind !== 'weapon' ? shop : undefined;
+  return PRIZE_ITEMS.includes(id) || PROMOS.some((p) => p.items.includes(id)) ? promoItem(id) : undefined;
 }
 
 /** Most looks in one prize. */

@@ -1054,7 +1054,8 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     // An unknown email.
     expect((await give({ email: 'nobody-at-all@example.com', items: ['hat:waterbear'] })).status).toBe(404);
     // Only looks: not coins, Slime, weapons, packs, bundles, unknown ids, nothing, or too many.
-    for (const bad of ['coins:200', 'weapon:pinball', 'supporter:2026', 'bundle:sweet', 'slime', 'hat:nonsense', '__proto__']) {
+    // Nor the looks the Terms keep for Founders, Early birds, creators' fans and Supporters (5.11–5.13).
+    for (const bad of ['coins:200', 'weapon:pinball', 'supporter:2026', 'bundle:sweet', 'slime', 'hat:nonsense', '__proto__', 'hat:founder', 'arena:dawn', 'hat:superfan', 'hat:supporter', 'skin:sunshine']) {
       const r = await give({ email: 'winner@example.com', items: ['hat:waterbear', bad] });
       expect(r.status).toBe(400);
       expect(((await r.json()) as { error: string }).error).toContain(bad);
@@ -1082,25 +1083,25 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     // Again: nothing added, and it says so (a partly new set gives only the new ones).
     const again = (await (await give({ email: 'winner@example.com', items })).json()) as { granted: string[]; alreadyOwned: string[] };
     expect(again).toMatchObject({ granted: [], alreadyOwned: items });
-    const part = (await (await give({ email: 'winner@example.com', items: ['skin:gold', 'grave:egg', 'grave:egg'] })).json()) as { granted: string[]; alreadyOwned: string[] };
-    expect(part).toMatchObject({ granted: ['grave:egg'], alreadyOwned: ['skin:gold'] });
+    const part = (await (await give({ email: 'winner@example.com', items: ['skin:gold', 'grave:cross', 'grave:cross'] })).json()) as { granted: string[]; alreadyOwned: string[] };
+    expect(part).toMatchObject({ granted: ['grave:cross'], alreadyOwned: ['skin:gold'] });
     expect(await owned(winner.id)).toHaveLength(4);
     expect((await accounts.db.query('SELECT 1 FROM prize')).rowCount).toBe(2);
 
     // The list: newest first, with who and what.
     const list = (await (await fetch(`${base}/api/admin/prizes`, { headers: { cookie: boss } })).json()) as { prizes: { at: string; email: string; name: string; items: string[]; note: string }[] };
-    expect(list.prizes.map((p) => p.items)).toEqual([['grave:egg'], items]);
+    expect(list.prizes.map((p) => p.items)).toEqual([['grave:cross'], items]);
     expect(list.prizes[1]).toMatchObject({ email: 'winner@example.com', name: 'Tester' });
 
     // The winner is told once, with everything given since they last looked; the looks are in what they own.
     const first = await me(winner.cookie);
-    expect([...first.prizeNews!.items].sort()).toEqual([...items, 'grave:egg'].sort());
-    expect(first.owned).toEqual(expect.arrayContaining([...items, 'grave:egg']));
+    expect([...first.prizeNews!.items].sort()).toEqual([...items, 'grave:cross'].sort());
+    expect(first.owned).toEqual(expect.arrayContaining([...items, 'grave:cross']));
     expect((await me(winner.cookie)).prizeNews).toBeUndefined();
     expect((await me(other.cookie)).prizeNews).toBeUndefined();
     // A later prize is told again, once.
-    await give({ email: 'winner@example.com', items: ['hat:founder'] });
-    expect((await me(winner.cookie)).prizeNews).toEqual({ items: ['hat:founder'] });
+    await give({ email: 'winner@example.com', items: ['hat:wizard'] });
+    expect((await me(winner.cookie)).prizeNews).toEqual({ items: ['hat:wizard'] });
     expect((await me(winner.cookie)).prizeNews).toBeUndefined();
     // Never coins or Slime.
     expect((await me(winner.cookie)).wallet).toEqual({ coins: 0, slime: 0 });

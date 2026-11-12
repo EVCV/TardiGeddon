@@ -3,7 +3,7 @@
 // server's ADMIN_EMAILS (docs/ACCOUNTS.md); totals only, never who bought what.
 
 import { creators, downloadNewsletter, givePrize, newsletterCounts, payCreator, recentPrizes, salesReport, saveCreator, type CreatorReport, type MeResponse, type PrizeRow, type SalesReport } from '../account/session';
-import { PRIZE_MAX_ITEMS, PROMO_ITEMS, SHOP_ITEMS, bundle, coinPack, formatNumber, packTotal, promoItem, shopItem, type ItemKind, type ShopItem } from '../shop/catalog';
+import { PRIZE_MAX_ITEMS, PROMO_ITEMS, SHOP_ITEMS, prizeLook, bundle, coinPack, formatNumber, packTotal, promoItem, shopItem, type ItemKind, type ShopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
 import { newUsageState, usageCards, type UsageState } from './usageReport';
 import type { HubContext } from './hub';
@@ -282,9 +282,9 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
 
 const KIND_LABEL: Record<string, string> = { hat: 'Hats', skin: 'Skins', aim: 'Aim styles', fx: 'Explosions', dance: 'Victory dances', grave: 'Gravestones', arena: 'Worlds', music: 'Music', sound: 'Sound packs' };
 
-/** Every look that can be a prize: the never-sold ones first (promo, Founder, Early bird, Supporter, Superfan…), then the shop's, by kind. Never weapons. */
+/** Every look that can be a prize (catalog's prizeLook): the never-sold ones first, then the shop's, by kind. Never weapons, nor Founder, Early bird, Supporter or Superfan looks. */
 function prizeGroups(): { title: string; items: ShopItem[] }[] {
-  const groups = [{ title: 'Prize-only looks (never sold)', items: PROMO_ITEMS }];
+  const groups = [{ title: 'Prize-only looks (never sold)', items: PROMO_ITEMS.filter((i) => prizeLook(i.id)) }];
   for (const kind of Object.keys(KIND_LABEL) as ItemKind[]) groups.push({ title: `${KIND_LABEL[kind]} (shop)`, items: SHOP_ITEMS.filter((i) => i.kind === kind) });
   return groups.filter((g) => g.items.length);
 }
