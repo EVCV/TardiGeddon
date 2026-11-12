@@ -132,6 +132,7 @@ Approximate retail value: **up to £36** each, depending on the bundle chosen.
 
 8.0.2 We will email each winner, at the address they entered with, within 14 days after the Entry Period closes. To claim the prize, the winner must reply within **14 days** of our email with:
 
+- the country they live in, so we can check they can enter (Section 3);
 - the player name or email address of the TardiGeddon account the prize should go to (or make a free account first);
 - for a third prize, which Shop bundle they would like;
 - if they are under 18, a short confirmation from a parent or guardian that they agree to these rules (and, for the grand prize, to Section 7).
