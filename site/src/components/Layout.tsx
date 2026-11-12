@@ -17,6 +17,7 @@ export const NAV = [
   { to: '/weapons', label: 'Weapons' },
   { to: '/leaderboards', label: 'Leaderboards' },
   { to: '/news', label: 'News' },
+  { to: '/giveaway', label: 'Giveaway' },
   { to: '/support', label: 'Help & support' },
 ];
 

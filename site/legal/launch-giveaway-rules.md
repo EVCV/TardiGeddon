@@ -3,7 +3,7 @@
 **Effective Date:** 12 November 2026
 **Last Modified:** 12 November 2026
 **Document Version:** v1.0
-**Applies To:** the TardiGeddon Launch Giveaway, entered on its entry page at https://www.rfr.bz/97052ba4 (the "Giveaway")
+**Applies To:** the TardiGeddon Launch Giveaway, entered at https://tardigeddon.com/giveaway or on its entry page at https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29219/ (the "Giveaway")
 
 ---
 
@@ -118,7 +118,7 @@ Approximate retail value: **up to £36** each, depending on the bundle chosen.
 
 ## Section 7 — The Grand Prize Design Set
 
-7.0.1 We will work with the grand prize winner over email or video calls in the six months after the prize is confirmed. If the winner is under 18, a parent or guardian must agree in writing before we start and be present at any call. The winner does not need to travel anywhere.
+7.0.1 We will work with the grand prize winner by email only, in the six months after the prize is confirmed. There are no calls or meetings, and the winner does not need to travel anywhere. If the winner is under 18, a parent or guardian must agree in writing before we start and be copied in on our emails.
 
 7.0.2 The winner shares ideas (for example a theme, colours, sketches and the mood of the music), and our team makes the final designs and the music. We have the final say on what is made, so that it fits the game and our Community Guidelines and stays fair for everyone. The finished items are cosmetic only.
 

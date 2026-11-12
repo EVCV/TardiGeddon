@@ -65,6 +65,12 @@ export const PAGES: Record<string, PageMeta> = {
     ...HOME_IMAGE,
     crumb: 'News',
   },
+  '/giveaway': {
+    title: 'TardiGeddon Launch Giveaway: 26 Prizes, Free to Enter',
+    description: 'Enter the free TardiGeddon Launch Giveaway for a chance to win 26 prizes of looks for your tardigrades, from every Shop look to bundles and badges. See the prizes, rules and past winners.',
+    ...HOME_IMAGE,
+    crumb: 'Giveaway',
+  },
   '/support': {
     title: 'TardiGeddon Help and FAQ: Accounts, Coins, Safety',
     description: 'Answers about playing TardiGeddon: what you need, accounts, coins and refunds, staying safe online, reporting players and deleting your account.',
