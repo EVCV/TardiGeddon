@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUNDLES, COIN_PACKS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, packTotal, promoItem, shopItem } from '../src/shop/catalog';
+import { BUNDLES, COIN_PACKS, LAUNCH_CHAMPION_ITEMS, LAUNCH_WINNER_ITEMS, PRIZE_ITEMS, SHOP_ITEMS, bundlePrice, bundleValue, canUse, packTotal, prizeLook, promoItem, shopItem } from '../src/shop/catalog';
 import { HATS } from '../src/render/hats';
 import { SKINS } from '../src/render/skins';
 import { AIM_STYLES, FX_STYLES, aimStyle, fxStyle, rainbowAt } from '../src/render/cosmetics';
@@ -189,5 +189,42 @@ describe('seasonal events', () => {
       expect(hits, d.toDateString()).toBeLessThanOrEqual(1);
     }
     for (const s of SEASONS) expect(ARENAS.find((a) => a.id === s.arena)?.season, s.id).toBe(s.id);
+  });
+});
+
+describe('launch giveaway prizes', () => {
+  const known: Record<string, string[]> = {
+    hat: HATS.map((h) => h.id),
+    aim: AIM_STYLES.map((a) => a.id),
+    fx: FX_STYLES.map((f) => f.id),
+    grave: GRAVES.map((g) => g.id),
+    arena: ARENAS.map((a) => a.id),
+    music: TRACKS.map((t) => t.id),
+  };
+
+  it('are real, never-sold, legendary looks, and the Champion set has one of each kind', () => {
+    expect(LAUNCH_WINNER_ITEMS).toEqual(['hat:launchwinner', 'aim:launchwinner']);
+    expect(LAUNCH_CHAMPION_ITEMS.map((id) => id.split(':')[0]).sort()).toEqual(['aim', 'arena', 'fx', 'grave', 'hat', 'music']);
+    expect(PRIZE_ITEMS).toEqual([...LAUNCH_WINNER_ITEMS, ...LAUNCH_CHAMPION_ITEMS]);
+    for (const id of PRIZE_ITEMS) {
+      const item = promoItem(id);
+      expect(item, id).toBeDefined();
+      expect(shopItem(id), id).toBeUndefined();
+      expect(item!.rarity, id).toBe('legendary');
+      expect(known[item!.kind], id).toContain(item!.ref);
+      // Locked until given, and the owner can give them as prizes.
+      expect(canUse(item!.kind, item!.ref, []), id).toBe(false);
+      expect(canUse(item!.kind, item!.ref, [id]), id).toBe(true);
+      expect(prizeLook(id)?.id, id).toBe(id);
+    }
+  });
+
+  it('keep the Champion world to a sunset with scenery, and every colour a real colour', () => {
+    const a = arenaTheme('champion');
+    expect(a.id).toBe('champion');
+    expect(a.free).toBeUndefined();
+    expect(a.scenery?.fireworks.length).toBeGreaterThan(2);
+    expect(a.scenery?.flags.length).toBeGreaterThan(1);
+    for (const c of [a.scenery!.sun, ...a.scenery!.fireworks, ...a.scenery!.flags]) expect(c).toBeLessThanOrEqual(0xffffff);
   });
 });

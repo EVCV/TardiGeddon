@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 3 November 2026
-**Document Version:** v2.3
+**Last Modified:** 12 November 2026
+**Document Version:** v2.4
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -257,6 +257,16 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 5.13.2 The rules for buying coins apply to Supporter packs too: you need an account, and the confirmations before you pay (Section 5.1.1); the prices include VAT or the tax for your country; on our Website Stripe takes the payment (Section 5.1.3), and in our Android and iOS apps Google Play or Apple does, as the seller, at the price it shows (Sections 5.1.5 and 5.1.5A). The pack's items are added to your account straight away. You lose the right to cancel once they are delivered (Section 5.2), and your rights if something is faulty are not affected (Section 5.3).
 
 5.13.3 A pack's items are cosmetic only. They stay yours on the same terms as any other item (Section 5.4), cannot be given as gifts, and are never sold separately. In the iOS app, "Restore purchases" in the Shop brings back the packs bought with your Apple ID. If a payment for a pack is refunded or disputed, its items and badge are taken back from your account (except any items another pack you still have also gives).
+
+### 5.14 Contest Prizes
+
+5.14.1 Prizes from our contests and giveaways are cosmetic only: looks (such as hats, skins and worlds), and for some contests a 🏆 badge, which we add to the winner's account. Prizes never include coins, Slime, weapons or money.
+
+5.14.2 Prize items stay yours on the same terms as any other item (Section 5.4). They cannot be exchanged for money, coins or other items, and cannot be given to anyone else as gifts. A 🏆 badge is shown beside your name, including to other players in online games, and lasts while your account does.
+
+5.14.3 Each contest has its own official rules, on its entry page. They say who can enter and what the prizes are, and apply together with these Terms.
+
+5.14.4 If a design is made together with a contest winner, we may release it to all players. We will credit the winner by their player name.
 
 ## Section 6 — Intellectual Property
 

@@ -203,6 +203,7 @@ export function showHub(
       const who = el('button', 'chip hub-me');
       who.setAttribute('aria-label', t('Signed in as {name}: your account', { name: me.user.name }));
       if (me.creatorBadge) who.append(el('span', 'founder-badge', '⭐'));
+      else if (me.winnerBadge) who.append(el('span', 'founder-badge', '🏆'));
       else if (me.supporterBadge) who.append(el('span', 'founder-badge', me.supporterBadge === 'patron' ? '💖' : '💛'));
       else if (me.earlyBird) who.append(el('span', 'founder-badge', me.founder ? '🌱' : '🐣'));
       who.append(el('span', 'hub-me-name', me.user.name));
@@ -407,16 +408,29 @@ function showInviteNews(go: (tab: HubTab) => void): void {
   });
 }
 
-/** Looks the owner gave as a contest prize (src/account/session.ts takePrizeNews), as a pop-up. */
+/** Looks (and the 🏆 badge) the owner gave as a contest prize (src/account/session.ts takePrizeNews), as a pop-up. */
 function showPrizeNews(): void {
   const news = takePrizeNews();
-  if (!news?.items.length) return;
-  const names = news.items.map((id) => t((shopItem(id) ?? promoItem(id))?.name ?? id)).join(', ');
+  if (!news || (!news.items.length && !news.badge)) return;
+  // A few looks are named; a big prize (every Shop look) is counted, with pictures of the never-sold ones first.
+  const few = news.items.length <= 6;
+  const items = [...news.items].sort((a, b) => Number(!!promoItem(b)) - Number(!!promoItem(a)));
+  const names = items.map((id) => t((shopItem(id) ?? promoItem(id))?.name ?? id)).join(', ');
+  const n = news.items.length;
+  const text = !n
+    ? t('Congratulations! The 🏆 Launch Winner badge is now by your name.')
+    : news.badge
+      ? few
+        ? t('Congratulations! {items} are now in your collection, and the 🏆 Launch Winner badge is by your name. Find the looks in ✎ Customise team.', { items: names })
+        : t('Congratulations! {n} new looks are now in your collection, and the 🏆 Launch Winner badge is by your name. Find the looks in ✎ Customise team.', { n })
+      : few
+        ? t('Congratulations! {items} are now in your collection. Find them in ✎ Customise team.', { items: names })
+        : t('Congratulations! {n} new looks are now in your collection. Find them in ✎ Customise team.', { n });
   showRewardPop({
     badge: '🏆',
     title: t('You won a prize!'),
-    text: t('Congratulations! {items} are now in your collection. Find them in ✎ Customise team.', { items: names }),
-    items: news.items,
+    text,
+    items: items.slice(0, 6),
     button: t('Brilliant!'),
   });
 }

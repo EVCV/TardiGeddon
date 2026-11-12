@@ -13,9 +13,10 @@ import { CpuPlayer } from '../src/ai/cpu';
 import type { SimEvent } from '../src/sim/types';
 import type { CreatorReport, GiftSent, SalesReport } from '../src/account/session';
 import { wearableTeam } from '../server/room';
-import { canWearHat, promoFor, PROMOS } from '../src/shop/catalog';
+import { canWearHat, promoFor, PROMOS, prizeLook, SHOP_ITEMS } from '../src/shop/catalog';
+import { PRIZE_GRANT_MAX } from '../src/shop/prizeRules';
 import { migrate, revokePurchase, unspentCoins } from '../server/store';
-import { earlyBirdRule, founderRule, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
+import { earlyBirdRule, founderRule, grantEarlyBird, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
 import { SUPPORTER_PACKS, supporterSaleOn } from '../src/shop/catalog';
 import { CREATOR_INVITE_COINS, EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FAN_ITEMS, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
 import type { Mail } from '../server/mail';
@@ -1062,7 +1063,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     }
     expect((await give({ email: 'winner@example.com', items: [] })).status).toBe(400);
     expect((await give({ email: 'winner@example.com' })).status).toBe(400);
-    expect((await give({ email: 'winner@example.com', items: Array.from({ length: 21 }, (_, i) => `hat:x${i}`) })).status).toBe(400);
+    expect((await give({ email: 'winner@example.com', items: Array.from({ length: PRIZE_GRANT_MAX + 1 }, (_, i) => `hat:x${i}`) })).status).toBe(400);
     expect(await owned(winner.id)).toEqual([]);
 
     // A grant (email in any case): a never-sold look and two shop looks.
@@ -1105,6 +1106,85 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect((await me(winner.cookie)).prizeNews).toBeUndefined();
     // Never coins or Slime.
     expect((await me(winner.cookie)).wallet).toEqual({ coins: 0, slime: 0 });
+  });
+
+  it('gives a whole Shop of looks in one grant, with the 🏆 Launch Winner badge: recorded even when nothing is new, ranked below creators and above supporters, founders and early birds', async () => {
+    const signInAs = async (email: string) => {
+      const r = await post('/api/auth/sign-in/email', { email, password: 'correct horse' });
+      return r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    };
+    const boss = await signInAs('boss@example.com');
+    const give = (body: unknown) => post('/api/admin/prize', body, boss);
+    const everyShopLook = SHOP_ITEMS.filter((i) => prizeLook(i.id)).map((i) => i.id);
+    expect(everyShopLook.length).toBeGreaterThan(20);
+    expect(everyShopLook.length).toBeLessThanOrEqual(PRIZE_GRANT_MAX);
+    expect(everyShopLook.some((id) => id.startsWith('weapon:'))).toBe(false);
+    const rowsOf = async (id: string) => (await accounts.db.query<{ items: string[]; badge: string | null }>('SELECT items, badge FROM prize WHERE user_id = $1 ORDER BY id', [id])).rows;
+
+    // Every Shop look in one grant (more than the old 20), plus the badge.
+    const grand = await signUp('grand@example.com');
+    expect((await give({ email: 'grand@example.com', items: [...everyShopLook, 'hat:nonsense'] })).status).toBe(400);
+    expect((await give({ email: 'grand@example.com', items: Array.from({ length: PRIZE_GRANT_MAX + 1 }, (_, i) => `hat:x${i}`) })).status).toBe(400);
+    expect((await accounts.db.query('SELECT 1 FROM inventory WHERE user_id = $1', [grand.id])).rowCount).toBe(0);
+    const r = await give({ email: 'grand@example.com', items: everyShopLook, badge: 'winner', note: 'Grand prize' });
+    expect(r.status).toBe(200);
+    const done = (await r.json()) as { granted: string[]; alreadyOwned: string[]; badge: string | null; hasBadge: boolean };
+    expect(done.granted).toHaveLength(everyShopLook.length);
+    expect(done).toMatchObject({ alreadyOwned: [], badge: 'winner', hasBadge: true });
+    expect((await accounts.db.query('SELECT 1 FROM inventory WHERE user_id = $1 AND source = $2', [grand.id, 'prize'])).rowCount).toBe(everyShopLook.length);
+    expect(await rowsOf(grand.id)).toEqual([{ items: everyShopLook, badge: 'winner' }]);
+
+    // The badge is theirs: in the account, and online by their name (a client can't claim it: playerFor reads the account).
+    let m = await me(grand.cookie);
+    expect(m.winnerBadge).toBe(true);
+    expect(m.prizeNews).toMatchObject({ badge: 'winner' });
+    expect(m.prizeNews!.items).toHaveLength(everyShopLook.length);
+    expect((await me(grand.cookie)).prizeNews).toBeUndefined();
+    expect((await accounts.playerFor({ cookie: grand.cookie })).badge).toBe('winner');
+    expect((await me(boss)).winnerBadge).toBeUndefined();
+    expect((await accounts.playerFor({ cookie: boss })).badge).toBeUndefined();
+
+    // Asking again: nothing new and no second badge (so no new row); the answer says they already have it.
+    const again = (await (await give({ email: 'grand@example.com', items: everyShopLook, badge: 'winner' })).json()) as { granted: string[]; badge: string | null; hasBadge: boolean };
+    expect(again).toMatchObject({ granted: [], badge: null, hasBadge: true });
+    expect(await rowsOf(grand.id)).toHaveLength(1);
+
+    // The badge on its own still counts, for someone who owns everything already (no new looks) or when no looks are named.
+    const full = await signUp('full@example.com');
+    expect((await give({ email: 'full@example.com', items: everyShopLook })).status).toBe(200);
+    expect((await me(full.cookie)).winnerBadge).toBeUndefined();
+    const onlyBadge = (await (await give({ email: 'full@example.com', items: everyShopLook, badge: 'winner' })).json()) as { granted: string[]; badge: string | null };
+    expect(onlyBadge).toMatchObject({ granted: [], badge: 'winner' });
+    expect(await rowsOf(full.id)).toEqual([
+      { items: everyShopLook, badge: null },
+      { items: [], badge: 'winner' },
+    ]);
+    expect((await me(full.cookie)).prizeNews).toMatchObject({ badge: 'winner' });
+    expect((await accounts.playerFor({ cookie: full.cookie })).badge).toBe('winner');
+    const bare = await signUp('bare@example.com');
+    expect((await give({ email: 'bare@example.com' })).status).toBe(400); // nothing at all
+    expect((await give({ email: 'bare@example.com', items: [], badge: 'gold' })).status).toBe(400); // an unknown badge is no badge
+    expect(((await (await give({ email: 'bare@example.com', badge: 'winner' })).json()) as { granted: string[]; badge: string | null })).toMatchObject({ granted: [], badge: 'winner' });
+    expect((await me(bare.cookie)).prizeNews).toEqual({ items: [], badge: 'winner' });
+    expect((await accounts.db.query('SELECT 1 FROM inventory WHERE user_id = $1', [bare.id])).rowCount).toBe(0);
+
+    // Order of badges: ⭐ creator, 🏆 winner, 💖 💛 supporter, 🌱 🐣. The winner badge beats a supporter's and an early bird's...
+    const mixed = await signUp('mixedbadges@example.com');
+    const supporterPack = SUPPORTER_PACKS.find((p) => p.badge === 'supporter')!;
+    expect(await sendWebhook('checkout.session.completed', { ...paid('cs_prize_sup', mixed.id, supporterPack.id), amount_total: supporterPack.price })).toBe(200);
+    expect((await accounts.playerFor({ cookie: mixed.cookie })).badge).toBe('supporter');
+    await grantEarlyBird(accounts.db, mixed.id);
+    expect((await give({ email: 'mixedbadges@example.com', badge: 'winner' })).status).toBe(200);
+    expect((await accounts.playerFor({ cookie: mixed.cookie })).badge).toBe('winner');
+    m = await me(mixed.cookie);
+    expect(m).toMatchObject({ winnerBadge: true, supporterBadge: 'supporter', earlyBird: true });
+    // ...and a creator's ⭐ beats the winner badge.
+    expect((await post('/api/admin/creators', { code: 'prizestar', name: 'Prize Star', email: 'mixedbadges@example.com' }, boss)).status).toBe(200);
+    expect((await accounts.playerFor({ cookie: mixed.cookie })).badge).toBe('creator');
+    expect((await me(mixed.cookie)).winnerBadge).toBe(true);
+
+    // The badge lives only in the prize table: one row per account that has it.
+    expect((await accounts.db.query(`SELECT 1 FROM prize WHERE badge = 'winner'`)).rowCount).toBe(4);
   });
 
   it("explains Stripe's refusal when using test keys", async () => {

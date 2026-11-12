@@ -21,6 +21,8 @@ export interface ArenaTheme {
   stars?: boolean;
   /** Snowflakes or embers drifting down/up. */
   drift?: { color: number; up?: boolean };
+  /** A victory arena's scenery (render/renderer.ts): a low sun and fireworks in the sky, banners and bunting on the hills. */
+  scenery?: { sun: number; fireworks: readonly number[]; flags: readonly number[] };
   /** Everyone has it (no shop item). */
   free?: boolean;
   /** Only while this seasonal event is on (render/seasons.ts); free then. */
@@ -323,6 +325,20 @@ export const ARENAS: ArenaTheme[] = [
     soil: [0x3e2030, 0x9a6070, 0x7e4a5a, 0xf0b0c0],
     drift: { color: 0xffe6f0, up: true },
   },
+  {
+    // The Launch Champion set's (a launch giveaway prize for the top winners; never sold): a victory arena at sunset, red carpet, banners, bunting and fireworks.
+    id: 'champion',
+    name: 'Champion’s Arena',
+    skyTop: '#5a2d82',
+    skyBottom: '#ffb15c',
+    hillFar: 0xd8708a,
+    hillNear: 0x8c3a6c,
+    water: 0x3a4aa0,
+    waterLight: 0xffc27a,
+    grass: [0x5a1426, 0xc8283e, 0xffd84a],
+    soil: [0x2e1426, 0x6e3a50, 0x55283e, 0xf0b060],
+    scenery: { sun: 0xffd27a, fireworks: [0xffd84a, 0xff6f9a, 0x6fe8ff, 0xffffff, 0xb388ff, 0x7dff8a], flags: [0xe04848, 0xffd84a, 0x8f5bd6, 0x3fc0d8] },
+  },
 ];
 
 /** "Surprise me": a different free (or owned) arena every match. */
@@ -348,7 +364,7 @@ const dimCss = (c: string, keep: number) => '#' + dim(parseInt(c.slice(1), 16), 
  */
 export function shownArena(theme: ArenaTheme): ArenaTheme {
   if (!VIEW.dark) return theme;
-  return {
+  const shown: ArenaTheme = {
     ...theme,
     skyTop: dimCss(theme.skyTop, 0.3),
     skyBottom: dimCss(theme.skyBottom, 0.38),
@@ -359,4 +375,7 @@ export function shownArena(theme: ArenaTheme): ArenaTheme {
     grass: [dim(theme.grass[0], 0.7), dim(theme.grass[1], 0.7), dim(theme.grass[2], 0.7)],
     soil: [dim(theme.soil[0], 0.7), dim(theme.soil[1], 0.68), dim(theme.soil[2], 0.68), dim(theme.soil[3], 0.68)],
   };
+  // Scenery lights up too: the sun, flags and fireworks are dimmed with the rest.
+  if (theme.scenery) shown.scenery = { sun: dim(theme.scenery.sun, 0.5), fireworks: theme.scenery.fireworks.map((c) => dim(c, 0.75)), flags: theme.scenery.flags.map((c) => dim(c, 0.6)) };
+  return shown;
 }

@@ -119,19 +119,44 @@ free without an account.
   `fly secrets set FOUNDER_EMAILS=tester@example.com,helper@example.com EARLY_BIRD_MAX=5000`
   (and say so in the game: Terms 5.11.2 names the dates and the number).
 - **Prizes** (`server/prizes.ts`): for contest winners (giveaways), the owner
-  puts looks straight onto one player's account, found by email, from the
-  Sales page's "🏆 Give a prize" card. No codes are involved (the iOS app can't
-  take codes that unlock things Apple doesn't sell, App Store Guideline 3.1.1),
-  and the looks show on every platform. Looks only: any non-weapon item in
-  `SHOP_ITEMS` or `PROMO_ITEMS` (`prizeLook` in `src/shop/catalog.ts`), 1 to 20
-  per grant; never coins, Slime, weapons or packs. Items go into `inventory`
-  with source `prize` (the ones the player already has are skipped, so it's safe
-  to repeat), and each grant that gave something is a row in the `prize` table
-  (player, looks newly given, note, which admin, when). Admin API (404 for
-  anyone else, like the other owner pages): `POST /api/admin/prize` with
-  `{ email, items, note? }` gives `{ granted, alreadyOwned, player }`, and
+  puts looks, and optionally a 🏆 badge, straight onto one player's account,
+  found by email, from the Sales page's "🏆 Give a prize" card (Terms 5.14). No
+  codes are involved (the iOS app can't take codes that unlock things Apple
+  doesn't sell, App Store Guideline 3.1.1), and the looks show on every
+  platform. Looks only: any non-weapon item in `SHOP_ITEMS` or `PROMO_ITEMS`
+  (`prizeLook` in `src/shop/catalog.ts`), up to `PRIZE_GRANT_MAX` (300, in
+  `src/shop/prizeRules.ts`) per grant, so "Every Shop look" fits in one grant;
+  never coins, Slime, weapons or packs. The card has quick picks that add a
+  set to the selection (Every Shop look, the Launch Winner and Launch Champion
+  sets, "+ <bundle>" for each Shop bundle: the launch giveaway's grand prize
+  is every Shop look + both launch sets, second prizes the Champion set + all
+  bundles + the Winner set, third prizes the Winner set + one bundle) and
+  confirms with a count and the coin value for big grants. Items go into
+  `inventory` with source `prize` (the ones the player already has are
+  skipped, so it's safe to repeat), and each grant that gave something is a row
+  in the `prize` table (player, looks newly given, note, which admin, when,
+  `badge`). The **🏆 Launch Winner badge** (`badge = 'winner'` on the grant that
+  first gave it; ticked by default on the card; a badge on its own, with no new
+  looks, still writes a row) shows by the player's name in the hub
+  (`MeResponse.winnerBadge`) and online (`LobbySlot.badge = 'winner'` from
+  `playerFor`, which reads the account: clients can't claim a badge). Order of
+  badges: ⭐ creator, 🏆 winner, 💖 💛 supporter, 🌱 🐣 founder or early bird.
+  Admin API (404 for anyone else, like the other owner pages):
+  `POST /api/admin/prize` with `{ email, items?, note?, badge?: 'winner' }`
+  (`items` may be left out only with a badge) gives
+  `{ granted, alreadyOwned, badge, hasBadge, player }`, and
   `GET /api/admin/prizes` lists the last 100. The winner sees a "You won a
-  prize!" pop-up once (`/api/me`'s `prizeNews`, from the table's `seen` flag).
+  prize!" pop-up once (`/api/me`'s `prizeNews`, `{ items, badge? }`, from the
+  table's `seen` flag).
+- **Looks for everyone** (`EVERYONE_ITEMS` in `src/shop/catalog.ts`, e.g. the
+  version of a contest winner's design released to all players): treated as
+  owned by every player, signed in or not. `withEveryone(owned)`
+  (`src/shop/prizeRules.ts`) is applied where ownership is read: `/api/me`'s
+  `owned` (`server/accounts.ts`), `playerFor` (the online game server's
+  swap and arena checks, including signed-out players and the fallback in
+  `server/main.ts`), and the game's `ownedItems()` (`src/account/session.ts`,
+  which every `canUse` check uses). They are not in `inventory`, so they are
+  never listed as "owned from" anywhere and need no grant.
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

@@ -23,6 +23,8 @@ interface Voice {
 export interface Track {
   id: string;
   name: string;
+  /** What the tune is made up from, if not the id (so a track keeps its id and can still choose its tune). */
+  seed?: string;
   /** Shop art colours. */
   colors: [string, string];
   bpm: number;
@@ -152,6 +154,15 @@ export const TRACKS: Track[] = [
     pad: { wave: 'sawtooth', gain: 0.02, cutoff: 1300, pattern: 'x' },
     drums: { kick: 'x.......x.......', snare: '....x...x.x.x...', hat: 'x.x.x.x.x.x.x.x.', gain: 0.4 },
   },
+  // Never sold: the Launch Champion set (a launch giveaway prize). A brassy march in D major: sixteen bars, a drum roll to end each one, bells on top.
+  {
+    id: 'champion', name: 'Champion’s Fanfare', seed: 'fanfare383', colors: ['#ffd84a', '#8f2a4a'], bpm: 112, steps: 16, root: 62, scale: MAJOR, chords: [I, V, vi, IV, I, IV, V, I], echo: 0.28,
+    lead: { wave: 'square', gain: 0.04, cutoff: 3000, octave: 0, pattern: 'x--xx-x-x---x-x-' },
+    bass: { wave: 'sawtooth', gain: 0.07, cutoff: 700, pattern: 'x.x.x.o.x.x.x.o.' },
+    pad: { wave: 'sawtooth', gain: 0.022, cutoff: 1500, pattern: 'x' },
+    arp: { wave: 'triangle', gain: 0.025, octave: 24, pattern: 'x.x.x.x.x.x.x.x.' },
+    drums: { kick: 'x...x...x...x...', snare: '....x.......x.xx', hat: 'x.x.x.x.x.x.x.x.', gain: 0.42 },
+  },
 ];
 
 export function musicTrack(id: string | null | undefined): Track {
@@ -174,7 +185,7 @@ function rng(seed: string): () => number {
  * half answers the first: it starts the same and ends differently.
  */
 export function melody(t: Track): (number | null)[] {
-  const rand = rng(t.id);
+  const rand = rng(t.seed ?? t.id);
   const n = t.scale.length;
   const noteAt = (p: number) => t.root + t.lead.octave + 12 * Math.floor(p / n) + t.scale[((p % n) + n) % n];
   const phrase = () => {
