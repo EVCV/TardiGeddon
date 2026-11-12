@@ -57,6 +57,9 @@ export class Camera {
   held = false;
   /** Where their tardi stood when they did: the view stays put until it moves (or a shot flies). */
   heldAt: { x: number; y: number } | null = null;
+  /** Filming (the video tools): aim at the middle of all the action, move only
+   *  when it nears the edge of the picture, and glide slower. Off in the game. */
+  steady = false;
 }
 
 export class GameRenderer {
@@ -493,9 +496,11 @@ export class GameRenderer {
     const a = activeTardi(s);
     const w = this.watch;
     const fresh = !w || w.turn !== s.turn.turnNumber;
+    // Steady (filming): each new blast or hit nudges the view towards it, not snaps it there.
+    const nudge = this.camera.steady && !fresh && this.time <= w.until;
     this.watch = {
-      x,
-      y,
+      x: nudge ? (w.x + x) / 2 : x,
+      y: nudge ? (w.y + y) / 2 : y,
       until: Math.max(fresh ? 0 : w.until, this.time + hold),
       turn: s.turn.turnNumber,
       ax: fresh || !a ? (a?.x ?? 0) : w.ax,
@@ -1047,8 +1052,10 @@ export class GameRenderer {
         // Game over: watch the winners dance.
         target = this.lerpPos(champ.id, champ.x, champ.y, alpha);
       } else if (s.projectiles.length > 0) {
-        const p = s.projectiles[0];
-        target = this.lerpPos(p.id, p.x, p.y, alpha);
+        // Steady: the middle of every bit in the air (cluster drops), not whichever is first.
+        target = cam.steady
+          ? middle(s.projectiles.map((p) => this.lerpPos(p.id, p.x, p.y, alpha)))
+          : this.lerpPos(s.projectiles[0].id, s.projectiles[0].x, s.projectiles[0].y, alpha);
       } else if (this.pickingSpot(s) && (s.turn.target || cam.held)) {
         // Picking a spot on the map (a strike, the Teleport…): the view stays on
         // the spot picked, or where the player looked, not back on the tardi.
@@ -1069,11 +1076,26 @@ export class GameRenderer {
         // as someone walks) just long enough to see it.
         const afterShot = s.turn.phase === 'retreat' || s.turn.phase === 'settle';
         if (this.watch && (this.watch.turn !== s.turn.turnNumber || (!afterShot && this.time > this.watch.until))) this.watch = null;
-        if (moving) target = this.lerpPos(moving.id, moving.x, moving.y, alpha);
+        if (moving && cam.steady) {
+          // Everyone flying, and where the blasts were: keep them all in the middle.
+          const flying = s.tardis.filter((t) => t.alive && t.airborne && (t.knocked || t.thrown)).map((t) => this.lerpPos(t.id, t.x, t.y, alpha));
+          target = middle(this.watch ? [...flying, this.watch] : flying);
+        } else if (moving) target = this.lerpPos(moving.id, moving.x, moving.y, alpha);
         else if (this.watch) target = this.watch;
         else if (a?.alive) target = this.lerpPos(a.id, a.x, a.y, alpha);
       }
-      if (target) {
+      if (target && cam.steady) {
+        // A dead zone in the middle of the picture: the camera moves only to keep
+        // the action inside it, then glides there (no whip pans between drops).
+        const { width, height } = this.app.screen;
+        const zx = (width / 2 / cam.zoom) * 0.3;
+        const zy = (height / 2 / cam.zoom) * 0.25;
+        const dx = target.x - cam.x;
+        const dy = target.y - 40 - cam.y;
+        const k = 1 - Math.pow(0.25, dt);
+        cam.x += (dx - clamp(dx, -zx, zx, 0)) * k;
+        cam.y += (dy - clamp(dy, -zy, zy, 0)) * k;
+      } else if (target) {
         const k = 1 - Math.pow(0.02, dt);
         cam.x += (target.x - cam.x) * k;
         cam.y += (target.y - 40 - cam.y) * k;
@@ -1110,6 +1132,18 @@ export class GameRenderer {
     for (const layer of [this.hills, this.hillsNear]) for (const c of layer.children) if (c instanceof Sprite) c.texture.destroy(true);
     this.ambient.destroy();
   }
+}
+
+/** The middle of the box around these points. */
+function middle(ps: { x: number; y: number }[]): { x: number; y: number } {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const p of ps) {
+    x0 = Math.min(x0, p.x);
+    x1 = Math.max(x1, p.x);
+    y0 = Math.min(y0, p.y);
+    y1 = Math.max(y1, p.y);
+  }
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
 }
 
 function clamp(v: number, lo: number, hi: number, fallback: number): number {

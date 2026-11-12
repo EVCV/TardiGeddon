@@ -23,6 +23,8 @@ share: names, the bios, the voice and the rules.
 
 **Videos** for YouTube, TikTok, Reels and Facebook: the weekly routine and the tools that make them from the game itself are in [VIDEOS.md](VIDEOS.md).
 
+**For any brand:** the whole routine (brand file, batch, review, booking in Sociamonials, delivery check, monthly top-up) is a Claude skill, `.claude/skills/social-posting/SKILL.md`. Upload that folder to claude.ai (Settings → Capabilities → Skills) to use it for every brand, not just in this repository.
+
 **Scheduled posts** (weeks of picture posts for Sociamonials' queue, made by `scripts/social-posts.ts`, plus contests): [SCHEDULE.md](SCHEDULE.md).
 
 Pictures for every platform: `npx tsx scripts/social-images.ts` writes them

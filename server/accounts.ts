@@ -39,13 +39,14 @@ import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, ne
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 
 export type { MeResponse };
-import { NO_STATS, earnSlime, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult, supporterBadge } from './store';
+import { NO_STATS, earnSlime, replaceStripeCustomerId, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult, supporterBadge } from './store';
 import { sanitiseControls } from '../src/input/controls';
 import { migrateUsage, usageCounter } from './usage';
 import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './googlePlay';
+import { appleClientSecret, appleKeyFromEnv, appleTokenApi, keepAppleCode, migrateAppleTokens, revokeAppleTokens, type AppleKeyEnv, type AppleTokenApi } from './appleTokens';
 import { appStoreAccountToken, appStoreApi, REVOKED_NOTIFICATIONS, type AppStoreApi, type AppStoreEnv } from './appStore';
 
-export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv {
+export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv, AppleKeyEnv {
   DATABASE_URL?: string;
   BETTER_AUTH_SECRET?: string;
   /** This server's public URL, e.g. https://server.tardigeddon.com */
@@ -135,6 +136,8 @@ export async function createAccounts(
     appStore?: AppStoreApi | null;
     /** Tests: stands in for checking an Apple ID token's signature with Apple's public keys. */
     appleIdToken?: (token: string, nonce?: string) => Promise<boolean>;
+    /** Tests: stands in for Apple's token exchange and revoke endpoints. */
+    appleTokens?: AppleTokenApi;
   } = {},
 ) {
   if (!env.DATABASE_URL && !opts.db) throw new Error('DATABASE_URL is not set');
@@ -191,6 +194,12 @@ export async function createAccounts(
     socialProviders.apple = { clientId: appleBundle, clientSecret: '', appBundleIdentifier: appleBundle, audience: [appleBundle] };
   }
   if (opts.appleIdToken) socialProviders.apple.verifyIdToken = opts.appleIdToken;
+  // Apple's tokens, revoked when an account is deleted (server/appleTokens.ts). The secret for
+  // each client is made from our Sign in with Apple key, or (website only) APPLE_CLIENT_SECRET.
+  const appleKey = appleKeyFromEnv(env);
+  const appleTokens =
+    opts.appleTokens ??
+    appleTokenApi((clientId) => (appleKey ? appleClientSecret(appleKey, clientId) : clientId === env.APPLE_CLIENT_ID && env.APPLE_CLIENT_SECRET ? env.APPLE_CLIENT_SECRET : null));
 
   /** A player name tidied, or a refusal the sign-up form shows. */
   const checkedName = (raw: unknown): string => {
@@ -269,6 +278,10 @@ export async function createAccounts(
     user: {
       deleteUser: {
         enabled: true,
+        // Apple asks for its sign-in tokens to be given back when an account is deleted.
+        beforeDelete: async (user: { id: string }) => {
+          await revokeAppleTokens(db, appleTokens, user.id, env.APPLE_CLIENT_ID);
+        },
         // Purchase records stay for the accounts (tax), but no longer point at anyone.
         afterDelete: async (user: { id: string }) => {
           await db.query('UPDATE purchase SET user_id = NULL WHERE user_id = $1', [user.id]);
@@ -289,6 +302,7 @@ export async function createAccounts(
   await migrateCreators(db);
   await migrateRewards(db);
   await migrateNewsletter(db);
+  await migrateAppleTokens(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
   const earlyBirds = earlyBirdRule(env);
@@ -464,8 +478,7 @@ export async function createAccounts(
     cancel.searchParams.set('shop', 'cancel');
     let session: { url: string | null };
     try {
-      const customer = await stripeCustomer(user);
-      session = await stripe.checkout.sessions.create({
+      session = await withCustomer(user, (customer) => stripe!.checkout.sessions.create({
       mode: 'payment',
       line_items: [
         {
@@ -491,7 +504,7 @@ export async function createAccounts(
       ...(managed || env.STRIPE_INVOICES === 'off' ? {} : { invoice_creation: { enabled: true } }),
       success_url: back.toString(),
       cancel_url: cancel.toString(),
-      });
+      }));
     } catch (e) {
       // Usually a Stripe setting (e.g. no business name yet). Shown to players only with test keys.
       const why = e instanceof Error ? e.message : String(e);
@@ -512,6 +525,29 @@ export async function createAccounts(
     if (known) return known;
     const c = await stripe!.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
     return setStripeCustomerId(db, user.id, c.id);
+  }
+
+  /** Stripe says the customer doesn't exist (in this account, or in live mode). */
+  function missingCustomer(e: unknown): boolean {
+    const err = e as { code?: unknown; param?: unknown; message?: unknown };
+    return err?.code === 'resource_missing' && (err.param === 'customer' || /No such customer/.test(String(err.message)));
+  }
+
+  /**
+   * Runs a Stripe call with the player's customer. If Stripe no longer knows the saved
+   * one (made with test keys, or deleted in the dashboard), a new customer replaces it
+   * and the call is tried once more.
+   */
+  async function withCustomer<T>(user: NonNullable<MeResponse['user']>, call: (customer: string) => Promise<T>): Promise<T> {
+    const customer = await stripeCustomer(user);
+    try {
+      return await call(customer);
+    } catch (e) {
+      if (!missingCustomer(e)) throw e;
+      console.warn('stripe: saved customer unknown to Stripe, making a new one');
+      const c = await stripe!.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      return call(await replaceStripeCustomerId(db, user.id, customer, c.id));
+    }
   }
 
   /** Stripe's own page where players see their purchases, download receipts and update billing details. */
@@ -1147,6 +1183,25 @@ export async function createAccounts(
     json(res, 200, { ok: true });
   }
 
+  /**
+   * POST /api/app/apple-code: the iOS app, just signed in with Apple, sends the
+   * sheet's authorization code, so its token can be revoked if the account is
+   * ever deleted (server/appleTokens.ts). Once per sign-in; nothing to show the player.
+   */
+  async function appleCode(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const code = (await readJson(req))?.code;
+    if (typeof code !== 'string' || code.length < 8 || code.length > 1000) return json(res, 400, { error: tk('Something went wrong. Please try again.') });
+    let kept = false;
+    try {
+      kept = await keepAppleCode(db, appleTokens, user.id, code, appleBundle);
+    } catch (e) {
+      console.error('apple: code exchange failed', e instanceof Error ? e.message : e);
+    }
+    json(res, 200, { kept });
+  }
+
   return {
     db,
     auth,
@@ -1184,6 +1239,8 @@ export async function createAccounts(
           await appSocialReturn(req, res);
         } else if (path === '/api/app/redeem' && req.method === 'POST') {
           await appSocialRedeem(req, res);
+        } else if (path === '/api/app/apple-code' && req.method === 'POST') {
+          await appleCode(req, res);
         } else if (path.startsWith('/api/auth/')) {
           // Refused sign-ins are logged with the reason (never the email or password).
           res.on('finish', () => {

@@ -1,8 +1,8 @@
 # Privacy Policy
 
-**Effective Date:** 3 November 2026
-**Last Modified:** 31 October 2026
-**Document Version:** v2.12
+**Effective Date:** 4 November 2026
+**Last Modified:** 4 November 2026
+**Document Version:** v2.13
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -79,7 +79,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 - your player name and email address;
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
-- if you sign in with Google or Apple instead of a password: the email address and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in (Google's can also include your name and a profile picture link). New accounts made this way get a made-up player name, which you can change; we do not use the name Google or Apple has for you. If you use Apple's "Hide My Email", Apple gives us a private relay address (ending in @privaterelay.appleid.com) that forwards to your real email, and we never see your real address. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it. In our iOS app, signing in with Apple uses your iPhone's or iPad's own Sign in with Apple screen, which asks only for your email address;
+- if you sign in with Google or Apple instead of a password: the email address and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in (Google's can also include your name and a profile picture link). New accounts made this way get a made-up player name, which you can change; we do not use the name Google or Apple has for you. If you use Apple's "Hide My Email", Apple gives us a private relay address (ending in @privaterelay.appleid.com) that forwards to your real email, and we never see your real address. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it. In our iOS app, signing in with Apple uses your iPhone's or iPad's own Sign in with Apple screen, which asks only for your email address, and also gives the app a one-use code that our server exchanges with Apple for a sign-in token. We keep that token, and the one Apple issues when you sign in with Apple's page on the website or in the Android app, only so that we can ask Apple to revoke it if you delete your account (which removes TardiGeddon from the apps using your Apple ID);
 - when your account was created and last updated, and whether you have confirmed your email address;
 - the items your account has unlocked, and how (with coins, Slime, a gift, a promotional code, the Founder or Early Bird pack, or an earlier direct purchase);
 - invites (Terms of Service, Section 5.10): if you enter a friend's invite code, which account invited yours, when, and when the invite rewards were given. The player who invited you is not told who you are by us; the game only shows them how many of their invited friends have been rewarded or are still waiting. If you invite friends, we keep the same record on their side. Deleting either account removes it from that account's side;
@@ -233,7 +233,7 @@ Our online game server counts in the same way, for online play: how long players
 
 5.1.4A Email news (Section 2.2.6): while you are signed up. If you unsubscribe, we keep your email address and the dates on a "do not email" list, so you are never sent news again by mistake, and your consent record for up to 2 years after, as proof of what you agreed to. A sign-up that is never confirmed is deleted after 30 days. If you delete your account, its email news record is deleted with it.
 
-5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
+5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring. Apple's sign-in tokens (Section 2.2.1): until you delete your account, when we ask Apple to revoke them and delete them.
 
 5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, Google for purchases in the Android app, and Apple for purchases in the iOS app, keep their own records under their privacy policies.
 
