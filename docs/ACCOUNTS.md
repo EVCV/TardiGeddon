@@ -16,7 +16,7 @@ free without an account.
   `spend` (the Sales page's log, not linked to players), `done_once`,
   `challenge_score` (each player's best daily challenge run per day),
   `friend_code`, `friend`, `invite`, `founder`, `early_bird`, `creator`,
-  `creator_player` and `creator_payout`.
+  `creator_player`, `creator_payout` and `prize`.
 - **Sign-in:** [Better Auth](https://www.better-auth.com), running inside the
   game server (`server/accounts.ts`) at `/api/auth/*`. Email + password
   always; Google and Apple once their keys are set. The session is a cookie
@@ -118,6 +118,20 @@ free without an account.
   `playerFor`). Change them without a deploy, e.g.
   `fly secrets set FOUNDER_EMAILS=tester@example.com,helper@example.com EARLY_BIRD_MAX=5000`
   (and say so in the game: Terms 5.11.2 names the dates and the number).
+- **Prizes** (`server/prizes.ts`): for contest winners (giveaways), the owner
+  puts looks straight onto one player's account, found by email, from the
+  Sales page's "🏆 Give a prize" card. No codes are involved (the iOS app can't
+  take codes that unlock things Apple doesn't sell, App Store Guideline 3.1.1),
+  and the looks show on every platform. Looks only: any non-weapon item in
+  `SHOP_ITEMS` or `PROMO_ITEMS` (`prizeLook` in `src/shop/catalog.ts`), 1 to 20
+  per grant; never coins, Slime, weapons or packs. Items go into `inventory`
+  with source `prize` (the ones the player already has are skipped, so it's safe
+  to repeat), and each grant that gave something is a row in the `prize` table
+  (player, looks newly given, note, which admin, when). Admin API (404 for
+  anyone else, like the other owner pages): `POST /api/admin/prize` with
+  `{ email, items, note? }` gives `{ granted, alreadyOwned, player }`, and
+  `GET /api/admin/prizes` lists the last 100. The winner sees a "You won a
+  prize!" pop-up once (`/api/me`'s `prizeNews`, from the table's `seen` flag).
 - **Arena themes** (`src/render/arenas.ts`) are coin items like any other,
   but the choice is per device (`tardigeddon.arena` in local storage), not
   per team: each player sees their own arena, so nothing changes online.

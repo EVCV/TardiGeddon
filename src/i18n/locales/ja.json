@@ -134,6 +134,7 @@
  "BIFF!": "バシッ！",
  "Baby chick": "ひよこ",
  "Back": "戻る",
+ "Back TardiGeddon at launch: the heart cap, the Sunshine skin and a 💛 badge by your name online. On sale until the end of January, then never again.": "リリースのTardiGeddonを応援しよう：ハートのニット帽、サンシャインスキン、オンラインで名前の横に💛バッジ。1月末までの限定販売で、その後は二度と販売しません。",
  "Back again!": "ふっかつ！",
  "Back to Surprise me": "「おまかせ」に戻す",
  "Back to room": "ルームに戻る",
@@ -269,6 +270,7 @@
  "Concrete Tun": "コンクリートたる",
  "Confirm your email (on the Account page) to send gifts.": "ギフトを贈るには、メールアドレスを確認してください（アカウントページで）。",
  "Confirm your email first (on the Account page) to send gifts.": "ギフトを贈るには、まずメールアドレスを確認してください（アカウントページで）。",
+ "Congratulations! {items} are now in your collection. Find them in ✎ Customise team.": "おめでとうございます！{items} がコレクションに追加されました。✎ チームをカスタマイズ から使えます。",
  "Connecting…": "接続中…",
  "Continue with {provider}": "{provider} で続ける",
  "Continuing with Google or Apple means you're 13 or older and agree to the {terms}.": "Google または Apple で続けると、13歳以上であり、{terms}に同意したものとみなされます。",
@@ -396,6 +398,7 @@
  "Every tardigrade wears armour plates that take every hit until they crack; only then does health go down. Long, tough battles.": "すべてのクマムシがアーマープレートを着ていて、割れるまで攻撃をすべて受け止めます。体力が減るのはそのあと。長くてタフな戦い。",
  "Every turn": "毎ターン",
  "Everything": "すべて",
+ "Everything in the Supporter pack, plus the Patron’s Palace world, the Patron’s Waltz, the Golden heart aim and a 💖 badge. On sale until the end of January, then never again.": "サポーターパックの全部に加えて、パトロンの宮殿ワールド、パトロンのワルツ、ゴールデンハートの照準、💖バッジ。1月末までの限定販売で、その後は二度と販売しません。",
  "Expected {date}": "予定：{date}",
  "Expert": "エキスパート",
  "Explodes into hearts. Still hurts.": "爆発するとハートが飛び散ります。でも痛い。",
@@ -1375,6 +1378,7 @@
  "You need to be 13 or over to get our emails.": "メールを受け取るには13歳以上である必要があります。",
  "You need {n} more coins": "あと {n} コイン必要です",
  "You play as your first team. Edit it from the main menu.": "あなたは1番目のチームでプレイします。メインメニューから編集できます。",
+ "You won a prize!": "賞品が当たりました！",
  "Your account has been deleted.": "アカウントを削除しました。",
  "Your browser asks websites not to track you, so nothing is sent unless you turn this on here.": "お使いのブラウザがトラッキングしないよう求めているため、ここでオンにしない限り何も送信しません。",
  "Your career": "あなたの通算成績",
@@ -1651,7 +1655,5 @@
  "🪙 {n} coins": "🪙 {n} コイン",
  "🪙 {n} of {max} friends rewarded this month": "🪙 今月のごほうび：{n}/{max}人",
  "🪦 Gravestones": "🪦 お墓",
- "🫧 Glug glug": "🫧 ゴボゴボ",
- "Back TardiGeddon at launch: the heart cap, the Sunshine skin and a 💛 badge by your name online. On sale until the end of January, then never again.": "リリースのTardiGeddonを応援しよう：ハートのニット帽、サンシャインスキン、オンラインで名前の横に💛バッジ。1月末までの限定販売で、その後は二度と販売しません。",
- "Everything in the Supporter pack, plus the Patron’s Palace world, the Patron’s Waltz, the Golden heart aim and a 💖 badge. On sale until the end of January, then never again.": "サポーターパックの全部に加えて、パトロンの宮殿ワールド、パトロンのワルツ、ゴールデンハートの照準、💖バッジ。1月末までの限定販売で、その後は二度と販売しません。"
+ "🫧 Glug glug": "🫧 ゴボゴボ"
 }

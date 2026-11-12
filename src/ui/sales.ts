@@ -2,8 +2,8 @@
 // players spend coins and Slime on. Only shown to accounts listed in the
 // server's ADMIN_EMAILS (docs/ACCOUNTS.md); totals only, never who bought what.
 
-import { creators, downloadNewsletter, newsletterCounts, payCreator, salesReport, saveCreator, type CreatorReport, type MeResponse, type SalesReport } from '../account/session';
-import { bundle, coinPack, formatNumber, packTotal, shopItem } from '../shop/catalog';
+import { creators, downloadNewsletter, givePrize, newsletterCounts, payCreator, recentPrizes, salesReport, saveCreator, type CreatorReport, type MeResponse, type PrizeRow, type SalesReport } from '../account/session';
+import { PRIZE_MAX_ITEMS, PROMO_ITEMS, SHOP_ITEMS, bundle, coinPack, formatNumber, packTotal, promoItem, shopItem, type ItemKind, type ShopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
 import { newUsageState, usageCards, type UsageState } from './usageReport';
 import type { HubContext } from './hub';
@@ -20,10 +20,24 @@ export interface SalesState {
   usage: UsageState;
   /** Email news numbers (server/newsletter.ts), once loaded. */
   news?: { subscribed: number; pending: number; unsubscribed: number } | 'loading';
+  /** The Give a prize form (server/prizes.ts): kept here so a redraw doesn't empty it. */
+  prize: PrizeState;
+}
+
+interface PrizeState {
+  email: string;
+  note: string;
+  search: string;
+  picked: Set<string>;
+  /** What the last attempt did (or why it failed). */
+  message: string;
+  busy: boolean;
+  /** The last grants, once loaded (null: not asked yet). */
+  recent: PrizeRow[] | 'loading' | null;
 }
 
 export function newSalesState(): SalesState {
-  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState() };
+  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState(), prize: { email: '', note: '', search: '', picked: new Set(), message: '', busy: false, recent: null } };
 }
 
 const PERIODS: [number, string][] = [
@@ -50,7 +64,7 @@ const KIND_ICON: Record<string, string> = { hat: '🎩', skin: '🎨', aim: '�
 
 /** A shop id as a name people recognise. */
 function itemName(id: string): string {
-  const item = shopItem(id);
+  const item = shopItem(id) ?? promoItem(id);
   if (item) return `${KIND_ICON[item.kind] ?? ''} ${item.name}`;
   const set = bundle(id);
   if (set) return `🎁 ${set.name} bundle`;
@@ -153,6 +167,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
     state.loadedDays = -1;
     state.creators = null;
     state.news = undefined;
+    state.prize.recent = null;
     state.usage.loadedDays = -1;
     ctx.rerender();
   };
@@ -258,10 +273,172 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
       ),
     ),
     creatorsCard(ctx, state),
+    prizeCard(ctx, state.prize),
     newsletterCard(ctx, state),
     ...usageCards(ctx, state.usage, state.days),
   );
   return page;
+}
+
+const KIND_LABEL: Record<string, string> = { hat: 'Hats', skin: 'Skins', aim: 'Aim styles', fx: 'Explosions', dance: 'Victory dances', grave: 'Gravestones', arena: 'Worlds', music: 'Music', sound: 'Sound packs' };
+
+/** Every look that can be a prize: the never-sold ones first (promo, Founder, Early bird, Supporter, Superfan…), then the shop's, by kind. Never weapons. */
+function prizeGroups(): { title: string; items: ShopItem[] }[] {
+  const groups = [{ title: 'Prize-only looks (never sold)', items: PROMO_ITEMS }];
+  for (const kind of Object.keys(KIND_LABEL) as ItemKind[]) groups.push({ title: `${KIND_LABEL[kind]} (shop)`, items: SHOP_ITEMS.filter((i) => i.kind === kind) });
+  return groups.filter((g) => g.items.length);
+}
+
+/**
+ * Give a prize (server/prizes.ts): contest prizes go straight onto one
+ * player's account by email, looks only. They show on every platform, and the
+ * winner is told once in the game. Nothing here can give coins, Slime or weapons.
+ */
+function prizeCard(ctx: HubContext, st: PrizeState): HTMLElement {
+  const box = el('div', 'creators prize-box');
+  if (st.recent === null) {
+    st.recent = 'loading';
+    recentPrizes()
+      .then((r) => (st.recent = r))
+      .catch((e: unknown) => {
+        st.recent = [];
+        st.message = e instanceof Error ? e.message : String(e);
+      })
+      .finally(() => ctx.rerender());
+  }
+
+  const email = el('input', 'code-input');
+  email.type = 'email';
+  email.placeholder = "Winner's game account email";
+  email.autocomplete = 'off';
+  email.setAttribute('aria-label', "Winner's game account email");
+  email.value = st.email;
+  email.oninput = () => (st.email = email.value);
+  const note = el('input', 'code-input');
+  note.placeholder = 'Note, e.g. which contest (optional)';
+  note.maxLength = 200;
+  note.setAttribute('aria-label', 'Note');
+  note.value = st.note;
+  note.oninput = () => (st.note = note.value);
+  const who = el('div', 'creator-form');
+  who.append(email, note);
+
+  // The picker: a search box over every look; ticks are kept in st.picked (no redraw while ticking, so typing isn't interrupted).
+  const search = el('input', 'code-input');
+  search.type = 'search';
+  search.placeholder = 'Search looks (name, kind)';
+  search.setAttribute('aria-label', 'Search looks');
+  search.value = st.search;
+  const count = el('span', 'account-note');
+  const showCount = () => (count.textContent = `${st.picked.size} of up to ${PRIZE_MAX_ITEMS} selected`);
+  const clear = el('button', 'link-btn', 'Clear');
+  const list = el('div', 'prize-picker');
+  list.setAttribute('role', 'group');
+  list.setAttribute('aria-label', 'Looks to give');
+  const rows: { row: HTMLElement; tick: HTMLInputElement; text: string; head: HTMLElement }[] = [];
+  for (const g of prizeGroups()) {
+    const head = el('h3', 'usage-sub', g.title);
+    list.append(head);
+    for (const it of g.items) {
+      const label = el('label', 'prize-pick');
+      const tick = el('input');
+      tick.type = 'checkbox';
+      tick.checked = st.picked.has(it.id);
+      tick.onchange = () => {
+        if (tick.checked) st.picked.add(it.id);
+        else st.picked.delete(it.id);
+        showCount();
+      };
+      label.append(tick, el('span', '', `${KIND_ICON[it.kind] ?? ''} ${it.name}`), el('small', '', `${it.id} · ${it.rarity}`));
+      list.append(label);
+      rows.push({ row: label, tick, text: `${it.name} ${it.id} ${KIND_LABEL[it.kind] ?? ''} ${it.rarity}`.toLowerCase(), head });
+    }
+  }
+  const filter = () => {
+    st.search = search.value;
+    const q = search.value.trim().toLowerCase();
+    const shown = new Set<HTMLElement>();
+    for (const r of rows) {
+      const hit = !q || r.text.includes(q);
+      r.row.hidden = !hit;
+      if (hit) shown.add(r.head);
+    }
+    for (const r of rows) r.head.hidden = !shown.has(r.head);
+  };
+  search.oninput = filter;
+  clear.onclick = () => {
+    st.picked.clear();
+    for (const r of rows) r.tick.checked = false;
+    showCount();
+  };
+  showCount();
+  filter();
+  const bar = el('div', 'creator-form');
+  bar.append(search, count, clear);
+
+  const give = el('button', 'hud-btn', '🏆 Give prize');
+  give.disabled = st.busy;
+  const result = el('p', 'account-note prize-result', st.message);
+  result.setAttribute('role', 'status');
+  const say = (msg: string) => {
+    st.message = msg;
+    result.textContent = msg;
+  };
+  give.onclick = async () => {
+    const to = st.email.trim();
+    const items = [...st.picked];
+    if (!to.includes('@')) return say("Type the winner's game account email first.");
+    if (!items.length) return say('Tick at least one look.');
+    if (!confirm(`Give ${items.length} ${items.length === 1 ? 'look' : 'looks'} to ${to}?\n\n${items.map(itemName).join('\n')}`)) return;
+    st.busy = true;
+    give.disabled = true;
+    try {
+      const r = await givePrize(to, items, st.note);
+      const name = `${r.player.name} (${r.player.email})`;
+      say(
+        (r.granted.length ? `Gave ${r.granted.length} ${r.granted.length === 1 ? 'look' : 'looks'} to ${name}: ${r.granted.map(itemName).join(', ')}.` : `Nothing new: ${name} already has all of them.`) +
+          (r.alreadyOwned.length && r.granted.length ? ` Already owned, skipped: ${r.alreadyOwned.map(itemName).join(', ')}.` : '') +
+          (r.player.emailVerified ? '' : ' Careful: that account has not confirmed its email yet.'),
+      );
+      if (r.granted.length) {
+        st.picked.clear();
+        st.note = '';
+      }
+      st.recent = null;
+    } catch (e) {
+      say(e instanceof Error ? e.message : String(e));
+    } finally {
+      st.busy = false;
+      ctx.rerender();
+    }
+  };
+  const act = el('div', 'creator-form');
+  act.append(give);
+
+  box.append(
+    el('p', 'account-note', 'Put contest prizes straight on a winner’s account, found by the email they signed up with. Looks only (never coins, Slime or weapons). They show on every device, and the winner gets a "You won a prize" pop-up the next time they open the game.'),
+    who,
+    bar,
+    list,
+    act,
+    result,
+    el('h3', 'usage-sub', 'Recent prizes'),
+  );
+  if (st.recent === 'loading' || st.recent === null) box.append(el('p', 'page-loading', 'Loading…'));
+  else if (!st.recent.length) box.append(el('p', 'account-note', 'No prizes given yet.'));
+  else {
+    const ol = el('ol', 'prize-recent');
+    for (const p of st.recent) {
+      const li = el('li', 'creator-row');
+      const when = new Date(p.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      li.append(el('b', '', `${p.name} · ${p.email}`), el('span', '', ` · ${when}`), el('p', 'account-note', p.items.map(itemName).join(', ') + (p.note ? ` — ${p.note}` : '')));
+      ol.append(li);
+    }
+    box.append(ol);
+  }
+  const c = card('🏆 Give a prize', box);
+  c.classList.add('prize-card');
+  return c;
 }
 
 /**

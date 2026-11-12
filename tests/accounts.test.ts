@@ -1037,6 +1037,75 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     expect(((await (await post('/api/invite', { code: 'NINJA' }, late.cookie)).json()) as { result: string }).result).toBe('unknown');
   });
 
+  it('lets the owner give a contest prize (looks only) to one player by email, once, and tells the winner once', async () => {
+    const signInAs = async (email: string) => {
+      const r = await post('/api/auth/sign-in/email', { email, password: 'correct horse' });
+      return r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    };
+    const boss = await signInAs('boss@example.com');
+    const winner = await signUp('Winner@example.com');
+    const other = await signUp('notwinner@example.com');
+    const give = (body: unknown, cookie = boss) => post('/api/admin/prize', body, cookie);
+    const owned = async (id: string) => (await accounts.db.query<{ item: string; source: string }>('SELECT item, source FROM inventory WHERE user_id = $1 ORDER BY item', [id])).rows;
+    // Only the owner (anyone else is told "not found", like the other owner pages).
+    expect((await give({ email: 'winner@example.com', items: ['hat:waterbear'] }, winner.cookie)).status).toBe(404);
+    expect((await give({ email: 'winner@example.com', items: ['hat:waterbear'] }, '')).status).toBe(404);
+    expect((await fetch(`${base}/api/admin/prizes`, { headers: { cookie: winner.cookie } })).status).toBe(404);
+    // An unknown email.
+    expect((await give({ email: 'nobody-at-all@example.com', items: ['hat:waterbear'] })).status).toBe(404);
+    // Only looks: not coins, Slime, weapons, packs, bundles, unknown ids, nothing, or too many.
+    for (const bad of ['coins:200', 'weapon:pinball', 'supporter:2026', 'bundle:sweet', 'slime', 'hat:nonsense', '__proto__']) {
+      const r = await give({ email: 'winner@example.com', items: ['hat:waterbear', bad] });
+      expect(r.status).toBe(400);
+      expect(((await r.json()) as { error: string }).error).toContain(bad);
+    }
+    expect((await give({ email: 'winner@example.com', items: [] })).status).toBe(400);
+    expect((await give({ email: 'winner@example.com' })).status).toBe(400);
+    expect((await give({ email: 'winner@example.com', items: Array.from({ length: 21 }, (_, i) => `hat:x${i}`) })).status).toBe(400);
+    expect(await owned(winner.id)).toEqual([]);
+
+    // A grant (email in any case): a never-sold look and two shop looks.
+    const items = ['hat:waterbear', 'skin:gold', 'fx:gold'];
+    const r = await give({ email: ' WINNER@Example.com ', items, note: `  Giveaway 1  ${'x'.repeat(300)}` });
+    expect(r.status).toBe(200);
+    const done = (await r.json()) as { granted: string[]; alreadyOwned: string[] };
+    expect(done).toMatchObject({ granted: items, alreadyOwned: [] });
+    expect(await owned(winner.id)).toEqual([...items].sort().map((item) => ({ item, source: 'prize' })));
+    expect(await owned(other.id)).toEqual([]);
+    const rows = (await accounts.db.query<{ items: string[]; note: string; granted_by: string }>('SELECT items, note, granted_by FROM prize')).rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].items).toEqual(items);
+    expect(rows[0].note.startsWith('Giveaway 1  x')).toBe(true);
+    expect(rows[0].note.length).toBe(200);
+    expect(rows[0].granted_by).toBe((await me(boss)).user!.id);
+
+    // Again: nothing added, and it says so (a partly new set gives only the new ones).
+    const again = (await (await give({ email: 'winner@example.com', items })).json()) as { granted: string[]; alreadyOwned: string[] };
+    expect(again).toMatchObject({ granted: [], alreadyOwned: items });
+    const part = (await (await give({ email: 'winner@example.com', items: ['skin:gold', 'grave:egg', 'grave:egg'] })).json()) as { granted: string[]; alreadyOwned: string[] };
+    expect(part).toMatchObject({ granted: ['grave:egg'], alreadyOwned: ['skin:gold'] });
+    expect(await owned(winner.id)).toHaveLength(4);
+    expect((await accounts.db.query('SELECT 1 FROM prize')).rowCount).toBe(2);
+
+    // The list: newest first, with who and what.
+    const list = (await (await fetch(`${base}/api/admin/prizes`, { headers: { cookie: boss } })).json()) as { prizes: { at: string; email: string; name: string; items: string[]; note: string }[] };
+    expect(list.prizes.map((p) => p.items)).toEqual([['grave:egg'], items]);
+    expect(list.prizes[1]).toMatchObject({ email: 'winner@example.com', name: 'Tester' });
+
+    // The winner is told once, with everything given since they last looked; the looks are in what they own.
+    const first = await me(winner.cookie);
+    expect([...first.prizeNews!.items].sort()).toEqual([...items, 'grave:egg'].sort());
+    expect(first.owned).toEqual(expect.arrayContaining([...items, 'grave:egg']));
+    expect((await me(winner.cookie)).prizeNews).toBeUndefined();
+    expect((await me(other.cookie)).prizeNews).toBeUndefined();
+    // A later prize is told again, once.
+    await give({ email: 'winner@example.com', items: ['hat:founder'] });
+    expect((await me(winner.cookie)).prizeNews).toEqual({ items: ['hat:founder'] });
+    expect((await me(winner.cookie)).prizeNews).toBeUndefined();
+    // Never coins or Slime.
+    expect((await me(winner.cookie)).wallet).toEqual({ coins: 0, slime: 0 });
+  });
+
   it("explains Stripe's refusal when using test keys", async () => {
     const { cookie } = await signUp('eight@example.com');
     const real = stripe.checkout.sessions.create;

@@ -16,6 +16,7 @@
 
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { givePrize, migratePrizes, prizeItems, prizeNews, prizeNote, recentPrizes } from './prizes';
 import { creatorCodeOf, creatorReports, migrateCreators, normaliseCreatorCode, recordCreatorPayout, saveCreator } from './creators';
 import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteNews, inviteStatus, isCreator, isEarlyBird, isFounder, migrateRewards, packBadge, peekInvite, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
@@ -288,6 +289,7 @@ export async function createAccounts(
   await migrateFriends(db);
   await migrateCreators(db);
   await migrateRewards(db);
+  await migratePrizes(db);
   await migrateNewsletter(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
@@ -670,6 +672,21 @@ export async function createAccounts(
     const note = typeof body?.note === 'string' ? body.note.slice(0, 200) : '';
     if (!(await recordCreatorPayout(db, code, amount, currency, note))) return json(res, 404, { error: 'No such creator.' });
     json(res, 200, { creators: await creatorReports(db) });
+  }
+
+  /** The owner's contest prizes (Sales page): give looks to one player by email, and the recent grants (server/prizes.ts). */
+  async function prizesApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const admin = await userFrom(req.headers);
+    if (!admin || !isAdmin(admin)) return json(res, 404, { error: tk('Not found.') });
+    if (req.method === 'GET') return json(res, 200, { prizes: await recentPrizes(db) });
+    const body = await readJson(req);
+    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+    if (!email || email.length > 320) return json(res, 400, { error: 'Give the player’s email.' });
+    const picked = prizeItems(body?.items);
+    if ('error' in picked) return json(res, 400, { error: picked.error });
+    const r = await givePrize(db, admin.id, email, picked.items, prizeNote(body?.note));
+    if (!r) return json(res, 404, { error: 'No game account has that email.' });
+    json(res, 200, r);
   }
 
   /** Spend coins or Slime on a shop item. */
@@ -1236,6 +1253,12 @@ export async function createAccounts(
               me.owned = await ownedItems(db, user.id);
               me.wallet = await walletOf(db, user.id);
             }
+            // Contest prizes the owner gave since they last looked (told once; server/prizes.ts).
+            const prize = await prizeNews(db, user.id);
+            if (prize) {
+              me.prizeNews = prize;
+              me.owned = await ownedItems(db, user.id);
+            }
             // A creator with a code (server/creators.ts): their own numbers, totals only.
             const creator = await creatorCodeOf(db, user.id);
             if (creator && (await isCreator(db, user.id))) me.creatorBadge = true;
@@ -1295,6 +1318,8 @@ export async function createAccounts(
           }
         } else if ((path === '/api/admin/creators' && (req.method === 'GET' || req.method === 'POST')) || (path === '/api/admin/creators/paid' && req.method === 'POST')) {
           await creatorsApi(req, res, path);
+        } else if ((path === '/api/admin/prize' && req.method === 'POST') || (path === '/api/admin/prizes' && req.method === 'GET')) {
+          await prizesApi(req, res);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
           await friendsApi(req, res, path);
         } else if (path === '/api/challenge/submit' && req.method === 'POST') {
