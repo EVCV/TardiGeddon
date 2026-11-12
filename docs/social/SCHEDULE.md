@@ -9,6 +9,8 @@ come (VIDEOS.md). The list, with each post's Sociamonials id, is
 `store/social/queue/batch-1-scheduled.csv`.
 **Don't import `batch-1.csv`**: that would post everything twice.
 
+**Batch 3 scheduled** (12 Nov 2026): the 22 Launch Giveaway posts, Tuesdays and Fridays at 19:30 UK from 13 Nov to 29 Jan plus 31 Jan 10:00, on Facebook, Instagram, X, Bluesky, Threads and TikTok (the three videos on YouTube Shorts too), never Pinterest. Media in Sociamonials' collection `TardiGeddon posts batch 3`; the list with each post's id is `store/social/queue/batch-3-scheduled.csv`. **Don't import `batch-3.csv`.**
+
 **The idea:** the posts are made here, not typed by hand. Each post's words
 live in `scripts/social/posts.ts`, and one command draws a picture card for
 each in the game's style (and writes a CSV in Sociamonials' bulk-upload
