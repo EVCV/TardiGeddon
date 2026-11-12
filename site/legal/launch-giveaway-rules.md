@@ -3,7 +3,7 @@
 **Effective Date:** 12 November 2026
 **Last Modified:** 12 November 2026
 **Document Version:** v1.0
-**Applies To:** the TardiGeddon Launch Giveaway, entered at https://tardigeddon.com/giveaway or on its entry page at https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29219/ (the "Giveaway")
+**Applies To:** the TardiGeddon Launch Giveaway, entered at https://tardigeddon.com/giveaway or on its entry page at https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29220/ (the "Giveaway")
 
 ---
 
@@ -20,12 +20,12 @@ EVCV Limited (trading as "TardiGeddon"), referred to throughout these rules as *
 ## In Short
 
 - It's free. You never have to buy anything to enter or to win, and buying something doesn't improve your chances.
-- Open 1 December 2026 00:00 to 14 December 2026 23:59 (UK time, GMT).
+- Open from the day we publish the entry page (announced on our website and social media) until 31 January 2027 23:59 (UK time, GMT).
 - Ages 13 and over, worldwide, except where the law doesn't allow it (Section 3). Under 18? You need a parent's or guardian's OK.
 - 26 prizes, drawn at random: 1 grand prize, 5 second prizes and 20 third prizes. Prizes are cosmetic looks for the game, never money.
 - These rules, our Terms of Service (especially Section 5.14, Contest Prizes) and our Privacy Policy apply to the Giveaway.
 
-This promotion is in no way sponsored, endorsed or administered by, or associated with, Facebook, Instagram, Threads, TikTok, X, YouTube, Bluesky, Discord, Pinterest, Apple or Google. You are giving your information to the Promoter, not to them.
+This promotion is in no way sponsored, endorsed or administered by, or associated with, Facebook, Instagram, Threads, TikTok, X, YouTube, Bluesky, Discord, Twitch, Reddit, itch.io, IGDB, Pinterest, Apple or Google. You are giving your information to the Promoter, not to them.
 
 ---
 
@@ -61,17 +61,17 @@ and it is void wherever it is prohibited or restricted by law.
 
 ## Section 4 — When It Runs
 
-4.0.1 The Giveaway opens at **00:00 GMT on 1 December 2026** and closes at **23:59 GMT on 14 December 2026** (the "Entry Period"). Entries received outside the Entry Period will not count. The time recorded by the entry page is the official time.
+4.0.1 The Giveaway opens when we publish its entry page, which we will announce on our website and social media, and no earlier than 12 November 2026. It closes at **23:59 GMT on 31 January 2027** (the "Entry Period"). Entries received outside the Entry Period will not count. The time recorded by the entry page is the official time.
 
 ## Section 5 — How to Enter
 
 5.0.1 Go to the entry page during the Entry Period, fill in the entry form with your real details (first name, email address and the country you live in), confirm the age and permission statement, and agree to these rules. Then confirm your entry using the link we email you. That gives you 1 entry.
 
-5.0.2 After entering, you can earn **bonus entries** on the entry page, up to **20 bonus entries** in total per person:
+5.0.2 After entering, you can earn **bonus entries** on the entry page, up to **25 bonus entries** in total per person:
 
 - **Make a free TardiGeddon account** at https://tardigeddon.com/play and tell us your player name: 5 bonus entries. Accounts are free and are for ages 13 and over.
 - **Invite friends**: 3 bonus entries for each friend who enters using your personal referral link and confirms their entry. Your friends must be eligible to enter themselves. Please only invite people you know, and don't post your link where it breaks a website's or app's rules.
-- **Follow or subscribe to us** on Instagram, TikTok, YouTube, Facebook, X and Bluesky, and **join our Discord server** (ages 13 and over): 1 bonus entry each.
+- **Follow or subscribe to us** on Instagram, TikTok, YouTube, Facebook, X, Bluesky, Twitch and Reddit, follow TardiGeddon on itch.io, add it to your list on IGDB, and **join our Discord server** (ages 13 and over): 1 bonus entry each. Each of these sites has its own age rules; only use the ones you are old enough for.
 
 5.0.3 One person, one entry. You may enter only once, with one email address. Entries made using more than one email address, false details, automated means (bots, scripts), entry-swapping groups, or any other method that gets around these rules will be disqualified, along with every entry from that person.
 

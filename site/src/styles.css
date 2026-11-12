@@ -788,3 +788,4 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
 @media (max-width: 600px) {
   .giveaway-frame iframe { height: 1500px; }
 }
+.prize-img { display: block; width: 100%; height: auto; border: var(--line) solid var(--ink); border-radius: calc(var(--radius) * 0.6); margin: 8px 0 12px; }

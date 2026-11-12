@@ -24,7 +24,7 @@ import {
 } from '../giveaways';
 
 const DISCLAIMER =
-  'This promotion is in no way sponsored, endorsed or administered by, or associated with, Facebook, Instagram, Threads, TikTok, X, YouTube, Bluesky, Discord, Pinterest, Apple or Google.';
+  'This promotion is in no way sponsored, endorsed or administered by, or associated with, Facebook, Instagram, Threads, TikTok, X, YouTube, Bluesky, Discord, Twitch, Reddit, itch.io, IGDB, Pinterest, Apple or Google.';
 
 /** In development only: `?now=2026-12-05T12:00:00Z` pretends it is that moment, to see each state. */
 function devNow(): number | null {
@@ -68,6 +68,7 @@ function Prizes({ g }: { g: Contest }) {
         {g.prizes.map((p) => (
           <li key={p.tier} className="paper prize-card">
             <p className="prize-count">{p.count === 1 ? '1 winner' : `${p.count} winners`}</p>
+            {p.image && <img className="prize-img" src={p.image} alt={p.alt ?? ''} width={1080} height={1080} loading="lazy" />}
             <h3>{p.tier}</h3>
             <p>{p.text}</p>
           </li>
@@ -230,7 +231,7 @@ export function Giveaway() {
               allowed.
             </li>
             <li>
-              <strong>Bonus entries.</strong> Make a free account (+5), invite friends (+3 each) and follow us (+1 each).
+              <strong>Bonus entries.</strong> Make a free account (+5), invite friends (+3 each), and follow us on YouTube, TikTok, Instagram, Facebook, X, Bluesky, Twitch, Reddit, itch.io, IGDB or Discord (+1 each).
             </li>
             <li>
               <strong>The draw.</strong> Winners are drawn within 7 days after the giveaway closes, and announced here by

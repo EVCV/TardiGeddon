@@ -10,6 +10,9 @@ export interface Prize {
   count: number;
   /** What the winners get. Looks only; never anything that helps you win. */
   text: string;
+  /** A square picture of the prize (in site/public), and its alt text. */
+  image?: string;
+  alt?: string;
 }
 
 export interface Winner {
@@ -40,24 +43,30 @@ export const GIVEAWAYS: Giveaway[] = [
   {
     slug: 'launch-2026',
     title: 'TardiGeddon Launch Giveaway',
-    opens: '2026-12-01T00:00:00Z',
-    closes: '2026-12-14T23:59:59Z',
-    entryUrl: 'https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29219/',
+    opens: '2026-11-12T00:00:00Z',
+    closes: '2027-01-31T23:59:59Z',
+    entryUrl: 'https://app.socialmi.co.uk/tardigeddon-launch-giveaway/c29220/',
     rulesPath: '/legal/launch-giveaway-rules',
     prizes: [
       {
         tier: 'Grand prize',
         count: 1,
+        image: '/media/giveaway/prize-grand.jpg',
+        alt: 'The grand prize: a wall of worlds, aims and explosions from the Shop, a tardigrade in the Champion’s crown and a trophy badge. 121 looks plus both launch sets, and design your own world and music with us.',
         text: 'Every look in the Shop (121 looks), the Launch Champion and Launch Winner sets, the 🏆 Launch Winner badge, and a set of looks designed with you by email (a world, a music track and more). You keep the one-of-a-kind edition, and we may release a version to every player, credited to your player name.',
       },
       {
         tier: 'Second prize',
         count: 5,
+        image: '/media/giveaway/prize-second.jpg',
+        alt: 'The Champion set: Champion’s Arena at sunset with fireworks, the Champion’s monument, sights, salute and Fanfare music, and a tardigrade in the Champion’s crown.',
         text: 'The Launch Champion set (Champion’s Arena world, Champion’s Fanfare music, Champion’s crown, monument, sights and salute), every look in every Shop bundle, the Launch Winner set and the 🏆 badge.',
       },
       {
         tier: 'Third prize',
         count: 20,
+        image: '/media/giveaway/prize-third.jpg',
+        alt: 'The Winner set: a tardigrade wearing the Launch Winner’s cup, the gold Winner’s laurels aim and a trophy badge.',
         text: 'The Launch Winner set (Launch Winner’s cup hat, Winner’s laurels aim), the looks in one Shop bundle of your choice (up to 4,700 coins), and the 🏆 badge.',
       },
     ],

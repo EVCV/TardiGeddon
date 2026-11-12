@@ -394,8 +394,8 @@ export function giftable(id: string): { coins: number; items: string[]; name: st
   return undefined;
 }
 
-const LAUNCH_WINNER_BLURB = 'Launch giveaway prize: for the winners of the December 2026 giveaway. Never sold.';
-const LAUNCH_CHAMPION_BLURB = 'Launch Champion prize: for the top winners of the December 2026 giveaway. Never sold.';
+const LAUNCH_WINNER_BLURB = 'Launch giveaway prize: for the winners of the 2026–27 launch giveaway. Never sold.';
+const LAUNCH_CHAMPION_BLURB = 'Launch Champion prize: for the top winners of the 2026–27 launch giveaway. Never sold.';
 
 /**
  * Looks you can only get free, with a promotional code (Terms 5.9) or in the
