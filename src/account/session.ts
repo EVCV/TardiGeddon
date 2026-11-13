@@ -80,6 +80,8 @@ export interface MeResponse {
   supporterSale?: boolean;
   /** Bought a supporter pack: 💖 patron or 💛 supporter. */
   supporterBadge?: 'patron' | 'supporter';
+  /** Cloudflare Turnstile's public site keys, for the security check on votes and suggestions (server/turnstile.ts): the website's, and the phone apps'. Signed in only. */
+  turnstile?: { web?: string; app?: string };
 }
 
 /** The owner's sales page: totals only, never who bought what. */
@@ -621,6 +623,52 @@ export function givePrize(email: string, items: string[], note: string, badge: '
 /** The owner only: the last 100 prizes given. */
 export async function recentPrizes(): Promise<PrizeRow[]> {
   return (await call<{ prizes: PrizeRow[] }>('/api/admin/prizes')).prizes;
+}
+
+/** Votes on the roadmap's items: each item's total (public), and the ones this player has voted for (signed in only). */
+export interface RoadmapVotes {
+  votes: Record<string, number>;
+  mine?: string[];
+}
+
+export function roadmapVotes(): Promise<RoadmapVotes> {
+  return call<RoadmapVotes>('/api/roadmap/votes');
+}
+
+/** Which widget made the token: the website's, or the phone apps' (server/turnstile.ts). */
+export function turnstilePlatform(): 'web' | 'app' {
+  return isNativeApp() ? 'app' : 'web';
+}
+
+/** Vote for a roadmap item or take the vote back, with the Turnstile token the check gave (src/ui/turnstile.ts). Returns the item's votes now. */
+export async function voteRoadmap(itemId: string, on: boolean, turnstileToken: string): Promise<number> {
+  return (await call<{ votes: number }>('/api/roadmap/vote', { itemId, on, platform: turnstilePlatform(), turnstileToken })).votes;
+}
+
+/** Send an idea for the owner (a private suggestion), with the Turnstile token the check gave. */
+export async function sendSuggestion(category: string, text: string, turnstileToken: string): Promise<void> {
+  await call('/api/suggestions', { category, text, platform: turnstilePlatform(), turnstileToken });
+}
+
+/** One idea, as the owner's list shows it (server/roadmap.ts). */
+export interface SuggestionRow {
+  id: number;
+  category: string;
+  text: string;
+  status: 'new' | 'planned' | 'declined' | 'done';
+  admin_note: string | null;
+  created_at: string;
+  name: string;
+}
+
+/** The owner only: the ideas players sent (newest first), for one status or 'all', with how many each status has. */
+export function suggestionList(status: string): Promise<{ suggestions: SuggestionRow[]; counts: Record<string, number> }> {
+  return call(`/api/admin/suggestions?status=${encodeURIComponent(status)}`);
+}
+
+/** The owner only: change an idea's status and note. */
+export async function updateSuggestion(id: number, status: string, adminNote: string): Promise<void> {
+  await call(`/api/admin/suggestions/${id}`, { status, admin_note: adminNote });
 }
 
 /** The owner's sales figures for the last `days` days (0 = all time). */

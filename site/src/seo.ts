@@ -65,6 +65,12 @@ export const PAGES: Record<string, PageMeta> = {
     ...HOME_IMAGE,
     crumb: 'News',
   },
+  '/roadmap': {
+    title: 'TardiGeddon Roadmap: What We’re Building Next',
+    description: 'What’s being worked on in TardiGeddon now, what’s next and what’s further off, how many players voted for each idea, and what has just shipped.',
+    ...HOME_IMAGE,
+    crumb: 'Roadmap',
+  },
   '/giveaway': {
     title: 'TardiGeddon Launch Giveaway: 26 Prizes, Free to Enter',
     description: 'Enter the free TardiGeddon Launch Giveaway for a chance to win 26 prizes of looks for your tardigrades, from every Shop look to bundles and badges. See the prizes, rules and past winners.',

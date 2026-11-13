@@ -94,11 +94,18 @@ it. Merge the branch that updates them first, then:
 Check: after visiting the site, **Analytics & Logs → Web Analytics** shows
 the visit within a few minutes.
 
-## 6b. Accounts and the shop
+## 6b. Accounts and the shop (and Roadmap votes)
 
 Follow **docs/ACCOUNTS.md → "Going live: step by step"**: deploy the server,
 set the Neon and Stripe secrets on Fly, test with the Stripe sandbox, then
 switch to live keys.
+
+The **Roadmap's votes and ideas** (docs/ROADMAP.md) also need two Cloudflare
+Turnstile widgets (the website's, and the phone apps') and their four keys on
+Fly: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_APP_SITE_KEY`,
+`TURNSTILE_APP_SECRET_KEY`. Without them voting and ideas stay switched off
+(the Roadmap itself still shows). The game server must be deployed again
+(`fly deploy`) after a roadmap item is added, for votes on it.
 
 ## 7. Final touches
 

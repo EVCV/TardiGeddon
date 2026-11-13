@@ -1,8 +1,8 @@
 # Terms of Service
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 12 November 2026
-**Document Version:** v2.4
+**Last Modified:** 13 November 2026
+**Document Version:** v2.5
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -286,17 +286,21 @@ There is no way to exchange coins for Slime, so money can never buy a gameplay a
 
 ### 7.0 Your Content
 
-7.0.1 The only content you can currently add to the Services is your team name, team colour, hat choice, and tardigrade names ("Team Details"), and, if you create an account, your player name. In online matches, your Team Details are shown to the other players in your match. Your player name is not shown to other players.
+7.0.1 The content you can add to the Services is your team name, team colour, hat choice, and tardigrade names ("Team Details"), and, if you create an account, your player name and, once you have confirmed your email address, the ideas you choose to send us from the game's Roadmap ("Suggestions"). In online matches, your Team Details are shown to the other players in your match. Your player name is not shown to other players. Suggestions are private: they are not shown to other players or published (see our Privacy Policy, Section 2.8).
 
 7.0.2 You grant the Company a non-exclusive, royalty-free licence to store, transmit, and display your Team Details for as long as needed to run the match you are playing.
 
+7.0.3 If you send a Suggestion, you confirm that the idea is yours to share, and you grant the Company a worldwide, perpetual, royalty-free licence to use it, adapt it and build on it in TardiGeddon and our other products and services, without asking you, crediting you or paying you. We do not have to use, reply to or keep a Suggestion, and sending one gives you no right to payment, credit or a share in anything we make. If you delete your account, we delete your Suggestions (Privacy Policy, Section 5.1.8A), but anything we have already made from an idea is ours.
+
+7.0.4 Our roadmap, including the number of votes an item has, shows what we are working on and what we may do; it is not a promise to make anything or to make it by any date.
+
 ### 7.1 Content Standards
 
-7.1.1 You are responsible for your Team Details and must make sure they meet our Community Guidelines and do not infringe anyone else's rights.
+7.1.1 You are responsible for your Team Details and Suggestions and must make sure they meet our Community Guidelines and do not infringe anyone else's rights.
 
 ### 7.2 Removal of Content
 
-7.2.1 The Company may change, hide, or remove any Team Details, or remove a player from a match, at its discretion and without notice, where it reasonably believes the Team Details breach these Terms or our Community Guidelines.
+7.2.1 The Company may change, hide, or remove any Team Details, or delete any Suggestion, or remove a player from a match, at its discretion and without notice, where it reasonably believes the Team Details breach these Terms or our Community Guidelines.
 
 ## Section 8 — Third-Party Links and Services
 

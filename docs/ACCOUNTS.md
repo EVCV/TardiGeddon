@@ -420,6 +420,10 @@ following for today, 7 days, 30 days, a year or all time:
 It shows totals only, never who bought what. The spend log behind it isn't
 linked to players.
 
+It also has **💡 Ideas from players**: the suggestions players send from the
+game's Roadmap view, newest first, by status, with a note of your own (the
+whole picture, and what to set up in Cloudflare, is in `docs/ROADMAP.md`).
+
 ```
 fly secrets set ADMIN_EMAILS=you@example.com
 ```
@@ -459,6 +463,21 @@ paying players after that moment, and says so at the top. Nothing is deleted:
 
 "Players (all time)" still counts every account. "Most owned" still counts
 what players own now. Run it again any time to move the start to now.
+
+### Optional: Roadmap votes and ideas (Cloudflare Turnstile)
+
+Voting on the roadmap and sending ideas (`docs/ROADMAP.md`) work only with
+accounts on, and each vote or idea is checked with Cloudflare Turnstile. Make
+two Turnstile widgets in the Cloudflare dashboard (website: `tardigeddon.com`
+and `www.tardigeddon.com`; apps: `app.tardigeddon.com`), then:
+
+```
+fly secrets set TURNSTILE_SITE_KEY=… TURNSTILE_SECRET_KEY=…                 TURNSTILE_APP_SITE_KEY=… TURNSTILE_APP_SECRET_KEY=…
+```
+
+Without them, the server says voting and ideas aren't available (it never
+skips the check). On your own computer you need nothing: with no keys set and
+not in production, Cloudflare's always-pass test keys are used.
 
 ### Optional: Google and Apple sign-in
 

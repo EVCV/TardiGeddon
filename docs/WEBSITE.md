@@ -63,7 +63,9 @@ on the site anyway.
 
 - `site/src/routes.tsx` picks the page from the path (`site/src/router.tsx` is a
   tiny History-API router). Pages live in `site/src/pages/`: Home, How to play
-  (`/how-to-play`), Weapons (`/weapons`), Leaderboards, Help & support
+  (`/how-to-play`), Weapons (`/weapons`), Leaderboards, News (`/news`), the
+  Roadmap (`/roadmap`: Now / Next / Later from the news posts, with the game's
+  vote counts, read-only; `docs/ROADMAP.md`), Help & support
   (`/support`), Easter eggs, Promo codes (`/promo-codes`), Press kit
   (`/press`), the Giveaway (`/giveaway`) and the legal pages.
 - **Every page is written to its own HTML file at build time**
@@ -76,8 +78,10 @@ on the site anyway.
   `PageFor` (routes.tsx), or it's a 404 on the live site. Page code must not
   touch `window`/`document` while rendering (only in effects). See
   `docs/SEO.md`. The header menu (`NAV` in
-  `site/src/components/Layout.tsx`) lists the main ones; on phones it is a
-  slide-out panel behind the ☰ button.
+  `site/src/components/Layout.tsx`) lists the main ones; below 1140px wide
+  (phones, tablets, small laptops) it is a slide-out panel behind the ☰ button
+  (eight links need that much room: if you add a ninth, shorten the links or
+  move the breakpoint, in `styles.css` and `Layout.tsx` together).
 - **Giveaway** (`/giveaway`): the contests are a plain list in `site/src/giveaways.ts`
   (`slug`, `title`, `opens`/`closes` in ISO UTC, `entryUrl` (the Sociamonials form,
   embedded in an iframe), `rulesPath`, `prizes`, `winners`). The page works out from

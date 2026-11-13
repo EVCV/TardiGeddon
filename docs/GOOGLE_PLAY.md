@@ -249,6 +249,21 @@ not "sharing" in Google's sense), optional, purposes **App functionality**
 and **Fraud prevention, security and compliance**. Add that purpose to
 **User IDs** too (reports carry account ids; blocking uses player ids).
 
+**Roadmap votes and ideas** (`docs/ROADMAP.md`; Privacy Policy 2.8): the
+**ideas** a signed-in player with a confirmed email sends from the game's
+Roadmap (their text, and a category) are the same **App activity → Other
+user-generated content**: collected, **linked to the account**, not shared
+(only the owner reads them; not shown to other players), optional, purpose
+**App functionality**, kept until the account is deleted or 24 months. The
+**votes** (which roadmap item, when) are **App activity → Other actions**,
+same answers. Both are deleted with the account (also say so in the
+delete-account page: done, `site/legal/delete-account.md`). When a signed-in
+player votes or sends an idea, the app loads **Cloudflare Turnstile**, a
+security check run by Cloudflare as our service provider (not "sharing"); it
+receives the IP address and browser signals only to tell people from bots, so
+check the form's wording for it at the next review (a purpose of **Fraud
+prevention, security and compliance**; it's never used for ads or tracking).
+
 Not collected: location, contacts, photos, files, audio, health, payment
 info (cards etc.: Google keeps those), device IDs, other app performance
 data, browsing history. Signing in with Google or Apple collects

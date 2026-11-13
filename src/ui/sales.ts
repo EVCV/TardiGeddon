@@ -3,7 +3,8 @@
 // server's ADMIN_EMAILS (docs/ACCOUNTS.md); totals only, never who bought what.
 
 import { PRIZE_GRANT_MAX } from '../shop/prizeRules';
-import { creators, downloadNewsletter, givePrize, newsletterCounts, payCreator, recentPrizes, salesReport, saveCreator, type CreatorReport, type MeResponse, type PrizeRow, type SalesReport } from '../account/session';
+import { creators, downloadNewsletter, givePrize, newsletterCounts, payCreator, recentPrizes, salesReport, saveCreator, suggestionList, updateSuggestion, type CreatorReport, type MeResponse, type PrizeRow, type SalesReport, type SuggestionRow } from '../account/session';
+import { ADMIN_NOTE_MAX, SUGGESTION_CATEGORIES, SUGGESTION_STATUSES, type SuggestionStatus } from '../news/suggest';
 import { BUNDLES, LAUNCH_CHAMPION_ITEMS, LAUNCH_WINNER_ITEMS, PROMO_ITEMS, SHOP_ITEMS, prizeLook, bundle, coinPack, formatNumber, packTotal, promoItem, shopItem, type ItemKind, type ShopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
 import { newUsageState, usageCards, type UsageState } from './usageReport';
@@ -23,6 +24,21 @@ export interface SalesState {
   news?: { subscribed: number; pending: number; unsubscribed: number } | 'loading';
   /** The Give a prize form (server/prizes.ts): kept here so a redraw doesn't empty it. */
   prize: PrizeState;
+  /** The ideas players sent (server/roadmap.ts). */
+  ideas: IdeasState;
+}
+
+interface IdeasState {
+  /** Which ideas are listed. */
+  filter: 'all' | SuggestionStatus;
+  /** What the server said (null: not asked yet). */
+  data: { suggestions: SuggestionRow[]; counts: Record<string, number> } | 'loading' | null;
+  /** Status picks and notes being typed but not saved, by idea, so a redraw doesn't lose them. */
+  picks: Map<number, SuggestionStatus>;
+  notes: Map<number, string>;
+  message: string;
+  /** Which request is the latest: an answer to an older one (a filter since changed) is ignored. */
+  req: number;
 }
 
 interface PrizeState {
@@ -40,7 +56,7 @@ interface PrizeState {
 }
 
 export function newSalesState(): SalesState {
-  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState(), prize: { email: '', note: '', search: '', picked: new Set(), badge: true, message: '', busy: false, recent: null } };
+  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState(), ideas: { filter: 'new', data: null, picks: new Map(), notes: new Map(), message: '', req: 0 }, prize: { email: '', note: '', search: '', picked: new Set(), badge: true, message: '', busy: false, recent: null } };
 }
 
 const PERIODS: [number, string][] = [
@@ -171,6 +187,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
     state.creators = null;
     state.news = undefined;
     state.prize.recent = null;
+    state.ideas.data = null;
     state.usage.loadedDays = -1;
     ctx.rerender();
   };
@@ -278,6 +295,7 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
     creatorsCard(ctx, state),
     prizeCard(ctx, state.prize),
     newsletterCard(ctx, state),
+    ideasCard(ctx, state.ideas),
     ...usageCards(ctx, state.usage, state.days),
   );
   return page;
@@ -486,6 +504,100 @@ function prizeCard(ctx: HubContext, st: PrizeState): HTMLElement {
   const c = card('🏆 Give a prize', box);
   c.classList.add('prize-card');
   return c;
+}
+
+/**
+ * Ideas players sent from the game's Roadmap view (server/roadmap.ts): newest first, by status. They are
+ * private (only this page reads them), and go when the account does. Sort each into planned, declined or done,
+ * with a note for yourself. docs/ROADMAP.md has the whole picture.
+ */
+const ideasCardOf = (box: HTMLElement): HTMLElement => {
+  const c = card('💡 Ideas from players', box);
+  c.classList.add('ideas-card');
+  return c;
+};
+
+function ideasCard(ctx: HubContext, st: IdeasState): HTMLElement {
+  const box = el('div', 'ideas');
+  if (st.data === null) {
+    st.data = 'loading';
+    const req = ++st.req;
+    suggestionList(st.filter)
+      .then((d) => {
+        if (req === st.req) st.data = d;
+      })
+      .catch((e: unknown) => {
+        if (req !== st.req) return;
+        st.data = { suggestions: [], counts: {} };
+        st.message = e instanceof Error ? e.message : String(e);
+      })
+      .finally(() => {
+        if (req === st.req) ctx.rerender();
+      });
+  }
+  const data = st.data === 'loading' ? null : st.data;
+
+  const pills = el('div', 'seg ideas-pills');
+  const label = (s: 'all' | SuggestionStatus) => {
+    const name = s === 'all' ? 'All' : s[0].toUpperCase() + s.slice(1);
+    const n = data ? (s === 'all' ? Object.values(data.counts).reduce((a, b) => a + b, 0) : (data.counts[s] ?? 0)) : null;
+    return n === null ? name : `${name} (${n})`;
+  };
+  for (const s of ['new', 'planned', 'declined', 'done', 'all'] as const) {
+    const b = el('button', 'seg-btn' + (st.filter === s ? ' on' : ''), label(s));
+    b.setAttribute('aria-pressed', String(st.filter === s));
+    b.onclick = () => {
+      st.filter = s;
+      st.data = null;
+      st.message = '';
+      ctx.rerender();
+    };
+    pills.append(b);
+  }
+  box.append(pills);
+  if (st.message) box.append(el('p', 'account-note', st.message));
+  if (!data) {
+    box.append(el('p', 'page-loading', 'Loading…'));
+    return ideasCardOf(box);
+  }
+  if (!data.suggestions.length) box.append(el('p', 'account-note', st.filter === 'new' ? 'No new ideas.' : 'Nothing here.'));
+  const list = el('ol', 'ideas-list');
+  for (const s of data.suggestions) {
+    const li = el('li', 'creator-row idea');
+    const when = new Date(s.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const category = (SUGGESTION_CATEGORIES as readonly string[]).includes(s.category) ? s.category : 'other';
+    li.append(el('p', 'account-note idea-meta', `${s.name} · ${category} · ${when}`), el('p', 'idea-text', s.text));
+    const form = el('div', 'creator-form');
+    const pick = el('select', 'field idea-status');
+    pick.setAttribute('aria-label', 'Status');
+    for (const status of SUGGESTION_STATUSES) {
+      const o = el('option', '', status);
+      o.value = status;
+      o.selected = (st.picks.get(s.id) ?? s.status) === status;
+      pick.append(o);
+    }
+    pick.onchange = () => st.picks.set(s.id, pick.value as SuggestionStatus);
+    const note = el('input', 'code-input idea-note');
+    note.placeholder = 'Note for yourself (optional)';
+    note.maxLength = ADMIN_NOTE_MAX;
+    note.setAttribute('aria-label', 'Note');
+    note.value = st.notes.get(s.id) ?? s.admin_note ?? '';
+    note.oninput = () => st.notes.set(s.id, note.value);
+    const save = el('button', 'hud-btn', 'Save');
+    save.disabled = ctx.busy;
+    save.onclick = () =>
+      ctx.run(async () => {
+        await updateSuggestion(s.id, st.picks.get(s.id) ?? s.status, st.notes.get(s.id) ?? s.admin_note ?? '');
+        st.picks.delete(s.id);
+        st.notes.delete(s.id);
+        st.data = null;
+      });
+    form.append(pick, note, save);
+    li.append(form);
+    list.append(li);
+  }
+  box.append(list);
+  return ideasCardOf(box);
 }
 
 /**

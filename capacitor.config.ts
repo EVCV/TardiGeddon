@@ -17,6 +17,9 @@ const config: CapacitorConfig = {
     // a token instead (src/account/token.ts) and must be trusted too (docs/IOS.md).
     hostname: 'app.tardigeddon.com',
     androidScheme: 'https',
+    // Cloudflare Turnstile, the security check on votes and ideas (src/ui/turnstile.ts), runs in a
+    // frame from here: without this the WebView may hand it to the phone's browser instead.
+    allowNavigation: ['challenges.cloudflare.com'],
   },
   android: {
     backgroundColor: '#7fd3f7',

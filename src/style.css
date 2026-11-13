@@ -2307,6 +2307,52 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :where(:root[data-phone-menu]) .news-head { justify-content: center; }
 :where(:root[data-phone-menu]) .news-text, :where(:root[data-phone-menu]) .news-list { font-size: 13px; }
 
+/* The owner's list of ideas (ui/sales.ts ideasCard) */
+.page-sales > .ideas-card { grid-column: 1 / -1; }
+.ideas { display: flex; flex-direction: column; gap: 8px; }
+.ideas-pills { flex-wrap: wrap; align-self: flex-start; }
+.ideas-list { list-style: none; margin: 0; padding: 0; }
+.idea-meta { margin: 0; }
+.idea-text { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+.idea .idea-status { width: auto; }
+.idea .idea-note { flex: 1 1 200px; min-width: 0; }
+
+/* ---- Roadmap (ui/roadmap.ts): a view of the News page, with the security check's widget (ui/turnstile.ts) ---- */
+.page-news.page-roadmap { max-width: 1100px; }
+.roadmap-intro .news-text { margin: 0; }
+.roadmap-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; align-items: start; }
+.roadmap-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.roadmap-col-title { font-family: var(--title); font-weight: normal; font-size: 24px; letter-spacing: .5px; line-height: 1.1; margin: 0; }
+.roadmap-col-blurb { margin: -6px 0 0; }
+.roadmap-item { text-align: left; }
+.roadmap-item .card-title { font-size: 18px; margin: 0 0 4px; }
+.roadmap-vote-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.roadmap-vote { min-height: 34px; padding: 3px 12px; font-size: 15px; }
+.roadmap-vote.on { background: var(--accent); color: var(--on-accent); }
+.roadmap-count { font-size: 13px; font-weight: 800; opacity: .8; }
+.roadmap-empty { margin: 0; padding: 10px 12px; border: 3px dashed var(--line-soft); border-radius: 14px; text-align: center; }
+.roadmap-shipped-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.4; }
+.roadmap-shipped-list .news-date { display: inline; }
+.roadmap-suggest { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.roadmap-suggest .news-text { margin: 0; }
+.roadmap-form { display: flex; flex-direction: column; gap: 6px; align-self: stretch; max-width: 560px; text-align: left; }
+.roadmap-label { font-weight: 800; font-size: 14px; }
+.roadmap-text { resize: vertical; min-height: 84px; line-height: 1.35; }
+.roadmap-count-chars { margin: 0; text-align: right; }
+.roadmap-send { align-self: flex-start; }
+.roadmap-note:empty { display: none; }
+/* Cloudflare's check: invisible unless the player has something to do, then at the bottom of the screen above everything. */
+.turnstile-host { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 2000; max-width: calc(100vw - 12px); pointer-events: none; }
+.turnstile-host > * { pointer-events: auto; }
+.turnstile-host.show { padding: 6px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 4px 0 var(--ink); }
+/* Phones: the roadmap scrolls inside the page, like the other news. */
+:where(:root[data-phone-menu]) .roadmap-col-title { font-size: 20px; }
+:where(:root[data-phone-menu]) .roadmap-item .card-title { font-size: 15px; }
+:where(:root[data-phone-menu]) .roadmap-cols { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+:where(:root[data-phone-menu]) .roadmap-shipped-list { font-size: 13px; }
+:where(:root[data-phone-menu]) .roadmap-form { max-width: none; }
+:where(:root[data-phone-menu]) .roadmap-text { min-height: 60px; }
+
 
 /* ---- Practice: which kind (ui/tutorial.ts choosePractice) ---- */
 .practice-choice { max-width: 440px; display: flex; flex-direction: column; gap: 10px; }

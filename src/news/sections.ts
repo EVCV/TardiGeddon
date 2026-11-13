@@ -2,13 +2,20 @@
 // game's News page (src/ui/news.ts) and the website's (site/src/pages/News.tsx).
 
 import type { NewsPost } from './news';
+import { shippedIds } from './roadmap';
 
 /** new: release notes; coming: on its way; fixing: known problems (still open, then fixed). */
 export type NewsSection = 'new' | 'coming' | 'fixing';
 
-/** The posts in a section: release notes newest first, what's coming soonest first, problems still open before fixed ones. */
+/**
+ * The posts in a section: release notes newest first, what's coming soonest first
+ * (not what an update has already delivered: roadmap.ts), problems still open before fixed ones.
+ */
 export function postsIn(section: NewsSection, posts: NewsPost[]): NewsPost[] {
   if (section === 'new') return posts.filter((p) => p.kind === 'update').sort((a, b) => b.date.localeCompare(a.date));
-  if (section === 'coming') return posts.filter((p) => p.kind === 'coming').sort((a, b) => a.date.localeCompare(b.date));
+  if (section === 'coming') {
+    const shipped = shippedIds(posts);
+    return posts.filter((p) => p.kind === 'coming' && !shipped.has(p.id)).sort((a, b) => a.date.localeCompare(b.date));
+  }
   return posts.filter((p) => p.kind === 'issue').sort((a, b) => Number(!!a.fixed) - Number(!!b.fixed) || b.date.localeCompare(a.date));
 }

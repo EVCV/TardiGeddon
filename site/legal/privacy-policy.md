@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 12 November 2026
-**Document Version:** v2.13
+**Last Modified:** 13 November 2026
+**Document Version:** v2.14
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -146,9 +146,9 @@ Our online game server counts in the same way, for online play: how long players
 
 ### 2.6 Information We Do Not Collect
 
-2.6.1 We do not use advertising or tracking technologies, and the only analytics we use are the cookie-free visit and play statistics described in Section 2.4. The only cookies we use are the strictly necessary sign-in cookies described in our Cookie & Storage Policy, and only if you sign in. We do not ask for your age, location, or contact list, and you can play without giving us your name or email address. The game's fonts and code are served from our own Website, so playing does not send your data to font or analytics services.
+2.6.1 We do not use advertising or tracking technologies, and the only analytics we use are the cookie-free visit and play statistics described in Section 2.4. The only cookies we use are the strictly necessary sign-in cookies described in our Cookie & Storage Policy, and only if you sign in. We do not ask for your age, location, or contact list, and you can play without giving us your name or email address. The game's fonts and code are served from our own Website, so playing does not send your data to font or analytics services; the only thing it loads from elsewhere is Cloudflare's security check (Section 2.8.3), and only when a signed-in player opens the Roadmap.
 
-2.6.2 We do not intentionally collect special category personal data (such as data concerning health, religion, or sexual orientation), and you should not include any in your Team Details or messages to us.
+2.6.2 We do not intentionally collect special category personal data (such as data concerning health, religion, or sexual orientation), and you should not include any in your Team Details, Suggestions or messages to us.
 
 ### 2.7 Contests and Giveaways
 
@@ -157,6 +157,14 @@ Our online game server counts in the same way, for online play: how long players
 2.7.2 If you win, we also keep the TardiGeddon account the prize went to, what you won, and any confirmation from your parent or guardian. Winners are announced by player name only.
 
 2.7.3 Entering a contest does not sign you up for our email news (Section 2.2.6).
+
+### 2.8 Roadmap Votes and Suggestions
+
+2.8.1 Votes. If you are signed in, you can vote for the items on our roadmap (in the game: News, then Roadmap). We keep which item you voted for and when, with your account, so that you can vote once for each item and take a vote back. Only the total for each item is shown, in the game and on our Website; nobody is shown who voted. The roadmap on our Website has no voting and collects nothing.
+
+2.8.2 Suggestions. If you are signed in and have confirmed your email address, you can send us an idea (also in the game, under Roadmap). We keep what you wrote, the kind of idea you chose (a weapon, a map, a game mode, looks or something else), when you sent it, the account it came from, and what we decide to do with it (a status such as planned or done, and a note for ourselves). Ideas are not shown to other players and are not published: only we read them, together with your player name (not your email address). We use them to decide what to make, and we may use an idea without asking or paying you, as set out in our Terms of Service, Section 7.0.3. Please don't put personal information about yourself or anyone else in an idea, and keep to our Community Guidelines. We cannot reply to every idea. Votes and ideas are not part of the anonymous play statistics in Section 2.4.
+
+2.8.3 Security check. To stop automated scripts from casting votes and sending ideas, each vote and idea is protected by Cloudflare Turnstile. The game loads it from Cloudflare (challenges.cloudflare.com) only when a signed-in player opens the Roadmap, and not at all for a player who is signed out. Turnstile runs small checks in your browser, and sometimes asks you to do something, such as tick a box, to tell people from automated scripts. To do this, Cloudflare receives your IP address and signals from your browser and device (for example how it responds to the checks), and sends your browser a one-time result. When you vote or send an idea, our server asks Cloudflare whether that result is genuine, sending the result and your IP address. We never see the signals and do not keep the result or the IP address; our server uses your IP address briefly, in memory only, to limit how many votes and ideas one connection can send. Cloudflare acts as our processor for this check, and the check is described in its own policies (https://www.cloudflare.com/privacypolicy/). It is a security measure, not advertising or tracking.
 
 ## Section 3 — How We Use Your Information
 
@@ -176,6 +184,8 @@ Our online game server counts in the same way, for online play: how long players
 
 3.0.7 If you buy something: to take payment through Stripe (or, in our apps, Google Play or the App Store), deliver the item, handle refunds and disputes, and prevent fraud.
 
+3.0.6A If you vote on the roadmap or send an idea: to count votes, read ideas and decide what to make, and to check with Cloudflare Turnstile that each vote or idea comes from a person and not a script (Section 2.8).
+
 3.0.7A If you enter a contest or giveaway: to check you can enter, count your entries, prevent cheating, pick and contact winners, give prizes and announce winners by player name (Section 2.7).
 
 3.0.8 To comply with legal obligations, such as keeping accounting and tax records, and to respond to lawful requests from public authorities.
@@ -187,6 +197,8 @@ Our online game server counts in the same way, for online play: how long players
 3.1.2 Legitimate interests: keeping the Services and accounts secure and fair, preventing payment fraud, answering your messages, and counting visits and how the game is played so we can improve the Services (Sections 3.0.3, 3.0.4, 3.0.5 and 3.0.7). You can object to the game's play statistics at any time by turning them off (Section 2.4.5). These interests do not override your rights, because we use very little data and keep it only as long as described in Section 5.
 
 3.1.3 Legal obligation: where we must keep or disclose information by law, including keeping records of sales for tax purposes (Section 3.0.8).
+
+3.1.2B Roadmap votes and ideas: legitimate interests, hearing from our players what to make next, and stopping automated abuse of votes and the suggestion box (Section 3.0.6A). You can object by contacting privacy@tardigeddon.com.
 
 3.1.2A Contests and giveaways: performance of a contract, running the contest you entered under its Official Rules, and legitimate interests, stopping duplicate and automated entries (Section 3.0.7A).
 
@@ -201,6 +213,8 @@ Our online game server counts in the same way, for online play: how long players
 4.0.1 Other players in your online match, who see your Team Details and the effects of your moves.
 
 4.0.2 Our hosting providers, acting as our processors: Cloudflare, Inc. (which serves the Website and game files, and provides our visit statistics), Fly.io, Inc. (which runs the online game server in its London region, which also receives the game's play statistics) and Neon (which hosts our account database, and the daily totals of play statistics, in London, on Amazon Web Services). They process data such as IP addresses and, for Neon, the account and purchase data described in Sections 2.2 and 2.3, to deliver and protect their services, under contracts that include data protection obligations, and may keep short technical logs under their own policies.
+
+4.0.2A Cloudflare, Inc., also acting as our processor for Cloudflare Turnstile, the security check on roadmap votes and ideas (Section 2.8.3). It receives your IP address and signals from your browser and device while the check runs, and tells our server whether the result is genuine.
 
 4.0.3 20i Limited, a UK company, acting as our processor, which sends the account emails described in Section 2.2.5 on our behalf from its mail servers in the United Kingdom. It receives your email address, your player name and the content of the email, and keeps delivery logs for a limited time under its own policies.
 
@@ -244,7 +258,7 @@ Our online game server counts in the same way, for online play: how long players
 
 5.1.3 Emails you send us: for as long as needed to deal with your message, and then for up to 24 months in case of follow-up questions, unless the law requires longer.
 
-5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, your game stats, your friends list and your daily challenge scores: until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle. Records of gifts you sent or claimed stay while the other account exists, so it can still claim or see them, but the link to your deleted account is removed.
+5.1.4 Your account (Section 2.2.1), including the items it owns, its coin and Slime balances, your game stats, your friends list, your daily challenge scores, your roadmap votes and your suggestions (Section 2.8): until you delete it. You can delete your account at any time in the game (Account, then Delete account), or by emailing privacy@tardigeddon.com. Deleting it removes your account details and items straight away from our live database; copies in our database provider's backups are overwritten within its normal backup cycle. Records of gifts you sent or claimed stay while the other account exists, so it can still claim or see them, but the link to your deleted account is removed.
 
 5.1.4A Email news (Section 2.2.6): while you are signed up. If you unsubscribe, we keep your email address and the dates on a "do not email" list, so you are never sent news again by mistake, and your consent record for up to 2 years after, as proof of what you agreed to. A sign-up that is never confirmed is deleted after 30 days. If you delete your account, its email news record is deleted with it.
 
@@ -255,6 +269,8 @@ Our online game server counts in the same way, for online play: how long players
 5.1.7 Visit statistics (Section 2.4): we only see totals, which do not identify anyone. Cloudflare keeps the underlying data for a limited time under its own policies. The game's play statistics are only ever kept as daily totals, which are deleted after 25 months.
 
 5.1.8 Player reports (Section 2.1.6): for up to 24 months after we have dealt with them, so we can spot repeated problems, unless the law requires longer.
+
+5.1.8A Roadmap votes (Section 2.8.1): until you take the vote back or delete your account. Suggestions (Section 2.8.2): until you delete your account or, if sooner, 24 months after you sent them, when we delete them automatically.
 
 5.1.9 Contest and giveaway entries (Section 2.7): deleted within 3 months after the winners are announced. For winners, we keep their player name, the prize, the account it went to and any parent or guardian confirmation for 2 years, in case of questions about the prize. The prizes themselves stay on the account like any other item (Section 5.1.4).
 

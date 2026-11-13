@@ -1,8 +1,8 @@
 # Cookie & Storage Policy
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 12 November 2026
-**Document Version:** v1.11
+**Last Modified:** 13 November 2026
+**Document Version:** v1.12
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -93,11 +93,13 @@ This policy explains what cookies and similar technologies are, and how TardiGed
 
 ### 4.0 Third-Party Providers
 
-4.0.1 We do not embed third-party analytics, advertising, social media plug-ins, or videos that set cookies. The only third-party content we embed is a contest's entry form, and only when you ask for it (Section 4.0.3). Our hosting provider may use strictly necessary security measures (for example, to protect the Website from attacks), as described in its own privacy policy.
+4.0.1 We do not embed third-party analytics, advertising, social media plug-ins, or videos that set cookies. The only third-party content we embed is a contest's entry form, and only when you ask for it (Section 4.0.3), and Cloudflare's security check, only when you vote or send an idea (Section 4.0.4). Our hosting provider may use strictly necessary security measures (for example, to protect the Website from attacks), as described in its own privacy policy.
 
 4.0.2 When you buy something, you leave the game for Stripe's payment page (checkout.stripe.com), and if you sign in with Google or Apple, you visit their sign-in page. Those pages are run by Stripe, Google or Apple, which may set their own cookies, for example to prevent fraud, as described in their own cookie and privacy policies. We do not control those cookies.
 
 4.0.3 Our giveaway page (https://tardigeddon.com/giveaway) can show the entry form for a contest, which is run for us by Sociamonials (see our Privacy Policy, Section 2.7). The form only loads when you press "Show the entry form", or if you open the entry page directly. Sociamonials then sets a session cookie on its own site to keep your entry together while you fill it in, as described in its own policies. We do not use it for anything else.
+
+4.0.4 When a signed-in player opens the Roadmap in the game, the game loads Cloudflare Turnstile (from challenges.cloudflare.com), a security check that tells people from automated scripts when you vote or send an idea (see our Privacy Policy, Section 2.8.3). It is not loaded for players who are signed out, or who never open the Roadmap, and we use it for nothing else. Cloudflare may read or store information on your device as part of running the check, only to run it, as described in its own policies; we do not control that, and nothing from it is used for advertising or tracking. The game itself stores nothing new on your device for votes or ideas.
 
 ## Section 5 — Managing Your Preferences
 
