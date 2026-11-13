@@ -42,7 +42,10 @@ function measureLobby(shell: HTMLElement): number {
   let above = 0;
   for (const part of shell.children) {
     if (part === page) break;
-    if (part instanceof HTMLElement) above += part.offsetHeight;
+    // Only what takes up room above the page: not the season's sky behind it (position: fixed).
+    if (!(part instanceof HTMLElement)) continue;
+    const pos = getComputedStyle(part).position;
+    if (pos !== 'fixed' && pos !== 'absolute') above += part.offsetHeight;
   }
   let top = Infinity;
   let bottom = 0;
