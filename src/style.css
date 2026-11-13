@@ -1373,16 +1373,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .lobby-setup .players-hint { margin-bottom: 6px; }
   .lobby-setup .style-blurb { margin-top: 4px; font-size: 12px; }
 }
-/* Scale the whole menu up with the screen: text, borders, shadows and all. */
-@media (min-width: 1700px) and (min-height: 820px) {
-  .hub-bar-inner, .hub-notice, .hub-news, .hub-page, .hub-footer { zoom: 1.08; }
-}
-@media (min-width: 1900px) and (min-height: 900px) {
-  .hub-bar-inner, .hub-notice, .hub-news, .hub-page, .hub-footer { zoom: 1.15; }
-}
-@media (min-width: 2300px) and (min-height: 1100px) {
-  .hub-bar-inner, .hub-notice, .hub-news, .hub-page, .hub-footer { zoom: 1.4; }
-}
+/* Scale the whole menu up with the screen: text, borders, shadows and all.
+   --hub-zoom is the most it grows by; ui/hubFit.ts sets --hub-fit, the zoom at which
+   the lobby fits the screen's height (no more than --hub-zoom; below 1 on short windows). */
+@media (min-width: 1700px) and (min-height: 820px) { .menu.hub { --hub-zoom: 1.08; } }
+@media (min-width: 1900px) and (min-height: 900px) { .menu.hub { --hub-zoom: 1.15; } }
+@media (min-width: 2300px) and (min-height: 1100px) { .menu.hub { --hub-zoom: 1.4; } }
+.hub-bar-inner, .hub-notice, .hub-news, .hub-page, .hub-footer { zoom: var(--hub-fit, var(--hub-zoom, 1)); }
 .dash-goal { display: flex; align-items: center; gap: 12px; border: 3px solid var(--ink); border-radius: 16px; background: #ddf5cf; padding: 8px 12px; text-align: left; box-shadow: 0 3px 0 var(--ink); }
 .dash-goal-art { flex: none; width: 76px; display: flex; justify-content: center; }
 .dash-goal-art svg { width: 76px; height: auto; display: block; }

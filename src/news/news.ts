@@ -46,6 +46,37 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
+    id: '2026-11-13-big-screens',
+    date: '2026-11-13',
+    kind: 'update',
+    text: {
+      en: {
+        title: 'The menu fits big screens',
+        body: ['- Fixed: on big computer screens, the bottom of the lobby (the Controls button and the cards’ edges) could run off the screen. The menu now grows only as far as the screen’s height has room for.'],
+      },
+      es: {
+        title: 'El menú cabe en pantallas grandes',
+        body: ['- Arreglado: en pantallas de ordenador grandes, la parte de abajo de la sala (el botón Controles y el borde de las tarjetas) podía salirse de la pantalla. Ahora el menú solo crece hasta donde cabe en la altura de la pantalla.'],
+      },
+      'pt-BR': {
+        title: 'O menu cabe em telas grandes',
+        body: ['- Corrigido: em telas grandes de computador, a parte de baixo do lobby (o botão Controles e a borda dos cartões) podia sair da tela. Agora o menu só cresce até onde cabe na altura da tela.'],
+      },
+      de: {
+        title: 'Das Menü passt auf große Bildschirme',
+        body: ['- Behoben: Auf großen Computerbildschirmen konnte der untere Teil der Lobby (die Taste Steuerung und die Ränder der Karten) über den Bildschirm hinausragen. Das Menü wächst jetzt nur noch so weit, wie die Höhe des Bildschirms Platz bietet.'],
+      },
+      fr: {
+        title: 'Le menu tient sur les grands écrans',
+        body: ['- Corrigé : sur les grands écrans d’ordinateur, le bas du lobby (le bouton Commandes et le bord des cartes) pouvait dépasser de l’écran. Le menu ne grandit plus que dans la limite de la hauteur de l’écran.'],
+      },
+      ja: {
+        title: '大きな画面でもメニューが収まるように',
+        body: ['- 修正：大きなパソコンの画面で、ロビーの下の部分（「操作」ボタンやカードの端）が画面からはみ出すことがある問題。メニューは画面の高さに収まる大きさまでしか拡大しなくなりました。'],
+      },
+    },
+  },
+  {
     id: '2026-12-01-launch',
     date: '2026-12-01',
     kind: 'coming',
