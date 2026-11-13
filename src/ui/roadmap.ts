@@ -21,13 +21,15 @@ export interface RoadmapState {
   /** Who they were loaded for (so signing in or out loads them again), or 'loading'/'failed' while asking or if it didn't work. */
   loaded: 'none' | 'loading' | 'failed' | 'done';
   forUser: string | null;
+  /** Which load is the latest: an answer to an older one (someone since signed in or out) is ignored. */
+  req: number;
   category: SuggestionCategory;
   text: string;
   preloaded: boolean;
 }
 
 export function newRoadmapState(): RoadmapState {
-  return { votes: null, loaded: 'none', forUser: null, category: 'other', text: '', preloaded: false };
+  return { votes: null, loaded: 'none', forUser: null, req: 0, category: 'other', text: '', preloaded: false };
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -73,20 +75,23 @@ function loadVotes(ctx: HubContext, st: RoadmapState): void {
   // No accounts here (or not loaded yet): no server to ask.
   if (!account().me) return;
   const who = account().me?.user?.id ?? null;
-  if ((st.loaded === 'done' || st.loaded === 'failed') && st.forUser === who) return;
-  if (st.loaded === 'loading') return;
+  if (st.loaded !== 'none' && st.forUser === who) return;
+  // Someone else (or nobody) now: their votes aren't these, so forget them until the new ones come.
+  if (st.forUser !== who) st.votes = null;
   st.loaded = 'loading';
+  st.forUser = who;
+  const req = ++st.req;
   roadmapVotes()
     .then((v) => {
+      if (req !== st.req) return;
       st.votes = v;
       st.loaded = 'done';
     })
     .catch(() => {
-      st.loaded = 'failed';
+      if (req === st.req) st.loaded = 'failed';
     })
     .finally(() => {
-      st.forUser = who;
-      ctx.rerender();
+      if (req === st.req) ctx.rerender();
     });
 }
 
@@ -107,11 +112,15 @@ function itemCard(ctx: HubContext, st: RoadmapState, p: NewsPost, key: string | 
     b.setAttribute('aria-pressed', String(mine));
     // Says which item it is for, to a screen reader going from button to button.
     b.setAttribute('aria-describedby', heading.id);
-    b.disabled = ctx.busy;
+    // Only once this player's own votes are in: until then "Vote" might really be a vote they already gave.
+    b.disabled = ctx.busy || st.loaded !== 'done' || st.forUser !== (account().me?.user?.id ?? null);
     b.onclick = () =>
       ctx.run(async () => {
         const on = !mine;
+        const req = st.req;
         const votes = await withTurnstile('roadmap_vote', key, (token) => voteRoadmap(p.id, on, token));
+        // Signed in or out meanwhile: the votes shown now are someone else's, and are being loaded afresh.
+        if (req !== st.req) return;
         const v = (st.votes ??= { votes: {}, mine: [] });
         v.votes[p.id] = votes;
         v.mine = on ? [...new Set([...(v.mine ?? []), p.id])] : (v.mine ?? []).filter((id) => id !== p.id);
@@ -256,7 +265,16 @@ export function roadmapCards(ctx: HubContext, st: RoadmapState): HTMLElement[] {
   const prompt = signInPrompt(ctx);
   if (prompt) intro.append(prompt);
   if (me?.user && !key) intro.append(el('p', 'account-note', t('Voting isn’t open right now. Please try again later.')));
-  if (st.loaded === 'failed') intro.append(el('p', 'account-note', t('Can’t show the votes right now.')));
+  if (st.loaded === 'failed') {
+    const retry = el('button', 'hud-btn', t('Try again'));
+    retry.onclick = () => {
+      st.loaded = 'none';
+      ctx.rerender();
+    };
+    const p = el('p', 'account-note', t('Can’t show the votes right now.'));
+    p.append(' ', retry);
+    intro.append(p);
+  }
 
   const cols = el('div', 'roadmap-cols');
   for (const stage of STAGES) cols.append(column(ctx, st, stage, plan[stage], key));

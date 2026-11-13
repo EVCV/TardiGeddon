@@ -37,6 +37,8 @@ interface IdeasState {
   picks: Map<number, SuggestionStatus>;
   notes: Map<number, string>;
   message: string;
+  /** Which request is the latest: an answer to an older one (a filter since changed) is ignored. */
+  req: number;
 }
 
 interface PrizeState {
@@ -54,7 +56,7 @@ interface PrizeState {
 }
 
 export function newSalesState(): SalesState {
-  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState(), ideas: { filter: 'new', data: null, picks: new Map(), notes: new Map(), message: '' }, prize: { email: '', note: '', search: '', picked: new Set(), badge: true, message: '', busy: false, recent: null } };
+  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState(), ideas: { filter: 'new', data: null, picks: new Map(), notes: new Map(), message: '', req: 0 }, prize: { email: '', note: '', search: '', picked: new Set(), badge: true, message: '', busy: false, recent: null } };
 }
 
 const PERIODS: [number, string][] = [
@@ -519,13 +521,19 @@ function ideasCard(ctx: HubContext, st: IdeasState): HTMLElement {
   const box = el('div', 'ideas');
   if (st.data === null) {
     st.data = 'loading';
+    const req = ++st.req;
     suggestionList(st.filter)
-      .then((d) => (st.data = d))
+      .then((d) => {
+        if (req === st.req) st.data = d;
+      })
       .catch((e: unknown) => {
+        if (req !== st.req) return;
         st.data = { suggestions: [], counts: {} };
         st.message = e instanceof Error ? e.message : String(e);
       })
-      .finally(() => ctx.rerender());
+      .finally(() => {
+        if (req === st.req) ctx.rerender();
+      });
   }
   const data = st.data === 'loading' ? null : st.data;
 
