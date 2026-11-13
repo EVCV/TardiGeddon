@@ -5,6 +5,9 @@
 // Rules (docs/social/README.md): never say "Worms"; money only buys looks;
 // cheerful, short, British spelling; no "hurry" or countdowns.
 //
+// The 'Giveaway' category (batch 3, the Launch Giveaway series) ends its posts with
+// the "Enter free" link instead of "Play free" and is never pinned to Pinterest.
+//
 // A post with no `date` goes into Sociamonials' queue under its category, so
 // the queue's weekly slots decide when it goes out. Only posts tied to a day
 // (launch, the Founder pack, the Supporter packs' end date, Christmas) have a
@@ -15,13 +18,15 @@
 // Never change a post's `id` once its batch is imported (its picture's URL is
 // built from it).
 
-export type Category = 'Weapons' | 'Tips' | 'Tardigrade facts' | 'Worlds and modes' | 'Community' | 'Play' | 'Videos';
+export type Category = 'Weapons' | 'Tips' | 'Tardigrade facts' | 'Worlds and modes' | 'Community' | 'Play' | 'Videos' | 'Giveaway';
 
 /** What the card's middle shows. */
 export type Art =
   | { shot: string } // a screenshot from site/public/media
   | { weapon: string } // a weapon's icon and a tardi (src/sim/weapons.ts)
-  | { stat: string } // a big number or word
+  | { stat: string; hat?: string } // a big number or word, and a tardi (in `hat`, else a random one)
+  | { looks: string[] } // 1 to 3 looks in cream panels: "aim:champion", "arena:champion", "hat:launchwinner", "badge"… (LOOK_NAMES in scripts/social-art.ts)
+  | { image: string } // a finished square picture in site/public (e.g. /media/giveaway/prize-grand.jpg), in a frame, with the post's text under it
   | { tardis: { color: number; hat: string; skin?: string }[] } // a row of tardis on the grass
   | { question: string }; // a big speech bubble
 
@@ -661,5 +666,167 @@ export const POSTS: Post[] = [
     art: { tardis: [{ color: GOLD, hat: 'supporter', skin: 'sunshine' }] },
     message: 'A reminder 💛 The launch Supporter packs are on sale until 31 January, and won’t be sold again after that. Looks only, never power. Thank you to everyone who has backed us!',
     tags: ['indiegame', 'indiedev'], alt: 'A sunshine-yellow tardigrade in the Supporter heart cap.',
+  },
+
+  // ── Batch 3: the TardiGeddon Launch Giveaway (open to 31 January 2027, 23:59 UK time) ──
+  // Facts are only those in site/legal/launch-giveaway-rules.md. No urgency words, nothing
+  // about sharing or tagging to enter, never a hint that buying helps (it doesn't). Each
+  // post ends with the "Enter free" link (scripts/social-posts.ts) and is never pinned.
+  {
+    id: 'giveaway-kickoff', batch: 3, category: 'Giveaway', date: '2026-11-13 19:30',
+    title: 'Giveaway time!', text: '26 prizes, all cosmetic looks. Free to enter, ages 13 and over.',
+    art: { tardis: [{ color: GOLD, hat: 'champion' }, { color: BLUE, hat: 'launchwinner' }] },
+    message: 'The TardiGeddon Launch Giveaway is open 🎉 26 prizes, all cosmetic looks, from the Launch Winner’s cup to every look in the Shop. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'Two tardigrades, one in a jewelled Champion’s crown and one in the golden Launch Winner’s cup.',
+    video: { url: 'https://tardigeddon.com/social/giveaway-kickoff.mp4', youtubeTitle: 'TardiGeddon Launch Giveaway: 26 prizes, free to enter #shorts' },
+  },
+  {
+    id: 'giveaway-grand', batch: 3, category: 'Giveaway', date: '2026-11-17 19:30',
+    title: 'Grand prize', text: '1 winner: every look in the Shop, both launch sets, a 🏆 badge and a world made with you.',
+    art: { image: '/media/giveaway/prize-grand.jpg' },
+    message: 'Grand prize 🥇 Every look in the TardiGeddon Shop (121 looks), both launch sets and the 🏆 badge, plus a world and music track designed with you by email. Free, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The grand prize: a wall of worlds, aims and explosions from the Shop, a tardigrade in the Champion’s crown and a trophy badge. 121 looks plus both launch sets, and design your own world and music with us.',
+  },
+  {
+    id: 'giveaway-second', batch: 3, category: 'Giveaway', date: '2026-11-20 19:30',
+    title: 'Second prize', text: '5 winners: the Champion set, every Shop bundle, the Winner set and a 🏆 badge.',
+    art: { image: '/media/giveaway/prize-second.jpg' },
+    message: 'Second prize 🥈 Five winners each get the Launch Champion set (world, music, crown, monument, sights, salute), every look in every Shop bundle, the Winner set and the 🏆 badge. Free, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The Champion set: Champion’s Arena at sunset with fireworks, the Champion’s monument, sights, salute and Fanfare music, and a tardigrade in the Champion’s crown.',
+  },
+  {
+    id: 'giveaway-third', batch: 3, category: 'Giveaway', date: '2026-11-24 19:30',
+    title: 'Third prize', text: '20 winners: the Winner set, a Shop bundle of your choice and a 🏆 badge.',
+    art: { image: '/media/giveaway/prize-third.jpg' },
+    message: 'Third prize 🥉 Twenty winners each get the Launch Winner set (a cup hat and a laurel aim), the looks in one Shop bundle of their choice, and the 🏆 badge. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The Winner set: a tardigrade wearing the Launch Winner’s cup, the gold Winner’s laurels aim and a trophy badge.',
+  },
+  {
+    id: 'giveaway-founder', batch: 3, category: 'Giveaway', date: '2026-11-27 19:30',
+    title: 'Make an account', text: 'A free account by 30 November gets the Founder pack, and +5 bonus giveaway entries.',
+    art: { stat: '+5 entries', hat: 'founder' },
+    message: 'Make a free TardiGeddon account by 30 November for the Founder pack 👑 It also earns +5 bonus entries in the giveaway. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway', 'freegame'], alt: 'The words plus 5 entries in big yellow letters, with a tardigrade in the Founder’s sprout crown.',
+  },
+  {
+    id: 'giveaway-launch', batch: 3, category: 'Giveaway', date: '2026-12-01 19:30',
+    title: 'Launch day!', text: 'TardiGeddon is out today, and the Launch Giveaway is open.',
+    art: { tardis: [{ color: RED, hat: 'party' }, { color: BLUE, hat: 'crown' }, { color: GREEN, hat: 'tophat' }] },
+    message: 'TardiGeddon is out today 🎉 Free in your browser and on Android, iPhone and iPad. The Launch Giveaway is open too: 26 prizes, all cosmetic looks. Free, 13+. Rules at the link.',
+    tags: ['giveaway', 'indiegame'], alt: 'Three tardigrades celebrating in party hats and crowns.',
+  },
+  {
+    id: 'giveaway-champion-arena', batch: 3, category: 'Giveaway', date: '2026-12-04 19:30',
+    title: 'Champion’s Arena', text: 'A sunset arena with bunting and fireworks, and Champion’s Fanfare to play it to.',
+    art: { looks: ['arena:champion', 'music:champion'] },
+    message: 'Champion’s Arena and Champion’s Fanfare 🎺 A sunset arena with bunting and fireworks, and a brassy march to play it to. Both are in the Grand and Second prizes. Free, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'Champion’s Arena, a red-carpet arena at sunset with fireworks, next to Champion’s Fanfare, a record with golden notes.',
+    video: { url: 'https://tardigeddon.com/social/giveaway-champion-arena.mp4', youtubeTitle: 'Champion’s Arena and Fanfare: Launch Giveaway prizes | TardiGeddon #shorts' },
+  },
+  {
+    id: 'giveaway-how-to-enter', batch: 3, category: 'Giveaway', date: '2026-12-08 19:30',
+    title: 'How to enter', text: 'Fill in the form, then confirm with the email we send. Bonus entries come after.',
+    art: { stat: '3 steps' },
+    message: 'How to enter ✅ 1. Go to the entry page. 2. Fill in the form. 3. Confirm with the email we send. Then add bonus entries if you like. Free, 13+. Rules at the link.',
+    tags: ['giveaway', 'freegame'], alt: 'The words 3 steps in big yellow letters, with a tardigrade beside them.',
+  },
+  {
+    id: 'giveaway-crown', batch: 3, category: 'Giveaway', date: '2026-12-11 19:30',
+    title: 'Champion’s crown', text: 'A tall jewelled crown over red velvet, in the Launch Champion set.',
+    art: { looks: ['hat:champion'] },
+    message: 'Champion’s crown 👑 A tall jewelled crown over red velvet, part of the Launch Champion set that the Grand and Second prize winners get. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'A tardigrade wearing the Champion’s crown: gold, jewelled, over red velvet.',
+  },
+  {
+    id: 'giveaway-bonus', batch: 3, category: 'Giveaway', date: '2026-12-15 19:30',
+    title: 'Bonus entries', text: 'Account +5, each friend +3, and +1 for each place you follow or join us.',
+    art: { stat: 'up to 25' },
+    message: 'Up to 25 bonus entries: +5 for an account, +3 per friend who enters via your link, +1 each for following us on YouTube, TikTok, Instagram, Facebook, X, Bluesky, Twitch, Reddit, itch.io, IGDB or Discord. 13+. Rules at the link.',
+    tags: [], alt: 'The words up to 25 in big yellow letters, with a tardigrade beside them.',
+  },
+  {
+    id: 'giveaway-monument', batch: 3, category: 'Giveaway', date: '2026-12-18 19:30',
+    title: 'The monument', text: 'A stately gravestone topped with a crown. One of six looks in the Champion set.',
+    art: { looks: ['grave:champion'] },
+    message: 'Champion’s monument 🏆 A stately gravestone with a crown on top, for the tardigrade that pops in style. One of six looks in the Launch Champion set. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'A tiered stone monument with a coloured band, topped with a golden crown, on a green mound.',
+  },
+  {
+    id: 'giveaway-christmas', batch: 3, category: 'Giveaway', date: '2026-12-22 19:30',
+    title: 'Happy holidays!', text: 'Warm wishes from all the tardigrades. The giveaway is open too.',
+    art: { tardis: [{ color: RED, hat: 'santa' }, { color: GREEN, hat: 'santa' }, { color: BLUE, hat: 'santa' }] },
+    message: 'Warm wishes from all the tardigrades 🎄 If you’ve a quiet moment this week, the Launch Giveaway is open: 26 prizes, all cosmetic looks. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway', 'freegame'], alt: 'Three tardigrades in Santa hats.',
+  },
+  {
+    id: 'giveaway-sights-salute', batch: 3, category: 'Giveaway', date: '2026-12-29 19:30',
+    title: 'Sights and salute', text: 'A golden aim with a crown on it, and an explosion of crowns, stars and rings.',
+    art: { looks: ['aim:champion', 'fx:champion'] },
+    message: 'Champion’s sights and Champion’s salute ✨ A golden aim with a crown on it, and an explosion of crowns, stars and rings. Both are in the Launch Champion set. Free, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'Champion’s sights, a golden aim with a crown, next to Champion’s salute, an explosion with crowns, stars and rings.',
+  },
+  {
+    id: 'giveaway-new-year', batch: 3, category: 'Giveaway', date: '2027-01-05 19:30',
+    title: 'Happy New Year!', text: 'New year, new looks: 26 prizes, all cosmetic, free to enter.',
+    art: { tardis: [{ color: BLUE, hat: 'party' }, { color: GOLD, hat: 'party' }, { color: PINK, hat: 'party' }] },
+    message: 'Happy New Year! 🎆 The Launch Giveaway is open until 31 January: 26 prizes, all cosmetic looks, from a cup hat to every look in the Shop. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway', 'indiegame'], alt: 'Three tardigrades in party hats.',
+  },
+  {
+    id: 'giveaway-winner-set', batch: 3, category: 'Giveaway', date: '2027-01-08 19:30',
+    title: 'The Winner set', text: 'Launch Winner’s cup and Winner’s laurels. Every winner gets them.',
+    art: { looks: ['hat:launchwinner', 'aim:launchwinner'] },
+    message: 'The Winner set 🏆 Launch Winner’s cup, a golden trophy worn as a hat, and Winner’s laurels, an aim with a gold laurel wreath. All 26 winners get both. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'A tardigrade wearing the Launch Winner’s cup, a golden trophy hat, next to Winner’s laurels, a golden aim in a laurel wreath.',
+  },
+  {
+    id: 'giveaway-badge', batch: 3, category: 'Giveaway', date: '2027-01-12 19:30',
+    title: 'The 🏆 badge', text: 'It shows beside the winner’s name, even for other players online.',
+    art: { looks: ['badge'] },
+    message: 'The 🏆 Launch Winner badge shows beside your name in online games, so other players can see it. All 26 winners get one. Free to enter, ages 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'A round gold badge with a trophy on it.',
+  },
+  {
+    id: 'giveaway-friends', batch: 3, category: 'Giveaway', date: '2027-01-15 19:30',
+    title: 'Bring a friend', text: 'Each friend who enters with your link earns you +3 bonus entries.',
+    art: { stat: '+3' },
+    message: 'Better with friends 🤝 On the entry page you get your own link, and each friend who enters with it earns you +3 bonus entries. Only invite people you know. Free, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The words plus 3 in big yellow letters, with a tardigrade beside them.',
+  },
+  {
+    id: 'giveaway-who-can-enter', batch: 3, category: 'Giveaway', date: '2027-01-19 19:30',
+    title: 'Who can enter?', text: 'Ages 13 and over (under 18s need a parent or guardian’s OK). Free, no purchase needed.',
+    art: { stat: '13+' },
+    message: 'Who can enter? Anyone aged 13+ (under 18s need a parent or guardian’s OK), worldwide except where the law doesn’t allow it. It’s free, no purchase needed. Rules at the link.',
+    tags: ['giveaway', 'freegame'], alt: 'The words 13 plus in big yellow letters, with a tardigrade beside them.',
+  },
+  {
+    id: 'giveaway-design-world', batch: 3, category: 'Giveaway', date: '2027-01-22 19:30',
+    title: 'Design a world', text: 'The grand prize winner works with us by email on a world, a music track and more.',
+    art: { stat: 'Your world', hat: 'champion' },
+    message: 'Design your own world 🌍 The Grand prize winner works with us by email on a world, a music track and more, and keeps the one-of-a-kind edition. Free to enter, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The words your world in big yellow letters, with a tardigrade in a jewelled crown.',
+  },
+  {
+    id: 'giveaway-closing-week', batch: 3, category: 'Giveaway', date: '2027-01-26 19:30',
+    title: 'Closing week', text: 'Entries close 31 January, 23:59 UK time. Free to enter.',
+    art: { stat: '31 Jan', hat: 'launchwinner' },
+    message: 'Entries to the Launch Giveaway close on 31 January at 23:59 UK time. 26 prizes, all cosmetic looks. Free to enter, ages 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The date 31 Jan in big yellow letters, with a tardigrade in the Launch Winner’s cup.',
+    video: { url: 'https://tardigeddon.com/social/giveaway-closing-week.mp4', youtubeTitle: 'TardiGeddon Launch Giveaway: entries close 31 January #shorts' },
+  },
+  {
+    id: 'giveaway-winners', batch: 3, category: 'Giveaway', date: '2027-01-29 19:30',
+    title: 'How winners are picked', text: 'Drawn at random within 7 days of closing, and announced by player name only.',
+    art: { stat: 'At random', hat: 'launchwinner' },
+    message: 'How winners are picked: drawn at random within 7 days after entries close, and announced by player name only. Each entry and bonus entry is one chance. Free, 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The words at random in big yellow letters, with a tardigrade in the Launch Winner’s cup.',
+  },
+  {
+    id: 'giveaway-closing-day', batch: 3, category: 'Giveaway', date: '2027-01-31 10:00',
+    title: 'Entries close tonight', text: 'At 23:59 UK time. 26 prizes, all cosmetic looks. Free to enter.',
+    art: { stat: '23:59', hat: 'champion' },
+    message: 'Entries close tonight at 23:59 UK time. 26 prizes, all cosmetic looks, free to enter, ages 13+. Rules at the link.',
+    tags: ['giveaway'], alt: 'The time 23:59 in big yellow letters, with a tardigrade in a jewelled crown.',
   },
 ];
