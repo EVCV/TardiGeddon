@@ -141,12 +141,12 @@ h1, h2, h3 { line-height: 1.1; }
 .site-nav ul { display: flex; gap: 2px; }
 .site-nav a {
   display: block;
-  padding: 6px 12px 5px;
+  padding: 6px 8px 5px;
   border-radius: 10px;
   color: var(--ink);
   text-decoration: none;
   font-weight: 800;
-  font-size: 16px;
+  font-size: 15px;
   white-space: nowrap;
 }
 .site-nav a:hover { background: var(--sky-light); }
@@ -213,7 +213,8 @@ h1, h2, h3 { line-height: 1.1; }
 .menu-panel nav a[aria-current='page'] { background: var(--accent); }
 .menu-panel .btn { text-align: center; margin-top: auto; }
 body.menu-open { overflow: hidden; }
-@media (min-width: 980px) {
+/* Wide enough for every page in the header (8 links): narrower screens get the slide-out menu. Keep in step with Layout.tsx. */
+@media (min-width: 1140px) {
   .site-nav { display: block; }
   .menu-button, .menu-panel, .menu-scrim { display: none; }
 }
@@ -627,6 +628,25 @@ kbd { display: inline-block; min-width: 1.8em; margin: 0 3px 2px 0; padding: 1px
 .news-post[data-kind='fixed'] .news-date { color: #2f7d32; opacity: 1; }
 .news-list { margin: 6px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
 .news-empty { padding: 14px 20px; margin: 0; }
+
+/* ---------- Roadmap (pages/Roadmap.tsx) ---------- */
+/* The long button wraps on a phone, instead of running off the screen. */
+.roadmap-page .btn { white-space: normal; text-align: center; line-height: 1.15; }
+.roadmap-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 28px 0; align-items: start; }
+.roadmap-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.roadmap-col > h2 { font-size: 34px; margin: 0; }
+.roadmap-blurb { margin: -8px 0 0; font-size: 15px; font-weight: 800; }
+.roadmap-item { padding: 14px 18px; }
+.roadmap-item h3 { margin: 0 0 6px; font-size: 22px; }
+.roadmap-item p { margin: 6px 0; }
+.roadmap-votes { font-weight: 800; font-size: 15px; }
+.roadmap-empty { padding: 14px 18px; margin: 0; }
+.roadmap-shipped { padding: 16px 20px; margin: 0 0 24px; }
+.roadmap-shipped > h2 { font-size: 30px; margin: 0 0 10px; }
+.roadmap-shipped ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 900px) {
+  .roadmap-board { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Phones: three of the default teams, so their names fit. */
 @media (max-width: 560px) {

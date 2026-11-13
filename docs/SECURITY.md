@@ -83,13 +83,50 @@ the owner needs to keep doing. Last full review: 10 October 2026.
   they can't be predicted.
 - The server runs as a normal user, not root, in its container.
 
+**Roadmap votes and ideas** (`server/roadmap.ts`, `server/turnstile.ts`, `docs/ROADMAP.md`)
+- Every vote and every idea needs a **Cloudflare Turnstile** token, checked by
+  the server with Cloudflare before anything is kept
+  (`https://challenges.cloudflare.com/turnstile/v0/siteverify`, with the secret,
+  the token, the player's address and a fresh idempotency key; 10 seconds at
+  most). It **fails closed**: no token, one over 2,048 characters, a token that
+  is bad, used or expired, one made for another action (`roadmap_vote` or
+  `suggestion`) or served from another hostname, Cloudflare unreachable or
+  slow, or an answer it can't read all mean no. With no keys set in
+  production, voting and ideas are switched off (503), never unchecked.
+  Tokens are single-use: the game gets a new one for each request and resets
+  the widget after every try, successful or not.
+- Two widgets: **web** (`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`; hostnames
+  `tardigeddon.com`, `www.tardigeddon.com`) and the **phone apps**
+  (`TURNSTILE_APP_SITE_KEY`, `TURNSTILE_APP_SECRET_KEY`; `app.tardigeddon.com`,
+  or `TURNSTILE_APP_HOSTNAMES`). The secrets live only in `fly secrets`; the
+  site keys are public and reach the game through `/api/me` (signed in only).
+  A developer's computer with no keys set uses Cloudflare's always-pass test
+  keys; production never does.
+- A vote needs an account (20 a minute each, 60 a minute per address) and an
+  item id that is a real "coming" news post (never an id the browser made up).
+  An idea needs an account with a **confirmed email**, a category from a fixed
+  list, 10 to 500 characters with control and invisible characters stripped, at
+  most 5 a day per account and 10 an hour per address, and is refused if the
+  same account sent the same idea in the last 30 days. Refusals come before
+  the security check, so none is wasted on them.
+- Ideas are private: only the owner's Sales page reads them (`ADMIN_EMAILS`,
+  confirmed email; everyone else gets "not found"), shown as text, with the
+  player's name and never their email. They are deleted with the account, and
+  after 24 months. They are never sent to the anonymous play statistics.
+
 **The website and game** (Cloudflare Pages, `site/public/_headers`)
 - Content-Security-Policy: only our own scripts (plus Cloudflare's analytics
-  beacon), no inline scripts, no `eval` (Pixi runs without it via
+  beacon and Turnstile), no inline scripts, no `eval` (Pixi runs without it via
   `pixi.js/unsafe-eval`), connections only to us and the game server. The
-  only page we put in a frame is a contest's entry form from Sociamonials
+  only pages we put in a frame are a contest's entry form from Sociamonials
   (`frame-src https://app.socialmi.co.uk`, for /giveaway), loaded only when
-  the visitor presses "Show the entry form".
+  the visitor presses "Show the entry form", and Cloudflare Turnstile's check
+  (`script-src` and `frame-src https://challenges.cloudflare.com`, which is all it
+  needs: `connect-src` is only for its pre-clearance mode), loaded by the
+  game only when a signed-in player opens the Roadmap. (The policy is one
+  header for the whole site, so the website's pages allow it too; they never
+  load it.) The phone apps' web view may open it
+  (`allowNavigation` in `capacitor.config.ts`).
 - No other site may put ours in a frame (no clickjacking of the shop or
   account pages); HTTPS only (HSTS); no MIME sniffing.
 - Everything players type is shown with `textContent`, never as HTML. So
@@ -115,7 +152,8 @@ game's code. Please:
    restore after a disaster: Neon → Branches → create a branch from a point in
    time, then point `DATABASE_URL` at it.
 3. **Secrets** live only in `fly secrets` and your password manager. If one
-   ever leaks: Stripe → roll the key; Google Play service account → delete its
+   ever leaks: Stripe → roll the key; Cloudflare → Turnstile → the widget →
+   rotate the secret (then `fly secrets set` the new one); Google Play service account → delete its
    key in Google Cloud and make a new one; Neon → reset the database password;
    `BETTER_AUTH_SECRET` → set a new one (signs everyone out).
 4. **Stripe:** keep **Radar** on (fraud screening, on by default), and keep

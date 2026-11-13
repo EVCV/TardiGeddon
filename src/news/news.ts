@@ -8,11 +8,18 @@
 // checks), and merge: the website deploy puts it everywhere. Plain text only:
 // a line starting "- " is a bullet point. Never reuse or change an id (it
 // marks a post as read).
+//
+// The roadmap is the same list (src/news/roadmap.ts): a "coming" post with a
+// `stage` is a roadmap item players can vote on, and the update that delivers
+// it says `ships: '<its id>'`, which turns the item into "Shipped". See docs/ROADMAP.md.
 
 import type { Lang } from '../i18n/i18n';
 
 /** update: release notes; coming: on its way; issue: a known problem (with `fixed` once it is). */
 export type NewsKind = 'update' | 'coming' | 'issue';
+
+/** Where a "coming" post sits on the roadmap: being worked on now, up next, or further off. */
+export type NewsStage = 'now' | 'next' | 'later';
 
 export interface NewsText {
   title: string;
@@ -28,6 +35,10 @@ export interface NewsPost {
   kind: NewsKind;
   /** A known problem: the day it was fixed (it then shows as fixed). */
   fixed?: string;
+  /** Coming only: its roadmap column (no stage counts as 'next'). The roadmap shows no dates: players read them as promises. */
+  stage?: NewsStage;
+  /** An update only: the id of the "coming" post it delivers. That post then shows as Shipped, with this update's date. */
+  ships?: string;
   text: Record<Lang, NewsText>;
 }
 
@@ -38,6 +49,7 @@ export const NEWS: NewsPost[] = [
     id: '2026-12-01-launch',
     date: '2026-12-01',
     kind: 'coming',
+    stage: 'now',
     text: {
       en: {
         title: 'New launch day: 1 December',

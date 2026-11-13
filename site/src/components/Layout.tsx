@@ -18,6 +18,7 @@ export const NAV = [
   { to: '/weapons', label: 'Weapons' },
   { to: '/leaderboards', label: 'Leaderboards' },
   { to: '/news', label: 'News' },
+  { to: '/roadmap', label: 'Roadmap' },
   { to: '/giveaway', label: 'Giveaway' },
   { to: '/support', label: 'Help & support' },
 ];
@@ -50,7 +51,7 @@ function MobileMenu() {
   // So does a screen wide enough for the header menu (a tablet turned
   // sideways): the panel hides there, and must not keep the page locked.
   useEffect(() => {
-    const wide = window.matchMedia('(min-width: 980px)');
+    const wide = window.matchMedia('(min-width: 1140px)');
     const onChange = () => {
       if (wide.matches) setOpen(false);
     };

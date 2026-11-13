@@ -40,6 +40,7 @@ The iOS app plan: `docs/IOS.md`.
 - `src/usage/` + `server/usage.ts` — anonymous play statistics (daily totals, no IDs, no cookies; Settings → Privacy turns them off). Only values from `src/usage/catalog.ts`, never free text; keep `site/legal/` and the store answers in step. See `docs/USAGE.md`.
 - Supporter packs (a one-off: looks bought with money in one go, on sale 3 Nov 2026–31 Jan 2027 only, Terms 5.13): `SUPPORTER_PACKS` in `src/shop/catalog.ts`; store setup in `docs/SUPPORTER_PACKS.md`. Email news (opt-in only, double opt-in, sent from Utobo): `server/newsletter.ts`, `docs/NEWSLETTER.md`; keep Privacy Policy §2.2.6/§8 in step.
 - `src/news/` — News (release notes, coming soon, being fixed): posts in `news.ts` in all six languages, shown in the game (`ui/news.ts`) and at tardigeddon.com/news; the website build writes `/news.json` (the game and apps fetch it, so posts need no app update) and `/news.xml` (RSS). How to post: `docs/NEWS.md`.
+  The roadmap is the same list: a "coming" post with a `stage` (now/next/later) is a roadmap item, and the update that delivers it says `ships: '<its id>'` so it shows as Shipped. `src/news/roadmap.ts` (pure, shared by the game's Roadmap view `ui/roadmap.ts`, the website's `/roadmap` and the server) works out the columns; players vote on items and send private ideas (`server/roadmap.ts`, `src/news/suggest.ts`), every write behind Cloudflare Turnstile (`server/turnstile.ts`, `ui/turnstile.ts`, loaded only when a signed-in player opens the Roadmap). See `docs/ROADMAP.md`; keep the legal pages and store answers in step with what's kept.
 - `src/ai/` — CPU player; simulates candidate shots, then presses buttons like a human.
   Runs on one machine only (host), so it may use non-deterministic code.
 - Weapons are data in `src/sim/weapons.ts`.
@@ -51,6 +52,7 @@ The iOS app plan: `docs/IOS.md`.
   no need to ask first), or update the open one for that branch. Give the owner its link and say
   what to check after merging. Merging to `main` is what deploys the site and game and builds
   TestFlight; the owner merges.
+- **Every PR that changes something players notice adds or updates its News post** (`src/news/news.ts`, all six languages), and `ships` the roadmap item it delivers (`docs/NEWS.md`, `docs/ROADMAP.md`).
 - Any gameplay change needs a sim test; keep `tests/soak.test.ts` green (it catches soft-locks).
 - Never copy Worms Armageddon assets or signature names (see plan §1).
 - Purchases are cosmetic only — never sell gameplay power. Money buys coins; coins buy looks only. The one exception is the one-off launch Supporter packs (looks bought with money directly, 3 Nov 2026–31 Jan 2027, never sold again; Terms 5.13): don't add more time-limited or direct-money items (Terms 5.1.2 promises no other time-limited offers).

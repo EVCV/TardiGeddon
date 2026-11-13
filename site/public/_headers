@@ -30,11 +30,15 @@
 # - CSP: only our own scripts (plus Cloudflare's analytics beacon), no inline
 #   scripts or eval, connections only to us and the game server, and nobody may
 #   put the site in a frame (no clickjacking of the shop or account pages).
-#   The one exception: the giveaway entry form (Sociamonials, app.socialmi.co.uk) on /giveaway.
+#   The exceptions: the giveaway entry form (Sociamonials, app.socialmi.co.uk) on /giveaway,
+#   and Cloudflare Turnstile (challenges.cloudflare.com: its script and its frame),
+#   which the game loads only when a signed-in player opens the Roadmap, to check a
+#   vote or an idea comes from a real player (docs/ROADMAP.md). Turnstile needs only
+#   script-src and frame-src (connect-src is for its pre-clearance mode, which we don't use).
 # - HSTS: browsers only ever use HTTPS for tardigeddon.com.
 # Keep in step with docs/SECURITY.md when adding anything third-party.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://server.tardigeddon.com wss://server.tardigeddon.com https://cloudflareinsights.com; img-src 'self' data: blob:; media-src 'self' blob:; frame-src 'self' https://app.socialmi.co.uk; font-src 'self' data:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://challenges.cloudflare.com; connect-src 'self' https://server.tardigeddon.com wss://server.tardigeddon.com https://cloudflareinsights.com; img-src 'self' data: blob:; media-src 'self' blob:; frame-src 'self' https://app.socialmi.co.uk https://challenges.cloudflare.com; font-src 'self' data:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY

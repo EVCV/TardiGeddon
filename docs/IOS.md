@@ -495,7 +495,17 @@ review; external testers need a short beta review.
   and place, never the message), **Diagnostics → Performance Data** (loading
   times in bands) and **Diagnostics → Other Diagnostic Data** (online
   desyncs, graphics or sound failing): all **not linked to the user**, no
-  tracking, purpose **Analytics**. No tracking means no App Tracking Transparency prompt. Keep it in step with
+  tracking, purpose **Analytics**. No tracking means no App Tracking Transparency prompt.
+  **Roadmap votes and ideas** (`docs/ROADMAP.md`; Privacy Policy 2.8): the
+  ideas a signed-in player sends are **User Content → Other User Content**
+  (already ticked for team names and maps), linked to the user, no tracking,
+  App Functionality, kept with the account until it is deleted (or 24
+  months), only the owner reads them; the votes fit **Gameplay Content**
+  (also already ticked). The security check on them, Cloudflare Turnstile
+  (a service provider, only when a signed-in player votes or sends an idea),
+  reads the IP address and browser signals only to tell people from bots,
+  never for tracking or ads: confirm the wording in App Privacy at the next
+  review (purpose **App Functionality**/security). Keep it in step with
   `site/legal/` (`CLAUDE.md`). Sign in with Apple adds nothing new (name,
   email).
 - **Privacy manifest** `ios/App/App/PrivacyInfo.xcprivacy`: no tracking,

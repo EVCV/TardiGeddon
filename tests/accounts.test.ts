@@ -24,6 +24,10 @@ import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
 import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
 import { appStoreAccountToken, type AppStoreApi, type AppStorePurchase } from '../server/appStore';
+import type { Turnstile } from '../server/turnstile';
+import { forgetVoteCache, purgeSuggestions } from '../server/roadmap';
+import { NEWS } from '../src/news/news';
+import { comingIds } from '../src/news/roadmap';
 
 const DB = process.env.TEST_DATABASE_URL;
 const WEBHOOK_SECRET = 'whsec_test_secret';
@@ -122,6 +126,21 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
       .map((x) => Buffer.from(typeof x === 'string' ? x : JSON.stringify(x)).toString('base64url'))
       .join('.');
 
+  // No Cloudflare in tests: a token "good:<action>:<platform>" passes the security check, anything else is
+  // refused ("down": Cloudflare can't be reached). `turnstileOff`: no keys set on this server.
+  const turnstileSeen: string[] = [];
+  let turnstileOff = false;
+  const turnstile: Turnstile = {
+    siteKeys: () => ({ web: 'site-key-web', app: 'site-key-app' }),
+    verify: async (token, _ip, action, platform) => {
+      turnstileSeen.push(`${action}:${platform}:${String(token)}`);
+      if (turnstileOff) return { ok: false, reason: 'unconfigured' };
+      if (token === 'down') return { ok: false, reason: 'unavailable' };
+      if (token === `good:${action}:${platform}`) return { ok: true };
+      return { ok: false, reason: typeof token === 'string' && token ? 'rejected' : 'missing' };
+    },
+  };
+
   // No email service in tests: keep what would have been sent.
   const sent: Mail[] = [];
   const mailer = async (m: Mail) => void sent.push(m);
@@ -139,7 +158,7 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   beforeAll(async () => {
     accounts = await createAccounts(
       { DATABASE_URL: DB, BETTER_AUTH_SECRET: 'x'.repeat(16) + Math.random(), GAME_URL: GAME, TRUSTED_ORIGINS: IOS_APP, STRIPE_SECRET_KEY: 'sk_test_not_used', STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ADMIN_EMAILS: 'Boss@example.com', FOUNDER_UNTIL: '2000-01-01', FOUNDER_EMAILS: 'Founder@example.com', EARLY_BIRD_UNTIL: '2000-01-01', GOOGLE_CLIENT_ID: 'tardi-test.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'not-used' },
-      { stripe, mailer, play, appStore, appleIdToken },
+      { stripe, mailer, play, appStore, appleIdToken, turnstile },
     );
     await accounts.db.query(`DELETE FROM purchase; DELETE FROM spend; DELETE FROM gift; DELETE FROM creator_payout; DELETE FROM creator_player; DELETE FROM creator; DELETE FROM "user"; DELETE FROM done_once WHERE name LIKE 'japan_alert_%';`);
     server = createServer((req, res) => void accounts.handle(req, res));
@@ -1483,6 +1502,212 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     // Unfriending goes both ways.
     await post('/api/friends/remove', { code: codeB }, a.cookie);
     expect((await get(b.cookie)).friends).toEqual([]);
+  });
+
+  it('gives the security check’s public site keys to signed-in players only', async () => {
+    expect((await me('')).turnstile).toBeUndefined();
+    const { cookie } = await signUp('keys@example.com');
+    expect((await me(cookie)).turnstile).toEqual({ web: 'site-key-web', app: 'site-key-app' });
+  });
+
+  it('lets signed-in players vote on roadmap items once each, behind the security check', async () => {
+    accounts.resetLimits();
+    forgetVoteCache();
+    const item = [...comingIds(NEWS)][0];
+    const good = (action = 'roadmap_vote', platform = 'web') => `good:${action}:${platform}`;
+    const vote = (cookie: string, body: Record<string, unknown>) => post('/api/roadmap/vote', { platform: 'web', turnstileToken: good(), ...body }, cookie);
+    const totals = async (cookie = '') => {
+      const r = await fetch(base + '/api/roadmap/votes', { headers: { cookie, origin: 'http://localhost:5173' } });
+      return { r, body: (await r.json()) as { votes: Record<string, number>; mine?: string[] } };
+    };
+    const a = await signUp('voter-a@example.com');
+    const b = await signUp('voter-b@example.com');
+
+    // Totals are public: only roadmap items, nobody's votes, and a short cache is allowed.
+    const pub = await totals();
+    expect(pub.r.status).toBe(200);
+    expect(pub.r.headers.get('cache-control')).toBe('public, max-age=30');
+    expect(Object.keys(pub.body.votes)).toEqual([...comingIds(NEWS)]);
+    expect(pub.body.votes[item]).toBe(0);
+    expect(pub.body.mine).toBeUndefined();
+
+    // Signed in, and only from the game's own pages.
+    expect((await vote('', { itemId: item, on: true })).status).toBe(401);
+    const stranger = await fetch(base + '/api/roadmap/vote', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example', cookie: a.cookie }, body: JSON.stringify({ itemId: item, on: true, platform: 'web', turnstileToken: good() }) });
+    expect(stranger.status).toBe(403);
+    // Only an item on the roadmap: not an update's id, not made up, not odd types.
+    for (const itemId of ['nope', '2026-10-28-cpu-sky', 'constructor', '__proto__', '', 7, null, ['x']]) {
+      expect((await vote(a.cookie, { itemId, on: true })).status, String(itemId)).toBe(400);
+    }
+    expect((await vote(a.cookie, { itemId: item, on: 'yes' })).status).toBe(400);
+    expect((await vote(a.cookie, { itemId: item, on: undefined })).status).toBe(400);
+    expect((await vote(a.cookie, { itemId: item, on: true, platform: 'desktop' })).status).toBe(400);
+    expect((await post('/api/roadmap/vote', { itemId: item, on: true, turnstileToken: good() }, a.cookie)).status).toBe(400);
+
+    // The security check: none, wrong action, the other platform's, Cloudflare down, no keys here. Nothing counts.
+    expect((await vote(a.cookie, { itemId: item, on: true, turnstileToken: undefined })).status).toBe(403);
+    expect((await vote(a.cookie, { itemId: item, on: true, turnstileToken: 42 })).status).toBe(403);
+    expect((await vote(a.cookie, { itemId: item, on: true, turnstileToken: good('suggestion') })).status).toBe(403);
+    expect((await vote(a.cookie, { itemId: item, on: true, turnstileToken: good('roadmap_vote', 'app') })).status).toBe(403);
+    expect((await vote(a.cookie, { itemId: item, on: true, turnstileToken: 'down' })).status).toBe(503);
+    turnstileOff = true;
+    try {
+      const off = await vote(a.cookie, { itemId: item, on: true });
+      expect(off.status).toBe(503);
+      expect(((await off.json()) as { error: string }).error).toMatch(/not available/);
+    } finally {
+      turnstileOff = false;
+    }
+    expect((await accounts.db.query('SELECT 1 FROM roadmap_vote')).rowCount).toBe(0);
+    // The check was asked about the right action and platform each time.
+    expect(turnstileSeen).toContain('roadmap_vote:web:good:suggestion:web');
+    expect(turnstileSeen).toContain('roadmap_vote:web:good:roadmap_vote:app');
+
+    // One vote each, whatever the repeats; taking it back works; the apps' own check works too.
+    const first = await vote(a.cookie, { itemId: item, on: true });
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ ok: true, on: true, votes: 1 });
+    expect(((await (await vote(a.cookie, { itemId: item, on: true })).json()) as { votes: number }).votes).toBe(1);
+    expect(((await (await vote(b.cookie, { itemId: item, on: true, platform: 'app', turnstileToken: good('roadmap_vote', 'app') })).json()) as { votes: number }).votes).toBe(2);
+    // Public totals move; a player's own votes are private to them.
+    expect((await totals()).body.votes[item]).toBe(2);
+    const mineA = await totals(a.cookie);
+    expect(mineA.body.mine).toEqual([item]);
+    expect(mineA.r.headers.get('cache-control')).toBe('private, no-store');
+    expect(mineA.r.headers.get('vary')).toMatch(/cookie/i);
+    expect(((await (await vote(a.cookie, { itemId: item, on: false })).json()) as { votes: number }).votes).toBe(1);
+    expect((await totals(a.cookie)).body.mine).toEqual([]);
+    expect((await totals(b.cookie)).body.mine).toEqual([item]);
+    expect(((await (await vote(a.cookie, { itemId: item, on: false })).json()) as { votes: number }).votes).toBe(1);
+
+    // Not too fast: 20 a minute each.
+    accounts.resetLimits();
+    for (let i = 0; i < 20; i++) expect((await vote(a.cookie, { itemId: item, on: i % 2 === 0 })).status).toBe(200);
+    expect((await vote(a.cookie, { itemId: item, on: true })).status).toBe(429);
+
+    // Votes go with the account, and the totals show it.
+    await accounts.db.query('DELETE FROM "user" WHERE id IN ($1, $2)', [a.id, b.id]);
+    forgetVoteCache();
+    expect((await accounts.db.query('SELECT 1 FROM roadmap_vote')).rowCount).toBe(0);
+    expect((await totals()).body.votes[item]).toBe(0);
+  });
+
+  it('keeps private ideas from players with a confirmed email: cleaned, limited, never twice, behind the security check, read by the owner only', async () => {
+    accounts.resetLimits();
+    const good = (platform = 'web') => `good:suggestion:${platform}`;
+    const send = (cookie: string, body: Record<string, unknown>) => post('/api/suggestions', { category: 'weapon', platform: 'web', turnstileToken: good(), ...body }, cookie);
+    const rows = async () => (await accounts.db.query('SELECT category, text, status FROM suggestion ORDER BY id')).rows;
+    const count = async () => (await accounts.db.query('SELECT 1 FROM suggestion')).rowCount;
+    const verified = async (email: string) => {
+      const u = await signUp(email);
+      await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [u.id]);
+      return u;
+    };
+    const a = await signUp('ideas-a@example.com');
+    const idea = 'Please add a bouncy mushroom weapon that goes boing.';
+
+    // Signed in, with the email confirmed.
+    expect((await send('', { text: idea })).status).toBe(401);
+    const unconfirmed = await send(a.cookie, { text: idea });
+    expect(unconfirmed.status).toBe(403);
+    expect(((await unconfirmed.json()) as { error: string }).error).toMatch(/Confirm your email/);
+    await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [a.id]);
+
+    // What's allowed: a category from the list; 10 to 500 characters of text.
+    for (const category of ['', 'weapons', 'WEAPON', 'constructor', 5, null, undefined]) expect((await send(a.cookie, { category, text: idea })).status, String(category)).toBe(400);
+    for (const text of [undefined, null, 42, ['x'], '', 'too short', '   \u0000\u200B   ', 'x'.repeat(501)]) expect((await send(a.cookie, { text })).status, String(text).slice(0, 12)).toBe(400);
+    expect((await send(a.cookie, { text: idea, platform: 'desktop' })).status).toBe(400);
+    expect(await count()).toBe(0);
+
+    // The security check comes before anything is kept.
+    expect((await send(a.cookie, { text: idea, turnstileToken: undefined })).status).toBe(403);
+    expect((await send(a.cookie, { text: idea, turnstileToken: 'x'.repeat(5000) })).status).toBe(403);
+    expect((await send(a.cookie, { text: idea, turnstileToken: 'good:roadmap_vote:web' })).status).toBe(403);
+    expect((await send(a.cookie, { text: idea, turnstileToken: good('app') })).status).toBe(403);
+    expect((await send(a.cookie, { text: idea, turnstileToken: 'down' })).status).toBe(503);
+    turnstileOff = true;
+    try {
+      expect((await send(a.cookie, { text: idea })).status).toBe(503);
+    } finally {
+      turnstileOff = false;
+    }
+    expect(await count()).toBe(0);
+    accounts.resetLimits();
+
+    // Kept cleaned: no control characters, hidden characters or odd spacing.
+    const ok = await send(a.cookie, { category: 'mode', text: '  Add a  zero\u200Bgravity\u0000 mode, please!\t\n\n\n\nThanks  ' });
+    expect(ok.status).toBe(200);
+    expect(await rows()).toEqual([{ category: 'mode', text: 'Add a zerogravity mode, please!\n\nThanks', status: 'new' }]);
+    // The same idea again, however it is spaced or capitalised, is refused, and not kept twice.
+    const again = await send(a.cookie, { category: 'mode', text: 'add a ZEROGRAVITY mode,   please!\n\nthanks' });
+    expect(again.status).toBe(409);
+    expect(((await again.json()) as { error: string }).error).toMatch(/already sent/);
+    // The phone apps' own check works too.
+    expect((await send(a.cookie, { category: 'map', text: 'A map made entirely of cheese, with holes.', platform: 'app', turnstileToken: good('app') })).status).toBe(200);
+
+    // Five ideas a day (any 24 hours) for each player, whatever the category.
+    for (const n of [3, 4, 5]) expect((await send(a.cookie, { category: 'looks', text: `A hat shaped like number ${n}, with a tassel.` })).status).toBe(200);
+    const sixth = await send(a.cookie, { text: 'A sixth idea that is long enough to count.' });
+    expect(sixth.status).toBe(429);
+    expect(((await sixth.json()) as { error: string }).error).toMatch(/lot of ideas/);
+    expect(await count()).toBe(5);
+    // A day later, they can send again, but an old idea sent again within a month is still a repeat.
+    await accounts.db.query(`UPDATE suggestion SET created_at = now() - interval '25 hours' WHERE user_id = $1`, [a.id]);
+    expect((await send(a.cookie, { text: 'A sixth idea that is long enough to count.' })).status).toBe(200);
+    expect((await send(a.cookie, { text: 'A map made entirely of cheese, with holes.' })).status).toBe(409);
+
+    // One address can send 10 an hour, whoever it signs in as (here, three players on one connection).
+    accounts.resetLimits();
+    const b = await verified('ideas-b@example.com');
+    const c = await verified('ideas-c@example.com');
+    const d = await verified('ideas-d@example.com');
+    for (const who of [b, c]) for (let n = 0; n < 5; n++) expect((await send(who.cookie, { text: `Idea number ${n} from another player here.`, category: 'other' })).status).toBe(200);
+    const crowded = await send(d.cookie, { text: 'An idea from a third player on the same connection.' });
+    expect(crowded.status).toBe(429);
+    expect(((await crowded.json()) as { error: string }).error).toMatch(/this connection/);
+    expect(await count()).toBe(16);
+
+    // The owner reads them; nobody else.
+    const sign = await post('/api/auth/sign-in/email', { email: 'boss@example.com', password: 'correct horse' });
+    const boss = sign.status === 200 ? { cookie: sign.headers.getSetCookie().map((x) => x.split(';')[0]).join('; ') } : await signUp('boss@example.com');
+    await accounts.db.query(`UPDATE "user" SET "emailVerified" = true WHERE email = 'boss@example.com'`);
+    const list = (cookie: string, status = '') => fetch(`${base}/api/admin/suggestions${status ? `?status=${status}` : ''}`, { headers: { cookie } });
+    expect((await list('')).status).toBe(404);
+    expect((await list(a.cookie)).status).toBe(404);
+    expect((await post('/api/admin/suggestions/1', { status: 'done', admin_note: 'x' }, a.cookie)).status).toBe(404);
+    type Row = { id: number; category: string; text: string; status: string; admin_note: string | null; created_at: string; name: string };
+    const all = (await (await list(boss.cookie)).json()) as { suggestions: Row[]; counts: Record<string, number> };
+    expect(all.suggestions).toHaveLength(16);
+    expect(all.counts).toEqual({ new: 16, planned: 0, declined: 0, done: 0 });
+    // Newest first, with the player's name (and nothing else about them).
+    const times = all.suggestions.map((x) => Date.parse(x.created_at));
+    expect([...times].sort((x, y) => y - x)).toEqual(times);
+    expect(all.suggestions[0].name).toBe('Tester');
+    expect(Object.keys(all.suggestions[0]).sort()).toEqual(['admin_note', 'category', 'created_at', 'id', 'name', 'status', 'text']);
+
+    // They sort ideas into planned, declined and done, with a note.
+    const target = all.suggestions.find((x) => x.text.startsWith('A map made entirely'))!;
+    const update = (cookie: string, id: number, body: Record<string, unknown>) => post(`/api/admin/suggestions/${id}`, body, cookie);
+    expect((await update(boss.cookie, target.id, { status: 'planned', admin_note: 'Love it.\u0000 Cheese map in Later.' })).status).toBe(200);
+    const planned = (await (await list(boss.cookie, 'planned')).json()) as { suggestions: Row[]; counts: Record<string, number> };
+    expect(planned.suggestions.map((x) => [x.id, x.admin_note])).toEqual([[target.id, 'Love it. Cheese map in Later.']]);
+    expect(planned.counts).toMatchObject({ new: 15, planned: 1 });
+    expect((await update(boss.cookie, target.id, { status: 'done' })).status).toBe(200);
+    expect(((await (await list(boss.cookie, 'done')).json()) as { suggestions: Row[] }).suggestions[0].admin_note).toBeNull();
+    for (const bad of [{ status: 'open' }, { status: 'constructor' }, {}, { status: 'done', admin_note: 'x'.repeat(501) }, { status: 'done', admin_note: 7 }]) {
+      expect((await update(boss.cookie, target.id, bad)).status, JSON.stringify(bad).slice(0, 30)).toBe(400);
+    }
+    expect((await update(boss.cookie, 999_999, { status: 'done' })).status).toBe(404);
+    expect((await list(boss.cookie, 'open')).status).toBe(400);
+
+    // Ideas go with the account (they are kept with it, no longer)...
+    await accounts.db.query('DELETE FROM "user" WHERE id = $1', [a.id]);
+    expect((await accounts.db.query('SELECT 1 FROM suggestion WHERE user_id = $1', [a.id])).rowCount).toBe(0);
+    expect(await count()).toBe(10);
+    // ...and ideas more than 24 months old go in the hourly clean-up (nothing newer does).
+    await accounts.db.query(`UPDATE suggestion SET created_at = now() - interval '25 months' WHERE id IN (SELECT id FROM suggestion ORDER BY id LIMIT 3)`);
+    await purgeSuggestions(accounts.db);
+    expect(await count()).toBe(7);
   });
 
   it('deleting an account removes what it owned', async () => {
