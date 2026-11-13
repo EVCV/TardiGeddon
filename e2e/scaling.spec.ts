@@ -53,3 +53,21 @@ test("on iPhone Duo's outer screen, Match setup shows six teams' whole names", a
   expect(cut).toEqual([]);
   await ctx.close();
 });
+
+// Big screens zoom the menu up (style.css --hub-zoom), but only as far as the
+// lobby fits the screen's height (ui/hubFit.ts): a wide, short window (a big
+// screen less the browser's bars) used to cut off the lobby's bottom row.
+for (const size of [{ width: 1920, height: 900 }, { width: 2000, height: 960 }, { width: 1920, height: 1080 }, { width: 2560, height: 1440 }]) {
+  test(`on a ${size.width}x${size.height} screen the whole lobby fits`, async ({ browser }, info) => {
+    test.skip(info.project.name !== 'desktop', 'one desktop run is enough');
+    const page = await browser.newPage({ viewport: size });
+    await page.goto('/');
+    await expect(page.locator('.lobby-play')).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    for (const card of ['.lobby-hero', '.lobby-play', '.lobby-setup']) {
+      const box = await page.locator(card).boundingBox();
+      expect(box!.y + box!.height, card).toBeLessThanOrEqual(size.height);
+    }
+    expect(await page.evaluate(() => document.querySelector('.menu.hub')!.scrollTop)).toBe(0);
+  });
+}

@@ -22,6 +22,7 @@ import { newSettingsState, renderSettingsPage } from './settings';
 import { compact } from './dashboard';
 import { playMusic, previewMusic } from '../audio/music';
 import { LEGAL } from './account';
+import { fitHub } from './hubFit';
 import { account, newsAsked, onAccountChange, peekInvite, refreshAccount, savedInvite, setNews, takeInviteNews, takePrizeNews, wearHat, wearSkin } from '../account/session';
 import { newsWording } from './newsSignup';
 import { showRewardPop } from './rewardPop';
@@ -222,6 +223,7 @@ export function showHub(
     const putBack = drawnTab === tab ? keepPlace(page) : null;
     draw();
     drawnTab = tab;
+    fitHub(shell, tab === 'lobby');
     putBack?.();
   };
   const draw = () => {
@@ -335,9 +337,14 @@ export function showHub(
   const offAccount = onAccountChange(render);
   // The website's newest posts arrived (src/news/feed.ts): the News page and the lobby's dot.
   const offNews = onNews(render);
+  // The lobby fits the screen's height on big screens (ui/hubFit.ts): again when the window changes size or the fonts arrive.
+  const refit = () => (shell.isConnected ? fitHub(shell, tab === 'lobby') : off());
+  addEventListener('resize', refit);
+  void document.fonts?.ready.then(refit);
   const off = () => {
     offAccount();
     offNews();
+    removeEventListener('resize', refit);
   };
   render();
   return {
