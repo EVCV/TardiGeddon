@@ -18,7 +18,7 @@ share: names, the bios, the voice and the rules.
 | Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Live (14 Nov 2026) | [REDDIT.md](REDDIT.md) |
 | itch.io | [tardigeddon.itch.io/tardigeddon](https://tardigeddon.itch.io/tardigeddon) | Live (links out to the game) | |
 | IGDB | [igdb.com/games/tardigeddon](https://www.igdb.com/games/tardigeddon) | Submitted | |
-| Patreon | (patreon.com/tardigeddon) | Plan, not started | [../PATREON.md](../PATREON.md) |
+| Patreon | (patreon.com/tardigeddon) | Being set up; public in January | [../PATREON.md](../PATREON.md) |
 | Steam | — | Plan, not started (no account yet) | [../STEAM.md](../STEAM.md) |
 
 **Videos** for YouTube, TikTok, Reels and Facebook: the weekly routine and the tools that make them from the game itself are in [VIDEOS.md](VIDEOS.md).

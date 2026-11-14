@@ -1,6 +1,7 @@
 # Patreon plan
 
-Status: **plan, not started** (4 Nov 2026). Decisions are in §8.
+Status: **decided, being set up** (14 Nov 2026): the page is built now but
+stays unpublished until January. Decisions are in §8.
 
 A Patreon is a way for fans to support TardiGeddon every month. The game stays
 free, and **patrons get nothing inside the game**: every perk lives on the
@@ -32,7 +33,7 @@ memory: check them on patreon.com as you set up.
 | **Moss Fan** | £2 | Name on tardigeddon.com/patrons; Patron role and channel in Discord; a thank-you in each update's credits |
 | **Water Bear** | £5 | + monthly dev diary (what's being built, sketches, GIFs); votes on what comes next; wallpapers and Discord emoji each season |
 | **Tun Club** | £10 | + early web previews of new features (a private link); a monthly voice Q&A or "play with the dev" online session; soundtrack downloads |
-| **Legend** | £25, 10 places | + once a year, a hat designed with you (it goes in the shop for everyone, credited to you), or your name on a CPU team |
+| **Legend** | £25, 10 places | + once a year, a hat designed with you (it goes in the shop for everyone, credited to you) |
 
 Start with these four and don't add more until the page has 20 patrons.
 Each tier includes everything below it.
@@ -116,9 +117,9 @@ Not before the launch (1 December): launch week needs all the time there is.
 A good moment is **January**, with the first dev diary written in advance and
 the Patrons page ready. Announce it in a News post, on Discord and on socials.
 
-## 8. Decisions for the owner
+## 8. Decisions (owner, 14 Nov 2026)
 
-1. Tiers and prices (§2), and whether to have the Legend tier at all.
-2. Start date (January suggested).
-3. Whether the "name on a CPU team" perk is in (a grey area with Apple; the
-   hat-for-everyone perk is safer).
+1. **Tiers:** all four in §2, as priced, Legend capped at 10 places.
+2. **Launch:** set up now, unpublished; go public in **January**.
+3. **No "name on a CPU team" perk** (a grey area with Apple): the Legend tier
+   gets the hat-for-everyone perk only.
