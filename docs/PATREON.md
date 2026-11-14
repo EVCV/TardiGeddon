@@ -80,16 +80,24 @@ Each tier includes everything below it.
 8. **Age:** Patreon has its own age rules for members; our page needs no
    extra checks because nothing is sold to children inside the game.
 
-## 5. The website side (to build when we start)
+## 5. The website side (built, switched off)
 
-- **tardigeddon.com/patrons**: names grouped by tier, from a file
-  (`site/src/patrons.ts`) you update by hand each month. Only names patrons
-  agree to show: Patreon lets members hide their name, and the page should
-  offer "Anonymous" otherwise.
-- **"Support us on Patreon"** link in the website footer, on the News page
-  and on the Support page. **Not** in the apps.
-- **Privacy Policy:** add that we show patrons' chosen names on the Patrons
-  page, and that Patreon handles payments as its own controller.
+- `site/src/patrons.ts`: the tiers, the patrons list (`PATRONS`, updated by
+  hand each month: only names patrons show on Patreon, else "Anonymous") and
+  **`PATREON_LIVE`**, false until launch.
+- **tardigeddon.com/patrons** (`site/src/pages/Patrons.tsx`): the tiers and,
+  once live, the names by tier. While off it says "opens in January" and is
+  noindex and out of the sitemap.
+- Once live: "Support us on Patreon" in the footer, on News and in Help &
+  support's FAQ, and Patreon in the footer's Follow list and `sameAs`
+  (`site/src/social.ts`). **Never in the game or the apps** (they don't import
+  these files).
+- **Privacy Policy** v2.15: §2.9 (Patreon as its own controller, what we see,
+  the Patrons page, Discord roles), §3.0.7B, §3.1.2C, §4.0.4C, §5.1.10.
+
+**Launch day:** publish the Patreon page, set `PATREON_LIVE = true`, add a
+News post (all six languages), open a PR; after it's merged and deployed,
+check /patrons and the footer link.
 
 ## 6. Page text (ready to paste)
 

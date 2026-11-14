@@ -14,6 +14,7 @@ import { PromoCodes } from './pages/PromoCodes';
 import { News } from './pages/News';
 import { Roadmap } from './pages/Roadmap';
 import { Giveaway } from './pages/Giveaway';
+import { Patrons } from './pages/Patrons';
 
 export function PageFor({ path }: { path: string }) {
   if (path === '/') return <Home />;
@@ -27,6 +28,7 @@ export function PageFor({ path }: { path: string }) {
   if (path === '/news') return <News />;
   if (path === '/roadmap') return <Roadmap />;
   if (path === '/giveaway') return <Giveaway />;
+  if (path === '/patrons') return <Patrons />;
   const legal = /^\/legal\/([a-z-]+)$/.exec(path);
   if (legal) return <Legal slug={legal[1]} />;
   return <NotFound />;
