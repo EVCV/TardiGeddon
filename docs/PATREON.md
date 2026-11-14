@@ -1,7 +1,8 @@
 # Patreon plan
 
-Status: **decided, being set up** (14 Nov 2026): the page is built now but
-stays unpublished until January. Decisions are in §8.
+Status: **set up, unpublished** (14 Nov 2026): page, tiers (with pictures
+`store/social/patreon-tier-*.png`), benefits and Discord roles are done;
+payouts/tax and the website side (§5) are left. Goes public in January. Decisions are in §8.
 
 A Patreon is a way for fans to support TardiGeddon every month. The game stays
 free, and **patrons get nothing inside the game**: every perk lives on the
@@ -68,9 +69,14 @@ Each tier includes everything below it.
 5. **Page:** the text in §6; banner and avatar from `store/social/` (use
    `youtube-banner.png` and `youtube-avatar.png` until there's a Patreon one).
 6. **Tiers:** the four in §2, with the perk text from §6.
-7. **Discord:** connect Patreon to the TardiGeddon Discord (Patreon's own
-   Discord integration). Patrons then get the **Patron** role automatically;
-   create the role and a `#patrons` channel only that role can see.
+7. **Discord** (done): Patreon → Settings → Apps → Discord. Roles **Patron**
+   (all tiers) and **Tun Club** (Tun Club, Legend); the bot's **Patreon** role
+   sits just below Moderator so it can hand them out. Private category
+   💛 PATRONS: `#patrons` (chat), `#patron-news` (read-only for patrons) and
+   the voice channel **Play with the dev** (Tun Club only).
+   Patreon now starts pages as free: payouts stay locked ("Become a creator")
+   until **Start a paid membership** is done on the dashboard. The lowest tier
+   price Patreon allows is £3.
 8. **Age:** Patreon has its own age rules for members; our page needs no
    extra checks because nothing is sold to children inside the game.
 
