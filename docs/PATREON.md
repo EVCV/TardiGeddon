@@ -30,7 +30,7 @@ memory: check them on patreon.com as you set up.
 
 | Tier | £/month | Perks |
 |---|---|---|
-| **Moss Fan** | £2 | Name on tardigeddon.com/patrons; Patron role and channel in Discord; a thank-you in each update's credits |
+| **Moss Fan** | £3 | Name on tardigeddon.com/patrons; Patron role and channel in Discord; a thank-you in each update's credits |
 | **Water Bear** | £5 | + monthly dev diary (what's being built, sketches, GIFs); votes on what comes next; wallpapers and Discord emoji each season |
 | **Tun Club** | £10 | + early web previews of new features (a private link); a monthly voice Q&A or "play with the dev" online session; soundtrack downloads |
 | **Legend** | £25, 10 places | + once a year, a hat designed with you (it goes in the shop for everyone, credited to you) |
@@ -102,7 +102,7 @@ Each tier includes everything below it.
 > behind the scenes, and a seat at our monthly play sessions.
 
 **Tier blurbs:**
-- **Moss Fan (£2):** Your name on our Patrons page and in the credits of every
+- **Moss Fan (£3):** Your name on our Patrons page and in the credits of every
   update, and the Patron role in our Discord.
 - **Water Bear (£5):** Everything above, plus a monthly dev diary, votes on
   what we build next, and wallpapers and Discord emoji each season.
@@ -119,7 +119,8 @@ the Patrons page ready. Announce it in a News post, on Discord and on socials.
 
 ## 8. Decisions (owner, 14 Nov 2026)
 
-1. **Tiers:** all four in §2, as priced, Legend capped at 10 places.
+1. **Tiers:** all four in §2, Legend capped at 10 places. Moss Fan is £3, not £2:
+   Patreon's minimum tier price is £3.
 2. **Launch:** set up now, unpublished; go public in **January**.
 3. **No "name on a CPU team" perk** (a grey area with Apple): the Legend tier
    gets the hat-for-everyone perk only.
