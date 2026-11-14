@@ -185,11 +185,17 @@ run all of this in the cloud and send you the files.
      keeps only matches with 6 or more teams (**pure mayhem**).
    - `match --seed 4`: one match's highlights in order, ending on the winning
      shot and a "… win!" card.
-   - **Music is built in:** each video gets one of the game's own tracks
-     (Boss Battle for mayhem, Moss Skirmish for duels, Disco Droplet for a
-     whole match), rendered to a file by `scripts/videos/music.ts` and evened
-     out to YouTube's loudness. They're ours, so no licence or Content ID
-     claims. `--music game:spooky` picks another (`npx tsx
+   - **Music is built in:** each video gets one of the game's own tracks,
+     rendered to a file by `scripts/videos/music.ts`: a lively one (Disco
+     Droplet, Moss Skirmish, 8-Bit Puddle, Sea Shanty Slam, Boss Battle) for
+     matches of 4 teams or more, a calm one (Lo-fi Lichen, Cosmic Crawl, Pond
+     Lobby, Daybreak, Spooky Swamp) for smaller ones, different from video to
+     video (`scripts/videos/sound.mjs`). The owner found the tracks too shrill,
+     loud and hyper as they are, so in videos they're played 5 notes lower
+     (same tempo), with the sharp top softened, at -20 LUFS (about half
+     YouTube's full loudness; any music file gets the same level). That needs
+     an ffmpeg with the `rubberband` filter; without it the pitch is left as is.
+     They're ours, so no licence or Content ID claims. `--music game:spooky` picks another (`npx tsx
      scripts/videos/music.ts list`), `--music track.mp3` uses a file of your
      own (licensed for this; it stays out of the repository), `--music none`
      is silent. The game's sound effects are made live and can't be filmed.
@@ -277,7 +283,8 @@ add).
 
 - Never say "Worms" or use other games' footage or names (README: Rules).
 - **Music:** only the game's own tracks, YouTube's Audio Library, or each
-  platform's licensed sounds. No chart music.
+  platform's licensed sounds. No chart music. Keep it in the background:
+  -20 LUFS, never the game's tracks at their own bright pitch (§3.6).
 - **Fair play:** never suggest money buys power. Shop items in videos are
   looks.
 - **Kids watch:** cartoon explosions are fine; keep titles and captions

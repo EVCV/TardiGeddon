@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { musicFilter } from './sound.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const batch = process.argv[2];
@@ -75,7 +76,7 @@ try {
     if (existsSync(mp3)) continue;
     const wav = join(tmpdir(), `tardigeddon-${track}.wav`);
     run('npx', ['tsx', join(root, 'scripts/videos/music.ts'), track, '180', wav]);
-    run('ffmpeg', ['-loglevel', 'error', '-y', '-i', wav, '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st=176:d=4', '-c:a', 'libmp3lame', '-b:a', '192k', mp3]);
+    run('ffmpeg', ['-loglevel', 'error', '-y', '-i', wav, '-af', `${musicFilter(true)},afade=t=out:st=176:d=4`, '-c:a', 'libmp3lame', '-b:a', '192k', mp3]);
     rmSync(wav, { force: true });
   }
 } finally {

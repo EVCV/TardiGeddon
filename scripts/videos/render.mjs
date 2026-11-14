@@ -6,7 +6,7 @@
 //   node scripts/videos/render.mjs match --seed 4         (one whole match's highlights, to the winner)
 //   node scripts/videos/render.mjs shorts [--count 8]     (vertical 1080×1920 Shorts / TikTok / Reels: one moment each)
 //   options: --scout store/videos/scout  --out store/videos
-//            --music game:boss (the default: the game's own tracks, see music.ts list) | track.mp3 | none
+//            --music game:boss (default: one of the game's tracks to suit the match, see sound.mjs) | track.mp3 | none
 //            --max-teams 3 (only small matches)  --name duels  --zoom 1.35
 //            --title "Best shots"  --thumb "BEST|SHOTS" (the thumbnail's two lines)
 //
@@ -27,6 +27,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { musicFilter, nameNumber, trackFor } from './sound.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -354,10 +355,10 @@ function encode(name, musicOpt) {
     execFileSync('npx', win ? args.map((a) => (/\s/.test(a) ? `"${a}"` : a)) : args, { stdio: 'inherit', shell: win });
   }
   const input = ['-framerate', String(FPS), '-i', join(dir, '%06d.jpg')];
-  // Even loudness (YouTube's -14 LUFS), a fade in and a fade out.
+  // Game tracks lower and softer, everything at -20 LUFS (sound.mjs), a fade in and a fade out.
   const audio =
     music !== 'none' && existsSync(music)
-      ? ['-stream_loop', '-1', '-i', music, '-shortest', '-af', `loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=in:d=${SHORTS ? 0.3 : 1},afade=t=out:st=${Math.max(0, length - (SHORTS ? 1.5 : 3))}:d=${SHORTS ? 1.5 : 3}`, '-c:a', 'aac', '-b:a', '192k', '-ar', '48000']
+      ? ['-stream_loop', '-1', '-i', music, '-shortest', '-af', `${musicFilter(musicOpt.startsWith('game:'))},afade=t=in:d=${SHORTS ? 0.3 : 1},afade=t=out:st=${Math.max(0, length - (SHORTS ? 1.5 : 3))}:d=${SHORTS ? 1.5 : 3}`, '-c:a', 'aac', '-b:a', '192k', '-ar', '48000']
       : ['-an'];
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...input, ...audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: 'inherit' });
   return out;
@@ -377,7 +378,8 @@ async function shorts() {
   const count = Number(opt('count', '8'));
   const minTeams = Number(opt('teams', '2'));
   const maxTeams = Number(opt('max-teams', '10'));
-  const tracks = opt('music', 'game:boss,game:chiptune,game:disco,game:classic,game:daybreak,game:shanty').split(',');
+  // --music a,b,c to choose; by default a lively track for big matches, a calm one for duels.
+  const tracks = opt('music', '') ? opt('music', '').split(',') : null;
   const pool = matches()
     .filter((m) => m.teams >= minTeams && m.teams <= maxTeams)
     .flatMap((m) => m.moments.map((x) => ({ m, x })))
@@ -438,7 +440,7 @@ async function shorts() {
     await page.evaluate(() => (document.getElementById('vid-cap').style.display = 'none'));
     await card(page, 'Play free', 'tardigeddon.com/play', 60);
     await ctx.close();
-    const out = encode(name, tracks[n % tracks.length]);
+    const out = encode(name, tracks ? tracks[n % tracks.length] : trackFor(m.teams, n + nameNumber(prefix)));
     const secs = Math.round(frameNo / FPS);
     // Words for posting: the same text suits YouTube Shorts, TikTok, Reels and Facebook.
     const article = m.teams === 8 ? 'an' : 'a';
@@ -494,7 +496,7 @@ await browser.close();
 
 // Music: the game's own tracks by default (game:<id>, rendered by music.ts), a file of
 // your own (licensed for this), or none.
-const out = encode(p.name, opt('music', `game:${mode === 'match' ? 'disco' : p.title === 'One on one' ? 'classic' : 'boss'}`));
+const out = encode(p.name, opt('music', trackFor(Math.max(...p.parts.map((g) => g.m.teams)), nameNumber(p.name))));
 // YouTube chapters: paste these into the description (the first must be 0:00).
 const stamp = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const most = Math.max(...p.parts.map((g) => g.m.teams));
