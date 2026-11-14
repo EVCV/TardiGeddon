@@ -15,7 +15,7 @@ share: names, the bios, the voice and the rules.
 | Threads | [@tardigeddon](https://www.threads.net/@tardigeddon) | Live | |
 | X | [@TardiGeddon](https://x.com/TardiGeddon) | Live | |
 | Twitch | [tardigeddon](https://www.twitch.tv/tardigeddon) | Live | |
-| Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Name kept; not set up yet | [REDDIT.md](REDDIT.md) |
+| Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Live (14 Nov 2026) | [REDDIT.md](REDDIT.md) |
 | itch.io | [tardigeddon.itch.io/tardigeddon](https://tardigeddon.itch.io/tardigeddon) | Live (links out to the game) | |
 | IGDB | [igdb.com/games/tardigeddon](https://www.igdb.com/games/tardigeddon) | Submitted | |
 | Patreon | (patreon.com/tardigeddon) | Plan, not started | [../PATREON.md](../PATREON.md) |
