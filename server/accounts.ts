@@ -9,6 +9,9 @@
 //   POST /api/shop/google, /api/shop/apple
 //                         coin packs bought in the Android / iOS app, checked and granted once
 //   POST /api/shop/apple/notifications  Apple tells us about refunds (App Store Server Notifications v2)
+//   GET  /api/roadmap/votes, POST /api/roadmap/vote, POST /api/suggestions
+//                         the roadmap's votes and the suggestion box (server/roadmap.ts); every write passes Cloudflare Turnstile
+//   GET  /api/admin/suggestions, POST /api/admin/suggestions/:id   the owner's list of ideas
 //
 // Everything is optional: with no DATABASE_URL the game server runs exactly
 // as before (no accounts), and with no STRIPE_SECRET_KEY the shop is closed.
@@ -16,6 +19,8 @@
 
 import { addFriend, friendCode, friendLists, migrateFriends, normaliseFriendCode, removeFriend, type FriendRow } from './friends';
 import { acceptableDay, board, checkRun, migrateChallenges, saveRun } from './challenges';
+import { givePrize, migratePrizes, prizeBadge, prizeItems, prizeNews, prizeNote, recentPrizes, winnerBadge } from './prizes';
+import { withEveryone } from '../src/shop/prizeRules';
 import { creatorCodeOf, creatorReports, migrateCreators, normaliseCreatorCode, recordCreatorPayout, saveCreator } from './creators';
 import { earlyBirdRule, enterInvite, founderRule, grantEarlyBird, grantFounder, inviteNews, inviteStatus, isCreator, isEarlyBird, isFounder, migrateRewards, packBadge, peekInvite, settleInvite } from './rewards';
 import { challengeDay, isChallengeKind } from '../src/challenge/daily';
@@ -37,6 +42,11 @@ import type { MeResponse } from '../src/account/session';
 import { japanAlertEmail, newsConfirmEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
 import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, newsAsked, newsletterCounts, newsletterCsv, purgeNewsletter, setAccountNews, unsubscribeNews } from './newsletter';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
+import { NEWS } from '../src/news/news';
+import { comingIds } from '../src/news/roadmap';
+import { cleanIdea, isSuggestionCategory, isSuggestionStatus } from '../src/news/suggest';
+import { SUGGESTIONS_PER_IP_HOUR, addSuggestion, allow, listSuggestions, migrateRoadmap, myVotes, purgeSuggestions, setVote, suggestionRefusal, updateSuggestion, voteCounts } from './roadmap';
+import { createTurnstile, type Turnstile, type TurnstileAction, type TurnstileEnv } from './turnstile';
 
 export type { MeResponse };
 import { NO_STATS, earnSlime, replaceStripeCustomerId, setStripeCustomerId, stripeCustomerId, unlockBundle, unlockItem, walletOf, migrate, ownedItems, playerStats, purgeExpired, recordPurchase, recordResults, revokePurchase, salesReport, japanAlertsDue, buyGift, redeemGift, redeemPromo, saveAppSignIn, takeAppSignIn, cancelGift, giftsSent, controlsOf, saveControlsFor, ratingsOf, rateMatch, type MatchResult, supporterBadge } from './store';
@@ -46,7 +56,7 @@ import { googlePlayApi, playAccountTag, type PlayApi, type PlayEnv } from './goo
 import { appleClientSecret, appleKeyFromEnv, appleTokenApi, keepAppleCode, migrateAppleTokens, revokeAppleTokens, type AppleKeyEnv, type AppleTokenApi } from './appleTokens';
 import { appStoreAccountToken, appStoreApi, REVOKED_NOTIFICATIONS, type AppStoreApi, type AppStoreEnv } from './appStore';
 
-export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv, AppleKeyEnv {
+export interface AccountsEnv extends MailEnv, PlayEnv, AppStoreEnv, AppleKeyEnv, TurnstileEnv {
   DATABASE_URL?: string;
   BETTER_AUTH_SECRET?: string;
   /** This server's public URL, e.g. https://server.tardigeddon.com */
@@ -134,6 +144,8 @@ export async function createAccounts(
     mailer?: Mailer | null;
     play?: PlayApi | null;
     appStore?: AppStoreApi | null;
+    /** Tests: stands in for asking Cloudflare Turnstile whether a vote's or suggestion's token is good. */
+    turnstile?: Turnstile;
     /** Tests: stands in for checking an Apple ID token's signature with Apple's public keys. */
     appleIdToken?: (token: string, nonce?: string) => Promise<boolean>;
     /** Tests: stands in for Apple's token exchange and revoke endpoints. */
@@ -301,17 +313,24 @@ export async function createAccounts(
   await migrateFriends(db);
   await migrateCreators(db);
   await migrateRewards(db);
+  await migratePrizes(db);
   await migrateNewsletter(db);
   await migrateAppleTokens(db);
+  await migrateRoadmap(db);
   const auth = betterAuth(options);
   const founders = founderRule(env);
   const earlyBirds = earlyBirdRule(env);
 
   // Expired sign-ins and one-time codes are deleted, not just ignored.
-  const purge = setInterval(() => void Promise.all([purgeExpired(db), purgeNewsletter(db)]).catch((e) => console.error('purge failed', e)), 60 * 60_000);
+  const purge = setInterval(() => void Promise.all([purgeExpired(db), purgeNewsletter(db), purgeSuggestions(db)]).catch((e) => console.error('purge failed', e)), 60 * 60_000);
   purge.unref();
   await purgeExpired(db);
   await purgeNewsletter(db);
+  await purgeSuggestions(db);
+  // Votes and suggestions (server/roadmap.ts) pass Cloudflare Turnstile first (server/turnstile.ts).
+  const turnstile = opts.turnstile ?? createTurnstile(env);
+  /** What players can vote on: the roadmap's items (the news posts this server was built with). */
+  const roadmapIds = comingIds(NEWS);
 
   // Managed Payments: Stripe is the seller (merchant of record) and handles VAT and sales tax
   // everywhere, sends its own receipts, and needs a tax code for what's sold.
@@ -706,6 +725,120 @@ export async function createAccounts(
     const note = typeof body?.note === 'string' ? body.note.slice(0, 200) : '';
     if (!(await recordCreatorPayout(db, code, amount, currency, note))) return json(res, 404, { error: 'No such creator.' });
     json(res, 200, { creators: await creatorReports(db) });
+  }
+
+  /** The owner's contest prizes (Sales page): give looks to one player by email, and the recent grants (server/prizes.ts). */
+  async function prizesApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const admin = await userFrom(req.headers);
+    if (!admin || !isAdmin(admin)) return json(res, 404, { error: tk('Not found.') });
+    if (req.method === 'GET') return json(res, 200, { prizes: await recentPrizes(db) });
+    const body = await readJson(req);
+    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+    if (!email || email.length > 320) return json(res, 400, { error: 'Give the player’s email.' });
+    const badge = prizeBadge(body?.badge);
+    const picked = prizeItems(body?.items, badge !== null);
+    if ('error' in picked) return json(res, 400, { error: picked.error });
+    const r = await givePrize(db, admin.id, email, picked.items, prizeNote(body?.note), badge);
+    if (!r) return json(res, 404, { error: 'No game account has that email.' });
+    json(res, 200, r);
+  }
+
+  /** Votes and ideas tried, per account and per address, in memory (see allow() in server/roadmap.ts). */
+  const voteTries = new Map<string, number[]>();
+  const ideaTries = new Map<string, number[]>();
+  const roadmapReads = new Map<string, number[]>();
+
+  /**
+   * Cloudflare Turnstile on a vote or a suggestion: true if the token in the body is good for this action.
+   * If not, the answer has been sent: 403 for a bad token, 503 if checks are off here or Cloudflare couldn't be asked
+   * (never "let it through").
+   */
+  async function turnstilePassed(req: IncomingMessage, res: ServerResponse, body: Record<string, unknown> | null, action: TurnstileAction): Promise<boolean> {
+    const platform = body?.platform;
+    if (platform !== 'web' && platform !== 'app') {
+      json(res, 400, { error: tk('Bad request.') });
+      return false;
+    }
+    const r = await turnstile.verify(body?.turnstileToken, clientIp(req), action, platform);
+    if (r.ok) return true;
+    if (r.reason === 'unconfigured') json(res, 503, { error: tk('Voting and suggestions are not available right now. Please try again later.') });
+    else if (r.reason === 'unavailable') json(res, 503, { error: tk('We couldn’t run the security check just now. Please try again.') });
+    else json(res, 403, { error: tk('The security check didn’t pass. Please try again.') });
+    return false;
+  }
+
+  /** GET /api/roadmap/votes: votes per roadmap item (public totals), and this player's own if signed in. */
+  async function roadmapVotesApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!allow(roadmapReads, clientIp(req), 60_000, 60)) return json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+    const user = await userFrom(req.headers);
+    const body = { votes: await voteCounts(db, roadmapIds), ...(user ? { mine: await myVotes(db, user.id, roadmapIds) } : {}) };
+    res.writeHead(200, {
+      'content-type': 'application/json',
+      // The totals are the same for everyone, so a short cache is fine; a player's own votes are theirs alone.
+      'cache-control': user ? 'private, no-store' : 'public, max-age=30',
+      vary: 'origin, cookie, authorization',
+      'x-content-type-options': 'nosniff',
+    });
+    res.end(JSON.stringify(body));
+  }
+
+  /** POST /api/roadmap/vote {itemId, on, platform, turnstileToken}: vote for a roadmap item, or take the vote back. */
+  async function roadmapVote(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    const body = await readJson(req);
+    // Only a real roadmap item: never an id the browser made up.
+    const itemId = typeof body?.itemId === 'string' ? body.itemId : '';
+    if (!roadmapIds.has(itemId)) return json(res, 400, { error: tk('That idea isn’t open for voting.') });
+    if (typeof body?.on !== 'boolean') return json(res, 400, { error: tk('Bad request.') });
+    if (!allow(voteTries, `u:${user.id}`, 60_000, 20) || !allow(voteTries, `ip:${clientIp(req)}`, 60_000, 60)) {
+      return json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+    }
+    if (!(await turnstilePassed(req, res, body, 'roadmap_vote'))) return;
+    json(res, 200, { ok: true, on: body.on, votes: await setVote(db, user.id, itemId, body.on) });
+  }
+
+  /** POST /api/suggestions {category, text, platform, turnstileToken}: an idea for the owner's eyes only. */
+  async function suggestionApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const user = await userFrom(req.headers);
+    if (!user) return json(res, 401, { error: tk('Please sign in first.') });
+    // A confirmed email, so an idea comes from someone we could reach, and accounts can't be made just to flood the box.
+    if (!user.emailVerified) return json(res, 403, { error: tk('Confirm your email first (on the Account page) to send ideas.') });
+    const body = await readJson(req);
+    const category = body?.category;
+    if (!isSuggestionCategory(category)) return json(res, 400, { error: tk('Please pick what your idea is about.') });
+    const idea = cleanIdea(body?.text);
+    if ('problem' in idea) {
+      return json(res, 400, { error: idea.problem === 'short' ? tk('That idea is a bit short. Please say a little more.') : idea.problem === 'long' ? tk('That idea is too long. Please keep it shorter.') : tk('Bad request.') });
+    }
+    // Refused ones first, so nobody spends a security check on them.
+    const refusal = await suggestionRefusal(db, user.id, idea.text);
+    if (refusal === 'limit') return json(res, 429, { error: tk('You’ve sent a lot of ideas today. Please try again tomorrow.') });
+    if (refusal === 'duplicate') return json(res, 409, { error: tk('You’ve already sent that idea. Thank you!') });
+    if (!allow(ideaTries, clientIp(req), 3_600_000, SUGGESTIONS_PER_IP_HOUR)) return json(res, 429, { error: tk('Too many ideas from this connection. Please try again later.') });
+    if (!(await turnstilePassed(req, res, body, 'suggestion'))) return;
+    const r = await addSuggestion(db, user.id, category, idea.text);
+    if (!r.ok) {
+      return r.why === 'limit'
+        ? json(res, 429, { error: tk('You’ve sent a lot of ideas today. Please try again tomorrow.') })
+        : json(res, 409, { error: tk('You’ve already sent that idea. Thank you!') });
+    }
+    json(res, 200, { ok: true });
+  }
+
+  /** The owner's list of ideas (Sales page): GET /api/admin/suggestions?status=, POST /api/admin/suggestions/:id {status, admin_note}. */
+  async function suggestionsAdminApi(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+    if (!isAdmin(await userFrom(req.headers))) return json(res, 404, { error: tk('Not found.') });
+    if (req.method === 'GET') {
+      const status = new URL(req.url ?? '', 'http://x').searchParams.get('status') ?? 'all';
+      if (status !== 'all' && !isSuggestionStatus(status)) return json(res, 400, { error: 'Bad status.' });
+      return json(res, 200, await listSuggestions(db, status));
+    }
+    const body = await readJson(req);
+    const r = await updateSuggestion(db, Number(path.split('/').pop()), body?.status, body?.admin_note);
+    if (r === 'bad') return json(res, 400, { error: 'Pick a status; a note is up to 500 characters.' });
+    if (!r) return json(res, 404, { error: 'No such idea.' });
+    json(res, 200, { ok: true });
   }
 
   /** Spend coins or Slime on a shop item. */
@@ -1253,7 +1386,7 @@ export async function createAccounts(
           const user = await userFrom(req.headers);
           const me: MeResponse = {
             user,
-            owned: user ? await ownedItems(db, user.id) : [],
+            owned: withEveryone(user ? await ownedItems(db, user.id) : []),
             wallet: user ? await walletOf(db, user.id) : { coins: 0, slime: 0 },
             stats: user ? await playerStats(db, user.id) : { ...NO_STATS },
             // Whether coins can be bought (Slime unlocks work without Stripe).
@@ -1277,7 +1410,7 @@ export async function createAccounts(
             if ((founder || earlyBird) && (await grantEarlyBird(db, user.id))) me.earlyBirdNew = true;
             if (founder && (await grantFounder(db, user.id))) me.founderNew = true;
             if (me.earlyBirdNew || me.founderNew) {
-              me.owned = await ownedItems(db, user.id);
+              me.owned = withEveryone(await ownedItems(db, user.id));
               me.wallet = await walletOf(db, user.id);
             }
             const badge = await packBadge(db, user.id);
@@ -1290,9 +1423,17 @@ export async function createAccounts(
             const news = await inviteNews(db, user.id);
             if (news) {
               me.inviteNews = news;
-              me.owned = await ownedItems(db, user.id);
+              me.owned = withEveryone(await ownedItems(db, user.id));
               me.wallet = await walletOf(db, user.id);
             }
+            // Contest prizes the owner gave since they last looked (told once; server/prizes.ts).
+            const prize = await prizeNews(db, user.id);
+            if (prize) {
+              me.prizeNews = prize;
+              me.owned = withEveryone(await ownedItems(db, user.id));
+            }
+            // The 🏆 Launch Winner badge (a contest prize; server/prizes.ts).
+            if (await winnerBadge(db, user.id)) me.winnerBadge = true;
             // A creator with a code (server/creators.ts): their own numbers, totals only.
             const creator = await creatorCodeOf(db, user.id);
             if (creator && (await isCreator(db, user.id))) me.creatorBadge = true;
@@ -1310,6 +1451,9 @@ export async function createAccounts(
           // Coin packs can be bought in the Android app (Google Play Billing).
           if (play) me.playBilling = true;
           if (appStore) me.appStore = true;
+          // The security check's public site keys, for voting and suggestions (signed in only).
+          const siteKeys = turnstile.siteKeys();
+          if (user && (siteKeys.web || siteKeys.app)) me.turnstile = siteKeys;
           if (isAdmin(user)) me.admin = true;
           json(res, 200, me);
         } else if (path === '/api/gift/buy' && req.method === 'POST') {
@@ -1331,6 +1475,14 @@ export async function createAccounts(
           const days = Number(new URL(req.url ?? '', 'http://x').searchParams.get('days'));
           if (!isAdmin(await userFrom(req.headers))) json(res, 404, { error: tk('Not found.') });
           else json(res, 200, await usage.report([1, 7, 30, 365].includes(days) ? days : 0));
+        } else if (path === '/api/roadmap/votes' && req.method === 'GET') {
+          await roadmapVotesApi(req, res);
+        } else if (path === '/api/roadmap/vote' && req.method === 'POST') {
+          await roadmapVote(req, res);
+        } else if (path === '/api/suggestions' && req.method === 'POST') {
+          await suggestionApi(req, res);
+        } else if ((path === '/api/admin/suggestions' && req.method === 'GET') || (/^\/api\/admin\/suggestions\/\d{1,12}$/.test(path) && req.method === 'POST')) {
+          await suggestionsAdminApi(req, res, path);
         } else if (path === '/api/settings' && req.method === 'POST') {
           await saveSettings(req, res);
         } else if (path === '/api/stats/match' && req.method === 'POST') {
@@ -1352,6 +1504,8 @@ export async function createAccounts(
           }
         } else if ((path === '/api/admin/creators' && (req.method === 'GET' || req.method === 'POST')) || (path === '/api/admin/creators/paid' && req.method === 'POST')) {
           await creatorsApi(req, res, path);
+        } else if ((path === '/api/admin/prize' && req.method === 'POST') || (path === '/api/admin/prizes' && req.method === 'GET')) {
+          await prizesApi(req, res);
         } else if ((path === '/api/friends' && req.method === 'GET') || (['/api/friends/add', '/api/friends/remove', '/api/friends/invite'].includes(path) && req.method === 'POST')) {
           await friendsApi(req, res, path);
         } else if (path === '/api/challenge/submit' && req.method === 'POST') {
@@ -1390,14 +1544,14 @@ export async function createAccounts(
     /** Email the owner if Japan's unspent coins reached a new alert level (also runs hourly). */
     checkJapan,
     /** Who these request headers (cookie) or online-play ticket belong to, and what they own; nobody if signed out. */
-    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' | 'creator' | 'supporter' | 'patron' }> {
+    async playerFor(headers: IncomingHttpHeaders, ticket?: string | null): Promise<{ userId?: string; owned: string[]; rating?: number; badge?: 'founder' | 'earlybird' | 'creator' | 'winner' | 'supporter' | 'patron' }> {
       // The sign-in cookie (website, Android app), else a ticket (iOS app).
       const userId = (await userFrom(headers))?.id ?? takeTicket(ticket);
-      if (!userId) return { owned: [] };
+      if (!userId) return { owned: withEveryone([]) };
       const r = (await ratingsOf(db, [userId])).get(userId)!;
-      // A creator's ⭐ comes first; then 💖 or 💛 (supporter packs); then 🌱 or 🐣.
-      const badge = (await isCreator(db, userId)) ? 'creator' : ((await supporterBadge(db, userId)) ?? (await packBadge(db, userId)));
-      return { userId, owned: await ownedItems(db, userId), rating: r.rating, ...(badge ? { badge } : {}) };
+      // A creator's ⭐ comes first; then 🏆 (a contest's Launch Winner); then 💖 or 💛 (supporter packs); then 🌱 or 🐣.
+      const badge = (await isCreator(db, userId)) ? 'creator' : (await winnerBadge(db, userId)) ? 'winner' : ((await supporterBadge(db, userId)) ?? (await packBadge(db, userId)));
+      return { userId, owned: withEveryone(await ownedItems(db, userId)), rating: r.rating, ...(badge ? { badge } : {}) };
     },
     /** The game server says who's online and passes on invites. */
     setPresence(p: Presence): void {
@@ -1420,6 +1574,9 @@ export async function createAccounts(
       lastInvite.clear();
       redeemTries.clear();
       inviteTries.clear();
+      voteTries.clear();
+      ideaTries.clear();
+      roadmapReads.clear();
     },
     async close(): Promise<void> {
       clearInterval(purge);

@@ -80,7 +80,8 @@ export function News() {
       <h1 className="display section-title">News</h1>
       <p className="lead">
         What’s coming to TardiGeddon, problems we’re fixing, and what changed in each update. The game shows the same
-        news, in your language: <b>📰 News</b> in the lobby. Follow along with the <a href="/news.xml">RSS feed</a>.
+        news, in your language: <b>📰 News</b> in the lobby. Follow along with the <a href="/news.xml">RSS feed</a>, and see
+        where the game is heading on the <a href="/roadmap">Roadmap</a>.
       </p>
       <NewsSignup />
       {SECTIONS.map((s) => {

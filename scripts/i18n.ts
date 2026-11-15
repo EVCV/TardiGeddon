@@ -8,9 +8,10 @@
 
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DATA_KEYS } from '../src/i18n/dataKeys';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const LOCALES = join(ROOT, 'src/i18n/locales');
 
 function files(dir: string): string[] {
@@ -36,7 +37,8 @@ const CALL = /\b(?:t|tk)\(\s*(?:'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|`((?:\\.
 export function codeKeys(): Set<string> {
   const keys = new Set<string>();
   for (const f of [...files(join(ROOT, 'src')), ...files(join(ROOT, 'server'))]) {
-    if (f.includes('/i18n/')) continue;
+    // The translations' own folder (either slash: Windows paths use \).
+    if (/[\\/]i18n[\\/]/.test(f)) continue;
     const src = readFileSync(f, 'utf8');
     for (const m of src.matchAll(CALL)) keys.add(unescape(m[1] ?? m[2] ?? m[3]));
   }

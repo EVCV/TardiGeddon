@@ -1,7 +1,7 @@
 // The News page of the menu hub: what's new (release notes), what's coming,
 // and known problems being fixed (src/news/news.ts, kept up to date from the
-// website by src/news/feed.ts). Posts come in the player's language; they are
-// only ever shown as text, never as HTML.
+// website by src/news/feed.ts), and the Roadmap (ui/roadmap.ts). Posts come in the
+// player's language; they are only ever shown as text, never as HTML.
 
 import { newsSignupBox } from './newsSignup';
 import { lang, t } from '../i18n/i18n';
@@ -9,13 +9,18 @@ import { markNewsRead, newsPosts } from '../news/feed';
 import type { NewsPost } from '../news/news';
 import { postsIn, type NewsSection } from '../news/sections';
 import type { HubContext } from './hub';
+import { day, newRoadmapState, roadmapCards, type RoadmapState } from './roadmap';
+
+/** The News page's sections: the posts' (src/news/sections.ts), and the roadmap. */
+export type NewsTab = NewsSection | 'roadmap';
 
 export interface NewsState {
-  section: NewsSection;
+  section: NewsTab;
+  roadmap: RoadmapState;
 }
 
 export function newNewsState(): NewsState {
-  return { section: 'new' };
+  return { section: 'new', roadmap: newRoadmapState() };
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -23,11 +28,6 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text;
   return e;
-}
-
-/** "28 October 2026", in the player's language. */
-function day(date: string): string {
-  return new Date(`${date}T12:00:00Z`).toLocaleDateString(lang() === 'en' ? 'en-GB' : lang(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 function postCard(p: NewsPost): HTMLElement {
@@ -59,14 +59,15 @@ function postCard(p: NewsPost): HTMLElement {
 
 export function renderNewsPage(ctx: HubContext, state: NewsState): HTMLElement {
   markNewsRead();
-  const page = el('div', 'page page-news');
+  const page = el('div', 'page page-news' + (state.section === 'roadmap' ? ' page-roadmap' : ''));
   const head = el('section', 'card news-head');
   head.append(el('h2', 'card-title', t('📰 News')));
   const pills = el('div', 'seg news-pills');
   const all = newsPosts();
-  const sections: [NewsSection, string][] = [
+  const sections: [NewsTab, string][] = [
     ['new', t('What’s new')],
     ['coming', t('Coming soon')],
+    ['roadmap', t('Roadmap')],
     ['fixing', t('Being fixed')],
   ];
   for (const [id, label] of sections) {
@@ -79,6 +80,10 @@ export function renderNewsPage(ctx: HubContext, state: NewsState): HTMLElement {
     pills.append(b);
   }
   head.append(pills);
+  if (state.section === 'roadmap') {
+    page.append(head, ...roadmapCards(ctx, state.roadmap));
+    return page;
+  }
   page.append(head, newsSignupBox(ctx, 'news'));
 
   const shown = postsIn(state.section, all);

@@ -221,7 +221,7 @@ account), purpose **App functionality** and **Account management**:
 | Personal info → Email address | the account's email; and, only for those who ask for it, email news (`docs/NEWSLETTER.md`): for this one, also tick the purposes **Developer communications** and **Advertising or marketing** |
 | Personal info → Name | the player name on the account (not necessarily a real name) |
 | Personal info → User IDs | the account's id |
-| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites and creator codes (which account invited which, or which creator's code a player used, for the rewards and the creator's share), the Founder or Early bird badge (seen by other players online), items owned, coin and Slime balances, control settings |
+| App activity → Other actions | gameplay data: game stats (wins, pops, damage, quick-play rating), daily challenge scores (shown on public leaderboards with the player name), friends list (mutual, by friend code; friends see online status), invites and creator codes (which account invited which, or which creator's code a player used, for the rewards and the creator's share), the Founder, Early bird, Supporter, Patron or 🏆 Launch Winner badge (seen by other players online), contest prizes given to the account (which looks, when), items owned, coin and Slime balances, control settings |
 | Financial info → Purchase history | coin packs and supporter packs bought (pack, date, Google's purchase reference, refunds). Payment details stay with Google |
 
 Also tick **App activity → App interactions** for the anonymous play counts
@@ -248,6 +248,21 @@ months), not shared (showing them to other players is the player's choice,
 not "sharing" in Google's sense), optional, purposes **App functionality**
 and **Fraud prevention, security and compliance**. Add that purpose to
 **User IDs** too (reports carry account ids; blocking uses player ids).
+
+**Roadmap votes and ideas** (`docs/ROADMAP.md`; Privacy Policy 2.8): the
+**ideas** a signed-in player with a confirmed email sends from the game's
+Roadmap (their text, and a category) are the same **App activity → Other
+user-generated content**: collected, **linked to the account**, not shared
+(only the owner reads them; not shown to other players), optional, purpose
+**App functionality**, kept until the account is deleted or 24 months. The
+**votes** (which roadmap item, when) are **App activity → Other actions**,
+same answers. Both are deleted with the account (also say so in the
+delete-account page: done, `site/legal/delete-account.md`). When a signed-in
+player votes or sends an idea, the app loads **Cloudflare Turnstile**, a
+security check run by Cloudflare as our service provider (not "sharing"); it
+receives the IP address and browser signals only to tell people from bots, so
+check the form's wording for it at the next review (a purpose of **Fraud
+prevention, security and compliance**; it's never used for ads or tracking).
 
 Not collected: location, contacts, photos, files, audio, health, payment
 info (cards etc.: Google keeps those), device IDs, other app performance

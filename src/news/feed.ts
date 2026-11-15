@@ -3,12 +3,14 @@
 // that arrives, so the apps show new posts without an app update. Anything
 // fetched is checked first and only ever shown as plain text.
 
-import { NEWS, NEWS_LANGS, type NewsKind, type NewsPost, type NewsText } from './news';
+import { NEWS, NEWS_LANGS, type NewsKind, type NewsPost, type NewsStage, type NewsText } from './news';
+import { STAGES } from './roadmap';
 import { isNativeApp } from '../native';
 
 const KEY = 'tardigeddon.newsSeen';
 const KINDS: NewsKind[] = ['update', 'coming', 'issue'];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ID = /^[a-z0-9-]{1,80}$/;
 /** Most posts kept from the website's list, and the longest text in one. */
 const MAX_POSTS = 100;
 const MAX_TEXT = 2000;
@@ -54,8 +56,8 @@ export function cleanNews(raw: unknown): NewsPost[] | null {
   const ids = new Set<string>();
   for (const p of list.slice(0, MAX_POSTS)) {
     if (!p || typeof p !== 'object') continue;
-    const { id, date, kind, fixed, text } = p as Record<string, unknown>;
-    if (typeof id !== 'string' || !/^[a-z0-9-]{1,80}$/.test(id) || ids.has(id)) continue;
+    const { id, date, kind, fixed, stage, ships, text } = p as Record<string, unknown>;
+    if (typeof id !== 'string' || !ID.test(id) || ids.has(id)) continue;
     if (typeof date !== 'string' || !DATE.test(date) || !KINDS.includes(kind as NewsKind)) continue;
     if (fixed !== undefined && (typeof fixed !== 'string' || !DATE.test(fixed))) continue;
     if (!text || typeof text !== 'object') continue;
@@ -68,7 +70,11 @@ export function cleanNews(raw: unknown): NewsPost[] | null {
     ids.add(id);
     // Languages it lacks show the English.
     const full = Object.fromEntries(NEWS_LANGS.map((l) => [l, texts[l] ?? texts.en])) as NewsPost['text'];
-    out.push({ id, date, kind: kind as NewsKind, ...(fixed ? { fixed } : {}), text: full });
+    // The roadmap's fields: only where they mean something, and only if they're well-formed (else left out, the post stays).
+    const roadmap: Pick<NewsPost, 'stage' | 'ships'> = {};
+    if (kind === 'coming' && STAGES.includes(stage as NewsStage)) roadmap.stage = stage as NewsStage;
+    if (kind === 'update' && typeof ships === 'string' && ID.test(ships)) roadmap.ships = ships;
+    out.push({ id, date, kind: kind as NewsKind, ...(fixed ? { fixed } : {}), ...roadmap, text: full });
   }
   return out;
 }

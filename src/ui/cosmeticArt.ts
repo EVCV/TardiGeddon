@@ -2,7 +2,7 @@
 // music and sound packs, drawn as SVG from the same colours the game uses
 // (render/cosmetics.ts, render/arenas.ts, audio/).
 
-import { aimStyle, fxStyle, RAINBOW } from '../render/cosmetics';
+import { aimStyle, crownShape, fxStyle, laurelLeaves, RAINBOW } from '../render/cosmetics';
 import { arenaTheme } from '../render/arenas';
 import { hex } from '../render/palette';
 import { musicTrack } from '../audio/music';
@@ -26,6 +26,13 @@ function star(x: number, y: number, r: number, fill: string, turn = 0): string {
   return `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>`;
 }
 
+/** A flat [x, y, ...] polygon as SVG points. */
+const pts = (p: number[]): string => p.map((v) => v.toFixed(1)).join(' ');
+
+function crown(x: number, y: number, r: number, fill: string): string {
+  return `<polygon points="${pts(crownShape(x, y, r))}" fill="${fill}" stroke="${INK}" stroke-width="1.3" stroke-linejoin="round"/>`;
+}
+
 /** An aim style: the power bar charging up towards the marker. */
 export function aimSvg(id: string, teamColor = 0xe04848): string {
   const st = aimStyle(id);
@@ -44,19 +51,25 @@ export function aimSvg(id: string, teamColor = 0xe04848): string {
   }</defs>`;
   // Bar from bottom-left up towards the marker at (20, -10).
   const bar = `<polygon points="-30,16 8,-3 4,-11" transform="rotate(0)" fill="url(#${g})" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`;
-  const mx = 22;
-  const my = -12;
+  // Laurels and crowns take more room round the marker, so it is drawn a little smaller.
+  const rr = st.emblem ? 6 : 8;
+  const k = rr / 8;
+  const mx = st.emblem ? 20 : 22;
+  const my = st.emblem ? -9 : -12;
   const parts: string[] = [];
-  if (st.tail) for (let i = 0; i < 4; i++) parts.push(star(-24 + i * 7, 18 - i * 6 + (i % 2) * 4, 2.6, i % 2 ? '#ffffff' : '#7fd3f7'));
+  if (st.tail) for (let i = 0; i < 4; i++) parts.push(star(-24 + i * 7, 18 - i * 6 + (i % 2) * 4, 2.6, i % 2 ? '#ffffff' : st.sparkle ? hex(st.sparkle[i % st.sparkle.length]) : '#7fd3f7'));
   if (st.laser !== undefined) parts.push(`<line x1="-30" y1="16" x2="${mx}" y2="${my}" stroke="${hex(st.laser)}" stroke-width="5" opacity=".25"/><line x1="-30" y1="16" x2="${mx}" y2="${my}" stroke="${hex(st.laser)}" stroke-width="1.6"/>`);
-  if (st.glow !== undefined) parts.push(`<circle cx="${mx}" cy="${my}" r="15" fill="${hex(st.glow)}" opacity=".3"/>`);
+  if (st.glow !== undefined) parts.push(`<circle cx="${mx}" cy="${my}" r="${15 * k}" fill="${hex(st.glow)}" opacity=".3"/>`);
   if (st.shape === 'heart') parts.push(heart(mx, my, 9, marker));
   else if (st.shape === 'star') parts.push(star(mx, my, 11, marker));
-  else
+  else {
     parts.push(
-      `<circle cx="${mx}" cy="${my}" r="8" fill="none" stroke="${INK}" stroke-width="4"/><circle cx="${mx}" cy="${my}" r="8" fill="none" stroke="${marker}" stroke-width="2.5"/>` +
-        `<path d="M${mx - 13} ${my}h7M${mx + 6} ${my}h7M${mx} ${my - 13}v7M${mx} ${my + 6}v7" stroke="${marker}" stroke-width="2.5" stroke-linecap="round"/>`,
+      `<circle cx="${mx}" cy="${my}" r="${rr}" fill="none" stroke="${INK}" stroke-width="4"/><circle cx="${mx}" cy="${my}" r="${rr}" fill="none" stroke="${marker}" stroke-width="2.5"/>` +
+        `<path d="M${mx - 13 * k} ${my}h${7 * k}M${mx + 6 * k} ${my}h${7 * k}M${mx} ${my - 13 * k}v${7 * k}M${mx} ${my + 6 * k}v${7 * k}" stroke="${marker}" stroke-width="2.5" stroke-linecap="round"/>`,
     );
+    if (st.emblem === 'laurel') for (const leaf of laurelLeaves(mx, my, rr)) parts.push(`<polygon points="${pts(leaf)}" fill="${marker}" stroke="${INK}" stroke-width="0.9" stroke-linejoin="round"/>`);
+    if (st.emblem === 'crown') parts.push(crown(mx, my - rr * 2.1, rr * 0.95, marker));
+  }
   if (st.sparkle) st.sparkle.slice(0, 3).forEach((c, i) => parts.push(star(mx + [-14, 13, 4][i], my + [-9, 6, -17][i], 3.2, hex(c), i)));
   return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${bar}${parts.join('')}</svg>`;
 }
@@ -72,6 +85,8 @@ export function fxSvg(id: string): string {
     [14, -8, 8],
     [-18, -6, 7],
   ];
+  // Rings of light go behind the smoke.
+  st.rings?.forEach((c, i) => parts.push(`<circle cx="0" cy="0" r="${22 + i * 8}" fill="none" stroke="${hex(c)}" stroke-width="${2.6 - i * 0.8}" opacity=".9"/>`));
   smoke.forEach(([x, y, r], i) => parts.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${hex(st.smoke[i % st.smoke.length])}" opacity=".85"/>`));
   parts.push(`<circle cx="0" cy="0" r="14" fill="#ffb13b" opacity=".8"/><circle cx="0" cy="0" r="9" fill="${hex(st.flash)}"/>`);
   const bits = [
@@ -83,15 +98,20 @@ export function fxSvg(id: string): string {
     [-12, 20],
     [14, 22],
   ];
-  const colors = st.extra?.colors ?? st.debris ?? [0x9c6438];
   bits.forEach(([x, y], i) => {
-    const c = hex(colors[i % colors.length]);
-    switch (st.extra?.kind) {
+    // Two kinds of extra take turns.
+    const extra = i % 2 === 1 && st.also ? st.also : st.extra;
+    const colors = extra?.colors ?? st.debris ?? [0x9c6438];
+    const c = hex(colors[(st.also ? i >> 1 : i) % colors.length]);
+    switch (extra?.kind) {
       case 'heart':
         parts.push(heart(x, y, 5, c));
         break;
       case 'star':
         parts.push(star(x, y, 5.5, c, i));
+        break;
+      case 'crown':
+        parts.push(crown(x, y + 1, 5.5, c));
         break;
       case 'coin':
         parts.push(`<ellipse cx="${x}" cy="${y}" rx="${3 + (i % 3)}" ry="5" fill="${c}" stroke="${INK}" stroke-width="1.4"/>`);
@@ -118,8 +138,33 @@ export function arenaSvg(id: string): string {
   parts.push(`<rect x="-40" y="-30" width="80" height="60" fill="url(#${g})"/>`);
   if (t.stars) [[-30, -22], [-12, -25], [8, -20], [26, -24], [-22, -12], [18, -10], [34, -16]].forEach(([x, y], i) => parts.push(`<circle cx="${x}" cy="${y}" r="${i % 3 ? 0.9 : 1.4}" fill="#fff"/>`));
   if (t.drift) [[-28, -18], [-8, -10], [14, -22], [30, -6], [-18, 0], [4, 2]].forEach(([x, y]) => parts.push(`<circle cx="${x}" cy="${y}" r="1.4" fill="${hex(t.drift!.color)}"/>`));
+  const sc = t.scenery;
+  if (sc) {
+    // A low sun, and a firework bursting in the sky.
+    parts.push(`<circle cx="18" cy="-2" r="11" fill="${hex(sc.sun)}" opacity=".95"/>`);
+    const fw = sc.fireworks;
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      parts.push(`<circle cx="${(-18 + Math.cos(a) * 9).toFixed(1)}" cy="${(-17 + Math.sin(a) * 9).toFixed(1)}" r="1.5" fill="${hex(fw[i % 2 ? 3 : 0])}"/><circle cx="${(-18 + Math.cos(a) * 5.5).toFixed(1)}" cy="${(-17 + Math.sin(a) * 5.5).toFixed(1)}" r="1" fill="${hex(fw[1])}"/>`);
+    }
+    parts.push(`<circle cx="30" cy="-22" r="1.4" fill="${hex(fw[2])}"/><circle cx="-34" cy="-6" r="1.2" fill="${hex(fw[4])}"/>`);
+  }
   parts.push(`<path d="M-40 6 Q-24 -12 -8 2 T26 -4 T40 4 V30 H-40 Z" fill="${hex(t.hillFar)}"/>`);
   parts.push(`<path d="M-40 12 Q-20 0 0 10 T40 8 V30 H-40 Z" fill="${hex(t.hillNear)}"/>`);
+  if (sc) {
+    // Banners on poles along the near hills, and bunting between them.
+    parts.push(`<path d="M-30 -2 Q-4 12 22 -2" fill="none" stroke="${INK}" stroke-width="1"/>`);
+    for (let i = 0; i < 6; i++) {
+      const f = (i + 0.5) / 6;
+      const px = -30 + 52 * f;
+      const py = -2 + 14 * 2 * f * (1 - f) * 1.0;
+      parts.push(`<polygon points="${px - 2.4},${py} ${px + 2.4},${py} ${px},${py + 5}" fill="${hex(sc.flags[i % sc.flags.length])}" stroke="${INK}" stroke-width=".6" stroke-linejoin="round"/>`);
+    }
+    for (const x of [-30, 22]) {
+      parts.push(`<rect x="${x - 0.8}" y="-6" width="1.6" height="20" fill="#e0a920" stroke="${INK}" stroke-width=".8"/><circle cx="${x}" cy="-6.5" r="1.6" fill="#ffd84a" stroke="${INK}" stroke-width=".7"/>`);
+      parts.push(`<polygon points="${x + 1.5},-3 ${x + 11},-3 ${x + 11},10 ${x + 6.3},7 ${x + 1.5},10" fill="${hex(sc.flags[x < 0 ? 0 : 2])}" stroke="${INK}" stroke-width="1" stroke-linejoin="round"/>${star(x + 6.3, 3, 2.6, '#ffd84a')}`);
+    }
+  }
   // An island of ground with its top band, then the sea.
   parts.push(`<path d="M-30 30 L-26 14 Q-12 6 4 12 Q18 6 28 16 L32 30 Z" fill="${hex(t.soil[1])}" stroke="${hex(t.soil[0])}" stroke-width="2"/>`);
   parts.push(`<path d="M-26 14 Q-12 6 4 12 Q18 6 28 16 L27 19 Q18 10 4 15 Q-12 9 -25.5 17 Z" fill="${hex(t.grass[1])}" stroke="${hex(t.grass[0])}" stroke-width="1.2"/>`);
@@ -195,6 +240,7 @@ export function graveSvg(id: string, teamColor = 0xe04848): string {
     rocket: `<path d="M0 -24 Q10 -12 8 10 H-8 Q-10 -12 0 -24 Z" fill="#e8ecf2" stroke="${INK}" stroke-width="2"/><circle cx="0" cy="-8" r="4" fill="${c}" stroke="${INK}" stroke-width="1.5"/><path d="M-8 4 L-14 16 L-7 12 M8 4 L14 16 L7 12" fill="${c}" stroke="${INK}" stroke-width="1.5"/><path d="M-4 12 Q0 22 4 12" fill="#ffb02e" stroke="${INK}" stroke-width="1.2"/>`,
     crystal: `<path d="M0 -24 L10 -4 L6 20 H-6 L-10 -4 Z" fill="#bff3ff" stroke="${INK}" stroke-width="2"/><path d="M0 -24 L-3 20 M0 -24 L3 20 M-10 -4 H10" stroke="#6ab0d8" stroke-width="1.2"/><circle cx="0" cy="-4" r="3" fill="${c}" opacity=".8"/>`,
     egg: `<ellipse cx="0" cy="2" rx="13" ry="18" fill="#fff6e0" stroke="${INK}" stroke-width="2.5"/><path d="M-12 -2 L-6 3 L-1 -3 L4 3 L8 -2 L12 1" fill="none" stroke="${INK}" stroke-width="2"/><rect x="-8" y="12" width="16" height="4" rx="2" fill="${c}"/>`,
+    champion: `<rect x="-17" y="12" width="34" height="8" rx="2" fill="#d9d2c4" stroke="${INK}" stroke-width="2.2"/><rect x="-13" y="5" width="26" height="8" rx="2" fill="#e6dfd0" stroke="${INK}" stroke-width="2.2"/><rect x="-9" y="-9" width="18" height="15" rx="2" fill="#f6f0e2" stroke="${INK}" stroke-width="2.2"/><rect x="-9" y="-2" width="18" height="5" fill="${c}" stroke="${INK}" stroke-width="1.5"/><circle cx="0" cy="0.5" r="2.4" fill="#ffd84a" stroke="${INK}" stroke-width="1.2"/><rect x="-12" y="-13" width="24" height="5" rx="1.5" fill="#ffd84a" stroke="${INK}" stroke-width="2"/><ellipse cx="0" cy="-15.5" rx="9" ry="3.2" fill="#8f5bd6" stroke="${INK}" stroke-width="1.8"/><polygon points="-8,-15 -8,-26 -4,-21 0,-28 4,-21 8,-26 8,-15" fill="#ffd84a" stroke="${INK}" stroke-width="2"/><circle cx="0" cy="-18.5" r="1.9" fill="#e04848" stroke="${INK}" stroke-width="1"/>${[[-14, -24, 4], [14, -19, 3]].map(([x, y, r]) => `<polygon points="${x},${y - r} ${x + r * 0.3},${y - r * 0.3} ${x + r},${y} ${x + r * 0.3},${y + r * 0.3} ${x},${y + r} ${x - r * 0.3},${y + r * 0.3} ${x - r},${y} ${x - r * 0.3},${y - r * 0.3}" fill="#fff" stroke="${INK}" stroke-width="1"/>`).join('')}`,
     founder: `<path d="M0 -8 V-20" stroke="#3a8a28" stroke-width="2.5"/><ellipse cx="-5" cy="-20" rx="5" ry="3" fill="#5aa83a" stroke="${INK}" stroke-width="1.5"/><ellipse cx="5" cy="-23" rx="5" ry="3" fill="#5aa83a" stroke="${INK}" stroke-width="1.5"/><rect x="-14" y="-8" width="28" height="28" rx="4" fill="#ffd84a" stroke="${INK}" stroke-width="2.5"/><text x="0" y="5" font-size="7" font-weight="900" text-anchor="middle" fill="${INK}">FOUNDER</text><rect x="-8" y="12" width="16" height="4" rx="2" fill="${c}"/>`,
   };
   return `<svg viewBox="-40 -30 80 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${ground}<g stroke-linejoin="round">${art[id] ?? art.classic}</g></svg>`;

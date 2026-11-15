@@ -1,8 +1,8 @@
 # Community Guidelines
 
 **Effective Date:** 9 October 2026
-**Last Modified:** 17 October 2026
-**Document Version:** v1.2
+**Last Modified:** 13 November 2026
+**Document Version:** v1.3
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -63,6 +63,12 @@ TardiGeddon is about blowing up cartoon tardigrades, not each other. These Commu
 
 2.3.1 Do not deliberately stall, sabotage, or ruin matches for other players, for example by repeatedly joining and leaving rooms.
 
+### 2.4 Votes and Ideas
+
+2.4.1 Ideas you send us from the game's Roadmap must follow these Guidelines too: be respectful, keep them about the game, and do not include personal information about yourself or anyone else, anything illegal, sexually explicit or discriminatory, or other people's protected work. Send an idea once; there is no need to repeat it. We may ignore or delete an idea that breaks these Guidelines.
+
+2.4.2 Vote for what you honestly want. Do not use scripts, bots or other tricks to cast votes or send ideas, or to get past the security check on them.
+
 ## Section 3 — Prohibited Behaviour
 
 ### 3.0 Not Allowed
@@ -74,6 +80,8 @@ TardiGeddon is about blowing up cartoon tardigrades, not each other. These Commu
 3.0.3 Attacking or overloading the online server, including flooding it with connections, rooms, or messages.
 
 3.0.4 Names that infringe the intellectual property rights of others, as further described in our Copyright Policy.
+
+3.0.5 Using scripts, bots or other tricks to cast roadmap votes or send ideas, getting round the security check on them, or sending ideas that break Section 2.4.
 
 ## Section 4 — Moderation
 

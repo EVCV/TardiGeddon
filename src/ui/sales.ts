@@ -2,8 +2,10 @@
 // players spend coins and Slime on. Only shown to accounts listed in the
 // server's ADMIN_EMAILS (docs/ACCOUNTS.md); totals only, never who bought what.
 
-import { creators, downloadNewsletter, newsletterCounts, payCreator, salesReport, saveCreator, type CreatorReport, type MeResponse, type SalesReport } from '../account/session';
-import { bundle, coinPack, formatNumber, packTotal, shopItem } from '../shop/catalog';
+import { PRIZE_GRANT_MAX } from '../shop/prizeRules';
+import { creators, downloadNewsletter, givePrize, newsletterCounts, payCreator, recentPrizes, salesReport, saveCreator, suggestionList, updateSuggestion, type CreatorReport, type MeResponse, type PrizeRow, type SalesReport, type SuggestionRow } from '../account/session';
+import { ADMIN_NOTE_MAX, SUGGESTION_CATEGORIES, SUGGESTION_STATUSES, type SuggestionStatus } from '../news/suggest';
+import { BUNDLES, LAUNCH_CHAMPION_ITEMS, LAUNCH_WINNER_ITEMS, PROMO_ITEMS, SHOP_ITEMS, prizeLook, bundle, coinPack, formatNumber, packTotal, promoItem, shopItem, type ItemKind, type ShopItem } from '../shop/catalog';
 import { statTile } from './dashboard';
 import { newUsageState, usageCards, type UsageState } from './usageReport';
 import type { HubContext } from './hub';
@@ -20,10 +22,41 @@ export interface SalesState {
   usage: UsageState;
   /** Email news numbers (server/newsletter.ts), once loaded. */
   news?: { subscribed: number; pending: number; unsubscribed: number } | 'loading';
+  /** The Give a prize form (server/prizes.ts): kept here so a redraw doesn't empty it. */
+  prize: PrizeState;
+  /** The ideas players sent (server/roadmap.ts). */
+  ideas: IdeasState;
+}
+
+interface IdeasState {
+  /** Which ideas are listed. */
+  filter: 'all' | SuggestionStatus;
+  /** What the server said (null: not asked yet). */
+  data: { suggestions: SuggestionRow[]; counts: Record<string, number> } | 'loading' | null;
+  /** Status picks and notes being typed but not saved, by idea, so a redraw doesn't lose them. */
+  picks: Map<number, SuggestionStatus>;
+  notes: Map<number, string>;
+  message: string;
+  /** Which request is the latest: an answer to an older one (a filter since changed) is ignored. */
+  req: number;
+}
+
+interface PrizeState {
+  email: string;
+  note: string;
+  search: string;
+  picked: Set<string>;
+  /** Also give the 🏆 Launch Winner badge (ticked to start with). */
+  badge: boolean;
+  /** What the last attempt did (or why it failed). */
+  message: string;
+  busy: boolean;
+  /** The last grants, once loaded (null: not asked yet). */
+  recent: PrizeRow[] | 'loading' | null;
 }
 
 export function newSalesState(): SalesState {
-  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState() };
+  return { days: 30, report: null, loadedDays: -1, error: '', creators: null, usage: newUsageState(), ideas: { filter: 'new', data: null, picks: new Map(), notes: new Map(), message: '', req: 0 }, prize: { email: '', note: '', search: '', picked: new Set(), badge: true, message: '', busy: false, recent: null } };
 }
 
 const PERIODS: [number, string][] = [
@@ -50,7 +83,7 @@ const KIND_ICON: Record<string, string> = { hat: '🎩', skin: '🎨', aim: '�
 
 /** A shop id as a name people recognise. */
 function itemName(id: string): string {
-  const item = shopItem(id);
+  const item = shopItem(id) ?? promoItem(id);
   if (item) return `${KIND_ICON[item.kind] ?? ''} ${item.name}`;
   const set = bundle(id);
   if (set) return `🎁 ${set.name} bundle`;
@@ -153,6 +186,8 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
     state.loadedDays = -1;
     state.creators = null;
     state.news = undefined;
+    state.prize.recent = null;
+    state.ideas.data = null;
     state.usage.loadedDays = -1;
     ctx.rerender();
   };
@@ -258,10 +293,311 @@ export function renderSalesPage(_me: MeResponse, ctx: HubContext, state: SalesSt
       ),
     ),
     creatorsCard(ctx, state),
+    prizeCard(ctx, state.prize),
     newsletterCard(ctx, state),
+    ideasCard(ctx, state.ideas),
     ...usageCards(ctx, state.usage, state.days),
   );
   return page;
+}
+
+const KIND_LABEL: Record<string, string> = { hat: 'Hats', skin: 'Skins', aim: 'Aim styles', fx: 'Explosions', dance: 'Victory dances', grave: 'Gravestones', arena: 'Worlds', music: 'Music', sound: 'Sound packs' };
+
+/** What these looks cost in the Shop, in coins (never-sold looks count as 0). */
+function coinValue(ids: string[]): number {
+  return ids.reduce((sum, id) => sum + (shopItem(id)?.coins ?? 0), 0);
+}
+
+/** Every look that can be a prize (catalog's prizeLook): the never-sold ones first, then the shop's, by kind. Never weapons, nor Founder, Early bird, Supporter or Superfan looks. */
+function prizeGroups(): { title: string; items: ShopItem[] }[] {
+  const groups = [{ title: 'Prize-only looks (never sold)', items: PROMO_ITEMS.filter((i) => prizeLook(i.id)) }];
+  for (const kind of Object.keys(KIND_LABEL) as ItemKind[]) groups.push({ title: `${KIND_LABEL[kind]} (shop)`, items: SHOP_ITEMS.filter((i) => i.kind === kind) });
+  return groups.filter((g) => g.items.length);
+}
+
+/**
+ * Give a prize (server/prizes.ts): contest prizes go straight onto one
+ * player's account by email, looks only. They show on every platform, and the
+ * winner is told once in the game. Nothing here can give coins, Slime or weapons.
+ */
+function prizeCard(ctx: HubContext, st: PrizeState): HTMLElement {
+  const box = el('div', 'creators prize-box');
+  if (st.recent === null) {
+    st.recent = 'loading';
+    recentPrizes()
+      .then((r) => (st.recent = r))
+      .catch((e: unknown) => {
+        st.recent = [];
+        st.message = e instanceof Error ? e.message : String(e);
+      })
+      .finally(() => ctx.rerender());
+  }
+
+  const email = el('input', 'code-input');
+  email.type = 'email';
+  email.placeholder = "Winner's game account email";
+  email.autocomplete = 'off';
+  email.setAttribute('aria-label', "Winner's game account email");
+  email.value = st.email;
+  email.oninput = () => (st.email = email.value);
+  const note = el('input', 'code-input');
+  note.placeholder = 'Note, e.g. which contest (optional)';
+  note.maxLength = 200;
+  note.setAttribute('aria-label', 'Note');
+  note.value = st.note;
+  note.oninput = () => (st.note = note.value);
+  const who = el('div', 'creator-form');
+  who.append(email, note);
+
+  // The picker: a search box over every look; ticks are kept in st.picked (no redraw while ticking, so typing isn't interrupted).
+  const search = el('input', 'code-input');
+  search.type = 'search';
+  search.placeholder = 'Search looks (name, kind)';
+  search.setAttribute('aria-label', 'Search looks');
+  search.value = st.search;
+  const count = el('span', 'account-note');
+  const showCount = () => (count.textContent = `${st.picked.size} selected (up to ${PRIZE_GRANT_MAX}) · worth ${formatNumber(coinValue([...st.picked]))} coins`);
+  const clear = el('button', 'link-btn', 'Clear');
+  const list = el('div', 'prize-picker');
+  list.setAttribute('role', 'group');
+  list.setAttribute('aria-label', 'Looks to give');
+  const rows: { id: string; row: HTMLElement; tick: HTMLInputElement; text: string; head: HTMLElement }[] = [];
+  for (const g of prizeGroups()) {
+    const head = el('h3', 'usage-sub', g.title);
+    list.append(head);
+    for (const it of g.items) {
+      const label = el('label', 'prize-pick');
+      const tick = el('input');
+      tick.type = 'checkbox';
+      tick.checked = st.picked.has(it.id);
+      tick.onchange = () => {
+        if (tick.checked) st.picked.add(it.id);
+        else st.picked.delete(it.id);
+        showCount();
+      };
+      label.append(tick, el('span', '', `${KIND_ICON[it.kind] ?? ''} ${it.name}`), el('small', '', `${it.id} · ${it.rarity}`));
+      list.append(label);
+      rows.push({ id: it.id, row: label, tick, text: `${it.name} ${it.id} ${KIND_LABEL[it.kind] ?? ''} ${it.rarity}`.toLowerCase(), head });
+    }
+  }
+  const filter = () => {
+    st.search = search.value;
+    const q = search.value.trim().toLowerCase();
+    const shown = new Set<HTMLElement>();
+    for (const r of rows) {
+      const hit = !q || r.text.includes(q);
+      r.row.hidden = !hit;
+      if (hit) shown.add(r.head);
+    }
+    for (const r of rows) r.head.hidden = !shown.has(r.head);
+  };
+  search.oninput = filter;
+  clear.onclick = () => {
+    st.picked.clear();
+    for (const r of rows) r.tick.checked = false;
+    showCount();
+  };
+  showCount();
+  filter();
+  const bar = el('div', 'creator-form');
+  bar.append(search, count, clear);
+
+  // Quick picks: add a whole set to the selection (what the 26 launch winners get). Weapons never go in (prizeLook).
+  const addAll = (ids: string[]) => {
+    for (const id of ids) if (prizeLook(id)) st.picked.add(id);
+    for (const r of rows) r.tick.checked = st.picked.has(r.id);
+    showCount();
+  };
+  const quick = el('div', 'creator-form prize-quick');
+  const quickBtn = (label: string, ids: string[]) => {
+    const b = el('button', 'link-btn', label);
+    b.type = 'button';
+    b.title = `Adds ${ids.filter((id) => prizeLook(id)).length} looks to the selection`;
+    b.onclick = () => addAll(ids);
+    quick.append(b);
+  };
+  quickBtn('Every Shop look', SHOP_ITEMS.map((i) => i.id));
+  quickBtn('Launch Winner set', LAUNCH_WINNER_ITEMS);
+  quickBtn('Launch Champion set', LAUNCH_CHAMPION_ITEMS);
+  for (const b of BUNDLES) quickBtn(`+ ${b.name}`, b.items);
+
+  const badge = el('label', 'prize-pick');
+  const badgeTick = el('input');
+  badgeTick.type = 'checkbox';
+  badgeTick.checked = st.badge;
+  badgeTick.onchange = () => (st.badge = badgeTick.checked);
+  badge.append(badgeTick, el('span', '', 'Give the 🏆 Launch Winner badge (by their name in online games)'));
+
+  const give = el('button', 'hud-btn', '🏆 Give prize');
+  give.disabled = st.busy;
+  const result = el('p', 'account-note prize-result', st.message);
+  result.setAttribute('role', 'status');
+  const say = (msg: string) => {
+    st.message = msg;
+    result.textContent = msg;
+  };
+  give.onclick = async () => {
+    const to = st.email.trim();
+    const items = [...st.picked];
+    if (!to.includes('@')) return say("Type the winner's game account email first.");
+    if (!items.length && !st.badge) return say('Tick at least one look, or the badge.');
+    const badgeLine = st.badge ? '\n\nAnd the 🏆 Launch Winner badge.' : '';
+    // A few looks are listed by name; a big grant shows the count and what it's worth instead.
+    const what = !items.length
+      ? 'No looks'
+      : items.length <= 12
+        ? `${items.length} ${items.length === 1 ? 'look' : 'looks'}:\n${items.map(itemName).join('\n')}`
+        : `${items.length} looks (worth ${formatNumber(coinValue(items))} coins in the Shop, ${items.filter((id) => !shopItem(id)).length} of them never sold)`;
+    if (!confirm(`Give ${to}:\n\n${what}${badgeLine}`)) return;
+    st.busy = true;
+    give.disabled = true;
+    try {
+      const r = await givePrize(to, items, st.note, st.badge ? 'winner' : null);
+      const name = `${r.player.name} (${r.player.email})`;
+      // Big grants say how many, not which (the Recent prizes list has the rest).
+      const some = (ids: string[]) => (ids.length <= 12 ? ids.map(itemName).join(', ') : `${ids.length} looks`);
+      say(
+        (r.granted.length ? `Gave ${r.granted.length} ${r.granted.length === 1 ? 'look' : 'looks'} to ${name}: ${some(r.granted)}.` : items.length ? `No new looks: ${name} already has all of them.` : `Gave ${name} no looks.`) +
+          (r.alreadyOwned.length && r.granted.length ? ` Already owned, skipped: ${some(r.alreadyOwned)}.` : '') +
+          (r.badge ? ' Gave the 🏆 Launch Winner badge.' : r.hasBadge ? ' They already have the 🏆 Launch Winner badge.' : '') +
+          (r.player.emailVerified ? '' : ' Careful: that account has not confirmed its email yet.'),
+      );
+      if (r.granted.length || r.badge) {
+        st.picked.clear();
+        st.note = '';
+      }
+      st.recent = null;
+    } catch (e) {
+      say(e instanceof Error ? e.message : String(e));
+    } finally {
+      st.busy = false;
+      ctx.rerender();
+    }
+  };
+  const act = el('div', 'creator-form');
+  act.append(give);
+
+  box.append(
+    el('p', 'account-note', 'Put contest prizes straight on a winner’s account, found by the email they signed up with. Looks only (never coins, Slime or weapons), and, if ticked, the 🏆 Launch Winner badge. They show on every device, and the winner gets a "You won a prize" pop-up the next time they open the game. Quick picks add a whole set: grand prize = Every Shop look + Launch Champion set + Launch Winner set; second = Launch Champion set + every bundle + Launch Winner set; third = Launch Winner set + one bundle.'),
+    who,
+    bar,
+    quick,
+    list,
+    badge,
+    act,
+    result,
+    el('h3', 'usage-sub', 'Recent prizes'),
+  );
+  if (st.recent === 'loading' || st.recent === null) box.append(el('p', 'page-loading', 'Loading…'));
+  else if (!st.recent.length) box.append(el('p', 'account-note', 'No prizes given yet.'));
+  else {
+    const ol = el('ol', 'prize-recent');
+    for (const p of st.recent) {
+      const li = el('li', 'creator-row');
+      const gave = p.items.length > 12 ? `${p.items.length} looks` : p.items.map(itemName).join(', ');
+      const when = new Date(p.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      li.append(el('b', '', `${p.name} · ${p.email}`), el('span', '', ` · ${when}`), el('p', 'account-note', [gave, p.badge ? '🏆 Launch Winner badge' : ''].filter(Boolean).join(' + ') + (p.note ? ` — ${p.note}` : '')));
+      ol.append(li);
+    }
+    box.append(ol);
+  }
+  const c = card('🏆 Give a prize', box);
+  c.classList.add('prize-card');
+  return c;
+}
+
+/**
+ * Ideas players sent from the game's Roadmap view (server/roadmap.ts): newest first, by status. They are
+ * private (only this page reads them), and go when the account does. Sort each into planned, declined or done,
+ * with a note for yourself. docs/ROADMAP.md has the whole picture.
+ */
+const ideasCardOf = (box: HTMLElement): HTMLElement => {
+  const c = card('💡 Ideas from players', box);
+  c.classList.add('ideas-card');
+  return c;
+};
+
+function ideasCard(ctx: HubContext, st: IdeasState): HTMLElement {
+  const box = el('div', 'ideas');
+  if (st.data === null) {
+    st.data = 'loading';
+    const req = ++st.req;
+    suggestionList(st.filter)
+      .then((d) => {
+        if (req === st.req) st.data = d;
+      })
+      .catch((e: unknown) => {
+        if (req !== st.req) return;
+        st.data = { suggestions: [], counts: {} };
+        st.message = e instanceof Error ? e.message : String(e);
+      })
+      .finally(() => {
+        if (req === st.req) ctx.rerender();
+      });
+  }
+  const data = st.data === 'loading' ? null : st.data;
+
+  const pills = el('div', 'seg ideas-pills');
+  const label = (s: 'all' | SuggestionStatus) => {
+    const name = s === 'all' ? 'All' : s[0].toUpperCase() + s.slice(1);
+    const n = data ? (s === 'all' ? Object.values(data.counts).reduce((a, b) => a + b, 0) : (data.counts[s] ?? 0)) : null;
+    return n === null ? name : `${name} (${n})`;
+  };
+  for (const s of ['new', 'planned', 'declined', 'done', 'all'] as const) {
+    const b = el('button', 'seg-btn' + (st.filter === s ? ' on' : ''), label(s));
+    b.setAttribute('aria-pressed', String(st.filter === s));
+    b.onclick = () => {
+      st.filter = s;
+      st.data = null;
+      st.message = '';
+      ctx.rerender();
+    };
+    pills.append(b);
+  }
+  box.append(pills);
+  if (st.message) box.append(el('p', 'account-note', st.message));
+  if (!data) {
+    box.append(el('p', 'page-loading', 'Loading…'));
+    return ideasCardOf(box);
+  }
+  if (!data.suggestions.length) box.append(el('p', 'account-note', st.filter === 'new' ? 'No new ideas.' : 'Nothing here.'));
+  const list = el('ol', 'ideas-list');
+  for (const s of data.suggestions) {
+    const li = el('li', 'creator-row idea');
+    const when = new Date(s.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const category = (SUGGESTION_CATEGORIES as readonly string[]).includes(s.category) ? s.category : 'other';
+    li.append(el('p', 'account-note idea-meta', `${s.name} · ${category} · ${when}`), el('p', 'idea-text', s.text));
+    const form = el('div', 'creator-form');
+    const pick = el('select', 'field idea-status');
+    pick.setAttribute('aria-label', 'Status');
+    for (const status of SUGGESTION_STATUSES) {
+      const o = el('option', '', status);
+      o.value = status;
+      o.selected = (st.picks.get(s.id) ?? s.status) === status;
+      pick.append(o);
+    }
+    pick.onchange = () => st.picks.set(s.id, pick.value as SuggestionStatus);
+    const note = el('input', 'code-input idea-note');
+    note.placeholder = 'Note for yourself (optional)';
+    note.maxLength = ADMIN_NOTE_MAX;
+    note.setAttribute('aria-label', 'Note');
+    note.value = st.notes.get(s.id) ?? s.admin_note ?? '';
+    note.oninput = () => st.notes.set(s.id, note.value);
+    const save = el('button', 'hud-btn', 'Save');
+    save.disabled = ctx.busy;
+    save.onclick = () =>
+      ctx.run(async () => {
+        await updateSuggestion(s.id, st.picks.get(s.id) ?? s.status, st.notes.get(s.id) ?? s.admin_note ?? '');
+        st.picks.delete(s.id);
+        st.notes.delete(s.id);
+        st.data = null;
+      });
+    form.append(pick, note, save);
+    li.append(form);
+    list.append(li);
+  }
+  box.append(list);
+  return ideasCardOf(box);
 }
 
 /**

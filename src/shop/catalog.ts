@@ -394,6 +394,9 @@ export function giftable(id: string): { coins: number; items: string[]; name: st
   return undefined;
 }
 
+const LAUNCH_WINNER_BLURB = 'Launch giveaway prize: for the winners of the 2026–27 launch giveaway. Never sold.';
+const LAUNCH_CHAMPION_BLURB = 'Launch Champion prize: for the top winners of the 2026–27 launch giveaway. Never sold.';
+
 /**
  * Looks you can only get free, with a promotional code (Terms 5.9) or in the
  * Founder pack (src/shop/rewards.ts): never sold, never in the shop, and
@@ -419,6 +422,14 @@ export const PROMO_ITEMS: ShopItem[] = [
   { id: 'dance:bow', kind: 'dance', ref: 'bow', name: 'Founder’s bow', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
   { id: 'arena:golden', kind: 'arena', ref: 'golden', name: 'Golden Garden', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
   { id: 'music:anthem', kind: 'music', ref: 'anthem', name: 'Founders’ Anthem', blurb: 'Founder pack: for the players who were here first.', rarity: 'legendary' },
+  { id: 'hat:launchwinner', kind: 'hat', ref: 'launchwinner', name: 'Launch Winner’s cup', blurb: LAUNCH_WINNER_BLURB, rarity: 'legendary' },
+  { id: 'aim:launchwinner', kind: 'aim', ref: 'launchwinner', name: 'Winner’s laurels', blurb: LAUNCH_WINNER_BLURB, rarity: 'legendary' },
+  { id: 'hat:champion', kind: 'hat', ref: 'champion', name: 'Champion’s crown', blurb: LAUNCH_CHAMPION_BLURB, rarity: 'legendary' },
+  { id: 'grave:champion', kind: 'grave', ref: 'champion', name: 'Champion’s monument', blurb: LAUNCH_CHAMPION_BLURB, rarity: 'legendary' },
+  { id: 'aim:champion', kind: 'aim', ref: 'champion', name: 'Champion’s sights', blurb: LAUNCH_CHAMPION_BLURB, rarity: 'legendary' },
+  { id: 'fx:champion', kind: 'fx', ref: 'champion', name: 'Champion’s salute', blurb: LAUNCH_CHAMPION_BLURB, rarity: 'legendary' },
+  { id: 'arena:champion', kind: 'arena', ref: 'champion', name: 'Champion’s Arena', blurb: LAUNCH_CHAMPION_BLURB, rarity: 'legendary' },
+  { id: 'music:champion', kind: 'music', ref: 'champion', name: 'Champion’s Fanfare', blurb: LAUNCH_CHAMPION_BLURB, rarity: 'legendary' },
 ];
 
 /**
@@ -483,6 +494,36 @@ export function supporterSaleOn(now = Date.now()): boolean {
 
 export function promoItem(id: string): ShopItem | undefined {
   return PROMO_ITEMS.find((i) => i.id === id);
+}
+
+/** Launch giveaway (Dec 2026): every winner (all 26) gets these, with the 🏆 badge. Never sold. */
+export const LAUNCH_WINNER_ITEMS: string[] = ['hat:launchwinner', 'aim:launchwinner'];
+/** Launch giveaway: the Launch Champion set, only for the grand and second-prize winners. Never sold. */
+export const LAUNCH_CHAMPION_ITEMS: string[] = ['hat:champion', 'grave:champion', 'aim:champion', 'fx:champion', 'arena:champion', 'music:champion'];
+
+/**
+ * Looks made only as contest prizes (in PROMO_ITEMS, never sold). Add their
+ * ids here so the Sales page can give them.
+ */
+export const PRIZE_ITEMS: string[] = [...LAUNCH_WINNER_ITEMS, ...LAUNCH_CHAMPION_ITEMS];
+
+/**
+ * Looks every player owns without buying them (e.g. the version of a contest
+ * winner's design we give to everyone). Treated as owned everywhere.
+ */
+export const EVERYONE_ITEMS: string[] = [];
+
+/**
+ * Looks the owner can give a player as a contest prize (server/prizes.ts, the
+ * Sales page): any Shop look, a promo-code look, or a prize-only look. Never
+ * weapons (they unlock with Slime), coins, Slime or packs, and never the
+ * Founder, Early bird, creator (Superfan) or Supporter looks: the Terms
+ * promise those only to the players who qualify or buy them (5.11–5.13).
+ */
+export function prizeLook(id: string): ShopItem | undefined {
+  const shop = shopItem(id);
+  if (shop) return shop.kind !== 'weapon' ? shop : undefined;
+  return PRIZE_ITEMS.includes(id) || PROMOS.some((p) => p.items.includes(id)) ? promoItem(id) : undefined;
 }
 
 export interface Promo {

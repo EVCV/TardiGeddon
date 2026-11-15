@@ -38,6 +38,8 @@ export const GRAVES: GraveDef[] = [
   { id: 'crystal', name: 'Crystal' },
   { id: 'founder', name: 'Founder’s plaque' },
   { id: 'egg', name: 'Cracked egg' },
+  // Never sold: the Launch Champion set (a launch giveaway prize).
+  { id: 'champion', name: 'Champion’s monument' },
 ];
 
 export function danceById(id: string | undefined): DanceDef {

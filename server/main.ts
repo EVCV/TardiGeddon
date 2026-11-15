@@ -10,6 +10,7 @@ import { Room, wearableTeam, type Member, type PlayerReport } from './room';
 import { escapeHtml, smtpMailer } from './mail';
 import { createAccounts, type Accounts, type Presence } from './accounts';
 import { unlockedWeapons } from '../src/shop/catalog';
+import { withEveryone } from '../src/shop/prizeRules';
 import { Matchmaker, cleanBlocks } from './matchmaker';
 import { SCHEME_PRESETS } from '../src/sim/schemes';
 import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../src/net/protocol';
@@ -283,7 +284,8 @@ wss.on('connection', (ws: WebSocket, req) => {
   // Shop items this player owns, from their sign-in cookie, or the iOS app's one-use
   // ticket (POST /api/ws-ticket); none if signed out.
   const ticket = new URL(req.url ?? '/', 'http://x').searchParams.get('ticket');
-  const player = accounts ? accounts.playerFor(req.headers, ticket).catch(() => ({ owned: [] as string[] })) : Promise.resolve({ owned: [] as string[] });
+  // Signed-out players still have the looks everyone has (EVERYONE_ITEMS).
+  const player = accounts ? accounts.playerFor(req.headers, ticket).catch(() => ({ owned: withEveryone([]) })) : Promise.resolve({ owned: withEveryone([]) });
   const owned = player.then((p) => {
     member.userId = 'userId' in p ? p.userId : undefined;
     member.pid = playerId(member.userId);

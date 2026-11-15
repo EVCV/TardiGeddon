@@ -20,7 +20,9 @@ export interface AimStyle {
   sparkle?: number[];
   /** Marker drawn as a heart / star instead of a ring. */
   shape?: 'heart' | 'star';
-  /** A blazing tail behind the power bar. */
+  /** Drawn round the ring and cross hairs: a laurel wreath, or a crown above them. */
+  emblem?: 'laurel' | 'crown';
+  /** A blazing tail behind the power bar (sparks in the sparkle colours, if it has them). */
   tail?: boolean;
 }
 
@@ -36,6 +38,9 @@ export const AIM_STYLES: AimStyle[] = [
   { id: 'gold', name: 'Golden aim', marker: 0xffd84a, bar: [0xfff2a0, 0xe0a920], glow: 0xffd84a, sparkle: [0xfff6c2, 0xffd84a] },
   // The Patron pack's (limited time, never in the shop).
   { id: 'goldheart', name: 'Golden heart', marker: 0xffd84a, bar: [0xffb6dc, 0xffd84a], shape: 'heart', glow: 0xffb6dc, sparkle: [0xffffff, 0xffd84a, 0xff8fc8] },
+  // The Launch Winner and Launch Champion sets' (launch giveaway prizes; never sold).
+  { id: 'launchwinner', name: 'Winner’s laurels', marker: 0xffd84a, bar: [0xffe9a0, 0xf28a1e], emblem: 'laurel', glow: 0xffe27a, sparkle: [0xffffff, 0xfff2a0, 0xffd84a], tail: true },
+  { id: 'champion', name: 'Champion’s sights', marker: 0xffd84a, bar: [0xff5f7a, 0xffd84a], emblem: 'crown', laser: 0xffd84a, glow: 0xffe27a, sparkle: [0xffffff, 0xffd84a, 0xff8fa0, 0xb388ff], tail: true },
   // The Superfan pack's (a creator's code; never sold).
   { id: 'spotlight', name: 'Spotlight', marker: 0xffd84a, bar: [0xb388ff, 0xffd84a], shape: 'star', glow: 0xfff2a0, sparkle: [0xffffff, 0xffd84a, 0xb388ff] },
 ];
@@ -54,7 +59,11 @@ export interface FxStyle {
   /** Flying bits: earth by default. */
   debris?: number[];
   /** Something extra thrown out of the blast. */
-  extra?: { kind: 'confetti' | 'heart' | 'star' | 'coin' | 'snow'; colors: number[] };
+  extra?: { kind: 'confetti' | 'heart' | 'star' | 'coin' | 'snow' | 'crown'; colors: number[] };
+  /** A second kind of something extra. */
+  also?: { kind: 'confetti' | 'heart' | 'star' | 'coin' | 'snow' | 'crown'; colors: number[] };
+  /** Rings of light spreading out from the blast, one per colour. */
+  rings?: number[];
 }
 
 export const FX_STYLES: FxStyle[] = [
@@ -69,10 +78,43 @@ export const FX_STYLES: FxStyle[] = [
   { id: 'gold', name: 'Golden blast', flash: 0xfff2a0, smoke: [0xe0b84a, 0xc9a23a], debris: [0xffd84a, 0xe0a920], extra: { kind: 'coin', colors: [0xffd84a, 0xfff2a0] } },
   // The Superfan pack's (a creator's code; never sold): gold and purple stars, like a crowd cheering.
   { id: 'fanfare', name: 'Fanfare', flash: 0xfff6c2, smoke: [0x8f5bd6, 0x6b5d63], extra: { kind: 'star', colors: [0xffd84a, 0xb388ff, 0xffffff] } },
+  // The Launch Champion set's (a launch giveaway prize; never sold): a royal salute of rings, crowns and stars.
+  { id: 'champion', name: 'Champion’s salute', flash: 0xfff2a0, smoke: [0xe8b84a, 0xc23a54, 0x7a4ab8], debris: [0xffd84a, 0xfff2a0, 0xe0a920], extra: { kind: 'crown', colors: [0xffd84a, 0xfff2a0] }, also: { kind: 'star', colors: [0xffffff, 0xff8fa0, 0xb388ff, 0xffd84a] }, rings: [0xffd84a, 0xffffff] },
 ];
 
 export function fxStyle(id: string | undefined): FxStyle {
   return FX_STYLES.find((f) => f.id === id) ?? FX_STYLES[0];
+}
+
+/** A laurel wreath round a marker of radius r at (x, y), open at the top: leaves as flat [x, y, ...] polygons. */
+export function laurelLeaves(x: number, y: number, r: number): number[][] {
+  const leaves: number[][] = [];
+  const lean = 0.45;
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 6; i++) {
+      const a = side * (0.35 + i * 0.38);
+      // The leaf's middle on a circle round the marker; it points along the circle, leaning outwards.
+      const nx = Math.sin(a);
+      const ny = Math.cos(a);
+      const tx = side * Math.cos(a);
+      const ty = -side * Math.sin(a);
+      const ax = tx * Math.cos(lean) + nx * Math.sin(lean);
+      const ay = ty * Math.cos(lean) + ny * Math.sin(lean);
+      const px = x + nx * r * 1.75;
+      const py = y + ny * r * 1.75;
+      const l = r * 0.55;
+      const w = r * 0.28;
+      leaves.push([px - ax * l, py - ay * l, px + nx * w, py + ny * w, px + ax * l, py + ay * l, px - nx * w, py - ny * w]);
+    }
+  }
+  return leaves;
+}
+
+/** A little crown of "size" r with its base middle at (x, y): a flat [x, y, ...] polygon. */
+export function crownShape(x: number, y: number, r: number): number[] {
+  const w = r * 1.1;
+  const h = r * 1.2;
+  return [x - w, y + h / 2, x - w, y - h / 2, x - w / 2, y - h * 0.05, x, y - h * 0.75, x + w / 2, y - h * 0.05, x + w, y - h / 2, x + w, y + h / 2];
 }
 
 /** Mix two colours: t = 0 gives a, 1 gives b. */

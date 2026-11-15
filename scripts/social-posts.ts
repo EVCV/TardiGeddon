@@ -120,7 +120,7 @@ const CARD_CSS = `
 
 /** Pick the same "random" hat for a post every time. */
 function hatFor(id: string): string {
-  const pool = HATS.filter((h) => h.shapes.length && !['waterbear', 'earlybird', 'supporter', 'superfan', 'founder'].includes(h.id));
+  const pool = HATS.filter((h) => h.shapes.length && !['waterbear', 'earlybird', 'supporter', 'superfan', 'founder', 'launchwinner', 'champion'].includes(h.id));
   let n = 0;
   for (const ch of id) n = (n * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
   return pool[n % pool.length].id;
