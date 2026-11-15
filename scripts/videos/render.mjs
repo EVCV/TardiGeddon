@@ -213,6 +213,14 @@ async function openReplayOnce(replay) {
     document.getElementById('vid-thumb').innerHTML = '<div class="lines"><div class="l1"></div><div class="l2"></div></div><div class="brand">TardiGeddon</div>';
   }, OVERLAY_CSS);
   await page.evaluate(() => window.__virt.freeze());
+  // The filming camera (src/render/renderer.ts steadyCamera): frames all the action, zooming out
+  // from this zoom to fit it, and glides. On from the start, so it's settled before filming.
+  await page.evaluate(([zoom, abs]) => {
+    const r = window.__tardi.renderer;
+    r.camera.steady = true;
+    r.camera.steadyZoom = abs || r.defaultZoom() * zoom;
+    r.camera.zoom = r.camera.steadyZoom;
+  }, [ZOOM, ZOOM_ABS]);
   return { ctx, page };
 }
 
@@ -234,18 +242,99 @@ let cdp = null;
 /** Film `n` frames, calling `each(i)` in the page before each one (and `at[i]()` after drawing frame i, before it's kept). */
 async function film(page, n, each = '', at = {}, ms = FRAME_MS) {
   for (let i = 0; i < n; i++) {
-    await page.evaluate(([ms, src, i, n, zoom, abs]) => {
+    await page.evaluate(([ms, src, i, n]) => {
       if (src) new Function('i', 'n', src)(i, n);
-      const r = window.__tardi.renderer;
-      r.camera.zoom = abs || r.defaultZoom() * zoom;
-      // The steady camera: no whip pans between cluster drops and blasts.
-      r.camera.steady = true;
       window.__virt.step(ms);
-    }, [ms, each, i, n, ZOOM, ZOOM_ABS]);
+    }, [ms, each, i, n]);
     if (at[i]) await at[i]();
-    const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
-    writeFileSync(join(dir, `${String(frameNo++).padStart(6, '0')}.jpg`), Buffer.from(data, 'base64'));
+    await keep();
   }
+}
+
+/** Keep the frame on screen. */
+async function keep() {
+  const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
+  writeFileSync(join(dir, `${String(frameNo++).padStart(6, '0')}.jpg`), Buffer.from(data, 'base64'));
+}
+
+/**
+ * Get to sim tick `to` with the camera already there: fast-forward (not filmed)
+ * to two seconds before, then play those two seconds (not filmed either) so the
+ * camera has glided into place and the first frame filmed isn't mid-pan.
+ */
+async function cue(page, to) {
+  await seek(page, to - 2 * TICK);
+  await page.evaluate(([to, ms]) => {
+    const m = window.__tardi;
+    for (let guard = 0; m.world.tick < to && guard < 400; guard++) window.__virt.step(ms);
+    // Framed at once: the first frame filmed is never mid-pan (a clip that starts as the turn does).
+    m.renderer.camera.snap = true;
+    window.__virt.step(0);
+  }, [to, FRAME_MS]);
+}
+
+/**
+ * Film one moment as it plays, from where the replay is now:
+ * - the dead air (the retreat time, waiting for the damage to be counted) runs
+ *   fast, easing up to 4× and back, never just before something happens;
+ * - it carries on past `x.to` until everything has landed and anyone popped has
+ *   finished popping (at most 4 s more), then holds the camera still for the fade out.
+ * `opts.slow`: play at this speed throughout (slow motion), until sim tick `opts.until`.
+ * `opts.caption`: frames the caption stays up. `opts.thumb`: take the thumbnail just after the hit.
+ * `opts.extra`: seconds more at the end (the winners' dance).
+ */
+async function filmAction(page, x, opts = {}) {
+  const events = [x.peak, x.tally].filter((t) => t >= 0);
+  const begin = await page.evaluate(() => window.__tardi.world.tick);
+  // Before the shot is fired: real time (the aim, the build-up).
+  const calmFrom = x.fire ?? begin + 1.5 * TICK;
+  const hard = opts.until ?? x.to + 4 * TICK;
+  let speed = opts.slow ?? 1;
+  let quietSince = -1;
+  let thumbed = !opts.thumb;
+  for (let i = 0; ; i++) {
+    const st = await page.evaluate(([ms, i, cap, fade]) => {
+      const m = window.__tardi;
+      const w = m.world;
+      const r = m.renderer;
+      document.getElementById('vid-fade').style.opacity = String(Math.max(0, 1 - i / fade));
+      if (i === cap) document.getElementById('vid-cap').style.display = 'none';
+      window.__virt.step(ms);
+      const busy =
+        w.projectiles.length > 0 ||
+        w.tardis.some((t) => t.alive && t.airborne) ||
+        w.objects.some((o) => (o.airborne && !o.chute) || o.fuse > 0) ||
+        w.flames.length > 0 ||
+        r.dying.size > 0;
+      const why = [w.projectiles.length && 'shot', w.tardis.some((t) => t.alive && t.airborne) && 'flying', w.objects.some((o) => (o.airborne && !o.chute) || o.fuse > 0) && 'object', w.flames.length && 'flames', r.dying.size && 'popping'].filter(Boolean).join('+');
+      const c = r.camera;
+      return { tick: w.tick, busy, why, phase: w.turn.phase, cam: [Math.round(c.x), Math.round(c.y), Math.round(c.zoom * 100) / 100], over: w.turn.phase === 'gameover', popping: r.dying.size > 0 || w.tardis.some((t) => t.alive && t.airborne) };
+    }, [FRAME_MS * speed, i, opts.caption ?? -1, FADE]);
+    if (!thumbed && st.tick >= x.peak + 0.15 * TICK) {
+      await thumbnail(page);
+      thumbed = true;
+    }
+    await keep();
+    if (process.env.VIDEO_DEBUG) console.log(JSON.stringify({ f: frameNo, tick: st.tick, speed: Math.round(speed * 100) / 100, phase: st.phase, why: st.why, cam: st.cam }));
+    if (opts.slow) {
+      if (st.tick >= hard) break;
+      continue;
+    }
+    // Done: past the end, and nothing still flying or popping (or out of time).
+    if ((st.tick >= x.to && !st.popping) || st.tick >= hard || (st.over && !opts.extra)) break;
+    // The pace for the next frame.
+    if (st.busy) quietSince = -1;
+    else if (quietSince < 0) quietSince = st.tick;
+    const soon = events.some((t) => t > st.tick && t - st.tick < 0.6 * TICK * Math.max(1, speed));
+    const dull = st.tick >= calmFrom && quietSince >= 0 && st.tick - quietSince >= 0.3 * TICK && !soon && st.tick < x.to;
+    speed += ((dull ? 4 : 1) - speed) * 0.3;
+    if (Math.abs(speed - 1) < 0.05) speed = 1;
+  }
+  if (opts.extra) await film(page, Math.round(opts.extra * FPS));
+  // Fade out with the camera held still (no pan towards the next turn as it fades).
+  await page.evaluate(() => (window.__tardi.renderer.camera.manualUntil = 1e15));
+  await film(page, FADE, FADE_OUT, {}, FRAME_MS * (opts.slow ?? 1));
+  await page.evaluate(() => (window.__tardi.renderer.camera.manualUntil = 0));
 }
 
 const FADE_IN = `document.getElementById('vid-fade').style.opacity = String(Math.max(0, 1 - i / ${FADE}));`;
@@ -294,11 +383,14 @@ async function thumbnail(page) {
     document.getElementById('vid-cap').style.display = 'none';
     document.getElementById('vid-tag').style.display = 'none';
   }, lines);
-  // Closer still for the thumbnail, then back.
-  await page.evaluate(() => {
+  // Closer still for the thumbnail, then back (the filming camera paused meanwhile).
+  const zoomWas = await page.evaluate(() => {
     const r = window.__tardi.renderer;
+    const was = r.camera.zoom;
+    r.camera.steady = false;
     r.camera.zoom = r.defaultZoom() * 1.9;
     window.__virt.step(0);
+    return was;
   });
   const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' });
   const png = join(dir, 'thumb.png');
@@ -311,9 +403,10 @@ async function thumbnail(page) {
     for (const id of ['vid-cap', 'vid-tag']) document.getElementById(id).style.display = document.getElementById(id).dataset.was ?? '';
     // Back to the video's zoom before this frame is kept.
     const r = window.__tardi.renderer;
-    r.camera.zoom = r.defaultZoom() * zoom;
+    r.camera.zoom = zoom;
+    r.camera.steady = true;
     window.__virt.step(0);
-  }, ZOOM);
+  }, zoomWas);
   thumbDone = true;
 }
 
@@ -325,19 +418,14 @@ function thumbLines() {
 }
 
 async function filmMoment(page, x, last, thumb) {
-  await seek(page, x.from);
-  const frames = Math.round(((x.to - x.from) / TICK) * FPS) + (last ? FPS * 4 : 0);
-  // The thumbnail: a moment after the big hit lands (older scout files: near the end).
-  const peak = x.peak ?? x.to - 2 * TICK;
-  const hitFrame = Math.max(0, Math.min(frames - 1, Math.round(((peak - x.from) / TICK + 0.15) * FPS)));
-  const at = thumb ? { [hitFrame]: () => thumbnail(page) } : {};
+  await cue(page, x.from);
   await page.evaluate((label) => {
     const c = document.getElementById('vid-cap');
     c.textContent = label;
     c.style.display = 'block';
   }, x.label);
-  // Caption for the first 3 seconds; a short fade at each end.
-  await film(page, frames, `${FADE_IN} if (i === ${FPS * 3}) document.getElementById('vid-cap').style.display = 'none'; ${FADE_OUT}`, at);
+  // Caption for the first 3 seconds; the last moment of a match stays on the winners a while.
+  await filmAction(page, x, { caption: FPS * 3, thumb, extra: last ? 4 : 0 });
   await page.evaluate(() => (document.getElementById('vid-cap').style.display = 'none'));
 }
 
@@ -412,30 +500,28 @@ async function shorts() {
     frameNo = 0;
     const t0 = Date.now();
     const where = `${m.teams} teams · ${MAPS[m.map] ?? m.map}`;
-    // 1. The moment, from just before the shot, with the hook on top.
+    // 1. The moment, from just before the shot (or, after a long flight, 6 s before the hit), with the hook on top.
     let { ctx, page } = await openReplay(m.replay);
     cdp = await screenSession(ctx, page);
-    await seek(page, Math.max(x.from, (x.peak ?? x.to) - 6 * TICK));
-    const start = await page.evaluate(() => window.__tardi.world.tick);
-    const frames = Math.round(((x.to - start) / TICK) * FPS);
+    const peak = x.peak ?? x.to - 2 * TICK;
+    await cue(page, peak - x.from > 9 * TICK ? peak - 6 * TICK : x.from);
     await page.evaluate((label) => {
       const c = document.getElementById('vid-cap');
       c.textContent = label;
       c.style.display = 'block';
     }, `${x.label} 💥 ${where}`);
-    await film(page, frames, `document.getElementById('vid-fade').style.opacity = String(Math.max(0, 1 - i / 4));`);
+    await filmAction(page, x);
     await ctx.close();
-    // 2. The hit again, at half speed.
+    // 2. The hit again, at half speed: from just before it to the blast's aftermath.
     ({ ctx, page } = await openReplay(m.replay));
     cdp = await screenSession(ctx, page);
-    const peak = x.peak ?? x.to - 2 * TICK;
-    await seek(page, Math.max(0, peak - 1.2 * TICK));
+    await cue(page, Math.max(0, peak - 0.6 * TICK));
     await page.evaluate(() => {
       const c = document.getElementById('vid-cap');
       c.textContent = 'Again, slowly 🐢';
       c.style.display = 'block';
     });
-    await film(page, FPS * 4, FADE_IN, {}, FRAME_MS / 2);
+    await filmAction(page, x, { slow: 0.5, until: Math.min(peak + 2 * TICK, x.to) });
     // 3. The end card.
     await page.evaluate(() => (document.getElementById('vid-cap').style.display = 'none'));
     await card(page, 'Play free', 'tardigeddon.com/play', 60);

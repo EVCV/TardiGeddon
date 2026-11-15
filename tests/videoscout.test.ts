@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { playMatch } from '../scripts/videos/scout';
+import { playMatch, replayMoments } from '../scripts/videos/scout';
 import { decodeWorld } from '../src/net/snapshot';
 import { unpackFrames } from '../src/challenge/daily';
 import { cleanFrame } from '../src/net/protocol';
@@ -17,7 +17,16 @@ describe('video scout', () => {
       for (const x of m.moments) {
         expect(x.from).toBeLessThan(x.to);
         expect(x.to).toBeLessThanOrEqual(m.ticks);
+        // The whole of it: from before the shot to after the big moment and the damage being counted.
+        expect(x.from).toBeLessThanOrEqual(x.fire!);
+        expect(x.peak).toBeGreaterThanOrEqual(x.fire!);
+        expect(x.peak).toBeLessThan(x.to);
+        if (x.tally! >= 0) expect(x.tally!).toBeLessThan(x.to);
       }
+      // The big moment is the hit, not the damage being counted seconds later (after the retreat time).
+      expect(m.moments.some((x) => x.tally! > x.peak)).toBe(true);
+      // Worked out again from the saved replay (--remark): the same moments.
+      expect(replayMoments(m.replay).moments).toEqual(m.moments);
       const s = decodeWorld(m.replay.start);
       const frames = unpackFrames(m.replay.frames, cleanFrame)!;
       expect(frames.length).toBe(m.ticks);
