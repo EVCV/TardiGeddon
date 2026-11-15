@@ -46,6 +46,55 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
+    id: '2026-11-15-smooth-camera',
+    date: '2026-11-15',
+    kind: 'update',
+    text: {
+      en: {
+        title: 'A smoother camera',
+        body: [
+          '- The camera now glides from one thing to the next (a shot, a blast, the next turn) instead of jumping there, so it’s easier to follow what’s happening.',
+          '- Weapons that split into several bits: the camera follows the whole cluster, or one bit to the end, instead of hopping between them.',
+        ],
+      },
+      es: {
+        title: 'Una cámara más suave',
+        body: [
+          '- La cámara ahora se desliza de una cosa a la siguiente (un disparo, una explosión, el turno siguiente) en vez de saltar, así es más fácil seguir lo que pasa.',
+          '- Armas que se dividen en varios trozos: la cámara sigue todo el grupo, o un trozo hasta el final, en vez de saltar de uno a otro.',
+        ],
+      },
+      'pt-BR': {
+        title: 'Uma câmera mais suave',
+        body: [
+          '- A câmera agora desliza de uma coisa para a próxima (um tiro, uma explosão, o próximo turno) em vez de pular, então fica mais fácil acompanhar o que está acontecendo.',
+          '- Armas que se dividem em vários pedaços: a câmera segue o grupo todo, ou um pedaço até o fim, em vez de pular de um para outro.',
+        ],
+      },
+      de: {
+        title: 'Eine ruhigere Kamera',
+        body: [
+          '- Die Kamera gleitet jetzt von einem Geschehen zum nächsten (ein Schuss, eine Explosion, der nächste Zug), statt dorthin zu springen. So lässt sich leichter verfolgen, was passiert.',
+          '- Waffen, die in mehrere Teile zerfallen: Die Kamera folgt der ganzen Gruppe oder einem Teil bis zum Ende, statt zwischen ihnen hin und her zu springen.',
+        ],
+      },
+      fr: {
+        title: 'Une caméra plus fluide',
+        body: [
+          '- La caméra glisse maintenant d’une action à la suivante (un tir, une explosion, le tour suivant) au lieu d’y sauter : on suit plus facilement ce qui se passe.',
+          '- Armes qui se divisent en plusieurs morceaux : la caméra suit tout le groupe, ou un morceau jusqu’au bout, au lieu de sauter de l’un à l’autre.',
+        ],
+      },
+      ja: {
+        title: 'カメラがなめらかに',
+        body: [
+          '- カメラが次の出来事（ショット、爆発、次のターン）へ飛ぶのではなく、なめらかに移動するようになりました。何が起きているか追いやすくなります。',
+          '- いくつかに分かれる武器：カメラが破片の間を行ったり来たりせず、まとまり全体か、ひとつの破片を最後まで追いかけます。',
+        ],
+      },
+    },
+  },
+  {
     id: '2026-11-13-big-screens',
     date: '2026-11-13',
     kind: 'update',

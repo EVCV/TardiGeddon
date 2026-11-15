@@ -205,6 +205,20 @@ run all of this in the cloud and send you the files.
      motion and a "Play free" card, 15 to 25 seconds, each with a different
      game track. Each gets a `.txt` with the Shorts title and a caption that
      suits every platform.
+   - **How each moment is filmed:** it starts 1.5 s before the shot with the
+     camera already in place, and runs until everything has landed, the
+     damage has been counted and anyone popped has finished popping (in this
+     game the damage shows after the shooter's retreat time, seconds after the
+     blast). The dead air in between (the retreat time, waiting for the count)
+     runs at up to 4× speed, easing back before anything happens. The filming
+     camera (`steady` in `src/render/renderer.ts`) keeps everything that
+     matters in the picture at once (the shot and where it's heading, anyone
+     flying, mines counting down, blasts, everyone hurt), zooms out to fit it,
+     glides on a spring (`src/render/cameraMotion.ts`: no jolts), and holds
+     still for the fade out. The Shorts' slow motion is the hit itself.
+   - **Scouted with older tools?** `npx tsx scripts/videos/scout.ts --remark
+     store/video-batches/<batch>/scout-big` works the moments out again from
+     the saved replays (it stops if a replay no longer plays out the same).
    - **Which is which:** whole matches and compilations go to YouTube only
      (16:9, long, with chapters); everything else is a Short.
 
