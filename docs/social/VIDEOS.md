@@ -108,6 +108,11 @@ In this order; each step is useful on its own.
 5. **Thumbnails** from a frame of each video on the template
    (`store/social/youtube-thumb-template.png`).
 
+6. **Coding videos** ("I'm building a game with AI"): **built**,
+   `npm run videos:code -- --commit <sha>` turns a real commit into a long
+   video, a Short, a thumbnail and a narration script. See
+   [CODE_VIDEOS.md](CODE_VIDEOS.md).
+
 Roughly a week of work for steps 1 to 3, then a day each for 4 and 5.
 
 ## 4. Rules for every video
