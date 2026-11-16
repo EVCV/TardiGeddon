@@ -588,12 +588,13 @@ function encode(name, musicOpt) {
  * `range` is how far the shot landed from the shooter (pixels).
  */
 const KINDS = {
-  hits: () => true,
+  // Own goals are only ever "fails": a hit that turns out to be one would break the hook's promise.
+  hits: (x) => !x.ownGoal,
   fails: (x) => x.ownGoal,
-  water: (x) => x.drowned > 0,
-  long: (x) => (x.story?.range ?? 0) >= 900 && (x.pops > 0 || x.drowned > 0 || x.damage >= 60),
-  last: (x) => !!x.story?.alone && (x.pops > 0 || x.drowned > 0 || (x.story?.teamsOut.length ?? 0) > 0),
-  wipeout: (x) => (x.story?.teamsOut.length ?? 0) > 0,
+  water: (x) => !x.ownGoal && x.drowned > 0,
+  long: (x) => !x.ownGoal && (x.story?.range ?? 0) >= 900 && (x.pops > 0 || x.drowned > 0 || x.damage >= 60),
+  last: (x) => !x.ownGoal && !!x.story?.alone && (x.pops > 0 || x.drowned > 0 || (x.story?.teamsOut.length ?? 0) > 0),
+  wipeout: (x) => !x.ownGoal && (x.story?.teamsOut.length ?? 0) > 0,
 };
 
 /** Moments already made into Shorts (--used <file>: one "seed:fire" a line), so batches don't repeat one. */
@@ -645,6 +646,8 @@ async function shorts() {
   mkdirSync(OUT, { recursive: true });
   const prefix = opt('name', `short-${new Date().toISOString().slice(0, 10)}`);
   const list = [];
+  /** Hooks used in this job: no two Shorts open the same way. */
+  const hooks = new Set();
   // --from 3: carry on from the third (the first two are already made).
   const from = Number(opt('from', '1'));
   for (const [n, { m, x }] of picked.entries()) {
@@ -657,7 +660,7 @@ async function shorts() {
     voice.length = 0;
     const t0 = Date.now();
     const where = `${m.teams} teams · ${MAPS[m.map] ?? m.map}`;
-    const hooked = hook(x);
+    const hooked = hook(x, kind, hooks);
     // 1. The moment, from just before the shot (or, after a long flight, 6 s before the hit), with the hook on top.
     let { ctx, page } = await openReplay(m.replay);
     cdp = await screenSession(ctx, page);

@@ -59,6 +59,21 @@ describe('video story', () => {
     expect(b.result).not.toBe(a.result);
   });
 
+  it('says "the last of …" at most twice a video', () => {
+    const said = new Set<string>();
+    const alone = { ...base, story: { ...base.story, alone: true } };
+    const lines = [1, 2, 3, 4, 5].map((n) => narrate({ ...alone, fire: n * 100 }, n, said).setup);
+    expect(lines.filter((l) => /last|rests on|Just |down to/.test(l)).length).toBe(2);
+  });
+
+  it("opens a Short of a kind on that kind's promise, never twice the same", () => {
+    const hooks = new Set<string>();
+    const a = hook(base, 'water', hooks);
+    const b = hook(base, 'water', hooks);
+    expect(a).toMatch(/🌊/);
+    expect(b).not.toBe(a);
+  });
+
   it('writes subtitles and a timed script', () => {
     const lines = [
       { start: 0, end: 2.5, text: 'Hello' },

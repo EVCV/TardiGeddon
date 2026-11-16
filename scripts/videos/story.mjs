@@ -62,17 +62,26 @@ function facts(x) {
  * The hook: the first words of a Short or a long video, over the action.
  * Promises what's coming without saying how it ends.
  */
-export function hook(x) {
+export function hook(x, kind = '', said = undefined) {
   const f = facts(x);
   const key = `${x.fire}${f.who}`;
-  if (x.ownGoal) return pick(['Wait for it… 🤦', 'This was a mistake 😬', 'Do NOT do this 🤦'], key);
-  if (f.teamsOut.length && f.alone) return pick(['Last one standing. One shot. 😳', 'Down to the last tardigrade…'], key);
-  if (f.teamsOut.length) return pick(['One shot. A whole team gone. 💀', 'Watch this team disappear 💀'], key);
-  if (f.n >= 3) return pick([`${f.n} tardigrades. One shot. 😳`, `How many can one shot get? 💥`], key);
-  if (x.drowned) return pick(['Straight into the sea 🌊', 'Watch the water 🌊'], key);
-  if (f.range >= LONG) return pick(['From across the map 🎯', 'Nobody saw this coming 🎯'], key);
-  if (f.alone) return pick(['Last one standing. One shot.', 'All alone, and not giving up'], key);
-  return pick(['Wait for it… 💥', 'Watch closely 👀', 'This one hurts 💥'], key);
+  // A Short of one kind opens on that kind's promise (render.mjs KINDS).
+  const byKind = {
+    water: ['Straight into the sea 🌊', 'Watch the water 🌊', 'Someone is getting wet 🌊', 'Splash incoming 🌊'],
+    long: ['From across the map 🎯', 'Nobody saw this coming 🎯', 'How far was that? 🎯', 'Long range delivery 🎯'],
+    last: ['Last one standing. One shot.', 'All alone, and not giving up', 'Down to the last tardigrade…', 'One left. Still fighting.'],
+    wipeout: ['One shot. A whole team gone. 💀', 'Watch this team disappear 💀', 'Say goodbye to this team 💀', 'A whole team, in one turn 💀'],
+    fails: ['Wait for it… 🤦', 'This was a mistake 😬', 'Do NOT do this 🤦', 'Wrong way!! 🤦', 'Aim is everything 😬'],
+  };
+  if (byKind[kind]) return pick(byKind[kind], key, said);
+  if (x.ownGoal) return pick(['Wait for it… 🤦', 'This was a mistake 😬', 'Do NOT do this 🤦'], key, said);
+  if (f.teamsOut.length && f.alone) return pick(['Last one standing. One shot. 😳', 'Down to the last tardigrade…'], key, said);
+  if (f.teamsOut.length) return pick(['One shot. A whole team gone. 💀', 'Watch this team disappear 💀'], key, said);
+  if (f.n >= 3) return pick([`${f.n} tardigrades. One shot. 😳`, `How many can one shot get? 💥`], key, said);
+  if (x.drowned) return pick(['Straight into the sea 🌊', 'Watch the water 🌊'], key, said);
+  if (f.range >= LONG) return pick(['From across the map 🎯', 'Nobody saw this coming 🎯'], key, said);
+  if (f.alone) return pick(['Last one standing. One shot.', 'All alone, and not giving up'], key, said);
+  return pick(['Wait for it… 💥', 'Watch closely 👀', 'This one hurts 💥', 'Keep your eyes on this one 👀', 'Oh, this is good 💥'], key, said);
 }
 
 /** On screen as the shot starts: who's firing what. */
@@ -108,7 +117,9 @@ export function narrate(x, n = 0, said = undefined) {
   const key = `${x.fire}${f.who}${n}`;
   const v = { ...f, who: f.who, team: f.team, weapon: f.weapon, before: f.teamsBefore };
   const start = n ? `${pick(['Number', 'At number', 'Coming in at number'], key)} ${n}. ` : '';
-  const setup = f.alone
+  const lonely = f.alone && (!said || [...said].filter((l) => l.startsWith('#alone')).length < 2);
+  if (lonely && said) said.add(`#alone${said.size}`);
+  const setup = lonely
     ? pick(['{who} is the last tardigrade {team} have left, and has the {weapon}.', 'It all rests on {who}, the last of {team}. {weapon}, here goes.', 'Just {who} left for {team}. One shot with the {weapon}.', '{team} are down to {who}. Time for the {weapon}.'], key, said)
     : pick(['{who} from {team} has the {weapon}.', 'Here comes {who} with the {weapon}.', '{team} send in {who}, armed with the {weapon}.', '{who} lines up the {weapon}.', '{who} reaches for the {weapon}.', 'Over to {who}, from {team}. {weapon}.', '{who} has a plan. It involves the {weapon}.', "It's {who}'s turn, and it's the {weapon}."], key, said);
   const context = !n && f.teamsBefore > 2 ? pick([' {before} teams still in it.', ''], key + 'c') : '';
