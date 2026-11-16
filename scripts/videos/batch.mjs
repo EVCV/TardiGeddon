@@ -63,8 +63,11 @@ try {
     }
     console.log(`\n${job.name}: filming ${missing.length} video${missing.length > 1 ? 's' : ''}…`);
     const args = [...job.args];
-    const s = args.indexOf('--scout');
-    if (s >= 0) args[s + 1] = join(dir, args[s + 1]);
+    // Files named in the recipe live in the batch's folder: the scout, and the list of moments already made into Shorts.
+    for (const flag of ['--scout', '--used']) {
+      const s = args.indexOf(flag);
+      if (s >= 0) args[s + 1] = join(dir, args[s + 1]);
+    }
     // Shorts: carry on from the first one not made yet.
     const from = job.shorts ? files.indexOf(missing[0]) + 1 : 0;
     run(process.execPath, [join(root, 'scripts/videos/render.mjs'), ...args, '--name', job.name, '--out', out, ...(from > 1 ? ['--from', String(from)] : [])]);

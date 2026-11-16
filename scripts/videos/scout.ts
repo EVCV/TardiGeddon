@@ -53,6 +53,27 @@ export interface Moment {
   drowned: number;
   damage: number;
   ownGoal: boolean;
+  /** The story, for the video's captions and narration (story.mjs). */
+  story?: MomentStory;
+}
+
+export interface MomentStory {
+  /** Who fired, and their team's name. */
+  shooter: string;
+  team: string;
+  /** Everyone hurt, popped or knocked into the water this turn (not counting the shooter's own team twice). */
+  hits: { name: string; team: string; dmg: number; out: 'pop' | 'water' | null }[];
+  /** Teams still in it before the shot, and after it. */
+  teamsBefore: number;
+  teamsAfter: number;
+  /** Teams wiped out by this turn. */
+  teamsOut: string[];
+  /** The shooter was the last of their team. */
+  alone: boolean;
+  /** How far the first blast landed from the shooter (pixels; 0 for none). */
+  range: number;
+  /** The turn's number in the match (1 = the first). */
+  turnNo: number;
 }
 
 export interface ScoutedMatch {
@@ -95,10 +116,21 @@ const sumPending = (s: WorldState): number => s.tardis.reduce((n, t) => n + (t.a
 export function momentTracker(s: WorldState): { step(s: WorldState, events: readonly SimEvent[]): void; finish(s: WorldState): Moment[] } {
   const moments: Moment[] = [];
   const teamOf = new Map(s.tardis.map((t) => [t.id, t.team]));
-  const fresh = (team: number, start: number) => ({ team, start, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0, impact: -1, firstBlast: -1, tally: -1, lastPop: -1 });
-  let turn = fresh(-1, 0);
+  const teamName = (id: number) => s.teams.find((t) => t.id === id)?.name ?? '';
+  const tardiName = (id: number) => s.tardis.find((t) => t.id === id)?.name ?? '';
+  const teamsIn = (w: WorldState) => new Set(w.tardis.filter((t) => t.alive).map((t) => t.team));
+  const fresh = (team: number, start: number, tardi = -1, w: WorldState = s) => ({
+    team, start, tardi, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0, impact: -1, firstBlast: -1, tally: -1, lastPop: -1,
+    fx: 0, fy: 0, range: 0,
+    before: teamsIn(w),
+    alone: w.tardis.filter((t) => t.alive && t.team === team).length === 1,
+    hits: new Map<number, { dmg: number; out: 'pop' | 'water' | null }>(),
+  });
+  // The first turn has no turnStart event: it's whoever's turn it already is.
+  let turn = fresh(s.teams[s.turn.teamIdx]?.id ?? -1, s.tick, s.turn.activeTardi, s);
+  let turnNo = 1;
   let pending = sumPending(s);
-  const close = (end: number) => {
+  const close = (end: number, now: WorldState) => {
     if (turn.fire < 0) return;
     const w = WEAPONS[turn.weapon];
     const isSuper = !!(w as { super?: boolean } | undefined)?.super;
@@ -111,25 +143,48 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
     const what = w?.name ?? turn.weapon;
     const bits = [turn.pops ? `${turn.pops} popped` : '', turn.drowned ? `${turn.drowned} in the water` : '', turn.ownGoal ? 'own goal!' : ''].filter(Boolean);
     const peak = turn.impact >= 0 ? turn.impact : turn.firstBlast >= 0 ? turn.firstBlast : turn.tally >= 0 ? turn.tally : turn.fire;
-    moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, peak, fire: turn.fire, tally: turn.tally, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal });
+    const after = teamsIn(now);
+    const story: MomentStory = {
+      shooter: tardiName(turn.tardi),
+      team: teamName(turn.team),
+      hits: [...turn.hits].map(([id, h]) => ({ name: tardiName(id), team: teamName(teamOf.get(id) ?? -1), ...h })),
+      teamsBefore: turn.before.size,
+      teamsAfter: after.size,
+      teamsOut: [...turn.before].filter((t) => !after.has(t)).map(teamName),
+      alone: turn.alone,
+      range: Math.round(turn.range),
+      turnNo,
+    };
+    moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, peak, fire: turn.fire, tally: turn.tally, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal, story });
   };
   return {
     step(s, events) {
       const now = sumPending(s);
       for (const e of events) {
         if (e.t === 'turnStart') {
-          close(s.tick);
-          turn = fresh(e.team, s.tick);
+          close(s.tick, s);
+          turnNo++;
+          turn = fresh(e.team, s.tick, e.tardi, s);
         } else if (e.t === 'fire') {
-          if (turn.fire < 0) turn.fire = s.tick;
+          if (turn.fire < 0) {
+            turn.fire = s.tick;
+            turn.fx = e.x;
+            turn.fy = e.y;
+          }
           turn.weapon = e.weapon;
         } else if (e.t === 'damage') {
           turn.damage += e.amount;
+          const h = turn.hits.get(e.id) ?? { dmg: 0, out: null };
+          h.dmg += e.amount;
+          turn.hits.set(e.id, h);
           if (turn.tally < 0) turn.tally = s.tick;
           turn.last = s.tick;
         } else if (e.t === 'explosion') {
           turn.blasts++;
-          if (turn.fire >= 0 && turn.firstBlast < 0) turn.firstBlast = s.tick;
+          if (turn.fire >= 0 && turn.firstBlast < 0) {
+            turn.firstBlast = s.tick;
+            turn.range = Math.hypot(e.x - turn.fx, e.y - turn.fy);
+          }
           // The blast that hurt someone (their damage is counted later): the big moment.
           if (turn.fire >= 0 && turn.impact < 0 && now > pending) turn.impact = s.tick;
           turn.last = s.tick;
@@ -138,6 +193,9 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
             turn.pops++;
             turn.lastPop = s.tick;
           } else turn.drowned++;
+          const h = turn.hits.get(e.id) ?? { dmg: 0, out: null };
+          h.out = e.t === 'death' ? 'pop' : 'water';
+          turn.hits.set(e.id, h);
           if (teamOf.get(e.id) === s.teams[turn.team]?.id || teamOf.get(e.id) === turn.team) turn.ownGoal = true;
           // Knocked into the water: that's the big moment if nothing hurt anyone first.
           if (e.t === 'drown' && turn.fire >= 0 && turn.impact < 0) turn.impact = s.tick;
@@ -149,7 +207,7 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
       pending = now;
     },
     finish(s) {
-      close(s.tick);
+      close(s.tick, s);
       return moments.sort((a, b) => a.from - b.from);
     },
   };

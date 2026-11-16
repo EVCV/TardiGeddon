@@ -61,6 +61,36 @@ If you'd ever rather have a professional finish a trailer, the same tool
 exports the raw footage at full quality, so an editor (e.g. a freelancer,
 for a few hundred pounds) gets perfect clips to work with.
 
+### The weekly mix (settled 16 Nov 2026)
+
+Lots of different videos, every one of them real gameplay, so there is always
+something new to post. Every video tells a story a stranger can follow with the
+sound off: a hook in the first second, who fires what at whom, what happened,
+and how many teams are left.
+
+| Week | Long video (YouTube and Facebook) | Voice |
+|---|---|---|
+| 1 | **Top 10 shots** (big matches): cold open on the #1 hit, what the game is, then #10 down to #1 | AI narrator |
+| 2 | **Match of the week**: one whole match, the teams introduced, a teams-left counter, the winner | the owner's cloned voice |
+| 3 | **Top 10 shots** (one on one) | AI narrator |
+| 4 | **Building a game with AI**: a real bug and its fix, filmed in an editor (`npm run videos:code`, `docs/social/CODE_VIDEOS.md`) | the owner's cloned voice |
+
+Facebook's own gaming audience is small and shrinking, and its feed puts long
+videos alongside Reels, so each long video also goes to YouTube, and its best
+moments go to Facebook as Reels (the Shorts).
+
+| Shorts kind (`--kind`) | What | Hook (first second) |
+|---|---|---|
+| `hits` | the biggest hits | "3 tardigrades. One shot. 😳" |
+| `fails` | own goals | "Wait for it… 🤦" |
+| `water` | knocked into the sea | "Straight into the sea 🌊" |
+| `long` | hits from across the map | "From across the map 🎯" |
+| `last` | the last tardigrade of a team strikes back | "Last one standing. One shot." |
+| `wipeout` | a whole team gone in one turn | "One shot. A whole team gone. 💀" |
+
+Mix the kinds across the week (Mon, Wed, Fri) so no two in a row are alike.
+A batch (§3.8) makes eight weeks at a time: `store/video-batches/2026-12-01`.
+
 ### How often, and how much AI (settled 7 Nov 2026)
 
 | | Per week | When (UK) |
@@ -87,10 +117,16 @@ rather than posting more. Keep about a month of videos made ahead.
   `youtube.synthetic_media`).
 - Cost: Gemini video is about $0.10 a second (an 8 s clip about $0.80).
 
-**Narration on the long videos:** Claude writes a script timed to the
-chapters, the owner records it in their own (cloned) voice, and Montaj mixes
-it in with the music ducked under it. Tick YouTube's "altered or synthetic"
-box for a cloned voice.
+**Narration on the long videos:** the renderer writes it with each video:
+`<name>-narration.txt` (every line with the time to start it) and
+`<name>-narration.srt` (the same as subtitles, to drop on the timeline). It's
+built from what happened ("Squish from Brave Pebbles has the Concrete Tun…
+A double! Two tardigrades popped."), different words each time. The same
+story is on screen as captions, so a video makes sense without the voice too.
+Top 10s get the AI narrator; whole matches and the coding videos get the
+owner's cloned voice. Montaj mixes the voice in with the music ducked under
+it (about -12 dB). Tick YouTube's "altered or synthetic" box (and TikTok's
+"AI-generated content") for any AI or cloned voice.
 
 **Thumbnails:** every long video has `<name>-thumb.jpg` (from the renderer)
 and every Short a `<name>-cover.jpg` (the frame where the Montaj pop-up
@@ -177,14 +213,23 @@ run all of this in the cloud and send you the files.
    `npx vite preview --port 4173` in another terminal; and `ffmpeg`):
 
    ```bash
-   npm run videos:render -- best --teams 6 --minutes 8
+   npm run videos:render -- best --teams 6 --count 10
    ```
 
-   - `best`: the top moments of all, at most 3 per match and not too many of
-     one weapon, grouped by match and building up to the best. `--teams 6`
-     keeps only matches with 6 or more teams (**pure mayhem**).
-   - `match --seed 4`: one match's highlights in order, ending on the winning
-     shot and a "… win!" card.
+   - `best`: a **Top 10 countdown**: the top `--count` moments of all, at most
+     `--per-match` per match and `--per-weapon` per weapon, from #10 to #1,
+     each with its number, where it happened, who fires what and the result.
+     `--teams 6` keeps only matches with 6 or more teams (**pure mayhem**).
+     `--skip top10-mayhem-1` leaves out the moments an earlier countdown used
+     (each writes `<name>-moments.txt`), so the next Top 10 has new shots.
+   - `match --seed 4` (or `--pick 2`: the scout's second-best finished
+     match): **one whole match**: the teams introduced on a card in their
+     colours, its best moments in order with a teams-left counter, ending on
+     the winning shot and a "… win!" card.
+   - **Every long video** opens cold on its best hit in slow motion with a
+     hook, then a title card that says what the game is ("Tiny tardigrades.
+     Very big weapons. One shot a turn. Last team standing wins."), and comes
+     with its narration script (§1).
    - **Music is built in:** each video gets one of the game's own tracks,
      rendered to a file by `scripts/videos/music.ts`: a lively one (Disco
      Droplet, Moss Skirmish, 8-Bit Puddle, Sea Shanty Slam, Boss Battle) for
@@ -199,12 +244,15 @@ run all of this in the cloud and send you the files.
      scripts/videos/music.ts list`), `--music track.mp3` uses a file of your
      own (licensed for this; it stays out of the repository), `--music none`
      is silent. The game's sound effects are made live and can't be filmed.
-   - `shorts --count 8`: **vertical Shorts** (1080×1920) for YouTube Shorts,
-     TikTok, Reels and Facebook: one big moment each (one per match, at most
-     two per weapon), starting on the action, then the hit again in slow
-     motion and a "Play free" card, 15 to 25 seconds, each with a different
-     game track. Each gets a `.txt` with the Shorts title and a caption that
-     suits every platform.
+   - `shorts --count 8 --kind fails`: **vertical Shorts** (1080×1920) for
+     YouTube Shorts, TikTok, Reels and Facebook: one moment each of a kind
+     (§1: `hits`, `fails`, `water`, `long`, `last`, `wipeout`; one per match,
+     at most two per weapon). Each opens on a hook, says who fires what, shows
+     what happened, then the hit again in slow motion and a "Play free" card,
+     15 to 25 seconds, each with a different game track. `--used used.txt`
+     keeps a list of the moments made into Shorts, so no two Shorts are the
+     same moment. Each gets a `.txt` with the Shorts title, a caption that
+     suits every platform, and a short narration in case you add a voice.
    - **How each moment is filmed:** it starts 1.5 s before the shot with the
      camera already in place, and runs until everything has landed, the
      damage has been counted and anyone popped has finished popping (in this
@@ -227,9 +275,10 @@ run all of this in the cloud and send you the files.
      two lines, `--scout store/videos/scout-big` picks another scout's matches.
 
    Out comes `store/videos/<name>.mp4` (1920×1080, 30 fps), `<name>-thumb.jpg`
-   (the YouTube thumbnail: the best moment, zoomed in, with big text) and
-   `<name>.txt`: the title, description with **YouTube chapters** (one per
-   match), tags and the upload answers. Filming runs about
+   (the YouTube thumbnail: the best moment, zoomed in, with big text),
+   `<name>.txt` (the title, description with **YouTube chapters**, one per
+   moment, tags and the upload answers) and `<name>-narration.txt` /
+   `.srt`. Filming runs about
    4 to 8 video frames a second, so an 8-minute video takes about an hour;
    leave it running.
 3. **Watch it**, then upload to YouTube (Studio, or Sociamonials' YouTube
