@@ -99,8 +99,8 @@ export function resultCaption(x) {
   if (x.ownGoal && f.n) return `Own goal! ${plural(f.n, 'tardigrade')} down 🤦${left}`;
   if (x.ownGoal) return 'Own goal! 🤦';
   if (f.teamsOut.length) return `${f.out} are out! 💀${left}`;
-  if (x.pops >= 2) return `${x.pops} popped with one shot! 💥`;
-  if (x.pops === 1 && x.drowned) return `${plural(f.n, 'tardigrade')} down! 💥`;
+  if (x.pops >= 2 && !x.drowned) return `${x.pops} popped with one shot! 💥`;
+  if (x.pops && x.drowned) return `${plural(f.n, 'tardigrade')} down! 💥`;
   if (x.pops === 1) return `${f.popped[0]?.name || 'One'} popped! 💥`;
   if (x.drowned >= 2) return `${x.drowned} into the water! 🌊`;
   if (x.drowned === 1) return `${f.wet[0]?.name || 'One'} goes for a swim 🌊`;

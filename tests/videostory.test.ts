@@ -37,6 +37,7 @@ describe('video story', () => {
     expect(hook(own)).toMatch(/…|mistake|NOT/);
     const swim = { ...base, pops: 0, drowned: 1, story: { ...base.story, hits: [{ name: 'Nibs', team: 'Speedy Biscuits', dmg: 0, out: 'water' }] } };
     expect(resultCaption(swim)).toBe('Nibs goes for a swim 🌊');
+    expect(resultCaption({ ...base, pops: 2, drowned: 1 })).toBe('3 tardigrades down! 💥');
     const miss = { ...base, pops: 0, story: { ...base.story, hits: [] } };
     expect(resultCaption(miss)).toBe('Missed… 😬');
   });
