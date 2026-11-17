@@ -179,6 +179,11 @@ const OVERLAY_CSS = `
     #vid-card .big { font-size: 7vh; }
     #vid-card .small { font-size: 3.2vh; }
   }
+  #vid-aim { position: fixed; width: 9vh; height: 9vh; margin: -4.5vh 0 0 -4.5vh; display: none; z-index: 99995; pointer-events: none;
+    border: 0.6vh solid #ff4a3d; border-radius: 50%; box-shadow: 0 0 0 0.35vh #2b1b24, inset 0 0 0 0.35vh #2b1b24; }
+  #vid-aim::before, #vid-aim::after { content: ''; position: absolute; left: 50%; top: 50%; background: #ff4a3d; transform: translate(-50%, -50%); }
+  #vid-aim::before { width: 13vh; height: 0.5vh; }
+  #vid-aim::after { width: 0.5vh; height: 13vh; }
   #vid-num { position: fixed; left: 2vh; top: 8vh; display: none; z-index: 99996; font-family: var(--title); line-height: 1; text-align: left; }
   #vid-num .n { font-size: 11vh; color: #ffd84a; -webkit-text-stroke: 0.8vh #2b1b24; paint-order: stroke fill; }
   #vid-num .w { font-size: 2.6vh; color: #fff; -webkit-text-stroke: 0.35vh #2b1b24; paint-order: stroke fill; margin-top: 0.6vh; }
@@ -233,7 +238,7 @@ async function openReplayOnce(replay) {
     const style = document.createElement('style');
     style.textContent = css;
     document.head.append(style);
-    for (const id of ['vid-fade', 'vid-card', 'vid-cap', 'vid-tag', 'vid-thumb', 'vid-num', 'vid-left']) {
+    for (const id of ['vid-fade', 'vid-card', 'vid-cap', 'vid-tag', 'vid-thumb', 'vid-num', 'vid-left', 'vid-aim']) {
       const d = document.createElement('div');
       d.id = id;
       document.body.append(d);
@@ -327,11 +332,43 @@ async function filmAction(page, x, opts = {}) {
   let thumbed = !opts.thumb;
   const on = [...(opts.on ?? [])].sort((a, b) => a.at - b.at);
   let held = false;
+  // A strike or the Tun: before it's fired, the camera glides to the spot picked (a target
+  // marker on it), and keeps it in the picture until it lands, so the drop is seen whole.
+  await page.evaluate(() => (window.__aimFrom = null));
+  const aim = x.aim && x.fire >= 0 ? [x.aim.x, x.aim.y, x.fire - 1.6 * TICK, x.fire + 0.5 * TICK, Math.min(Math.max(x.peak, x.fire) + 0.5 * TICK, x.fire + 6 * TICK)] : null;
   for (let i = 0; ; i++) {
-    const st = await page.evaluate(([ms, i, cap, fade]) => {
+    const st = await page.evaluate(([ms, i, cap, fade, aim]) => {
       const m = window.__tardi;
       const w = m.world;
       const r = m.renderer;
+      const mark = document.getElementById('vid-aim');
+      if (aim && w.tick >= aim[2] && w.tick <= aim[4]) {
+        // Take the camera: an eased pan (1 s) from wherever it is onto the spot, with sky
+        // above it for the drop, held there until it has landed.
+        const c = r.camera;
+        if (!window.__aimFrom) window.__aimFrom = { x: c.x, y: c.y, at: w.tick };
+        const f = window.__aimFrom;
+        const p = Math.min(1, (w.tick - f.at) / 50);
+        const e = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
+        c.manualUntil = 1e15;
+        c.x = f.x + (aim[0] - f.x) * e;
+        c.y = f.y + (aim[1] - 110 - f.y) * e;
+        c.vel.x = c.vel.y = 0;
+      } else if (window.__aimFrom) {
+        window.__aimFrom = null;
+        r.camera.manualUntil = 0;
+      }
+      if (aim && w.tick >= aim[2] + 12 && w.tick <= aim[3]) {
+        const c = r.camera;
+        const box = r.app.canvas.getBoundingClientRect();
+        const k = box.width / r.app.screen.width;
+        mark.style.left = `${box.left + (r.app.screen.width / 2 + (aim[0] - c.x) * c.zoom) * k}px`;
+        mark.style.top = `${box.top + (r.app.screen.height / 2 + (aim[1] - c.y) * c.zoom) * k}px`;
+        const t = (w.tick - aim[2] - 12) / 50;
+        mark.style.transform = `scale(${1 + 0.6 * Math.max(0, 1 - t * 2.5)}) rotate(${t * 90}deg)`;
+        mark.style.opacity = String(Math.min(1, t * 5));
+        mark.style.display = 'block';
+      } else mark.style.display = 'none';
       document.getElementById('vid-fade').style.opacity = String(Math.max(0, 1 - i / fade));
       if (i === cap) document.getElementById('vid-cap').style.display = 'none';
       window.__virt.step(ms);
@@ -344,7 +381,7 @@ async function filmAction(page, x, opts = {}) {
       const why = [w.projectiles.length && 'shot', w.tardis.some((t) => t.alive && t.airborne) && 'flying', w.objects.some((o) => (o.airborne && !o.chute) || o.fuse > 0) && 'object', w.flames.length && 'flames', r.dying.size && 'popping'].filter(Boolean).join('+');
       const c = r.camera;
       return { tick: w.tick, busy, why, phase: w.turn.phase, cam: [Math.round(c.x), Math.round(c.y), Math.round(c.zoom * 100) / 100], over: w.turn.phase === 'gameover', popping: r.dying.size > 0 || w.tardis.some((t) => t.alive && t.airborne) };
-    }, [FRAME_MS * speed, i, opts.caption ?? -1, FADE]);
+    }, [FRAME_MS * speed, i, opts.caption ?? -1, FADE, aim]);
     if (!thumbed && st.tick >= x.peak + 0.15 * TICK) {
       await thumbnail(page);
       thumbed = true;

@@ -46,6 +46,8 @@ export interface Moment {
   pops: number;
   /** The big moment (the blast that hurt someone, or the first blast): the slow-motion replay and the thumbnail. */
   peak: number;
+  /** A strike's or the Tun's spot on the map (picked the tick before it's fired): the video shows the aim. */
+  aim?: { x: number; y: number };
   /** When the shot was fired. */
   fire?: number;
   /** When the damage was counted (the numbers and the pops, after the retreat time). */
@@ -121,7 +123,7 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
   const teamsIn = (w: WorldState) => new Set(w.tardis.filter((t) => t.alive).map((t) => t.team));
   const fresh = (team: number, start: number, tardi = -1, w: WorldState = s) => ({
     team, start, tardi, fire: -1, last: -1, weapon: '', pops: 0, drowned: 0, damage: 0, ownGoal: false, blasts: 0, impact: -1, firstBlast: -1, tally: -1, lastPop: -1,
-    fx: 0, fy: 0, range: 0,
+    fx: 0, fy: 0, range: 0, aim: undefined as { x: number; y: number } | undefined,
     before: teamsIn(w),
     alone: w.tardis.filter((t) => t.alive && t.team === team).length === 1,
     hits: new Map<number, { dmg: number; out: 'pop' | 'water' | null }>(),
@@ -136,7 +138,8 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
     const isSuper = !!(w as { super?: boolean } | undefined)?.super;
     const score = turn.damage + 70 * turn.pops + 60 * turn.drowned + 10 * Math.min(turn.blasts, 10) + (turn.pops >= 2 ? 80 * (turn.pops - 1) : 0) + (isSuper ? 60 : 0) + (turn.ownGoal ? 50 : 0);
     if (score < 40) return;
-    const from = Math.max(turn.start, turn.fire - 1.5 * TICKS_PER_SECOND);
+    // A strike starts earlier: the camera glides over to the spot picked before it falls.
+    const from = Math.max(turn.start, turn.fire - (turn.aim ? 2.6 : 1.5) * TICKS_PER_SECOND);
     // Past the last thing to happen: a pop needs its curl and burst (about 2 s), anything else a beat to land.
     const tail = turn.lastPop >= 0 && turn.lastPop >= turn.last - 25 ? 2.2 : 1.4;
     const to = Math.min(end, Math.max(turn.last, turn.fire) + tail * TICKS_PER_SECOND, turn.fire + 30 * TICKS_PER_SECOND);
@@ -155,7 +158,7 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
       range: Math.round(turn.range),
       turnNo,
     };
-    moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, peak, fire: turn.fire, tally: turn.tally, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal, story });
+    moments.push({ from, to, score, label: bits.length ? `${what}: ${bits.join(', ')}` : what, weapon: turn.weapon, peak, fire: turn.fire, ...(turn.aim ? { aim: turn.aim } : {}), tally: turn.tally, pops: turn.pops, drowned: turn.drowned, damage: turn.damage, ownGoal: turn.ownGoal, story });
   };
   return {
     step(s, events) {
@@ -170,6 +173,7 @@ export function momentTracker(s: WorldState): { step(s: WorldState, events: read
             turn.fire = s.tick;
             turn.fx = e.x;
             turn.fy = e.y;
+            if (WEAPONS[e.weapon]?.kind === 'target' && s.turn.target) turn.aim = { x: Math.round(s.turn.target.x), y: Math.round(s.turn.target.y) };
           }
           turn.weapon = e.weapon;
         } else if (e.t === 'damage') {
