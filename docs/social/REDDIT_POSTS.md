@@ -1,7 +1,7 @@
 # r/TardiGeddon: what to post (and how it differs from the other socials)
 
-Setup (icon, rules, flairs, AutoModerator, welcome post) is in
-[REDDIT.md](REDDIT.md); do §1–6 there first. This file is the posting
+The sub is live and has its welcome post. Setup (icon, rules, flairs,
+AutoModerator) is in [REDDIT.md](REDDIT.md). This file is the posting
 plan: **three posts a week**, written for Reddit, not copied from the
 Sociamonials queue.
 
@@ -57,15 +57,21 @@ never name other games, money only buys looks, British spelling.
 
 ## Weeks 1–6: ready to post
 
-Dates assume the sub goes **Public on Mon 23 Nov**. Pin the welcome post
-(REDDIT.md §6) that day; the posts below start alongside it. Text in the
+**The finished posts are in `store/social/reddit/`**, one file each, numbered
+in posting order (01 to 19). Each file says when to post it and which flair
+to use, then gives the title, then the body after `---`. In Reddit's post
+editor, switch to **Markdown** mode and paste the body. Posts 15, 17 and 18
+have `[brackets]` to fill in from earlier threads or the statistics first.
+The outlines below are the plan they were written from.
+
+The sub is live and already has its welcome post. The posts start on
+**Fri 20 Nov** with the "What should we add next?" thread. Text in the
 quotes is ready to paste; change "we" to "I" throughout if you'd rather post
 as yourself (Reddit warms to a named developer).
 
-### Week 1 (23 Nov): the first week
+### Week 1 (20–27 Nov): the first week
 
-**Mon 23 Nov · 💡 Suggestion · "What should we add next?"**
-(this is REDDIT.md §6's second pinned post; written out here)
+**Fri 20 Nov · 💡 Suggestion · "What should we add next?"** (pin it under the welcome post)
 
 > **What should we add next? Worlds, weapons, hats, modes: tell us**
 >

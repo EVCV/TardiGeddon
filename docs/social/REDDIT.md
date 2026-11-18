@@ -1,7 +1,7 @@
 # Reddit: r/TardiGeddon
 
 Shared names, bios and rules are in [README.md](README.md); pictures are in
-`store/social/`. The subreddit exists (set up to keep the name) but is empty.
+`store/social/`. The subreddit is live, with its welcome post.
 This is everything to make it a real home, in order. Reddit's screens move
 about: the steps name what to look for, not exact clicks.
 
