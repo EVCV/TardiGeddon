@@ -1741,6 +1741,11 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
   it('deleting an account removes what it owned', async () => {
     const { cookie, id } = await signUp('five@example.com');
     await sendWebhook('checkout.session.completed', paid('cs_4', id, 'hat:viking'));
+    // An account with a password: never deleted without it, even right after signing in.
+    for (const body of [{}, { password: '' }, { password: 'wrong horse' }]) {
+      expect((await post('/api/auth/delete-user', body, cookie)).status).toBe(400);
+      expect((await accounts.db.query('SELECT 1 FROM "user" WHERE id = $1', [id])).rowCount).toBe(1);
+    }
     const r = await post('/api/auth/delete-user', { password: 'correct horse' }, cookie);
     expect(r.status).toBe(200);
     expect((await accounts.db.query('SELECT 1 FROM inventory WHERE user_id = $1', [id])).rowCount).toBe(0);

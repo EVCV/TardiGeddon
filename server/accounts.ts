@@ -28,10 +28,10 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { Pool } from 'pg';
 import Stripe from 'stripe';
-import { betterAuth, type BetterAuthOptions } from 'better-auth';
+import { betterAuth, type BetterAuthOptions, type BetterAuthPlugin } from 'better-auth';
 import { oneTimeToken } from 'better-auth/plugins/one-time-token';
 import { APP_SIGNIN_RETURN, isChallenge } from '../src/account/appSignIn';
-import { APIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { bearer } from 'better-auth/plugins';
 import { NAME_PROBLEM_TEXT, nameProblem, presetTeamName, safeName, tidyName } from '../src/names';
 import { tk } from '../src/i18n/tk';
@@ -266,6 +266,8 @@ export async function createAccounts(
       // "Authorization: Bearer <token>" counts as signed in (the iOS app: signsInWithToken).
       // Only tokens signed with our secret, as the server hands them out.
       bearer({ requireSignature: true }),
+      // After bearer(), so the iOS app's token counts as signed in here too.
+      passwordToDelete(),
     ],
     // Fly.io passes the player's IP in this header. It is used, in memory only,
     // to rate-limit sign-in attempts; it is never written to the database.
@@ -1603,4 +1605,31 @@ function readBody(req: IncomingMessage): Promise<Buffer> {
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
+}
+
+/**
+ * Deleting an account that has a password needs that password, every time.
+ * (Better Auth on its own deletes without one when the sign-in is recent.)
+ * Accounts made with Apple or Google have no password: the sign-in is enough.
+ */
+function passwordToDelete() {
+  return {
+    id: 'password-to-delete',
+    hooks: {
+      before: [
+        {
+          matcher: (ctx: { path?: string }) => ctx.path === '/delete-user',
+          handler: createAuthMiddleware(async (ctx) => {
+            const body = (ctx.body ?? {}) as { password?: unknown };
+            if (typeof body.password === 'string' && body.password !== '') return;
+            const session = await getSessionFromCtx(ctx);
+            // Not signed in: the endpoint itself refuses.
+            if (!session) return;
+            const account = await ctx.context.internalAdapter.findCredentialAccount(session.user.id);
+            if (account?.password) throw new APIError('BAD_REQUEST', { message: tk('Type your password to delete your account.') });
+          }),
+        },
+      ],
+    },
+  } satisfies BetterAuthPlugin;
 }
