@@ -46,6 +46,62 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
+    id: '2026-12-01-out-now',
+    date: '2026-12-01',
+    kind: 'update',
+    ships: '2026-12-01-launch',
+    text: {
+      en: {
+        title: 'TardiGeddon is out!',
+        body: [
+          'TardiGeddon is open to everyone: play in your browser, or get the app for iPhone and iPad on the App Store, or for Android on Google Play.',
+          '- One account everywhere: your teams, Slime and looks follow you between the browser and the apps.',
+          '- The first 1,000 players to make an account by 31 December get the Early bird pack.',
+        ],
+      },
+      es: {
+        title: '¡TardiGeddon ya está aquí!',
+        body: [
+          'TardiGeddon está abierto a todo el mundo: juega en tu navegador o descarga la app para iPhone y iPad en el App Store, o para Android en Google Play.',
+          '- Una cuenta para todo: tus equipos, tu Baba y tus aspectos te siguen entre el navegador y las apps.',
+          '- Los primeros 1000 jugadores que creen una cuenta antes del 31 de diciembre (incluido) reciben el Pack Madrugador.',
+        ],
+      },
+      'pt-BR': {
+        title: 'TardiGeddon chegou!',
+        body: [
+          'O TardiGeddon está aberto para todos: jogue no seu navegador ou baixe o app para iPhone e iPad na App Store, ou para Android no Google Play.',
+          '- Uma conta para tudo: seus times, sua Gosma e seus visuais acompanham você entre o navegador e os apps.',
+          '- Os primeiros 1.000 jogadores que criarem uma conta até 31 de dezembro ganham o Pacote Madrugador.',
+        ],
+      },
+      de: {
+        title: 'TardiGeddon ist da!',
+        body: [
+          'TardiGeddon ist für alle geöffnet: Spiel im Browser oder hol dir die App für iPhone und iPad im App Store oder für Android bei Google Play.',
+          '- Ein Konto für alles: Deine Teams, dein Schleim und deine Looks begleiten dich zwischen Browser und Apps.',
+          '- Die ersten 1.000 Spieler, die bis zum 31. Dezember ein Konto erstellen, bekommen das Frühaufsteher-Paket.',
+        ],
+      },
+      fr: {
+        title: 'TardiGeddon est sorti !',
+        body: [
+          'TardiGeddon est ouvert à tout le monde : joue dans ton navigateur, ou télécharge l’appli pour iPhone et iPad sur l’App Store, ou pour Android sur Google Play.',
+          '- Un seul compte partout : tes équipes, ton Slime et tes looks te suivent entre le navigateur et les applis.',
+          '- Les 1 000 premiers joueurs à créer un compte d’ici le 31 décembre reçoivent le Pack Lève-tôt.',
+        ],
+      },
+      ja: {
+        title: 'TardiGeddon、ついにリリース！',
+        body: [
+          'TardiGeddonが一般公開されました。ブラウザで遊ぶか、iPhone・iPad版はApp Store、Android版はGoogle Playからアプリをダウンロードできます。',
+          '- アカウントはひとつでOK：チーム、スライム、見た目はブラウザとアプリの間で引き継がれます。',
+          '- 12月31日までにアカウントを作った最初の1,000人には、アーリーバードパックをプレゼント。',
+        ],
+      },
+    },
+  },
+  {
     id: '2026-11-13-big-screens',
     date: '2026-11-13',
     kind: 'update',

@@ -101,9 +101,10 @@ on the site anyway.
   has loaded, and off for reduced motion.
 - The site's logo is the game's: "Tardi" in red, "Geddon" in yellow (the
   header pill is the game's blue).
-- The Android app isn't public yet: the site says "coming soon" (Home's
-  Android band, the footer, Help & support). On launch day, swap those for a
-  Google Play link.
+- The apps are live (since 1 December 2026): the store buttons (Home's apps
+  band, the footer, Help & support) link to the App Store and Google Play. One
+  switch per store, `live` in `src/apps.ts`, turns each store's "Coming soon"
+  badge into its link, here and in the game's "get the app" suggestion.
 - Game facts (weapons with their "how it's used" tags and descriptions, game
   styles, map styles, CPU levels, default keys, languages, team colours, hats,
   the mascot) are imported straight from the game's own code

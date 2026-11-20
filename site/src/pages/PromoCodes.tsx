@@ -74,7 +74,7 @@ export function PromoCodes() {
           </li>
         </ol>
         <p>
-          It’s yours on every device you sign in on, in the browser and in the Android app when it comes out. Everyone you
+          It’s yours on every device you sign in on, in the browser and in the apps for iPhone, iPad and Android. Everyone you
           play online sees it too.
         </p>
       </section>

@@ -100,7 +100,9 @@ export function Support() {
         <p>
           If something you bought is faulty or didn’t arrive, email us and we’ll put it right. Coins aren’t refunded just
           because you stop playing or don’t spend them, but we consider every request fairly. In the Android app, purchases
-          are made through Google Play, so refunds are asked for from Google Play. The details are in our{' '}
+          are made through Google Play, so refunds are asked for from Google Play; in the iPhone and iPad app, they are made
+          through Apple, so refunds are asked for from Apple at{' '}
+          <a href="https://reportaproblem.apple.com" rel="noopener">reportaproblem.apple.com</a>. The details are in our{' '}
           <Link to="/legal/terms-of-service">Terms of Service</Link> (Section 5).
         </p>
       </Q>
