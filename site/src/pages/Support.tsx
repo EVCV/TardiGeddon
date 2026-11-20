@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { Link } from '../router';
 import { PLAY_URL } from '../config';
 import { appsLine } from '../components/AppStores';
+import { PATREON_LIVE } from '../patrons';
 
 const EMAIL = 'support@tardigeddon.com';
 
@@ -112,6 +113,16 @@ export function Support() {
           <Link to="/legal/childrens-privacy">Children’s Privacy</Link> page explains what we keep and why.
         </p>
       </Q>
+
+      {PATREON_LIVE && (
+        <Q q="Can I support TardiGeddon?">
+          <p>
+            Yes, thank you! <Link to="/patrons">Support us on Patreon</Link> from £3 a month. Patrons get their name on
+            our Patrons page, a say in what we build next and more, but never anything inside the game: no looks, coins,
+            Slime or weapons. Patreon handles the payments.
+          </p>
+        </Q>
+      )}
 
       <h2 className="display faq-heading">Safety and your account</h2>
       <Q q="Can other players talk to me?">

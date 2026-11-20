@@ -75,7 +75,9 @@ on the site anyway.
   `robots.txt`. In the browser React draws the page afresh (`createRoot`, no
   hydration) and `site/src/head.ts` keeps the `<head>` right as you move
   between pages. So: a new page needs an entry in `PAGES` (seo.ts) and in
-  `PageFor` (routes.tsx), or it's a 404 on the live site. Page code must not
+  `PageFor` (routes.tsx), or it's a 404 on the live site. A page with
+  `noindex` is still built but left out of `sitemap.xml` (`SITEMAP_PATHS`);
+  `/patrons` is one until the Patreon opens (`docs/PATREON.md` §5). Page code must not
   touch `window`/`document` while rendering (only in effects). See
   `docs/SEO.md`. The header menu (`NAV` in
   `site/src/components/Layout.tsx`) lists the main ones; below 1140px wide

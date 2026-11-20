@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mascotSvg } from '../src/ui/mascot';
+import { aimSvg, arenaSvg, fxSvg, graveSvg, musicSvg } from '../src/ui/cosmeticArt';
 
 export const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const media = join(root, 'site', 'public', 'media');
@@ -43,3 +44,51 @@ export const page = (body: string, w: number, h: number) =>
 export const shot = (file: string, style: string) => `<div class="shot" style="${style}"><img src="${pic(file)}"></div>`;
 export const tardi = (color: number, hat: string, style: string, skin = 'classic') => `<div class="mascot" style="${style}">${mascotSvg(color, hat, skin)}</div>`;
 export const ground = (h: number, grass: number) => `<div class="ground" style="height:${h}px;border-top:${grass}px solid #5aa83a"></div>`;
+
+/** A picture from site/public as a data address (the giveaway's prize pictures are JPEGs). */
+export const publicPic = (path: string) =>
+  `data:image/${path.endsWith('.png') ? 'png' : 'jpeg'};base64,${readFileSync(join(root, 'site', 'public', path)).toString('base64')}`;
+
+// ── Looks: the Shop and giveaway items, drawn the way the game's Shop draws them ──
+
+/** The looks the posts can show: "kind:ref" (aim, fx, arena, grave, music, hat) or "badge", with the name printed under it. */
+export const LOOK_NAMES: Record<string, string> = {
+  'arena:champion': 'Champion’s Arena',
+  'music:champion': 'Champion’s Fanfare',
+  'hat:champion': 'Champion’s crown',
+  'grave:champion': 'Champion’s monument',
+  'aim:champion': 'Champion’s sights',
+  'fx:champion': 'Champion’s salute',
+  'hat:launchwinner': 'Launch Winner’s cup',
+  'aim:launchwinner': 'Winner’s laurels',
+  badge: '🏆 Launch Winner badge',
+};
+
+/** The picture for a look (an 80×60 SVG, or the badge). */
+export function lookPic(ref: string, color: number): string {
+  const [kind, id] = ref.split(':');
+  switch (kind) {
+    case 'aim': return aimSvg(id, color);
+    case 'fx': return fxSvg(id);
+    case 'arena': return arenaSvg(id);
+    case 'grave': return graveSvg(id, color);
+    case 'music': return musicSvg(id);
+    case 'hat': return mascotSvg(color, id);
+    default: return '<div class="badge-pic">🏆</div>';
+  }
+}
+
+export const LOOK_CSS = `
+.look { flex: 1 1 0; min-width: 0; background: #fff8ec; border: 6px solid #2b1b24; border-radius: 28px; box-shadow: 0 10px 0 #2b1b24; padding: 16px 16px 14px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; }
+.look .pic { flex: none; aspect-ratio: 4 / 3; width: 100%; display: flex; align-items: center; justify-content: center; }
+.look .pic svg { width: 100%; height: auto; max-height: 100%; }
+.look.arena { padding: 0 0 14px; }
+.look.arena .pic svg { height: 100%; border-bottom: 6px solid #2b1b24; }
+.look.aim .pic svg, .look.fx .pic svg, .look.music .pic svg { transform: scale(1.15); }
+.look .name { position: relative; z-index: 1; font-size: 36px; line-height: 1.1; text-align: center; margin-top: 10px; }
+.badge-pic { width: 250px; height: 250px; border-radius: 50%; background: #ffd84a; border: 8px solid #2b1b24; display: flex; align-items: center; justify-content: center; font-size: 150px; }
+`;
+
+/** One look in its cream panel, with its name under it. */
+export const lookPanel = (ref: string, color: number, style = '') =>
+  `<div class="look ${ref.split(':')[0]}" style="${style}"><div class="pic">${lookPic(ref, color)}</div><div class="name">${LOOK_NAMES[ref] ?? ref}</div></div>`;

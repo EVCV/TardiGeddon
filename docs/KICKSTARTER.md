@@ -5,10 +5,10 @@ pay to keep the servers running and fund the next year of updates, and get
 **thank-you rewards that are cosmetic only** (the same rule as the shop:
 nothing that wins matches, never Slime or weapons, see CLAUDE.md).
 
-Status: **getting ready** (3 Nov 2026). The game launches on **Tue 1 Dec
-2026**; the campaign runs **Tue 19 Jan to Thu 18 Feb 2027** (§2). Setup
-steps are in §10 and the page text, ready to paste, in §11. Decisions still
-open are listed in §9.
+Status: **shelved** (4 Nov 2026). We're not running a Kickstarter. This page
+stays as a record, in case it's useful later; nothing here is planned or
+scheduled. (Written for the 1 Dec 2026 launch, with a campaign from 19 Jan to
+18 Feb 2027.)
 
 ---
 

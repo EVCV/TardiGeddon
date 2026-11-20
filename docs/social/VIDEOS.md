@@ -1,7 +1,7 @@
 # Videos: a weekly routine with no editing
 
-Status: **plan** (4 Nov 2026). The tools in §3 are to build; the rest is how
-we'll use them.
+Status: **long videos from CPU matches: built** (§3.6, 4 Nov 2026). The
+other tools in §3 are still to build; the rest is how we'll use them.
 
 **The idea:** nobody edits video by hand. TardiGeddon already replays any
 match exactly (the sim is deterministic: a replay is the recorded button
@@ -61,6 +61,81 @@ If you'd ever rather have a professional finish a trailer, the same tool
 exports the raw footage at full quality, so an editor (e.g. a freelancer,
 for a few hundred pounds) gets perfect clips to work with.
 
+### The weekly mix (settled 16 Nov 2026)
+
+Lots of different videos, every one of them real gameplay, so there is always
+something new to post. Every video tells a story a stranger can follow with the
+sound off: a hook in the first second, who fires what at whom, what happened,
+and how many teams are left.
+
+| Week | Long video (YouTube and Facebook) | Voice |
+|---|---|---|
+| 1 | **Top 10 shots** (big matches): cold open on the #1 hit, what the game is, then #10 down to #1 | AI narrator |
+| 2 | **Match of the week**: one whole match, the teams introduced, a teams-left counter, the winner | the owner's cloned voice |
+| 3 | **Top 10 shots** (one on one) | AI narrator |
+| 4 | **Building a game with AI**: a real bug and its fix, filmed in an editor (`npm run videos:code`, `docs/social/CODE_VIDEOS.md`) | the owner's cloned voice |
+
+Facebook's own gaming audience is small and shrinking, and its feed puts long
+videos alongside Reels, so each long video also goes to YouTube, and its best
+moments go to Facebook as Reels (the Shorts).
+
+| Shorts kind (`--kind`) | What | Hook (first second) |
+|---|---|---|
+| `hits` | the biggest hits | "3 tardigrades. One shot. 😳" |
+| `fails` | own goals | "Wait for it… 🤦" |
+| `water` | knocked into the sea | "Straight into the sea 🌊" |
+| `long` | hits from across the map | "From across the map 🎯" |
+| `last` | the last tardigrade of a team strikes back | "Last one standing. One shot." |
+| `wipeout` | a whole team gone in one turn | "One shot. A whole team gone. 💀" |
+
+Mix the kinds across the week (Mon, Wed, Fri) so no two in a row are alike.
+A batch (§3.8) makes eight weeks at a time: `store/video-batches/2026-12-01`.
+
+### How often, and how much AI (settled 7 Nov 2026)
+
+| | Per week | When (UK) |
+|---|---|---|
+| Long gameplay video (YouTube) | 1 | Saturday |
+| Shorts (YouTube, TikTok, Reels, Facebook) | 3 | Mon, Wed, Fri |
+| …of which with an AI trailer bit | at most 1 | Wednesday |
+
+Shorts and TikTok rank each video on whether people watch it to the end, not
+on how often we post, so three good ones beat a daily stream of weak ones.
+After four weeks, check views per Short: if they're low, drop to two a week
+rather than posting more. Keep about a month of videos made ahead.
+
+**AI trailer bits** (made in Montaj with Gemini video and a Gemini voice):
+
+- Gameplay is the video. The AI part is a 3 to 8 second "movie trailer"
+  opener or punchline, at most a quarter of the Short.
+- It is never passed off as gameplay: it's obviously a trailer scene, then a
+  hard cut to the real game.
+- It stays on-model: Gemini gets our own character art as reference
+  (`store/social/game-cover.png`).
+- Say so when posting: TikTok "AI-generated content" and YouTube "altered or
+  synthetic content" on in Sociamonials (`tiktok.ai_generated_content`,
+  `youtube.synthetic_media`).
+- Cost: Gemini video is about $0.10 a second (an 8 s clip about $0.80).
+
+**Narration on the long videos:** the renderer writes it with each video:
+`<name>-narration.txt` (every line with the time to start it) and
+`<name>-narration.srt` (the same as subtitles, to drop on the timeline). It's
+built from what happened ("Squish from Brave Pebbles has the Concrete Tun…
+A double! Two tardigrades popped."), different words each time. The same
+story is on screen as captions, so a video makes sense without the voice too.
+Top 10s get the AI narrator; whole matches and the coding videos get the
+owner's cloned voice. Montaj mixes the voice in with the music ducked under
+it (about -12 dB). Tick YouTube's "altered or synthetic" box (and TikTok's
+"AI-generated content") for any AI or cloned voice.
+
+**Thumbnails:** every long video has `<name>-thumb.jpg` (from the renderer)
+and every Short a `<name>-cover.jpg` (the frame where the Montaj pop-up
+lands), in `store/videos/<batch>/final/`. Sociamonials only attaches a video
+cover on Facebook, Instagram, Pinterest, LinkedIn and Google Business
+(`video_thumbnail_url`). For YouTube, upload the thumbnail in YouTube Studio
+after the video goes up (Shorts: pick the frame in the YouTube app); for
+TikTok, pick the cover in the app.
+
 ## 2. The weekly routine (about 45 minutes)
 
 1. **Play** a few matches as normal (against the CPU or online). When
@@ -108,21 +183,185 @@ In this order; each step is useful on its own.
 5. **Thumbnails** from a frame of each video on the template
    (`store/social/youtube-thumb-template.png`).
 
+6. **Coding videos** ("I'm building a game with AI"): **built**,
+   `npm run videos:code -- --commit <sha>` turns a real commit into a long
+   video, a Short, a thumbnail and a narration script. See
+   [CODE_VIDEOS.md](CODE_VIDEOS.md).
+
 Roughly a week of work for steps 1 to 3, then a day each for 4 and 5.
+
+### 3.6 Long videos from CPU matches (built)
+
+No playing needed: the computer plays hundreds of matches against itself
+(2 to 10 teams, every map style and game style, random hats), and the best
+moments are filmed in the real game.
+
+**On your own computer (Windows), once:** install Node.js 22
+(nodejs.org), Git, and ffmpeg (`winget install ffmpeg` in PowerShell, then
+open a new window). Then in the TardiGeddon folder: `npm ci` and
+`npx playwright install chromium`. Or just ask Claude in a session: it can
+run all of this in the cloud and send you the files.
+
+1. **Scout** (about 20 minutes for 200 matches on a 4-core computer; nothing
+   is drawn):
+
+   ```bash
+   npm run videos:scout -- --matches 200 --teams 2-10
+   ```
+
+   Each turn is scored (damage, tardis popped, drowned, several at once,
+   superweapons, own goals). The best 40 matches are kept as replays in
+   `store/videos/scout/matches/`, with the top moments of all in
+   `store/videos/scout/index.json`. Same seeds, same matches, every time
+   (`--seed 201` for a fresh 200).
+2. **Film** (needs the game running: `npm run build`, then
+   `npx vite preview --port 4173` in another terminal; and `ffmpeg`):
+
+   ```bash
+   npm run videos:render -- best --teams 6 --count 10
+   ```
+
+   - `best`: a **Top 10 countdown**: the top `--count` moments of all, at most
+     `--per-match` per match and `--per-weapon` per weapon, from #10 to #1,
+     each with its number, where it happened, who fires what and the result.
+     `--teams 6` keeps only matches with 6 or more teams (**pure mayhem**).
+     `--skip top10-mayhem-1` leaves out the moments an earlier countdown used
+     (each writes `<name>-moments.txt`), so the next Top 10 has new shots.
+   - `match --seed 4` (or `--pick 2`: the scout's second-best finished
+     match): **one whole match**: the teams introduced on a card in their
+     colours, its best moments in order with a teams-left counter, ending on
+     the winning shot and a "… win!" card.
+   - **Every long video** opens cold on its best hit in slow motion with a
+     hook, then a title card that says what the game is ("Tiny tardigrades.
+     Very big weapons. One shot a turn. Last team standing wins."), and comes
+     with its narration script (§1).
+   - **Music is built in:** each video gets one of the game's own tracks,
+     rendered to a file by `scripts/videos/music.ts`: a lively one (Disco
+     Droplet, Moss Skirmish, 8-Bit Puddle, Sea Shanty Slam, Boss Battle) for
+     matches of 4 teams or more, a calm one (Lo-fi Lichen, Cosmic Crawl, Pond
+     Lobby, Daybreak, Spooky Swamp) for smaller ones, different from video to
+     video (`scripts/videos/sound.mjs`). The owner found the tracks too shrill,
+     loud and hyper as they are, so in videos they're played 5 notes lower
+     (same tempo), with the sharp top softened, at -20 LUFS (about half
+     YouTube's full loudness; any music file gets the same level). That needs
+     an ffmpeg with the `rubberband` filter; without it the pitch is left as is.
+     They're ours, so no licence or Content ID claims. `--music game:spooky` picks another (`npx tsx
+     scripts/videos/music.ts list`), `--music track.mp3` uses a file of your
+     own (licensed for this; it stays out of the repository), `--music none`
+     is silent. The game's sound effects are made live and can't be filmed.
+   - `shorts --count 8 --kind fails`: **vertical Shorts** (1080×1920) for
+     YouTube Shorts, TikTok, Reels and Facebook: one moment each of a kind
+     (§1: `hits`, `fails`, `water`, `long`, `last`, `wipeout`; one per match,
+     at most two per weapon). Each opens on a hook, says who fires what, shows
+     what happened, then the hit again in slow motion and a "Play free" card,
+     15 to 25 seconds, each with a different game track. `--used used.txt`
+     keeps a list of the moments made into Shorts, so no two Shorts are the
+     same moment. Each gets a `.txt` with the Shorts title, a caption that
+     suits every platform, and a short narration in case you add a voice.
+   - **How each moment is filmed:** it starts 1.5 s before the shot with the
+     camera already in place, and runs until everything has landed, the
+     damage has been counted and anyone popped has finished popping (in this
+     game the damage shows after the shooter's retreat time, seconds after the
+     blast). The dead air in between (the retreat time, waiting for the count)
+     runs at up to 4× speed, easing back before anything happens. The filming
+     camera (`steady` in `src/render/renderer.ts`) keeps everything that
+     matters in the picture at once (the shot and where it's heading, anyone
+     flying, mines counting down, blasts, everyone hurt), zooms out to fit it,
+     glides on a spring (`src/render/cameraMotion.ts`: no jolts), and holds
+     still for the fade out. The Shorts' slow motion is the hit itself.
+   - **Scouted with older tools?** `npx tsx scripts/videos/scout.ts --remark
+     store/video-batches/<batch>/scout-big` works the moments out again from
+     the saved replays (it stops if a replay no longer plays out the same).
+   - **Which is which:** whole matches and compilations go to YouTube only
+     (16:9, long, with chapters); everything else is a Short.
+
+   - `--max-teams 3` keeps only small matches (one on one), `--name` and
+     `--title` name the video, `--thumb "BEST|SHOTS"` sets the thumbnail's
+     two lines, `--scout store/videos/scout-big` picks another scout's matches.
+
+   Out comes `store/videos/<name>.mp4` (1920×1080, 30 fps), `<name>-thumb.jpg`
+   (the YouTube thumbnail: the best moment, zoomed in, with big text),
+   `<name>.txt` (the title, description with **YouTube chapters**, one per
+   moment, tags and the upload answers) and `<name>-narration.txt` /
+   `.srt`. Filming runs about
+   4 to 8 video frames a second, so an 8-minute video takes about an hour;
+   leave it running.
+3. **Watch it**, then upload to YouTube (Studio, or Sociamonials' YouTube
+   profile), with the `.txt` as the description. Every match in it was played
+   by the computer: the description says so.
+
+### 3.8 A batch on your own PC
+
+Each batch's replays are kept in `store/video-batches/<batch>/` with a
+`batch.json` recipe, so any computer can film the same videos: the sim plays
+a replay out identically everywhere. One command films the lot into
+`store/videos/<batch>/` (videos, thumbnails, texts, and the music as MP3s),
+starting the game itself:
+
+```bash
+npm run videos:batch -- 2026-11-05
+```
+
+Once, on Windows: install Node.js 22 (nodejs.org) and ffmpeg (`winget install
+ffmpeg`, then open a new PowerShell window), then in the TardiGeddon folder
+`git pull`, `npm ci` and `npx playwright install chromium`. A batch takes a
+few hours (faster on a PC with a graphics card than in the cloud); leave it
+running, and run the same command again after an interruption to carry on.
+
+### 3.7 Straight to Google Drive
+
+`node scripts/videos/upload-drive.mjs` uploads everything in `store/videos/`
+(videos, thumbnails, texts) into **TardiGeddon videos** in Google Drive
+(`YouTube/` and `Shorts/`), skipping files already there. It works from a
+cloud session, so finished videos never need downloading. (The Google Drive
+connector can't do this: it only takes a file written out in the chat,
+which is far too big for a video.)
+
+It needs a Google sign-in for the uploader, made once:
+
+1. **A Google Cloud project for tools** (keep it apart from the game's sign-in
+   project): console.cloud.google.com → New project → "TardiGeddon tools".
+2. **APIs & Services → Library → Google Drive API → Enable.**
+3. **Google Auth Platform → Branding:** app name "TardiGeddon video
+   uploader", your email. **Audience:** External, then **Publish app**
+   ("In production"; in "Testing" the sign-in stops working after 7 days).
+   No verification is needed: the uploader only asks for `drive.file`.
+4. **Clients → Create client → Web application**, name "Video uploader",
+   Authorised redirect URI `https://developers.google.com/oauthplayground`.
+   Copy the **Client ID** and **Client secret**.
+5. **developers.google.com/oauthplayground** → ⚙ (top right) → tick **Use
+   your own OAuth credentials**, paste both. On the left, type the scope
+   `https://www.googleapis.com/auth/drive.file` → **Authorize APIs** → sign
+   in with the Google account whose Drive you want → **Exchange
+   authorization code for tokens** → copy the **Refresh token**.
+6. **The cloud environment's settings** (the environment menu in a Claude
+   Code session's title bar → Edit), as environment variables:
+   `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`. Never
+   paste them into a chat. New sessions pick them up.
+
+`drive.file` means the uploader only sees what it made itself: it can't read
+or change anything else in the Drive. To cut it off, remove "TardiGeddon video
+uploader" at myaccount.google.com → Security → Third-party connections.
+
+Ideas for series: *10-team mayhem* (weekly), *one whole match* (`match`), a
+*best of the month*, and per map style (`--teams 2` plus a map filter, to
+add).
 
 ## 4. Rules for every video
 
 - Never say "Worms" or use other games' footage or names (README: Rules).
 - **Music:** only the game's own tracks, YouTube's Audio Library, or each
-  platform's licensed sounds. No chart music.
+  platform's licensed sounds. No chart music. Keep it in the background:
+  -20 LUFS, never the game's tracks at their own bright pitch (§3.6).
 - **Fair play:** never suggest money buys power. Shop items in videos are
   looks.
 - **Kids watch:** cartoon explosions are fine; keep titles and captions
   friendly, no "rage", no bait.
 - **Captions** on everything; British spelling.
-- **AI:** footage is the real game. If a voiceover is ever made with an AI
-  voice, YouTube and TikTok ask you to say so when uploading; your own voice
-  needs nothing.
+- **AI:** gameplay footage is always the real game. AI trailer bits are
+  allowed in some Shorts (§1, "How often, and how much AI"), clearly as
+  trailer scenes, never as gameplay. Any AI picture or voice (a cloned voice
+  too) means ticking the AI / synthetic content box when posting.
 - **Made for kids? (YouTube):** answer "No" (the audience is everyone,
   teens and adults included), as in YOUTUBE.md.
 

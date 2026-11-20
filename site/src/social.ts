@@ -1,5 +1,9 @@
 // The game's official accounts (docs/social/): the footer's "Follow" links and
 // the Organization's sameAs for search engines both come from this list.
+// Website only: the game and the apps never import it (Patreon must not be
+// linked from the apps).
+
+import { PATREON_LIVE, PATREON_URL } from './patrons';
 
 export interface SocialAccount {
   label: string;
@@ -22,4 +26,5 @@ export const SOCIAL: SocialAccount[] = [
   { label: 'Reddit', href: 'https://www.reddit.com/r/TardiGeddon' },
   { label: 'itch.io', href: 'https://tardigeddon.itch.io/tardigeddon' },
   { label: 'IGDB', href: 'https://www.igdb.com/games/tardigeddon' },
+  ...(PATREON_LIVE ? [{ label: 'Patreon', href: PATREON_URL }] : []),
 ];

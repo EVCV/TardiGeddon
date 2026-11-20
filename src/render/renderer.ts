@@ -13,6 +13,7 @@ import { aimStyle, crownShape, fxStyle, laurelLeaves, mixColor, rainbowAt, type 
 import { arenaTheme, type ArenaTheme } from './arenas';
 import { WeatherView } from './weather';
 import { GroundWeather } from './groundWeather';
+import { bounds, spring1, springTo, type Vec } from './cameraMotion';
 import { t } from '../i18n/i18n';
 import { tk } from '../i18n/tk';
 
@@ -57,6 +58,17 @@ export class Camera {
   held = false;
   /** Where their tardi stood when they did: the view stays put until it moves (or a shot flies). */
   heldAt: { x: number; y: number } | null = null;
+  /** How fast the view is moving (world units a second): pans ease in and out. */
+  vel = { x: 0, y: 0 };
+  /** Filming (the video tools): frame everything that's happening (every bit in
+   *  the air, every blast, everyone hurt), zooming out to fit it and gliding
+   *  slower. Off in the game. */
+  steady = false;
+  /** Filming: the closest zoom; the view zooms out from here when the action spreads. */
+  steadyZoom = 0;
+  zoomVel = { v: 0 };
+  /** Filming: jump straight to the framing on the next update (the first frame of a clip is never mid-pan). */
+  snap = false;
 }
 
 export class GameRenderer {
@@ -101,6 +113,10 @@ export class GameRenderer {
    *  it has played out, or the player whose turn it is moves off. `ax`/`ay`:
    *  where that player stood. */
   private watch: { x: number; y: number; until: number; turn: number; ax: number; ay: number } | null = null;
+  /** Filming: every recent blast and hit, kept in the picture while they play out. */
+  private marks: { x: number; y: number; until: number }[] = [];
+  /** The shot the game's camera is following (cluster bits: it sticks to one, not whichever is first). */
+  private follow = -1;
   /** When each tardi last said "Whoa!", so it doesn't repeat itself. */
   private teeterSaid = new Map<number, number>();
   private confettiDone = false;
@@ -493,6 +509,10 @@ export class GameRenderer {
     const a = activeTardi(s);
     const w = this.watch;
     const fresh = !w || w.turn !== s.turn.turnNumber;
+    if (this.camera.steady) {
+      this.marks = this.marks.filter((m) => m.until > this.time).slice(-11);
+      this.marks.push({ x, y, until: this.time + Math.min(hold, 1.4) });
+    }
     this.watch = {
       x,
       y,
@@ -1164,43 +1184,38 @@ export class GameRenderer {
     const lookingAround =
       cam.held && cam.heldAt && me && s.turn.phase === 'aim' && s.projectiles.length === 0 && !me.airborne && Math.abs(me.x - cam.heldAt.x) + Math.abs(me.y - cam.heldAt.y) < 6;
     if (now > cam.manualUntil && !lookingAround) {
-      let target: { x: number; y: number } | null = null;
       const champ = s.turn.phase === 'gameover' ? s.tardis.find((t) => t.alive && t.team === s.turn.winner) : undefined;
-      if (champ) {
-        // Game over: watch the winners dance.
-        target = this.lerpPos(champ.id, champ.x, champ.y, alpha);
-      } else if (s.projectiles.length > 0) {
-        const p = s.projectiles[0];
-        target = this.lerpPos(p.id, p.x, p.y, alpha);
-      } else if (this.pickingSpot(s) && (s.turn.target || cam.held)) {
-        // Picking a spot on the map (a strike, the Teleport…): the view stays on
-        // the spot picked, or where the player looked, not back on the tardi.
-        target = s.turn.target && !this.inMiddleOfView(s.turn.target) ? { x: s.turn.target.x, y: s.turn.target.y + 40 } : null;
+      const { width } = this.app.screen;
+      if (cam.steady) {
+        this.steadyCamera(s, dt, alpha, champ);
       } else {
-        const a = activeTardi(s);
-        const moving = s.tardis.find((t) => t.alive && t.airborne && (t.knocked || t.thrown));
-        const w = this.watch;
-        if (w && a) {
-          // Thrown about by the blast: that's not the player walking off.
-          if (a.airborne || a.knocked) {
-            w.ax = a.x;
-            w.ay = a.y;
-          } else if (Math.abs(a.x - w.ax) + Math.abs(a.y - w.ay) > 8) this.watch = null;
+        let target: Vec | null = null;
+        if (champ) {
+          // Game over: watch the winners dance.
+          target = this.lerpPos(champ.id, champ.x, champ.y, alpha);
+        } else if (s.projectiles.length > 0) {
+          target = this.followShot(s, alpha);
+        } else if (this.pickingSpot(s) && (s.turn.target || cam.held)) {
+          // Picking a spot on the map (a strike, the Teleport...): the view stays on
+          // the spot picked, or where the player looked, not back on the tardi.
+          target = s.turn.target && !this.inMiddleOfView(s.turn.target) ? { x: s.turn.target.x, y: s.turn.target.y + 40 } : null;
+        } else {
+          const a = activeTardi(s);
+          const moving = s.tardis.find((t) => t.alive && t.airborne && (t.knocked || t.thrown));
+          this.dropWatch(s);
+          if (moving) target = this.lerpPos(moving.id, moving.x, moving.y, alpha);
+          else if (this.watch) target = this.watch;
+          else if (a?.alive) target = this.lerpPos(a.id, a.x, a.y, alpha);
         }
-        // After the shot (retreat, then the damage being counted) it stays until
-        // the player moves or the next turn starts; otherwise (a mine going off
-        // as someone walks) just long enough to see it.
-        const afterShot = s.turn.phase === 'retreat' || s.turn.phase === 'settle';
-        if (this.watch && (this.watch.turn !== s.turn.turnNumber || (!afterShot && this.time > this.watch.until))) this.watch = null;
-        if (moving) target = this.lerpPos(moving.id, moving.x, moving.y, alpha);
-        else if (this.watch) target = this.watch;
-        else if (a?.alive) target = this.lerpPos(a.id, a.x, a.y, alpha);
+        if (target) {
+          // A spring, not a snap: a new target starts a smooth pan (tight on a shot in flight).
+          springTo(cam, cam.vel, { x: target.x, y: target.y - 40 }, s.projectiles.length > 0 ? 0.12 : 0.3, dt, (1.8 * width) / cam.zoom);
+        }
       }
-      if (target) {
-        const k = 1 - Math.pow(0.02, dt);
-        cam.x += (target.x - cam.x) * k;
-        cam.y += (target.y - 40 - cam.y) * k;
-      }
+    } else {
+      // The player is moving the view: no leftover glide when the camera takes over again.
+      cam.vel.x = 0;
+      cam.vel.y = 0;
     }
     const { width, height } = this.app.screen;
     // Also catches a window resize that leaves the old zoom too far out.
@@ -1211,15 +1226,123 @@ export class GameRenderer {
     // a tardi at the very edge can still be brought out from under the touch
     // controls (in the corners) to where it can be seen and aimed.
     const pastX = VIEW_MARGIN_X + halfW * 0.5;
-    cam.x = clamp(cam.x, -pastX + halfW, s.terrain.w + pastX - halfW, s.terrain.w / 2);
+    const cx = clamp(cam.x, -pastX + halfW, s.terrain.w + pastX - halfW, s.terrain.w / 2);
     // A view taller than the map (tall phone screens) centres it, with sky
     // above and deep sea below (drawWater reaches far enough down).
-    cam.y = clamp(cam.y, -300 + halfH, s.waterY + 60 + halfH * 0.7 - halfH, (s.waterY - 240) / 2);
+    const cy = clamp(cam.y, -300 + halfH, s.waterY + 60 + halfH * 0.7 - halfH, (s.waterY - 240) / 2);
+    // Held at an edge: it stops there (no speed saved up to fling it off later).
+    if (cx !== cam.x) cam.vel.x = 0;
+    if (cy !== cam.y) cam.vel.y = 0;
+    cam.x = cx;
+    cam.y = cy;
     this.world.scale.set(cam.zoom);
     this.world.position.set(width / 2 - cam.x * cam.zoom, height / 2 - cam.y * cam.zoom);
     // Parallax: background hills move slower than the world.
     this.hills.position.set(cam.x * 0.55, cam.y * 0.4);
     this.hillsNear.position.set(cam.x * 0.3, cam.y * 0.2);
+  }
+
+  /** The game's camera on shots in flight: all of a cluster while it fits in the view, else one bit (the same one throughout). */
+  private followShot(s: WorldState, alpha: number): Vec {
+    const cam = this.camera;
+    const { width, height } = this.app.screen;
+    const at = s.projectiles.map((p) => this.lerpPos(p.id, p.x, p.y, alpha));
+    const b = bounds(at)!;
+    let i = s.projectiles.findIndex((p) => p.id === this.follow);
+    if (i < 0) {
+      // The one nearest the view: no jump when the bit being followed goes off.
+      i = 0;
+      for (let j = 1; j < at.length; j++) if (Math.hypot(at[j].x - cam.x, at[j].y - cam.y) < Math.hypot(at[i].x - cam.x, at[i].y - cam.y)) i = j;
+      this.follow = s.projectiles[i].id;
+    }
+    if (b.x1 - b.x0 < (width * 0.6) / cam.zoom && b.y1 - b.y0 < (height * 0.6) / cam.zoom) return { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+    return at[i];
+  }
+
+  /** Forget the blast being watched once it has played out, or the player whose turn it is walks off. */
+  private dropWatch(s: WorldState): void {
+    const a = activeTardi(s);
+    const w = this.watch;
+    if (w && a) {
+      // Thrown about by the blast: that's not the player walking off.
+      if (a.airborne || a.knocked) {
+        w.ax = a.x;
+        w.ay = a.y;
+      } else if (!this.camera.steady && Math.abs(a.x - w.ax) + Math.abs(a.y - w.ay) > 8) this.watch = null;
+    }
+    // After the shot (retreat, then the damage being counted) it stays until
+    // the player moves or the next turn starts; otherwise (a mine going off
+    // as someone walks) just long enough to see it.
+    const afterShot = s.turn.phase === 'retreat' || s.turn.phase === 'settle';
+    if (this.watch && (this.watch.turn !== s.turn.turnNumber || (!afterShot && this.time > this.watch.until))) this.watch = null;
+  }
+
+  /**
+   * Filming: frame everything that matters at once (every bit in the air and
+   * where it's heading, everyone flying, every recent blast, everyone hurt and
+   * about to pop), zoom out just enough to fit it, and glide there. After the
+   * shot it stays on the ones who were hit until the damage is counted, so the
+   * view doesn't wander back to the shooter and over again.
+   */
+  private steadyCamera(s: WorldState, dt: number, alpha: number, champ: Tardi | undefined): void {
+    const cam = this.camera;
+    const { width, height } = this.app.screen;
+    const base = cam.steadyZoom || cam.zoom;
+    this.marks = this.marks.filter((m) => m.until > this.time);
+    this.dropWatch(s);
+    const pts: Vec[] = [];
+    let flying = false;
+    if (champ) {
+      for (const t of s.tardis) if (t.alive && t.team === champ.team) pts.push(this.lerpPos(t.id, t.x, t.y, alpha));
+    } else {
+      for (const p of s.projectiles) {
+        const at = this.lerpPos(p.id, p.x, p.y, alpha);
+        // Where it's heading too (half a second on, at most a third of the view away): the view keeps up with it.
+        const speed = Math.hypot(p.vx, p.vy) * 50;
+        const lead = speed > 0 ? Math.min(0.5, (width * 0.3) / cam.zoom / speed) * 50 : 0;
+        pts.push(at, { x: at.x + p.vx * lead, y: at.y + p.vy * lead });
+        flying = true;
+      }
+      for (const t of s.tardis) {
+        if (t.alive && t.airborne && (t.knocked || t.thrown)) {
+          const at = this.lerpPos(t.id, t.x, t.y, alpha);
+          pts.push(at, { x: at.x + t.vx * 12, y: at.y + t.vy * 12 });
+          flying = true;
+        } else if (this.dying.has(t.id) || (t.alive && t.pendingDmg > 0 && s.turn.phase !== 'aim')) {
+          // Hit, and about to see the damage (or curling up to pop).
+          pts.push({ x: t.x, y: t.y });
+        }
+      }
+      // A mine counting down, a barrel or crate tumbling: in the picture too.
+      for (const o of s.objects) if ((o.airborne && !o.chute) || o.fuse > 0) pts.push(this.lerpPos(o.id, o.x, o.y, alpha));
+      for (const m of this.marks) pts.push(m);
+      if (this.pickingSpot(s) && s.turn.target) pts.push(s.turn.target);
+      if (pts.length === 0) {
+        const a = activeTardi(s);
+        if (this.watch) pts.push(this.watch);
+        else if (a?.alive) pts.push(this.lerpPos(a.id, a.x, a.y, alpha));
+      }
+    }
+    const b = bounds(pts);
+    if (!b) return;
+    // Zoom out to fit it all (with room round the edges), never past about half the usual zoom.
+    const pad = 150;
+    const fit = Math.min((width * 0.8) / (b.x1 - b.x0 + 2 * pad), (height * 0.7) / (b.y1 - b.y0 + 2 * pad));
+    const want = Math.max(Math.min(base, fit), base * 0.55, this.minZoom());
+    const to = { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 - 40 };
+    if (cam.snap) {
+      cam.snap = false;
+      cam.zoom = want;
+      cam.x = to.x;
+      cam.y = to.y;
+      cam.vel.x = cam.vel.y = cam.zoomVel.v = 0;
+      return;
+    }
+    // Out promptly (the action must stay in the picture), back in gently.
+    const lz = spring1(Math.log(cam.zoom), cam.zoomVel, Math.log(want), want < cam.zoom ? 0.45 : 1.1, dt);
+    cam.zoom = Math.exp(lz);
+    // Quick enough to keep up with a shot; gentler between things.
+    springTo(cam, cam.vel, to, flying ? 0.28 : 0.55, dt, ((flying ? 1.4 : 0.9) * width) / cam.zoom);
   }
 
   destroy(): void {

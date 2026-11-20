@@ -172,7 +172,12 @@ async function boot(): Promise<void> {
   if (auto === 'tutorial') tutorial();
   else if (auto === 'practice') practice(params.get('endless') !== null);
   else if (auto === 'targets' || auto === 'rope') challenge(auto);
-  else if (auto) {
+  else if (auto === 'replay') {
+    // Video tools (scripts/videos/render.mjs): a replay they put on the page before it loaded.
+    // (Checked in the match's own download: the menu stays free of the sim.)
+    const r = (window as unknown as { __replay?: unknown }).__replay;
+    void import('./stats/matchReplay').then((m) => (m.isReplay(r) ? watch(r) : menu()));
+  } else if (auto) {
     // ?autostart=cpu|hotseat, optionally &players=N (first slot human, rest CPU),
     // &style=PRESET (game style), &map=STYLE (map style) and &seed=N.
     const n = Number(params.get('players')) || 2;

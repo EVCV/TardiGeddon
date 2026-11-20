@@ -55,7 +55,7 @@ export class WeatherView {
     /** The arena already snows or rains embers: don't double up. */
     hasDrift: boolean,
   ) {
-    const n = hasDrift ? 0 : kind === 'rain' ? 140 : kind === 'storm' ? 220 : kind === 'snow' ? 90 : 0;
+    const n = hasDrift ? 0 : kind === 'rain' ? 55 : kind === 'storm' ? 90 : kind === 'snow' ? 90 : 0;
     for (let i = 0; i < n; i++) this.drops.push({ x: Math.random(), y: Math.random(), v: 0.6 + Math.random() * 0.6, r: 1 + Math.random() * 1.6, p: Math.random() * 6.28 });
     this.eggs = {
       duck: Math.random() < 1 / 25 ? 150 + Math.random() * (mapW - 300) : null,
@@ -142,13 +142,14 @@ export class WeatherView {
         for (const d of this.drops) {
           const x = d.x * width;
           const y = d.y * height;
-          const len = 10 + d.r * 4;
+          const len = 8 + d.r * 3;
           f.moveTo(x - lean * (len / 16), y - len).lineTo(x, y);
         }
-        f.stroke(pass === 0 ? { width: 5, color: 0x2a5a9a, alpha: 0.6, cap: 'round' } : { width: 2.8, color: 0xcfe8ff, alpha: 0.95, cap: 'round' });
+        // Light and see-through: the rain sets the mood, it mustn't hide the game.
+        f.stroke(pass === 0 ? { width: 3, color: 0x2a5a9a, alpha: 0.25, cap: 'round' } : { width: 1.6, color: 0xcfe8ff, alpha: 0.5, cap: 'round' });
       }
-      for (const d of this.drops) f.circle(d.x * width, d.y * height, 2 + d.r * 0.8);
-      f.fill({ color: 0xeaf6ff, alpha: 0.95 }).stroke({ width: 1.2, color: 0x2a5a9a, alpha: 0.6 });
+      for (const d of this.drops) f.circle(d.x * width, d.y * height, 1.2 + d.r * 0.5);
+      f.fill({ color: 0xeaf6ff, alpha: 0.5 }).stroke({ width: 1, color: 0x2a5a9a, alpha: 0.25 });
     } else if (this.drops.length) {
       this.drops.forEach((d, i) => {
         const x = d.x * width;
@@ -195,7 +196,7 @@ export class WeatherView {
       }
       if (this.flash > 0) {
         this.flash -= dt;
-        f.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: Math.max(0, this.flash) * 1.4 });
+        f.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: Math.max(0, this.flash) * 0.8 });
       }
     }
 

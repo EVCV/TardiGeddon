@@ -51,6 +51,9 @@ import { flushUsage, setUsagePlace, usage, usageError } from './usage/usage';
 import type { USAGE_MODES } from './usage/catalog';
 
 const TICK_MS = 1000 / TICK_RATE;
+/** Phones: how long after the last touch the game drops to 30 frames a second. */
+const CALM_AFTER_MS = 1500;
+const CALM_EVENTS = ['pointerdown', 'pointermove', 'keydown'] as const;
 const touchMode = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 
 /** The Pixi app the game draws into (one, made for the first match and kept). */
@@ -63,7 +66,9 @@ export function gameApp(): Promise<Application> {
     await a.init({
       resizeTo: window,
       background: '#7fd3f7',
-      antialias: true,
+      // Phones: no multisampling (at twice the pixels it barely shows, and it
+      // costs every frame); the phone stays cooler and the battery lasts.
+      antialias: !touchMode,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     });
@@ -107,6 +112,11 @@ export class Match {
   private theme: ArenaTheme;
   private acc = 0;
   private last = performance.now();
+  /** When the player last touched or pressed anything (phones draw fewer frames while it's calm). */
+  private lastPoke = performance.now();
+  private poke = () => {
+    this.lastPoke = performance.now();
+  };
   private detachKeys: () => void;
   private pointers = new Map<number, { x: number; y: number; startX: number; startY: number; moved: boolean; aim: boolean; button: number }>();
   private pinchDist = 0;
@@ -236,6 +246,7 @@ export class Match {
     if (this.state.tardis.some((x) => !this.state.teams[x.team].cpu && /^milnesium$/i.test(x.name.trim()))) findEgg('milnesium');
     this.announceMap();
     app.ticker.add(this.tickerFn);
+    if (touchMode) for (const ev of CALM_EVENTS) window.addEventListener(ev, this.poke, { capture: true, passive: true });
     (window as unknown as { __tardi: unknown }).__tardi = this; // for e2e tests
   }
 
@@ -412,6 +423,13 @@ export class Match {
 
   private frame(): void {
     const now = performance.now();
+    if (touchMode) {
+      // Phones: 30 frames a second while nothing flies, burns or is touched
+      // (the sim still runs at its own 50 ticks a second), full speed otherwise.
+      const s = this.state;
+      const calm = !this.replay && s.projectiles.length === 0 && s.flames.length === 0 && now - this.lastPoke > CALM_AFTER_MS;
+      this.app.ticker.maxFPS = calm ? 30 : 60;
+    }
     const dt = Math.min(250, now - this.last);
     this.last = now;
     if (this.replay) {
@@ -881,6 +899,8 @@ export class Match {
     if (this.net) this.net.client.onDrop = null;
     this.net = null;
     this.app.ticker.remove(this.tickerFn);
+    this.app.ticker.maxFPS = 0;
+    for (const ev of CALM_EVENTS) window.removeEventListener(ev, this.poke, { capture: true });
     this.detachKeys();
     const c = this.app.canvas;
     c.onpointerdown = c.onpointermove = c.onpointerup = c.onpointercancel = null;

@@ -274,6 +274,15 @@ export async function setStripeCustomerId(db: Pool, userId: string, customerId: 
   return (await stripeCustomerId(db, userId)) ?? customerId;
 }
 
+/**
+ * Swap a saved Stripe customer that Stripe no longer knows (e.g. made with test keys
+ * before the live ones) for a new one; if another request swapped it first, theirs wins.
+ */
+export async function replaceStripeCustomerId(db: Pool, userId: string, oldId: string, newId: string): Promise<string> {
+  await db.query('UPDATE stripe_customer SET customer_id = $3 WHERE user_id = $1 AND customer_id = $2', [userId, oldId, newId]);
+  return (await stripeCustomerId(db, userId)) ?? newId;
+}
+
 /** Delete expired sign-in sessions and one-time verification codes. */
 export async function purgeExpired(db: Pool): Promise<void> {
   await db.query('DELETE FROM session WHERE "expiresAt" < now()');
