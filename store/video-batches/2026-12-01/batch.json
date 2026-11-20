@@ -1,0 +1,21 @@
+{
+  "about": "Eight weeks of videos (scouted 16 Nov 2026, for posting from 1 Dec): 8 YouTube/Facebook videos (one a week: Top 10 countdowns and whole matches, each with a narration script) and 24 Shorts (three a week, six kinds). From the matches in scout-big/ (6 to 10 teams, seeds 5001+) and scout-duels/ (2 or 3 teams, seeds 6001+). Run: npm run videos:batch -- 2026-12-01",
+  "jobs": [
+    { "name": "top10-mayhem-1", "args": ["best", "--scout", "scout-big", "--teams", "6", "--count", "10", "--per-match", "2", "--per-weapon", "3", "--title", "Pure mayhem"] },
+    { "name": "match-of-the-week-1", "args": ["match", "--scout", "scout-big", "--pick", "1", "--min-score", "100"] },
+    { "name": "top10-duels-1", "args": ["best", "--scout", "scout-duels", "--max-teams", "3", "--count", "10", "--per-match", "2", "--per-weapon", "3", "--title", "One on one"] },
+    { "name": "match-of-the-week-2", "args": ["match", "--scout", "scout-duels", "--pick", "1", "--min-score", "100"] },
+    { "name": "top10-mayhem-2", "args": ["best", "--scout", "scout-big", "--teams", "6", "--count", "10", "--per-match", "1", "--per-weapon", "2", "--skip", "top10-mayhem-1", "--title", "Pure mayhem"] },
+    { "name": "match-of-the-week-3", "args": ["match", "--scout", "scout-big", "--pick", "2", "--min-score", "100"] },
+    { "name": "top10-duels-2", "args": ["best", "--scout", "scout-duels", "--max-teams", "3", "--count", "10", "--per-match", "1", "--per-weapon", "2", "--skip", "top10-duels-1", "--title", "One on one"] },
+    { "name": "match-of-the-week-4", "args": ["match", "--scout", "scout-duels", "--pick", "2", "--min-score", "100"] },
+    { "name": "short-hits-big", "shorts": 5, "args": ["shorts", "--scout", "scout-big", "--kind", "hits", "--count", "5", "--used", "used.txt"] },
+    { "name": "short-hits-duel", "shorts": 4, "args": ["shorts", "--scout", "scout-duels", "--kind", "hits", "--count", "4", "--used", "used.txt"] },
+    { "name": "short-fails", "shorts": 4, "args": ["shorts", "--scout", "scout-big", "--kind", "fails", "--count", "4", "--used", "used.txt"] },
+    { "name": "short-water", "shorts": 4, "args": ["shorts", "--scout", "scout-duels", "--kind", "water", "--count", "4", "--used", "used.txt"] },
+    { "name": "short-long", "shorts": 3, "args": ["shorts", "--scout", "scout-big", "--kind", "long", "--count", "3", "--used", "used.txt"] },
+    { "name": "short-last", "shorts": 2, "args": ["shorts", "--scout", "scout-duels", "--kind", "last", "--count", "2", "--used", "used.txt"] },
+    { "name": "short-wipeout", "shorts": 2, "args": ["shorts", "--scout", "scout-big", "--kind", "wipeout", "--count", "2", "--used", "used.txt"] }
+  ],
+  "music": []
+}

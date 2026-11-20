@@ -56,6 +56,7 @@ one for real and refund it from the Stripe dashboard (the looks go back).
    | Purchase option id | `supporter-2026-buy` | `patron-2026-buy` |
    | Purchase option | type **Buy**, backwards compatible on, multi-quantity **off** | the same |
    | Price | **Set prices → all countries/regions**, £9.99 | £19.99 |
+   | Icon | `store/google-play/products/supporter_2026.png` (512×512) | `store/google-play/products/patron_2026.png` |
 
    The product id can never be reused or changed (that's why it has the year in it).
 3. **Activate** the purchase option, then the product.
@@ -81,7 +82,8 @@ covers it.
    | Product ID | `supporter_2026` | `patron_2026` |
    | Price | Base country United Kingdom, £9.99 | £19.99 |
    | Localization (English U.K.): display name | Supporter pack | Patron pack |
-   | Description | A hat, a skin and a 💛 badge. | A hat, a skin, a world, music, an aim and a 💖 badge. |
+   | Description (45 characters at most) | A hat, a skin and a 💛 badge. | Supporter looks, a world, music and an aim. |
+| Image | `store/app-store/products/supporter_2026.png` (1024×1024) | `store/app-store/products/patron_2026.png` |
    | Family Sharing | **Off** (the looks belong to one TardiGeddon account) | Off |
 
 3. **Review screenshot:** the Shop with the Supporter section, taken from the

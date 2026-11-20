@@ -107,6 +107,10 @@ three Resources (Play, Discord, How to play).
 
 ## 7. Keeping it alive (about 15 minutes, twice a week)
 
+The full plan (three posts a week, written for Reddit rather than copied
+from the other socials, with six weeks of drafts) is in
+[REDDIT_POSTS.md](REDDIT_POSTS.md). In short:
+
 - **Every update:** post the News post (title + 3 best changes + link), News flair.
 - **Weekly:** one clip from the game (the Shorts work here too), and a
   "Daily challenge" scores thread on Mondays (Reddit can schedule it:

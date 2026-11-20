@@ -10,3 +10,5 @@ dist-ssr
 # Store pictures: English is kept; the other languages come from Actions → Store images.
 /store/listing/*/
 !/store/listing/en/
+# Video tools output (scripts/videos): big files, kept on your computer
+/store/videos/

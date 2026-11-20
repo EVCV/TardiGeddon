@@ -1,0 +1,4850 @@
+{
+  "made": "2026-11-16T21:36:28.516Z",
+  "matches": 200,
+  "minutes": 2.1,
+  "kept": [
+    {
+      "seed": 6078,
+      "teams": 3,
+      "style": "chaos",
+      "map": "sky",
+      "ticks": 13884,
+      "finished": true,
+      "winner": "Soggy Crumbs",
+      "score": 2718,
+      "moments": 15,
+      "best": 761
+    },
+    {
+      "seed": 6096,
+      "teams": 3,
+      "style": "chaos",
+      "map": "mainland",
+      "ticks": 14463,
+      "finished": true,
+      "winner": "Jolly Nuggets",
+      "score": 2236,
+      "moments": 22,
+      "best": 718
+    },
+    {
+      "seed": 6086,
+      "teams": 2,
+      "style": "chaos",
+      "map": "islands",
+      "ticks": 10326,
+      "finished": true,
+      "winner": "Squishy Lilies",
+      "score": 2188,
+      "moments": 12,
+      "best": 697
+    },
+    {
+      "seed": 6138,
+      "teams": 3,
+      "style": "chaos",
+      "map": "mainland",
+      "ticks": 26105,
+      "finished": true,
+      "winner": "Bubbly Rockets",
+      "score": 2120,
+      "moments": 27,
+      "best": 614
+    },
+    {
+      "seed": 6088,
+      "teams": 3,
+      "style": "chaos",
+      "map": "mainland",
+      "ticks": 15708,
+      "finished": true,
+      "winner": "Tiny Biscuits",
+      "score": 2070,
+      "moments": 23,
+      "best": 566
+    },
+    {
+      "seed": 6008,
+      "teams": 3,
+      "style": "chaos",
+      "map": "islands",
+      "ticks": 11819,
+      "finished": true,
+      "winner": "Bouncy Mochis",
+      "score": 2053,
+      "moments": 19,
+      "best": 476
+    },
+    {
+      "seed": 6011,
+      "teams": 3,
+      "style": "armoured",
+      "map": "islands",
+      "ticks": 14832,
+      "finished": true,
+      "winner": "Cosmic Puddles",
+      "score": 2044,
+      "moments": 23,
+      "best": 1119
+    },
+    {
+      "seed": 6173,
+      "teams": 2,
+      "style": "chaos",
+      "map": "caverns",
+      "ticks": 18666,
+      "finished": true,
+      "winner": "Dizzy Nuggets",
+      "score": 1969,
+      "moments": 19,
+      "best": 548
+    },
+    {
+      "seed": 6172,
+      "teams": 3,
+      "style": "chaos",
+      "map": "sky",
+      "ticks": 9872,
+      "finished": true,
+      "winner": "Jolly Rockets",
+      "score": 1904,
+      "moments": 16,
+      "best": 575
+    },
+    {
+      "seed": 6164,
+      "teams": 2,
+      "style": "chaos",
+      "map": "mainland",
+      "ticks": 10913,
+      "finished": true,
+      "winner": "Mighty Biscuits",
+      "score": 1856,
+      "moments": 16,
+      "best": 494
+    },
+    {
+      "seed": 6014,
+      "teams": 3,
+      "style": "standard",
+      "map": "mainland",
+      "ticks": 15581,
+      "finished": true,
+      "winner": "Brave Crumbs",
+      "score": 1816,
+      "moments": 20,
+      "best": 494
+    },
+    {
+      "seed": 6185,
+      "teams": 2,
+      "style": "chaos",
+      "map": "sky",
+      "ticks": 7649,
+      "finished": true,
+      "winner": "Sneaky Sprouts",
+      "score": 1809,
+      "moments": 11,
+      "best": 664
+    },
+    {
+      "seed": 6026,
+      "teams": 2,
+      "style": "chaos",
+      "map": "canyon",
+      "ticks": 7629,
+      "finished": true,
+      "winner": "Sparkly Lilies",
+      "score": 1757,
+      "moments": 12,
+      "best": 449
+    },
+    {
+      "seed": 6066,
+      "teams": 3,
+      "style": "pro",
+      "map": "canyon",
+      "ticks": 16551,
+      "finished": true,
+      "winner": "Jolly Lilies",
+      "score": 1726,
+      "moments": 25,
+      "best": 593
+    },
+    {
+      "seed": 6181,
+      "teams": 3,
+      "style": "chaos",
+      "map": "archipelago",
+      "ticks": 24249,
+      "finished": true,
+      "winner": "Fuzzy Puddles",
+      "score": 1710,
+      "moments": 33,
+      "best": 406
+    },
+    {
+      "seed": 6115,
+      "teams": 2,
+      "style": "chaos",
+      "map": "mainland",
+      "ticks": 13487,
+      "finished": true,
+      "winner": "Sneaky Gloops",
+      "score": 1693,
+      "moments": 16,
+      "best": 472
+    },
+    {
+      "seed": 6120,
+      "teams": 3,
+      "style": "pro",
+      "map": "mainland",
+      "ticks": 16458,
+      "finished": true,
+      "winner": "Sparkly Bears",
+      "score": 1678,
+      "moments": 21,
+      "best": 471
+    },
+    {
+      "seed": 6093,
+      "teams": 3,
+      "style": "armoured",
+      "map": "caverns",
+      "ticks": 22969,
+      "finished": true,
+      "winner": "Tiny Droplets",
+      "score": 1620,
+      "moments": 25,
+      "best": 424
+    },
+    {
+      "seed": 6063,
+      "teams": 2,
+      "style": "chaos",
+      "map": "canyon",
+      "ticks": 16719,
+      "finished": true,
+      "winner": "Tiny Sprouts",
+      "score": 1612,
+      "moments": 18,
+      "best": 538
+    },
+    {
+      "seed": 6200,
+      "teams": 3,
+      "style": "pro",
+      "map": "spires",
+      "ticks": 22186,
+      "finished": true,
+      "winner": "Wobbly Sprouts",
+      "score": 1549,
+      "moments": 22,
+      "best": 596
+    },
+    {
+      "seed": 6049,
+      "teams": 3,
+      "style": "pro",
+      "map": "spires",
+      "ticks": 15744,
+      "finished": true,
+      "winner": "Squishy Biscuits",
+      "score": 1544,
+      "moments": 21,
+      "best": 520
+    },
+    {
+      "seed": 6070,
+      "teams": 3,
+      "style": "quick",
+      "map": "spires",
+      "ticks": 8985,
+      "finished": true,
+      "winner": "Dizzy Rockets",
+      "score": 1525,
+      "moments": 13,
+      "best": 452
+    },
+    {
+      "seed": 6081,
+      "teams": 3,
+      "style": "chaos",
+      "map": "spires",
+      "ticks": 27150,
+      "finished": true,
+      "winner": "Gusty Spores",
+      "score": 1516,
+      "moments": 26,
+      "best": 394
+    },
+    {
+      "seed": 6166,
+      "teams": 3,
+      "style": "armoured",
+      "map": "caverns",
+      "ticks": 29275,
+      "finished": true,
+      "winner": "Dizzy Rockets",
+      "score": 1512,
+      "moments": 29,
+      "best": 506
+    },
+    {
+      "seed": 6107,
+      "teams": 2,
+      "style": "chaos",
+      "map": "spires",
+      "ticks": 9021,
+      "finished": true,
+      "winner": "Tiny Gloops",
+      "score": 1460,
+      "moments": 14,
+      "best": 400
+    },
+    {
+      "seed": 6064,
+      "teams": 2,
+      "style": "chaos",
+      "map": "caverns",
+      "ticks": 19978,
+      "finished": true,
+      "winner": "Mossy Puddles",
+      "score": 1453,
+      "moments": 18,
+      "best": 390
+    },
+    {
+      "seed": 6062,
+      "teams": 3,
+      "style": "pro",
+      "map": "caverns",
+      "ticks": 22301,
+      "finished": true,
+      "winner": "Speedy Puddles",
+      "score": 1439,
+      "moments": 22,
+      "best": 606
+    },
+    {
+      "seed": 6097,
+      "teams": 3,
+      "style": "armoured",
+      "map": "mainland",
+      "ticks": 32268,
+      "finished": true,
+      "winner": "Soggy Pebbles",
+      "score": 1415,
+      "moments": 25,
+      "best": 340
+    },
+    {
+      "seed": 6199,
+      "teams": 2,
+      "style": "standard",
+      "map": "islands",
+      "ticks": 24029,
+      "finished": true,
+      "winner": "Bubbly Pebbles",
+      "score": 1406,
+      "moments": 13,
+      "best": 496
+    },
+    {
+      "seed": 6123,
+      "teams": 2,
+      "style": "chaos",
+      "map": "sky",
+      "ticks": 13820,
+      "finished": true,
+      "winner": "Sparkly Gloops",
+      "score": 1397,
+      "moments": 18,
+      "best": 306
+    },
+    {
+      "seed": 6084,
+      "teams": 2,
+      "style": "pro",
+      "map": "caverns",
+      "ticks": 6042,
+      "finished": true,
+      "winner": "Fuzzy Mochis",
+      "score": 1381,
+      "moments": 11,
+      "best": 640
+    },
+    {
+      "seed": 6075,
+      "teams": 2,
+      "style": "chaos",
+      "map": "spires",
+      "ticks": 12090,
+      "finished": true,
+      "winner": "Bouncy Gloops",
+      "score": 1380,
+      "moments": 19,
+      "best": 295
+    },
+    {
+      "seed": 6089,
+      "teams": 3,
+      "style": "quick",
+      "map": "canyon",
+      "ticks": 11577,
+      "finished": true,
+      "winner": "Soggy Ripples",
+      "score": 1374,
+      "moments": 13,
+      "best": 596
+    },
+    {
+      "seed": 6131,
+      "teams": 3,
+      "style": "pro",
+      "map": "mainland",
+      "ticks": 23425,
+      "finished": true,
+      "winner": "Brave Sprouts",
+      "score": 1356,
+      "moments": 22,
+      "best": 386
+    },
+    {
+      "seed": 6055,
+      "teams": 3,
+      "style": "pro",
+      "map": "caverns",
+      "ticks": 16728,
+      "finished": true,
+      "winner": "Mossy Bubbles",
+      "score": 1354,
+      "moments": 25,
+      "best": 318
+    },
+    {
+      "seed": 6056,
+      "teams": 2,
+      "style": "chaos",
+      "map": "islands",
+      "ticks": 9756,
+      "finished": true,
+      "winner": "Soggy Rockets",
+      "score": 1352,
+      "moments": 14,
+      "best": 299
+    },
+    {
+      "seed": 6029,
+      "teams": 3,
+      "style": "artillery",
+      "map": "mainland",
+      "ticks": 38971,
+      "finished": true,
+      "winner": "Gusty Spores",
+      "score": 1342,
+      "moments": 24,
+      "best": 372
+    },
+    {
+      "seed": 6189,
+      "teams": 2,
+      "style": "pro",
+      "map": "spires",
+      "ticks": 12920,
+      "finished": true,
+      "winner": "Sparkly Mochis",
+      "score": 1327,
+      "moments": 13,
+      "best": 333
+    },
+    {
+      "seed": 6061,
+      "teams": 3,
+      "style": "pro",
+      "map": "canyon",
+      "ticks": 14044,
+      "finished": true,
+      "winner": "Mossy Rockets",
+      "score": 1325,
+      "moments": 25,
+      "best": 418
+    },
+    {
+      "seed": 6018,
+      "teams": 2,
+      "style": "chaos",
+      "map": "mainland",
+      "ticks": 11494,
+      "finished": true,
+      "winner": "Mighty Pebbles",
+      "score": 1323,
+      "moments": 14,
+      "best": 352
+    },
+    {
+      "seed": 6103,
+      "teams": 3,
+      "style": "standard",
+      "map": "spires",
+      "ticks": 23284,
+      "finished": true,
+      "winner": "Plucky Nuggets",
+      "score": 1305,
+      "moments": 23,
+      "best": 280
+    },
+    {
+      "seed": 6176,
+      "teams": 3,
+      "style": "pro",
+      "map": "caverns",
+      "ticks": 17385,
+      "finished": true,
+      "winner": "Squishy Crumbs",
+      "score": 1300,
+      "moments": 24,
+      "best": 294
+    },
+    {
+      "seed": 6168,
+      "teams": 3,
+      "style": "armoured",
+      "map": "spires",
+      "ticks": 27691,
+      "finished": true,
+      "winner": "Mossy Bears",
+      "score": 1281,
+      "moments": 28,
+      "best": 322
+    },
+    {
+      "seed": 6024,
+      "teams": 3,
+      "style": "standard",
+      "map": "caverns",
+      "ticks": 21150,
+      "finished": true,
+      "winner": "Mossy Droplets",
+      "score": 1265,
+      "moments": 29,
+      "best": 409
+    },
+    {
+      "seed": 6074,
+      "teams": 3,
+      "style": "armoured",
+      "map": "spires",
+      "ticks": 17583,
+      "finished": true,
+      "winner": "Jolly Pebbles",
+      "score": 1258,
+      "moments": 21,
+      "best": 274
+    },
+    {
+      "seed": 6161,
+      "teams": 3,
+      "style": "standard",
+      "map": "islands",
+      "ticks": 23979,
+      "finished": true,
+      "winner": "Gusty Biscuits",
+      "score": 1253,
+      "moments": 23,
+      "best": 404
+    },
+    {
+      "seed": 6152,
+      "teams": 3,
+      "style": "standard",
+      "map": "caverns",
+      "ticks": 17139,
+      "finished": true,
+      "winner": "Sleepy Biscuits",
+      "score": 1237,
+      "moments": 26,
+      "best": 341
+    },
+    {
+      "seed": 6133,
+      "teams": 3,
+      "style": "standard",
+      "map": "islands",
+      "ticks": 22973,
+      "finished": true,
+      "winner": "Bubbly Nuggets",
+      "score": 1237,
+      "moments": 25,
+      "best": 364
+    },
+    {
+      "seed": 6147,
+      "teams": 2,
+      "style": "standard",
+      "map": "archipelago",
+      "ticks": 11109,
+      "finished": true,
+      "winner": "Sneaky Pebbles",
+      "score": 1236,
+      "moments": 15,
+      "best": 394
+    },
+    {
+      "seed": 6010,
+      "teams": 3,
+      "style": "chaos",
+      "map": "archipelago",
+      "ticks": 9636,
+      "finished": true,
+      "winner": "Gusty Biscuits",
+      "score": 1231,
+      "moments": 17,
+      "best": 282
+    },
+    {
+      "seed": 6118,
+      "teams": 2,
+      "style": "chaos",
+      "map": "sky",
+      "ticks": 5223,
+      "finished": true,
+      "winner": "Tiny Mochis",
+      "score": 1229,
+      "moments": 8,
+      "best": 491
+    },
+    {
+      "seed": 6001,
+      "teams": 3,
+      "style": "standard",
+      "map": "archipelago",
+      "ticks": 23437,
+      "finished": true,
+      "winner": "Brave Bears",
+      "score": 1203,
+      "moments": 25,
+      "best": 274
+    },
+    {
+      "seed": 6102,
+      "teams": 2,
+      "style": "pro",
+      "map": "caverns",
+      "ticks": 19085,
+      "finished": true,
+      "winner": "Brave Sprouts",
+      "score": 1201,
+      "moments": 15,
+      "best": 377
+    },
+    {
+      "seed": 6186,
+      "teams": 2,
+      "style": "standard",
+      "map": "spires",
+      "ticks": 9548,
+      "finished": true,
+      "winner": "Plucky Tumbles",
+      "score": 1198,
+      "moments": 10,
+      "best": 248
+    },
+    {
+      "seed": 6129,
+      "teams": 2,
+      "style": "artillery",
+      "map": "caverns",
+      "ticks": 21215,
+      "finished": true,
+      "winner": null,
+      "score": 1189,
+      "moments": 22,
+      "best": 466
+    },
+    {
+      "seed": 6139,
+      "teams": 3,
+      "style": "quick",
+      "map": "canyon",
+      "ticks": 7883,
+      "finished": true,
+      "winner": "Bouncy Crumbs",
+      "score": 1189,
+      "moments": 10,
+      "best": 269
+    },
+    {
+      "seed": 6194,
+      "teams": 3,
+      "style": "armoured",
+      "map": "canyon",
+      "ticks": 24032,
+      "finished": true,
+      "winner": "Dizzy Spores",
+      "score": 1186,
+      "moments": 21,
+      "best": 347
+    },
+    {
+      "seed": 6148,
+      "teams": 2,
+      "style": "armoured",
+      "map": "canyon",
+      "ticks": 15793,
+      "finished": true,
+      "winner": "Mighty Droplets",
+      "score": 1175,
+      "moments": 12,
+      "best": 284
+    },
+    {
+      "seed": 6101,
+      "teams": 3,
+      "style": "pro",
+      "map": "sky",
+      "ticks": 22577,
+      "finished": true,
+      "winner": "Gusty Ripples",
+      "score": 1174,
+      "moments": 25,
+      "best": 262
+    },
+    {
+      "seed": 6111,
+      "teams": 3,
+      "style": "standard",
+      "map": "sky",
+      "ticks": 16553,
+      "finished": true,
+      "winner": "Soggy Sprouts",
+      "score": 1155,
+      "moments": 23,
+      "best": 268
+    }
+  ],
+  "topMoments": [
+    {
+      "seed": 6011,
+      "teams": 3,
+      "map": "islands",
+      "style": "armoured",
+      "from": 4492,
+      "to": 4898,
+      "score": 1119,
+      "label": "Acid Rain: 4 popped, own goal!",
+      "weapon": "acidrain",
+      "peak": 4631,
+      "fire": 4567,
+      "tally": 4873,
+      "pops": 4,
+      "drowned": 0,
+      "damage": 459,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Mossy Mochis",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Cosmic Puddles",
+            "dmg": 71,
+            "out": "pop"
+          },
+          {
+            "name": "Stylet",
+            "team": "Mossy Mochis",
+            "dmg": 163,
+            "out": "pop"
+          },
+          {
+            "name": "Clawdia",
+            "team": "Sleepy Nuggets",
+            "dmg": 66,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Cosmic Puddles",
+            "dmg": 159,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 782,
+        "turnNo": 11
+      }
+    },
+    {
+      "seed": 6078,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 1740,
+      "to": 2241,
+      "score": 761,
+      "label": "Holy Water Droplet: 2 popped, 1 in the water",
+      "weapon": "holywater",
+      "peak": 1964,
+      "fire": 1815,
+      "tally": 2190,
+      "pops": 2,
+      "drowned": 1,
+      "damage": 321,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Squish",
+        "team": "Wobbly Gloops",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Plucky Tumbles",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Tun",
+            "team": "Plucky Tumbles",
+            "dmg": 123,
+            "out": "pop"
+          },
+          {
+            "name": "Bubbles",
+            "team": "Soggy Crumbs",
+            "dmg": 195,
+            "out": "pop"
+          },
+          {
+            "name": "Squish",
+            "team": "Wobbly Gloops",
+            "dmg": 3,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 287,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6096,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1966,
+      "to": 2409,
+      "score": 718,
+      "label": "Holy Water Droplet: 2 popped, 1 in the water",
+      "weapon": "holywater",
+      "peak": 2190,
+      "fire": 2041,
+      "tally": 2384,
+      "pops": 2,
+      "drowned": 1,
+      "damage": 338,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Jolly Puddles",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Cosmic Crumbs",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Clawdia",
+            "team": "Jolly Nuggets",
+            "dmg": 187,
+            "out": "pop"
+          },
+          {
+            "name": "Dewdrop",
+            "team": "Jolly Nuggets",
+            "dmg": 151,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 686,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6086,
+      "teams": 2,
+      "map": "islands",
+      "style": "chaos",
+      "from": 2913,
+      "to": 3257,
+      "score": 697,
+      "label": "Bacteria Bomb: 3 popped, own goal!",
+      "weapon": "bacteria",
+      "peak": 3137,
+      "fire": 2988,
+      "tally": 3232,
+      "pops": 3,
+      "drowned": 0,
+      "damage": 187,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Nibs",
+        "team": "Squishy Lilies",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Sparkly Biscuits",
+            "dmg": 84,
+            "out": "pop"
+          },
+          {
+            "name": "Stylet",
+            "team": "Squishy Lilies",
+            "dmg": 28,
+            "out": "pop"
+          },
+          {
+            "name": "Mossy",
+            "team": "Sparkly Biscuits",
+            "dmg": 75,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 139,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6185,
+      "teams": 2,
+      "map": "sky",
+      "style": "chaos",
+      "from": 1326,
+      "to": 1635,
+      "score": 664,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 1456,
+      "fire": 1401,
+      "tally": 1610,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 434,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Sneaky Sprouts",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Dizzy Tumbles",
+            "dmg": 315,
+            "out": "pop"
+          },
+          {
+            "name": "Mossy",
+            "team": "Dizzy Tumbles",
+            "dmg": 119,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 512,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6096,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1296,
+      "to": 1865,
+      "score": 655,
+      "label": "Holy Water Droplet: 2 popped",
+      "weapon": "holywater",
+      "peak": 1520,
+      "fire": 1371,
+      "tally": 1828,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 335,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Jolly Nuggets",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Cosmic Crumbs",
+            "dmg": 112,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Jolly Puddles",
+            "dmg": 223,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 885,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6084,
+      "teams": 2,
+      "map": "caverns",
+      "style": "pro",
+      "from": 3799,
+      "to": 4171,
+      "score": 640,
+      "label": "Acid Rain: 2 popped, own goal!",
+      "weapon": "acidrain",
+      "peak": 3906,
+      "fire": 3874,
+      "tally": 4146,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 300,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Tiny Spores",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Fuzzy Mochis",
+            "dmg": 165,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Tiny Spores",
+            "dmg": 64,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Fuzzy Mochis",
+            "dmg": 71,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 250,
+        "turnNo": 8
+      }
+    },
+    {
+      "seed": 6138,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 2183,
+      "to": 2600,
+      "score": 614,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 2407,
+      "fire": 2258,
+      "tally": 2575,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 394,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Sneaky Mochis",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Bubbly Rockets",
+            "dmg": 132,
+            "out": null
+          },
+          {
+            "name": "Nibs",
+            "team": "Jolly Puddles",
+            "dmg": 224,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Bubbly Rockets",
+            "dmg": 38,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 822,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6078,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 803,
+      "to": 1385,
+      "score": 611,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1027,
+      "fire": 878,
+      "tally": 1360,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 381,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Soggy Crumbs",
+        "hits": [
+          {
+            "name": "Squish",
+            "team": "Wobbly Gloops",
+            "dmg": 141,
+            "out": null
+          },
+          {
+            "name": "Tun",
+            "team": "Plucky Tumbles",
+            "dmg": 11,
+            "out": null
+          },
+          {
+            "name": "Gristle",
+            "team": "Wobbly Gloops",
+            "dmg": 229,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 730,
+        "turnNo": 2
+      }
+    },
+    {
+      "seed": 6062,
+      "teams": 3,
+      "map": "caverns",
+      "style": "pro",
+      "from": 7728,
+      "to": 8105,
+      "score": 606,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 7838,
+      "fire": 7803,
+      "tally": 8080,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 316,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Speedy Puddles",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Gusty Pebbles",
+            "dmg": 111,
+            "out": "pop"
+          },
+          {
+            "name": "Mossy",
+            "team": "Tiny Bears",
+            "dmg": 205,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 303,
+        "turnNo": 14
+      }
+    },
+    {
+      "seed": 6200,
+      "teams": 3,
+      "map": "spires",
+      "style": "pro",
+      "from": 8793,
+      "to": 9215,
+      "score": 596,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 8948,
+      "fire": 8868,
+      "tally": 9190,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 306,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Gusty Bubbles",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Wobbly Sprouts",
+            "dmg": 147,
+            "out": "pop"
+          },
+          {
+            "name": "Clawdia",
+            "team": "Brave Spores",
+            "dmg": 159,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 255,
+        "turnNo": 15
+      }
+    },
+    {
+      "seed": 6089,
+      "teams": 3,
+      "map": "canyon",
+      "style": "quick",
+      "from": 2524,
+      "to": 2799,
+      "score": 596,
+      "label": "Concrete Tun: 2 popped",
+      "weapon": "tun",
+      "peak": 2648,
+      "fire": 2599,
+      "tally": 2774,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 236,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Soggy Ripples",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Sparkly Spores",
+            "dmg": 111,
+            "out": "pop"
+          },
+          {
+            "name": "Mossy",
+            "team": "Bouncy Rockets",
+            "dmg": 125,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 417,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6066,
+      "teams": 3,
+      "map": "canyon",
+      "style": "pro",
+      "from": 9435,
+      "to": 9708,
+      "score": 593,
+      "label": "Concrete Tun: 2 popped",
+      "weapon": "tun",
+      "peak": 9550,
+      "fire": 9510,
+      "tally": 9683,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 233,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Jolly Lilies",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Dizzy Mochis",
+            "dmg": 151,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Wobbly Mochis",
+            "dmg": 82,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 292,
+        "turnNo": 19
+      }
+    },
+    {
+      "seed": 6172,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 2465,
+      "to": 2738,
+      "score": 575,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 2600,
+      "fire": 2540,
+      "tally": 2713,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 375,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Zippy Mochis",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Speedy Sprouts",
+            "dmg": 134,
+            "out": null
+          },
+          {
+            "name": "Bubbles",
+            "team": "Jolly Rockets",
+            "dmg": 241,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 594,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6088,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1178,
+      "to": 1451,
+      "score": 566,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 1315,
+      "fire": 1253,
+      "tally": 1426,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 366,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Squish",
+        "team": "Tiny Biscuits",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Bouncy Crumbs",
+            "dmg": 95,
+            "out": null
+          },
+          {
+            "name": "Mossy",
+            "team": "Bouncy Crumbs",
+            "dmg": 271,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 623,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6078,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 4191,
+      "to": 4488,
+      "score": 560,
+      "label": "Concrete Tun: 1 popped, own goal!",
+      "weapon": "tun",
+      "peak": 4328,
+      "fire": 4266,
+      "tally": 4463,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 300,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Wobbly Gloops",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Plucky Tumbles",
+            "dmg": 45,
+            "out": null
+          },
+          {
+            "name": "Dewdrop",
+            "team": "Wobbly Gloops",
+            "dmg": 255,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 636,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6173,
+      "teams": 2,
+      "map": "caverns",
+      "style": "chaos",
+      "from": 2209,
+      "to": 2764,
+      "score": 548,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 2433,
+      "fire": 2284,
+      "tally": 2711,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 318,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Dizzy Nuggets",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Fuzzy Mochis",
+            "dmg": 121,
+            "out": null
+          },
+          {
+            "name": "Mossy",
+            "team": "Fuzzy Mochis",
+            "dmg": 187,
+            "out": "pop"
+          },
+          {
+            "name": "Bubbles",
+            "team": "Dizzy Nuggets",
+            "dmg": 5,
+            "out": null
+          },
+          {
+            "name": "Stylet",
+            "team": "Dizzy Nuggets",
+            "dmg": 5,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 437,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6063,
+      "teams": 2,
+      "map": "canyon",
+      "style": "chaos",
+      "from": 2322,
+      "to": 2829,
+      "score": 538,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 2546,
+      "fire": 2397,
+      "tally": 2772,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 388,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Tiny Sprouts",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Cosmic Tumbles",
+            "dmg": 225,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Tiny Sprouts",
+            "dmg": 52,
+            "out": null
+          },
+          {
+            "name": "Nibs",
+            "team": "Cosmic Tumbles",
+            "dmg": 103,
+            "out": null
+          },
+          {
+            "name": "Mossy",
+            "team": "Tiny Sprouts",
+            "dmg": 8,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 508,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6088,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 3558,
+      "to": 3969,
+      "score": 528,
+      "label": "Microscope Slide Slam: 1 popped, own goal!",
+      "weapon": "slideslam",
+      "peak": 3688,
+      "fire": 3633,
+      "tally": 3944,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 248,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Pudge",
+        "team": "Bouncy Crumbs",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Jolly Droplets",
+            "dmg": 27,
+            "out": null
+          },
+          {
+            "name": "Clawdia",
+            "team": "Tiny Biscuits",
+            "dmg": 81,
+            "out": null
+          },
+          {
+            "name": "Pudge",
+            "team": "Bouncy Crumbs",
+            "dmg": 69,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Tiny Biscuits",
+            "dmg": 71,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 1240,
+        "turnNo": 7
+      }
+    },
+    {
+      "seed": 6185,
+      "teams": 2,
+      "map": "sky",
+      "style": "chaos",
+      "from": 1825,
+      "to": 2140,
+      "score": 524,
+      "label": "Concrete Tun: 1 popped, own goal!",
+      "weapon": "tun",
+      "peak": 1944,
+      "fire": 1900,
+      "tally": 2088,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 244,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Tun",
+        "team": "Dizzy Tumbles",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Sneaky Sprouts",
+            "dmg": 68,
+            "out": null
+          },
+          {
+            "name": "Mossy",
+            "team": "Dizzy Tumbles",
+            "dmg": 82,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Dizzy Tumbles",
+            "dmg": 94,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 336,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6049,
+      "teams": 3,
+      "map": "spires",
+      "style": "pro",
+      "from": 1835,
+      "to": 2257,
+      "score": 520,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 1987,
+      "fire": 1910,
+      "tally": 2232,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 230,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Squishy Biscuits",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Speedy Bears",
+            "dmg": 131,
+            "out": "pop"
+          },
+          {
+            "name": "Dewdrop",
+            "team": "Mighty Ripples",
+            "dmg": 99,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 1046,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6166,
+      "teams": 3,
+      "map": "caverns",
+      "style": "armoured",
+      "from": 6566,
+      "to": 6949,
+      "score": 506,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 6680,
+      "fire": 6641,
+      "tally": 6924,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 216,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Cosmic Crumbs",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Dizzy Rockets",
+            "dmg": 111,
+            "out": "pop"
+          },
+          {
+            "name": "Dewdrop",
+            "team": "Soggy Gloops",
+            "dmg": 105,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 355,
+        "turnNo": 11
+      }
+    },
+    {
+      "seed": 6199,
+      "teams": 2,
+      "map": "islands",
+      "style": "standard",
+      "from": 5276,
+      "to": 5662,
+      "score": 496,
+      "label": "Acid Rain: 2 popped, own goal!",
+      "weapon": "acidrain",
+      "peak": 5399,
+      "fire": 5351,
+      "tally": 5637,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 156,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Soggy Tumbles",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Soggy Tumbles",
+            "dmg": 85,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Bubbly Pebbles",
+            "dmg": 71,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 491,
+        "turnNo": 12
+      }
+    },
+    {
+      "seed": 6164,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 2140,
+      "to": 2413,
+      "score": 494,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 2278,
+      "fire": 2215,
+      "tally": 2388,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 274,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Plucky Droplets",
+        "hits": [
+          {
+            "name": "Nibs",
+            "team": "Mighty Biscuits",
+            "dmg": 274,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 637,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6014,
+      "teams": 3,
+      "map": "mainland",
+      "style": "standard",
+      "from": 4812,
+      "to": 5203,
+      "score": 494,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 4938,
+      "fire": 4887,
+      "tally": 5178,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 204,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Squish",
+        "team": "Brave Mochis",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Soggy Gloops",
+            "dmg": 65,
+            "out": "pop"
+          },
+          {
+            "name": "Mossy",
+            "team": "Soggy Gloops",
+            "dmg": 139,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 537,
+        "turnNo": 10
+      }
+    },
+    {
+      "seed": 6118,
+      "teams": 2,
+      "map": "sky",
+      "style": "chaos",
+      "from": 247,
+      "to": 520,
+      "score": 491,
+      "label": "Concrete Tun: 1 popped, own goal!",
+      "weapon": "tun",
+      "peak": 364,
+      "fire": 322,
+      "tally": 495,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 241,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Sneaky Sprouts",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Sneaky Sprouts",
+            "dmg": 241,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 311,
+        "turnNo": 1
+      }
+    },
+    {
+      "seed": 6173,
+      "teams": 2,
+      "map": "caverns",
+      "style": "chaos",
+      "from": 14841,
+      "to": 15222,
+      "score": 488,
+      "label": "Bacteria Bomb: 2 popped, own goal!",
+      "weapon": "bacteria",
+      "peak": 15065,
+      "fire": 14916,
+      "tally": 15197,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 138,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Dizzy Nuggets",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Dizzy Nuggets",
+            "dmg": 42,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Fuzzy Mochis",
+            "dmg": 96,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 57,
+        "turnNo": 24
+      }
+    },
+    {
+      "seed": 6066,
+      "teams": 3,
+      "map": "canyon",
+      "style": "pro",
+      "from": 2599,
+      "to": 2928,
+      "score": 485,
+      "label": "Spore Bazooka: 2 popped",
+      "weapon": "bazooka",
+      "peak": 2720,
+      "fire": 2674,
+      "tally": 2855,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 235,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Wobbly Mochis",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Jolly Lilies",
+            "dmg": 106,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Dizzy Mochis",
+            "dmg": 121,
+            "out": "pop"
+          },
+          {
+            "name": "Cuticle",
+            "team": "Dizzy Mochis",
+            "dmg": 8,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 369,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6086,
+      "teams": 2,
+      "map": "islands",
+      "style": "chaos",
+      "from": 702,
+      "to": 1013,
+      "score": 478,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 835,
+      "fire": 777,
+      "tally": 950,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 278,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Sparkly Biscuits",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Squishy Lilies",
+            "dmg": 271,
+            "out": "pop"
+          },
+          {
+            "name": "Waddles",
+            "team": "Sparkly Biscuits",
+            "dmg": 7,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 565,
+        "turnNo": 2
+      }
+    },
+    {
+      "seed": 6138,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 3245,
+      "to": 3759,
+      "score": 477,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 3469,
+      "fire": 3320,
+      "tally": 3734,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 297,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Jolly Puddles",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Sneaky Mochis",
+            "dmg": 125,
+            "out": null
+          },
+          {
+            "name": "Pudge",
+            "team": "Sneaky Mochis",
+            "dmg": 172,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 328,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6008,
+      "teams": 3,
+      "map": "islands",
+      "style": "chaos",
+      "from": 711,
+      "to": 984,
+      "score": 476,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 846,
+      "fire": 786,
+      "tally": 959,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 276,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Squish",
+        "team": "Bouncy Mochis",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Sparkly Ripples",
+            "dmg": 276,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 596,
+        "turnNo": 2
+      }
+    },
+    {
+      "seed": 6138,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1073,
+      "to": 1346,
+      "score": 472,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 1210,
+      "fire": 1148,
+      "tally": 1321,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 272,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Jolly Puddles",
+        "hits": [
+          {
+            "name": "Dewdrop",
+            "team": "Bubbly Rockets",
+            "dmg": 272,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 623,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6115,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1604,
+      "to": 1877,
+      "score": 472,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 1729,
+      "fire": 1679,
+      "tally": 1852,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 272,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Sneaky Gloops",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Speedy Droplets",
+            "dmg": 272,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 434,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6120,
+      "teams": 3,
+      "map": "mainland",
+      "style": "pro",
+      "from": 12927,
+      "to": 13289,
+      "score": 471,
+      "label": "Bacteria Bomb: 2 popped, own goal!",
+      "weapon": "bacteria",
+      "peak": 13151,
+      "fire": 13002,
+      "tally": 13232,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 121,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Speedy Tumbles",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Speedy Tumbles",
+            "dmg": 28,
+            "out": "pop"
+          },
+          {
+            "name": "Squish",
+            "team": "Sparkly Bears",
+            "dmg": 22,
+            "out": null
+          },
+          {
+            "name": "Gristle",
+            "team": "Sparkly Bears",
+            "dmg": 71,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 2,
+        "teamsOut": [
+          "Speedy Tumbles"
+        ],
+        "alone": true,
+        "range": 109,
+        "turnNo": 25
+      }
+    },
+    {
+      "seed": 6008,
+      "teams": 3,
+      "map": "islands",
+      "style": "chaos",
+      "from": 11546,
+      "to": 11819,
+      "score": 467,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 11697,
+      "fire": 11621,
+      "tally": 11794,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 267,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Gristle",
+        "team": "Bouncy Mochis",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Tiny Lilies",
+            "dmg": 267,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 1,
+        "teamsOut": [
+          "Tiny Lilies"
+        ],
+        "alone": false,
+        "range": 902,
+        "turnNo": 21
+      }
+    },
+    {
+      "seed": 6129,
+      "teams": 2,
+      "map": "caverns",
+      "style": "artillery",
+      "from": 20809,
+      "to": 21215,
+      "score": 466,
+      "label": "Algae Cluster: 2 popped, own goal!",
+      "weapon": "cluster",
+      "peak": 21033,
+      "fire": 20884,
+      "tally": 21190,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 116,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Nibs",
+        "team": "Tiny Rockets",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Squishy Droplets",
+            "dmg": 57,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Tiny Rockets",
+            "dmg": 59,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 0,
+        "teamsOut": [
+          "Squishy Droplets",
+          "Tiny Rockets"
+        ],
+        "alone": true,
+        "range": 8,
+        "turnNo": 42
+      }
+    },
+    {
+      "seed": 6166,
+      "teams": 3,
+      "map": "caverns",
+      "style": "armoured",
+      "from": 25936,
+      "to": 26346,
+      "score": 460,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 26052,
+      "fire": 26011,
+      "tally": 26296,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 330,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Dizzy Rockets",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Cosmic Crumbs",
+            "dmg": 72,
+            "out": null
+          },
+          {
+            "name": "Clawdia",
+            "team": "Soggy Gloops",
+            "dmg": 39,
+            "out": null
+          },
+          {
+            "name": "Gristle",
+            "team": "Soggy Gloops",
+            "dmg": 219,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": true,
+        "range": 375,
+        "turnNo": 43
+      }
+    },
+    {
+      "seed": 6164,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 732,
+      "to": 1334,
+      "score": 455,
+      "label": "Holy Water Droplet: 1 popped, own goal!",
+      "weapon": "holywater",
+      "peak": 956,
+      "fire": 807,
+      "tally": 1282,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 245,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Plucky Droplets",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Plucky Droplets",
+            "dmg": 180,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Mighty Biscuits",
+            "dmg": 59,
+            "out": null
+          },
+          {
+            "name": "Waddles",
+            "team": "Plucky Droplets",
+            "dmg": 6,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 255,
+        "turnNo": 2
+      }
+    },
+    {
+      "seed": 6115,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 925,
+      "to": 1497,
+      "score": 454,
+      "label": "Holy Water Droplet: 1 popped, 1 in the water",
+      "weapon": "holywater",
+      "peak": 1149,
+      "fire": 1000,
+      "tally": 1472,
+      "pops": 1,
+      "drowned": 1,
+      "damage": 224,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Speedy Droplets",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Sneaky Gloops",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Tun",
+            "team": "Sneaky Gloops",
+            "dmg": 224,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 603,
+        "turnNo": 2
+      }
+    },
+    {
+      "seed": 6070,
+      "teams": 3,
+      "map": "spires",
+      "style": "quick",
+      "from": 2078,
+      "to": 2780,
+      "score": 452,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 2302,
+      "fire": 2153,
+      "tally": 2755,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 302,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Mossy Gloops",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Dizzy Rockets",
+            "dmg": 302,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 79,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6026,
+      "teams": 2,
+      "map": "canyon",
+      "style": "chaos",
+      "from": 695,
+      "to": 1083,
+      "score": 449,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 919,
+      "fire": 770,
+      "tally": 1058,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 229,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Sneaky Pebbles",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Sneaky Pebbles",
+            "dmg": 4,
+            "out": null
+          },
+          {
+            "name": "Cuticle",
+            "team": "Sparkly Lilies",
+            "dmg": 225,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 196,
+        "turnNo": 2
+      }
+    },
+    {
+      "seed": 6008,
+      "teams": 3,
+      "map": "islands",
+      "style": "chaos",
+      "from": 1845,
+      "to": 2286,
+      "score": 447,
+      "label": "Holy Water Droplet: 1 popped, 1 in the water",
+      "weapon": "holywater",
+      "peak": 2069,
+      "fire": 1920,
+      "tally": 2261,
+      "pops": 1,
+      "drowned": 1,
+      "damage": 177,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Bubbles",
+        "team": "Sparkly Ripples",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Bouncy Mochis",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Mossy",
+            "team": "Tiny Lilies",
+            "dmg": 177,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 378,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6078,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 191,
+      "to": 495,
+      "score": 445,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 309,
+      "fire": 266,
+      "tally": 470,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 245,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Plucky Tumbles",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Soggy Crumbs",
+            "dmg": 150,
+            "out": "pop"
+          },
+          {
+            "name": "Tun",
+            "team": "Plucky Tumbles",
+            "dmg": 95,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 329,
+        "turnNo": 1
+      }
+    },
+    {
+      "seed": 6120,
+      "teams": 3,
+      "map": "mainland",
+      "style": "pro",
+      "from": 4328,
+      "to": 4943,
+      "score": 442,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 4552,
+      "fire": 4403,
+      "tally": 4918,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 292,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Dewdrop",
+        "team": "Sparkly Bears",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Soggy Spores",
+            "dmg": 292,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 161,
+        "turnNo": 9
+      }
+    },
+    {
+      "seed": 6026,
+      "teams": 2,
+      "map": "canyon",
+      "style": "chaos",
+      "from": 1845,
+      "to": 2130,
+      "score": 432,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 1967,
+      "fire": 1920,
+      "tally": 2105,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 222,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Sneaky Pebbles",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Sparkly Lilies",
+            "dmg": 222,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 389,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6093,
+      "teams": 3,
+      "map": "caverns",
+      "style": "armoured",
+      "from": 7202,
+      "to": 7633,
+      "score": 424,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 7319,
+      "fire": 7277,
+      "tally": 7563,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 134,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Brave Mochis",
+        "hits": [
+          {
+            "name": "Dewdrop",
+            "team": "Bouncy Pebbles",
+            "dmg": 67,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Bouncy Pebbles",
+            "dmg": 67,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 395,
+        "turnNo": 14
+      }
+    },
+    {
+      "seed": 6011,
+      "teams": 3,
+      "map": "islands",
+      "style": "armoured",
+      "from": 10023,
+      "to": 10296,
+      "score": 422,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 10158,
+      "fire": 10098,
+      "tally": 10271,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 222,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Bubbles",
+        "team": "Mossy Mochis",
+        "hits": [
+          {
+            "name": "Squish",
+            "team": "Sleepy Nuggets",
+            "dmg": 222,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 2,
+        "teamsOut": [
+          "Sleepy Nuggets"
+        ],
+        "alone": false,
+        "range": 598,
+        "turnNo": 26
+      }
+    },
+    {
+      "seed": 6061,
+      "teams": 3,
+      "map": "canyon",
+      "style": "pro",
+      "from": 6258,
+      "to": 6634,
+      "score": 418,
+      "label": "Acid Rain: 2 popped",
+      "weapon": "acidrain",
+      "peak": 6368,
+      "fire": 6333,
+      "tally": 6609,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 128,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Tiny Biscuits",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Mossy Rockets",
+            "dmg": 57,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Mossy Rockets",
+            "dmg": 71,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 291,
+        "turnNo": 13
+      }
+    },
+    {
+      "seed": 6049,
+      "teams": 3,
+      "map": "spires",
+      "style": "pro",
+      "from": 7031,
+      "to": 7304,
+      "score": 416,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 7187,
+      "fire": 7106,
+      "tally": 7279,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 216,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Bubbles",
+        "team": "Squishy Biscuits",
+        "hits": [
+          {
+            "name": "Squish",
+            "team": "Mighty Ripples",
+            "dmg": 216,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 1004,
+        "turnNo": 17
+      }
+    },
+    {
+      "seed": 6024,
+      "teams": 3,
+      "map": "caverns",
+      "style": "standard",
+      "from": 5636,
+      "to": 6016,
+      "score": 409,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 5744,
+      "fire": 5711,
+      "tally": 5991,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 279,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Squish",
+        "team": "Mossy Droplets",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Soggy Pebbles",
+            "dmg": 73,
+            "out": null
+          },
+          {
+            "name": "Pudge",
+            "team": "Tiny Lilies",
+            "dmg": 152,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Soggy Pebbles",
+            "dmg": 54,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 280,
+        "turnNo": 11
+      }
+    },
+    {
+      "seed": 6181,
+      "teams": 3,
+      "map": "archipelago",
+      "style": "chaos",
+      "from": 1702,
+      "to": 2097,
+      "score": 406,
+      "label": "Holy Water Droplet: 1 popped, 1 in the water",
+      "weapon": "holywater",
+      "peak": 1926,
+      "fire": 1777,
+      "tally": 2072,
+      "pops": 1,
+      "drowned": 1,
+      "damage": 186,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Speedy Tumbles",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Squishy Crumbs",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Tun",
+            "team": "Fuzzy Puddles",
+            "dmg": 186,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 589,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6161,
+      "teams": 3,
+      "map": "islands",
+      "style": "standard",
+      "from": 3065,
+      "to": 3646,
+      "score": 404,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 3289,
+      "fire": 3140,
+      "tally": 3621,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 264,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Fuzzy Sprouts",
+        "hits": [
+          {
+            "name": "Gristle",
+            "team": "Soggy Mochis",
+            "dmg": 264,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 43,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6107,
+      "teams": 2,
+      "map": "spires",
+      "style": "chaos",
+      "from": 892,
+      "to": 1402,
+      "score": 400,
+      "label": "Holy Water Droplet: 1 popped, 1 in the water",
+      "weapon": "holywater",
+      "peak": 1116,
+      "fire": 967,
+      "tally": 1377,
+      "pops": 1,
+      "drowned": 1,
+      "damage": 170,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Tiny Gloops",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Sneaky Rockets",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Pudge",
+            "team": "Sneaky Rockets",
+            "dmg": 170,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 446,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6164,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1561,
+      "to": 2044,
+      "score": 395,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1785,
+      "fire": 1636,
+      "tally": 2009,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 225,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Mighty Biscuits",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Plucky Droplets",
+            "dmg": 225,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 158,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6086,
+      "teams": 2,
+      "map": "islands",
+      "style": "chaos",
+      "from": 2169,
+      "to": 2527,
+      "score": 394,
+      "label": "Holy Water Droplet",
+      "weapon": "holywater",
+      "peak": 2393,
+      "fire": 2244,
+      "tally": 2502,
+      "pops": 0,
+      "drowned": 0,
+      "damage": 234,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Sparkly Biscuits",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Squishy Lilies",
+            "dmg": 147,
+            "out": null
+          },
+          {
+            "name": "Pudge",
+            "team": "Sparkly Biscuits",
+            "dmg": 13,
+            "out": null
+          },
+          {
+            "name": "Nibs",
+            "team": "Squishy Lilies",
+            "dmg": 74,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 243,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6172,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 1385,
+      "to": 1877,
+      "score": 394,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1609,
+      "fire": 1460,
+      "tally": 1852,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 194,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Jolly Rockets",
+        "hits": [
+          {
+            "name": "Dewdrop",
+            "team": "Speedy Sprouts",
+            "dmg": 194,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 328,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6081,
+      "teams": 3,
+      "map": "spires",
+      "style": "chaos",
+      "from": 2100,
+      "to": 2582,
+      "score": 394,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 2324,
+      "fire": 2175,
+      "tally": 2557,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 224,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Jolly Ripples",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Gusty Spores",
+            "dmg": 224,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 153,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6147,
+      "teams": 2,
+      "map": "archipelago",
+      "style": "standard",
+      "from": 10619,
+      "to": 11109,
+      "score": 394,
+      "label": "Spore Bazooka: 1 popped",
+      "weapon": "bazooka",
+      "peak": 10809,
+      "fire": 10694,
+      "tally": 11084,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 224,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Sneaky Pebbles",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Tiny Spores",
+            "dmg": 224,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 1,
+        "teamsOut": [
+          "Tiny Spores"
+        ],
+        "alone": true,
+        "range": 149,
+        "turnNo": 22
+      }
+    },
+    {
+      "seed": 6064,
+      "teams": 2,
+      "map": "caverns",
+      "style": "chaos",
+      "from": 1416,
+      "to": 1760,
+      "score": 390,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1640,
+      "fire": 1491,
+      "tally": 1735,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 160,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Plucky Mochis",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Mossy Puddles",
+            "dmg": 160,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 639,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6014,
+      "teams": 3,
+      "map": "mainland",
+      "style": "standard",
+      "from": 10305,
+      "to": 10900,
+      "score": 388,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 10529,
+      "fire": 10380,
+      "tally": 10875,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 228,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Soggy Gloops",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Soggy Gloops",
+            "dmg": 17,
+            "out": null
+          },
+          {
+            "name": "Squish",
+            "team": "Brave Mochis",
+            "dmg": 136,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Soggy Gloops",
+            "dmg": 75,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 2,
+        "teamsOut": [
+          "Brave Mochis"
+        ],
+        "alone": false,
+        "range": 113,
+        "turnNo": 20
+      }
+    },
+    {
+      "seed": 6131,
+      "teams": 3,
+      "map": "mainland",
+      "style": "pro",
+      "from": 3363,
+      "to": 3727,
+      "score": 386,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 3587,
+      "fire": 3438,
+      "tally": 3702,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 246,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Brave Sprouts",
+        "hits": [
+          {
+            "name": "Gristle",
+            "team": "Mighty Pebbles",
+            "dmg": 246,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 500,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6115,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 176,
+      "to": 588,
+      "score": 385,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 400,
+      "fire": 251,
+      "tally": 563,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 225,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Sneaky Gloops",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Speedy Droplets",
+            "dmg": 225,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 323,
+        "turnNo": 1
+      }
+    },
+    {
+      "seed": 6008,
+      "teams": 3,
+      "map": "islands",
+      "style": "chaos",
+      "from": 1229,
+      "to": 1502,
+      "score": 384,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 1408,
+      "fire": 1304,
+      "tally": 1477,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 154,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Tiny Lilies",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Sparkly Ripples",
+            "dmg": 154,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 630,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6173,
+      "teams": 2,
+      "map": "caverns",
+      "style": "chaos",
+      "from": 8078,
+      "to": 8632,
+      "score": 384,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 8302,
+      "fire": 8153,
+      "tally": 8607,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 224,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Pudge",
+        "team": "Fuzzy Mochis",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Dizzy Nuggets",
+            "dmg": 224,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 176,
+        "turnNo": 13
+      }
+    },
+    {
+      "seed": 6088,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 2986,
+      "to": 3330,
+      "score": 381,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 3210,
+      "fire": 3061,
+      "tally": 3305,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 231,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Tiny Biscuits",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Jolly Droplets",
+            "dmg": 116,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Bouncy Crumbs",
+            "dmg": 115,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 942,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6181,
+      "teams": 3,
+      "map": "archipelago",
+      "style": "chaos",
+      "from": 4167,
+      "to": 4575,
+      "score": 377,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 4391,
+      "fire": 4242,
+      "tally": 4550,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 217,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Pudge",
+        "team": "Fuzzy Puddles",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Speedy Tumbles",
+            "dmg": 217,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 792,
+        "turnNo": 8
+      }
+    },
+    {
+      "seed": 6102,
+      "teams": 2,
+      "map": "caverns",
+      "style": "pro",
+      "from": 5386,
+      "to": 5762,
+      "score": 377,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 5498,
+      "fire": 5461,
+      "tally": 5737,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 247,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Soggy Spores",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Brave Sprouts",
+            "dmg": 247,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 293,
+        "turnNo": 10
+      }
+    },
+    {
+      "seed": 6107,
+      "teams": 2,
+      "map": "spires",
+      "style": "chaos",
+      "from": 8168,
+      "to": 8604,
+      "score": 372,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 8392,
+      "fire": 8243,
+      "tally": 8579,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 222,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Sneaky Rockets",
+        "hits": [
+          {
+            "name": "Nibs",
+            "team": "Tiny Gloops",
+            "dmg": 222,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": true,
+        "range": 133,
+        "turnNo": 18
+      }
+    },
+    {
+      "seed": 6029,
+      "teams": 3,
+      "map": "mainland",
+      "style": "artillery",
+      "from": 18745,
+      "to": 19152,
+      "score": 372,
+      "label": "Algae Cluster: 2 popped, own goal!",
+      "weapon": "cluster",
+      "peak": 18969,
+      "fire": 18820,
+      "tally": 19076,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 22,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Dewdrop",
+        "team": "Soggy Sprouts",
+        "hits": [
+          {
+            "name": "Dewdrop",
+            "team": "Soggy Sprouts",
+            "dmg": 16,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Gusty Spores",
+            "dmg": 6,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 27,
+        "turnNo": 37
+      }
+    },
+    {
+      "seed": 6014,
+      "teams": 3,
+      "map": "mainland",
+      "style": "standard",
+      "from": 5594,
+      "to": 6047,
+      "score": 370,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 5818,
+      "fire": 5669,
+      "tally": 6022,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 220,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Pudge",
+        "team": "Soggy Gloops",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Brave Crumbs",
+            "dmg": 220,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 166,
+        "turnNo": 11
+      }
+    },
+    {
+      "seed": 6133,
+      "teams": 3,
+      "map": "islands",
+      "style": "standard",
+      "from": 18308,
+      "to": 18581,
+      "score": 364,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 18439,
+      "fire": 18383,
+      "tally": 18556,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 164,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Bubbly Nuggets",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Plucky Spores",
+            "dmg": 164,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 523,
+        "turnNo": 32
+      }
+    },
+    {
+      "seed": 6093,
+      "teams": 3,
+      "map": "caverns",
+      "style": "armoured",
+      "from": 7920,
+      "to": 8304,
+      "score": 361,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 8036,
+      "fire": 7995,
+      "tally": 8279,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 231,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Tiny Droplets",
+        "hits": [
+          {
+            "name": "Pudge",
+            "team": "Brave Mochis",
+            "dmg": 231,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 352,
+        "turnNo": 15
+      }
+    },
+    {
+      "seed": 6018,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 2310,
+      "to": 2583,
+      "score": 352,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 2465,
+      "fire": 2385,
+      "tally": 2558,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 152,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Mighty Pebbles",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Sparkly Puddles",
+            "dmg": 152,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 553,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6194,
+      "teams": 3,
+      "map": "canyon",
+      "style": "armoured",
+      "from": 21745,
+      "to": 22128,
+      "score": 347,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 21864,
+      "fire": 21820,
+      "tally": 22103,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 217,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Dizzy Spores",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Sparkly Pebbles",
+            "dmg": 217,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 2,
+        "teamsOut": [
+          "Sparkly Pebbles"
+        ],
+        "alone": false,
+        "range": 326,
+        "turnNo": 38
+      }
+    },
+    {
+      "seed": 6173,
+      "teams": 2,
+      "map": "caverns",
+      "style": "chaos",
+      "from": 1350,
+      "to": 1882,
+      "score": 343,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1574,
+      "fire": 1425,
+      "tally": 1824,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 173,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Fuzzy Mochis",
+        "hits": [
+          {
+            "name": "Nibs",
+            "team": "Dizzy Nuggets",
+            "dmg": 166,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Fuzzy Mochis",
+            "dmg": 7,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 346,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6152,
+      "teams": 3,
+      "map": "caverns",
+      "style": "standard",
+      "from": 7436,
+      "to": 7816,
+      "score": 341,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 7548,
+      "fire": 7511,
+      "tally": 7791,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 211,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Sleepy Biscuits",
+        "hits": [
+          {
+            "name": "Dewdrop",
+            "team": "Sneaky Biscuits",
+            "dmg": 211,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 313,
+        "turnNo": 15
+      }
+    },
+    {
+      "seed": 6097,
+      "teams": 3,
+      "map": "mainland",
+      "style": "armoured",
+      "from": 8215,
+      "to": 8520,
+      "score": 340,
+      "label": "Spore Bazooka: 2 popped",
+      "weapon": "bazooka",
+      "peak": 8364,
+      "fire": 8290,
+      "tally": 8463,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 90,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Plucky Droplets",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Soggy Pebbles",
+            "dmg": 42,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Fuzzy Puddles",
+            "dmg": 48,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 442,
+        "turnNo": 16
+      }
+    },
+    {
+      "seed": 6152,
+      "teams": 3,
+      "map": "caverns",
+      "style": "standard",
+      "from": 5622,
+      "to": 5952,
+      "score": 337,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 5846,
+      "fire": 5697,
+      "tally": 5927,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 197,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Waddles",
+        "team": "Fuzzy Droplets",
+        "hits": [
+          {
+            "name": "Squish",
+            "team": "Sneaky Biscuits",
+            "dmg": 197,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 47,
+        "turnNo": 11
+      }
+    },
+    {
+      "seed": 6018,
+      "teams": 2,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 1528,
+      "to": 2020,
+      "score": 336,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1752,
+      "fire": 1603,
+      "tally": 1987,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 176,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Sparkly Puddles",
+        "hits": [
+          {
+            "name": "Cuticle",
+            "team": "Mighty Pebbles",
+            "dmg": 176,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 440,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6029,
+      "teams": 3,
+      "map": "mainland",
+      "style": "artillery",
+      "from": 2229,
+      "to": 2556,
+      "score": 335,
+      "label": "Pebble Grenade: 2 popped",
+      "weapon": "grenade",
+      "peak": 2453,
+      "fire": 2304,
+      "tally": 2531,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 85,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Wobbly Pebbles",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Soggy Sprouts",
+            "dmg": 42,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Soggy Sprouts",
+            "dmg": 43,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 133,
+        "turnNo": 5
+      }
+    },
+    {
+      "seed": 6096,
+      "teams": 3,
+      "map": "mainland",
+      "style": "chaos",
+      "from": 3274,
+      "to": 3573,
+      "score": 334,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 3418,
+      "fire": 3349,
+      "tally": 3541,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 134,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Gristle",
+        "team": "Jolly Nuggets",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Jolly Puddles",
+            "dmg": 134,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": true,
+        "range": 761,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6093,
+      "teams": 3,
+      "map": "caverns",
+      "style": "armoured",
+      "from": 9650,
+      "to": 10182,
+      "score": 334,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 9874,
+      "fire": 9725,
+      "tally": 10157,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 174,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Nibs",
+        "team": "Tiny Droplets",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Brave Mochis",
+            "dmg": 174,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 150,
+        "turnNo": 18
+      }
+    },
+    {
+      "seed": 6189,
+      "teams": 2,
+      "map": "spires",
+      "style": "pro",
+      "from": 7945,
+      "to": 8218,
+      "score": 333,
+      "label": "Concrete Tun: 1 popped",
+      "weapon": "tun",
+      "peak": 8060,
+      "fire": 8020,
+      "tally": 8193,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 133,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Sparkly Mochis",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Bouncy Ripples",
+            "dmg": 133,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 287,
+        "turnNo": 15
+      }
+    },
+    {
+      "seed": 6063,
+      "teams": 2,
+      "map": "canyon",
+      "style": "chaos",
+      "from": 9744,
+      "to": 10057,
+      "score": 330,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 9968,
+      "fire": 9819,
+      "tally": 10032,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 190,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Cosmic Tumbles",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Tiny Sprouts",
+            "dmg": 190,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": true,
+        "range": 157,
+        "turnNo": 15
+      }
+    },
+    {
+      "seed": 6189,
+      "teams": 2,
+      "map": "spires",
+      "style": "pro",
+      "from": 3323,
+      "to": 3636,
+      "score": 330,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 3547,
+      "fire": 3398,
+      "tally": 3611,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 190,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Bouncy Ripples",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Sparkly Mochis",
+            "dmg": 190,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 845,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6189,
+      "teams": 2,
+      "map": "spires",
+      "style": "pro",
+      "from": 7422,
+      "to": 7695,
+      "score": 330,
+      "label": "Spore Bazooka: 2 popped, own goal!",
+      "weapon": "bazooka",
+      "peak": 7564,
+      "fire": 7497,
+      "tally": 7670,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 30,
+      "ownGoal": true,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Bouncy Ripples",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Bouncy Ripples",
+            "dmg": 17,
+            "out": "pop"
+          },
+          {
+            "name": "Nibs",
+            "team": "Sparkly Mochis",
+            "dmg": 13,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 633,
+        "turnNo": 14
+      }
+    },
+    {
+      "seed": 6014,
+      "teams": 3,
+      "map": "mainland",
+      "style": "standard",
+      "from": 6078,
+      "to": 6469,
+      "score": 329,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 6204,
+      "fire": 6153,
+      "tally": 6444,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 199,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Brave Crumbs",
+        "hits": [
+          {
+            "name": "Dewdrop",
+            "team": "Brave Mochis",
+            "dmg": 199,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 501,
+        "turnNo": 12
+      }
+    },
+    {
+      "seed": 6172,
+      "teams": 3,
+      "map": "sky",
+      "style": "chaos",
+      "from": 9490,
+      "to": 9872,
+      "score": 322,
+      "label": "Acid Rain: 1 popped",
+      "weapon": "acidrain",
+      "peak": 9604,
+      "fire": 9565,
+      "tally": 9847,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 152,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Jolly Rockets",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Zippy Mochis",
+            "dmg": 152,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 1,
+        "teamsOut": [
+          "Zippy Mochis"
+        ],
+        "alone": true,
+        "range": 331,
+        "turnNo": 19
+      }
+    },
+    {
+      "seed": 6064,
+      "teams": 2,
+      "map": "caverns",
+      "style": "chaos",
+      "from": 2162,
+      "to": 2644,
+      "score": 322,
+      "label": "Holy Water Droplet",
+      "weapon": "holywater",
+      "peak": 2386,
+      "fire": 2237,
+      "tally": 2619,
+      "pops": 0,
+      "drowned": 0,
+      "damage": 232,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Tun",
+        "team": "Mossy Puddles",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Plucky Mochis",
+            "dmg": 95,
+            "out": null
+          },
+          {
+            "name": "Nibs",
+            "team": "Plucky Mochis",
+            "dmg": 137,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 748,
+        "turnNo": 4
+      }
+    },
+    {
+      "seed": 6168,
+      "teams": 3,
+      "map": "spires",
+      "style": "armoured",
+      "from": 3803,
+      "to": 4191,
+      "score": 322,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 4027,
+      "fire": 3878,
+      "tally": 4166,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 182,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Sparkly Pebbles",
+        "hits": [
+          {
+            "name": "Bubbles",
+            "team": "Wobbly Droplets",
+            "dmg": 153,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Mossy Bears",
+            "dmg": 29,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 345,
+        "turnNo": 7
+      }
+    },
+    {
+      "seed": 6181,
+      "teams": 3,
+      "map": "archipelago",
+      "style": "chaos",
+      "from": 7077,
+      "to": 7350,
+      "score": 318,
+      "label": "Microscope Slide Slam: 1 popped",
+      "weapon": "slideslam",
+      "peak": 7210,
+      "fire": 7152,
+      "tally": 7325,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 88,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Squish",
+        "team": "Speedy Tumbles",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Fuzzy Puddles",
+            "dmg": 19,
+            "out": null
+          },
+          {
+            "name": "Pudge",
+            "team": "Fuzzy Puddles",
+            "dmg": 49,
+            "out": "pop"
+          },
+          {
+            "name": "Gristle",
+            "team": "Speedy Tumbles",
+            "dmg": 20,
+            "out": null
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 607,
+        "turnNo": 13
+      }
+    },
+    {
+      "seed": 6081,
+      "teams": 3,
+      "map": "spires",
+      "style": "chaos",
+      "from": 20448,
+      "to": 20768,
+      "score": 318,
+      "label": "Microscope Slide Slam: 1 popped",
+      "weapon": "slideslam",
+      "peak": 20589,
+      "fire": 20523,
+      "tally": 20743,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 88,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Clawdia",
+        "team": "Zippy Rockets",
+        "hits": [
+          {
+            "name": "Nibs",
+            "team": "Gusty Spores",
+            "dmg": 88,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": true,
+        "range": 542,
+        "turnNo": 36
+      }
+    },
+    {
+      "seed": 6055,
+      "teams": 3,
+      "map": "caverns",
+      "style": "pro",
+      "from": 8334,
+      "to": 8659,
+      "score": 318,
+      "label": "Spore Bazooka: 2 popped",
+      "weapon": "bazooka",
+      "peak": 8558,
+      "fire": 8409,
+      "tally": 8634,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 68,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Gristle",
+        "team": "Sneaky Spores",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Mossy Bubbles",
+            "dmg": 19,
+            "out": "pop"
+          },
+          {
+            "name": "Pudge",
+            "team": "Gusty Mochis",
+            "dmg": 49,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 1167,
+        "turnNo": 16
+      }
+    },
+    {
+      "seed": 6026,
+      "teams": 2,
+      "map": "canyon",
+      "style": "chaos",
+      "from": 297,
+      "to": 570,
+      "score": 310,
+      "label": "Concrete Tun",
+      "weapon": "tun",
+      "peak": 420,
+      "fire": 372,
+      "tally": 545,
+      "pops": 0,
+      "drowned": 0,
+      "damage": 180,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Sparkly Lilies",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Sneaky Pebbles",
+            "dmg": 64,
+            "out": null
+          },
+          {
+            "name": "Tun",
+            "team": "Sneaky Pebbles",
+            "dmg": 116,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 402,
+        "turnNo": 1
+      }
+    },
+    {
+      "seed": 6026,
+      "teams": 2,
+      "map": "canyon",
+      "style": "chaos",
+      "from": 1410,
+      "to": 1730,
+      "score": 310,
+      "label": "Holy Water Droplet: 1 popped",
+      "weapon": "holywater",
+      "peak": 1634,
+      "fire": 1485,
+      "tally": 1705,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 150,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Stylet",
+        "team": "Sparkly Lilies",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Sneaky Pebbles",
+            "dmg": 41,
+            "out": null
+          },
+          {
+            "name": "Tun",
+            "team": "Sneaky Pebbles",
+            "dmg": 109,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 235,
+        "turnNo": 3
+      }
+    },
+    {
+      "seed": 6102,
+      "teams": 2,
+      "map": "caverns",
+      "style": "pro",
+      "from": 3102,
+      "to": 3477,
+      "score": 309,
+      "label": "Bacteria Bomb: 1 popped",
+      "weapon": "bacteria",
+      "peak": 3326,
+      "fire": 3177,
+      "tally": 3452,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 139,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Bubbles",
+        "team": "Soggy Spores",
+        "hits": [
+          {
+            "name": "Mossy",
+            "team": "Brave Sprouts",
+            "dmg": 106,
+            "out": "pop"
+          },
+          {
+            "name": "Bubbles",
+            "team": "Soggy Spores",
+            "dmg": 26,
+            "out": null
+          },
+          {
+            "name": "Pudge",
+            "team": "Brave Sprouts",
+            "dmg": 7,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 148,
+        "turnNo": 6
+      }
+    },
+    {
+      "seed": 6055,
+      "teams": 3,
+      "map": "caverns",
+      "style": "pro",
+      "from": 6261,
+      "to": 6534,
+      "score": 307,
+      "label": "Spore Bazooka: 2 popped",
+      "weapon": "bazooka",
+      "peak": 6462,
+      "fire": 6336,
+      "tally": 6509,
+      "pops": 2,
+      "drowned": 0,
+      "damage": 57,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Nibs",
+        "team": "Mossy Bubbles",
+        "hits": [
+          {
+            "name": "Clawdia",
+            "team": "Sneaky Spores",
+            "dmg": 22,
+            "out": "pop"
+          },
+          {
+            "name": "Dewdrop",
+            "team": "Sneaky Spores",
+            "dmg": 35,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 3,
+        "teamsAfter": 3,
+        "teamsOut": [],
+        "alone": false,
+        "range": 1604,
+        "turnNo": 12
+      }
+    },
+    {
+      "seed": 6123,
+      "teams": 2,
+      "map": "sky",
+      "style": "chaos",
+      "from": 6495,
+      "to": 6889,
+      "score": 306,
+      "label": "Pebble Grenade: 1 popped",
+      "weapon": "grenade",
+      "peak": 6719,
+      "fire": 6570,
+      "tally": 6864,
+      "pops": 1,
+      "drowned": 0,
+      "damage": 156,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Sparkly Gloops",
+        "hits": [
+          {
+            "name": "Tun",
+            "team": "Speedy Pebbles",
+            "dmg": 156,
+            "out": "pop"
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 584,
+        "turnNo": 13
+      }
+    },
+    {
+      "seed": 6086,
+      "teams": 2,
+      "map": "islands",
+      "style": "chaos",
+      "from": 219,
+      "to": 492,
+      "score": 302,
+      "label": "Concrete Tun",
+      "weapon": "tun",
+      "peak": 380,
+      "fire": 294,
+      "tally": 467,
+      "pops": 0,
+      "drowned": 0,
+      "damage": 142,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Cuticle",
+        "team": "Squishy Lilies",
+        "hits": [
+          {
+            "name": "Waddles",
+            "team": "Sparkly Biscuits",
+            "dmg": 142,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 515,
+        "turnNo": 1
+      }
+    },
+    {
+      "seed": 6056,
+      "teams": 2,
+      "map": "islands",
+      "style": "chaos",
+      "from": 1629,
+      "to": 1993,
+      "score": 299,
+      "label": "Holy Water Droplet: 1 in the water",
+      "weapon": "holywater",
+      "peak": 1853,
+      "fire": 1704,
+      "tally": 1968,
+      "pops": 0,
+      "drowned": 1,
+      "damage": 109,
+      "ownGoal": false,
+      "story": {
+        "shooter": "Mossy",
+        "team": "Cosmic Nuggets",
+        "hits": [
+          {
+            "name": "Stylet",
+            "team": "Soggy Rockets",
+            "dmg": 0,
+            "out": "water"
+          },
+          {
+            "name": "Cuticle",
+            "team": "Soggy Rockets",
+            "dmg": 7,
+            "out": null
+          },
+          {
+            "name": "Nibs",
+            "team": "Soggy Rockets",
+            "dmg": 102,
+            "out": null
+          }
+        ],
+        "teamsBefore": 2,
+        "teamsAfter": 2,
+        "teamsOut": [],
+        "alone": false,
+        "range": 130,
+        "turnNo": 3
+      }
+    }
+  ]
+}

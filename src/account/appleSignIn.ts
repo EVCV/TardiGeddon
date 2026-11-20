@@ -4,12 +4,14 @@
 // keys (Better Auth, /api/auth/sign-in/social with idToken; docs/IOS.md §2b).
 // A fresh nonce goes with each sign-in: Apple puts its SHA-256 in the token,
 // and the server checks it against the nonce itself, so a token can't be reused.
+// The sheet's one-use authorization code goes to the server once signed in
+// (/api/app/apple-code), so Apple's token can be revoked if the account is deleted.
 // Only the email is asked for, not the name: new accounts get a made-up player
 // name (server/accounts.ts).
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
-type AppleResult = { status: 'ok'; idToken: string } | { status: 'cancelled' } | { status: 'error'; message?: string };
+type AppleResult = { status: 'ok'; idToken: string; code?: string } | { status: 'cancelled' } | { status: 'error'; message?: string };
 
 interface AppleSignInPlugin {
   signIn(o: { nonce: string }): Promise<AppleResult>;
@@ -25,10 +27,10 @@ export function appleSignInAvailable(): boolean {
 const hex = (bytes: ArrayBuffer) => [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 /** Apple's sheet. Resolves to the token and the nonce to send with it, or the reason there isn't one. */
-export async function appleSheet(): Promise<{ status: 'ok'; idToken: string; nonce: string } | { status: 'cancelled' | 'error' }> {
+export async function appleSheet(): Promise<{ status: 'ok'; idToken: string; nonce: string; code?: string } | { status: 'cancelled' | 'error' }> {
   const nonce = hex(crypto.getRandomValues(new Uint8Array(32)).buffer);
   const hashed = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce)));
   const r = await AppleSignIn.signIn({ nonce: hashed });
   if (r.status !== 'ok') return { status: r.status };
-  return { status: 'ok', idToken: r.idToken, nonce };
+  return { status: 'ok', idToken: r.idToken, nonce, code: r.code };
 }

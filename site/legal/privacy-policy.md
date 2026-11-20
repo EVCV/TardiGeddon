@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 14 November 2026
+**Last Modified:** 15 November 2026
 **Document Version:** v2.15
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
@@ -79,7 +79,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 - your player name and email address;
 - your password, which is stored only in scrambled ("hashed") form, so that nobody, including us, can read it;
-- if you sign in with Google or Apple instead of a password: the email address and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in (Google's can also include your name and a profile picture link). New accounts made this way get a made-up player name, which you can change; we do not use the name Google or Apple has for you. If you use Apple's "Hide My Email", Apple gives us a private relay address (ending in @privaterelay.appleid.com) that forwards to your real email, and we never see your real address. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it. In our iOS app, signing in with Apple uses your iPhone's or iPad's own Sign in with Apple screen, which asks only for your email address;
+- if you sign in with Google or Apple instead of a password: the email address and account identifier that Google or Apple share with us, and the sign-in tokens they issue, which we need to complete sign-in (Google's can also include your name and a profile picture link). New accounts made this way get a made-up player name, which you can change; we do not use the name Google or Apple has for you. If you use Apple's "Hide My Email", Apple gives us a private relay address (ending in @privaterelay.appleid.com) that forwards to your real email, and we never see your real address. In our Android app, signing in with Google uses your phone's own Google account picker, and signing in with Apple opens Apple's page in your phone's browser; the browser then hands the sign-in back to the app with a one-time code that lasts two minutes and only works in the app that asked for it. In our iOS app, signing in with Apple uses your iPhone's or iPad's own Sign in with Apple screen, which asks only for your email address, and also gives the app a one-use code that our server exchanges with Apple for a sign-in token. We keep that token, and the one Apple issues when you sign in with Apple's page on the website or in the Android app, only so that we can ask Apple to revoke it if you delete your account (which removes TardiGeddon from the apps using your Apple ID);
 - when your account was created and last updated, and whether you have confirmed your email address;
 - the items your account has unlocked, and how (with coins, Slime, a gift, a promotional code, the Founder or Early Bird pack, a contest prize, or an earlier direct purchase);
 - invites (Terms of Service, Section 5.10): if you enter a friend's invite code, which account invited yours, when, and when the invite rewards were given. The player who invited you is not told who you are by us; the game only shows them how many of their invited friends have been rewarded or are still waiting. If you invite friends, we keep the same record on their side. Deleting either account removes it from that account's side;
@@ -166,16 +166,6 @@ Our online game server counts in the same way, for online play: how long players
 
 2.8.3 Security check. To stop automated scripts from casting votes and sending ideas, each vote and idea is protected by Cloudflare Turnstile. The game loads it from Cloudflare (challenges.cloudflare.com) only when a signed-in player opens the Roadmap, and not at all for a player who is signed out. Turnstile runs small checks in your browser, and sometimes asks you to do something, such as tick a box, to tell people from automated scripts. To do this, Cloudflare receives your IP address and signals from your browser and device (for example how it responds to the checks), and sends your browser a one-time result. When you vote or send an idea, our server asks Cloudflare whether that result is genuine, sending the result and your IP address. We never see the signals and do not keep the result or the IP address; our server uses your IP address briefly, in memory only, to limit how many votes and ideas one connection can send. Cloudflare acts as our processor for this check, and the check is described in its own policies (https://www.cloudflare.com/privacypolicy/). It is a security measure, not advertising or tracking.
 
-### 2.9 Supporting Us on Patreon
-
-2.9.1 You can support TardiGeddon with a monthly membership on Patreon (https://www.patreon.com/tardigeddon). Patreon runs the membership and takes the payments, as an independent controller of your data under its own privacy policy at https://privacy.patreon.com. Patrons get nothing inside the game.
-
-2.9.2 Patreon shows us, for each member, the name and email address on their Patreon account, their tier, how long they have been a member and what they have paid, and any messages they send us there. It does not share your card details with us. We use this to give you your tier's perks and to say thank you.
-
-2.9.3 Patrons page. We show patrons' names on our Patrons page (https://tardigeddon.com/patrons) and in the credits of our updates, grouped by tier, only as shown on Patreon. If you hide your name on Patreon, or ask us to, we show "Anonymous" or leave you out.
-
-2.9.4 Discord. If you connect your Discord account to Patreon, Patreon gives your Discord account a Patron role in our Discord server, so other members can see that you are a patron. You can disconnect it in your Patreon settings at any time.
-
 ## Section 3 — How We Use Your Information
 
 ### 3.0 Purposes of Processing
@@ -198,8 +188,6 @@ Our online game server counts in the same way, for online play: how long players
 
 3.0.7A If you enter a contest or giveaway: to check you can enter, count your entries, prevent cheating, pick and contact winners, give prizes and announce winners by player name (Section 2.7).
 
-3.0.7B If you become a patron: to give you your tier's perks, thank you on our Patrons page and in update credits, and give you your role in our Discord (Section 2.9).
-
 3.0.8 To comply with legal obligations, such as keeping accounting and tax records, and to respond to lawful requests from public authorities.
 
 ### 3.1 Legal Basis for Processing (UK/EU GDPR)
@@ -213,8 +201,6 @@ Our online game server counts in the same way, for online play: how long players
 3.1.2B Roadmap votes and ideas: legitimate interests, hearing from our players what to make next, and stopping automated abuse of votes and the suggestion box (Section 3.0.6A). You can object by contacting privacy@tardigeddon.com.
 
 3.1.2A Contests and giveaways: performance of a contract, running the contest you entered under its Official Rules, and legitimate interests, stopping duplicate and automated entries (Section 3.0.7A).
-
-3.1.2C Patreon memberships: performance of a contract, giving you the perks of the tier you chose (Section 3.0.7B). We name you on our Patrons page only as you show yourself on Patreon, and you can ask us to remove your name at any time.
 
 3.1.3A Consent: email news, only if you sign up for it (Section 2.2.6). You can withdraw your consent at any time by unsubscribing.
 
@@ -241,8 +227,6 @@ Our online game server counts in the same way, for online play: how long players
 4.0.4A Google, for coin packs bought in our Android app: Google takes the payment as the seller and is an independent controller of the payment data under its own privacy policy at https://policies.google.com/privacy (see Section 2.3.4).
 
 4.0.4B Apple, for coin packs bought in our iOS app: Apple takes the payment as the seller and is an independent controller of the payment data under its own privacy policy at https://www.apple.com/legal/privacy/ (see Section 2.3.4A).
-
-4.0.4C Patreon, Inc., which runs our memberships and takes patrons' payments as an independent controller under its own privacy policy at https://privacy.patreon.com (see Section 2.9). Patreon is based in the United States.
 
 4.0.5 Google or Apple, only if you choose to sign in with them. They will know that you used your Google or Apple account to sign in to TardiGeddon, under their own privacy policies.
 
@@ -278,7 +262,7 @@ Our online game server counts in the same way, for online play: how long players
 
 5.1.4A Email news (Section 2.2.6): while you are signed up. If you unsubscribe, we keep your email address and the dates on a "do not email" list, so you are never sent news again by mistake, and your consent record for up to 2 years after, as proof of what you agreed to. A sign-up that is never confirmed is deleted after 30 days. If you delete your account, its email news record is deleted with it.
 
-5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring.
+5.1.5 Sign-in sessions: each lasts up to 7 days after you last used it, is ended when you sign out, and is deleted from our database within about an hour of expiring. Apple's sign-in tokens (Section 2.2.1): until you delete your account, when we ask Apple to revoke them and delete them.
 
 5.1.6 Purchase records (Section 2.3.2): for six years after the end of the financial year in which the purchase was made, as required for our accounting and tax records. If you delete your account, we remove the link between your purchase records and your account; we keep the records themselves for that period. Stripe, Google for purchases in the Android app, and Apple for purchases in the iOS app, keep their own records under their privacy policies.
 
@@ -289,8 +273,6 @@ Our online game server counts in the same way, for online play: how long players
 5.1.8A Roadmap votes (Section 2.8.1): until you take the vote back or delete your account. Suggestions (Section 2.8.2): until you delete your account or, if sooner, 24 months after you sent them, when we delete them automatically.
 
 5.1.9 Contest and giveaway entries (Section 2.7): deleted within 3 months after the winners are announced. For winners, we keep their player name, the prize, the account it went to and any parent or guardian confirmation for 2 years, in case of questions about the prize. The prizes themselves stay on the account like any other item (Section 5.1.4).
-
-5.1.10 Patrons (Section 2.9): your name on our Patrons page and in the credits while you are a patron; we take it off the Patrons page within a month of you leaving or straight away if you ask. Credits in updates already published stay as they are. Patreon keeps its own records under its privacy policy.
 
 ## Section 6 — Your Rights
 

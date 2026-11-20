@@ -1,0 +1,12 @@
+{
+  "about": "The second batch (scouted 7 Nov 2026, for posting from 12 Nov): 4 YouTube videos and 12 Shorts, from the matches in scout-big/ (6 to 10 teams, seeds 3001+) and scout-duels/ (2 or 3 teams, seeds 4001+). Run: npm run videos:batch -- 2026-11-12",
+  "jobs": [
+    { "name": "ten-team-match-2", "args": ["match", "--scout", "scout-big", "--seed", "3198", "--min-score", "100"] },
+    { "name": "three-team-match-1", "args": ["match", "--scout", "scout-duels", "--seed", "4282", "--min-score", "100"] },
+    { "name": "pure-mayhem-2", "args": ["best", "--scout", "scout-big", "--teams", "6", "--minutes", "8", "--per-match", "2", "--per-weapon", "6", "--title", "Pure mayhem 2"] },
+    { "name": "one-on-one-2", "args": ["best", "--scout", "scout-duels", "--max-teams", "3", "--minutes", "6", "--per-match", "2", "--per-weapon", "4", "--title", "One on one 2", "--thumb", "ONE|ON ONE"] },
+    { "name": "short2-big", "shorts": 7, "args": ["shorts", "--scout", "scout-big", "--count", "7"] },
+    { "name": "short2-duel", "shorts": 5, "args": ["shorts", "--scout", "scout-duels", "--count", "5"] }
+  ],
+  "music": []
+}

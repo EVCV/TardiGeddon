@@ -46,6 +46,110 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
+    id: '2026-11-20-lighter-rain',
+    date: '2026-11-20',
+    kind: 'update',
+    text: {
+      en: {
+        title: 'Lighter rain, cooler phones',
+        body: [
+          '- Rain and storms are lighter and see-through, so they no longer hide the game. Lightning flashes are softer too.',
+          '- Phones run cooler: the game draws fewer frames while nothing is moving, and full speed again as soon as you touch the screen.',
+          '- Deleting an account that has a password now always asks for that password.',
+        ],
+      },
+      es: {
+        title: 'Lluvia más ligera, móviles más frescos',
+        body: [
+          '- La lluvia y las tormentas son más ligeras y transparentes, así que ya no tapan el juego. Los relámpagos también son más suaves.',
+          '- Los móviles se calientan menos: el juego dibuja menos imágenes mientras nada se mueve, y vuelve a toda velocidad en cuanto tocas la pantalla.',
+          '- Eliminar una cuenta que tiene contraseña ahora siempre pide esa contraseña.',
+        ],
+      },
+      'pt-BR': {
+        title: 'Chuva mais leve, celulares mais frios',
+        body: [
+          '- A chuva e as tempestades estão mais leves e transparentes, então não escondem mais o jogo. Os relâmpagos também estão mais suaves.',
+          '- Os celulares esquentam menos: o jogo desenha menos quadros enquanto nada se mexe, e volta à velocidade total assim que você toca na tela.',
+          '- Apagar uma conta que tem senha agora sempre pede essa senha.',
+        ],
+      },
+      de: {
+        title: 'Leichterer Regen, kühlere Handys',
+        body: [
+          '- Regen und Gewitter sind leichter und durchsichtig, sie verdecken das Spiel nicht mehr. Auch die Blitze sind sanfter.',
+          '- Handys bleiben kühler: Solange sich nichts bewegt, zeichnet das Spiel weniger Bilder, und sobald du den Bildschirm berührst, wieder mit voller Geschwindigkeit.',
+          '- Wer ein Konto mit Passwort löscht, wird jetzt immer nach diesem Passwort gefragt.',
+        ],
+      },
+      fr: {
+        title: 'Pluie plus légère, téléphones plus frais',
+        body: [
+          '- La pluie et les orages sont plus légers et transparents : ils ne cachent plus le jeu. Les éclairs sont aussi plus doux.',
+          '- Les téléphones chauffent moins : le jeu dessine moins d’images quand rien ne bouge, et repasse à pleine vitesse dès que tu touches l’écran.',
+          '- Supprimer un compte qui a un mot de passe demande maintenant toujours ce mot de passe.',
+        ],
+      },
+      ja: {
+        title: '雨が軽く、スマホが熱くなりにくく',
+        body: [
+          '- 雨と嵐が軽く、透けて見えるようになり、ゲームが見えにくくなることはもうありません。稲妻の光もやわらかくなりました。',
+          '- スマホが熱くなりにくくなりました：何も動いていない間は描くフレームを減らし、画面に触れるとすぐに元の速さに戻ります。',
+          '- パスワードのあるアカウントを削除するときは、必ずそのパスワードを入力するようになりました。',
+        ],
+      },
+    },
+  },
+  {
+    id: '2026-11-15-smooth-camera',
+    date: '2026-11-15',
+    kind: 'update',
+    text: {
+      en: {
+        title: 'A smoother camera',
+        body: [
+          '- The camera now glides from one thing to the next (a shot, a blast, the next turn) instead of jumping there, so it’s easier to follow what’s happening.',
+          '- Weapons that split into several bits: the camera follows the whole cluster, or one bit to the end, instead of hopping between them.',
+        ],
+      },
+      es: {
+        title: 'Una cámara más suave',
+        body: [
+          '- La cámara ahora se desliza de una cosa a la siguiente (un disparo, una explosión, el turno siguiente) en vez de saltar, así es más fácil seguir lo que pasa.',
+          '- Armas que se dividen en varios trozos: la cámara sigue todo el grupo, o un trozo hasta el final, en vez de saltar de uno a otro.',
+        ],
+      },
+      'pt-BR': {
+        title: 'Uma câmera mais suave',
+        body: [
+          '- A câmera agora desliza de uma coisa para a próxima (um tiro, uma explosão, o próximo turno) em vez de pular, então fica mais fácil acompanhar o que está acontecendo.',
+          '- Armas que se dividem em vários pedaços: a câmera segue o grupo todo, ou um pedaço até o fim, em vez de pular de um para outro.',
+        ],
+      },
+      de: {
+        title: 'Eine ruhigere Kamera',
+        body: [
+          '- Die Kamera gleitet jetzt von einem Geschehen zum nächsten (ein Schuss, eine Explosion, der nächste Zug), statt dorthin zu springen. So lässt sich leichter verfolgen, was passiert.',
+          '- Waffen, die in mehrere Teile zerfallen: Die Kamera folgt der ganzen Gruppe oder einem Teil bis zum Ende, statt zwischen ihnen hin und her zu springen.',
+        ],
+      },
+      fr: {
+        title: 'Une caméra plus fluide',
+        body: [
+          '- La caméra glisse maintenant d’une action à la suivante (un tir, une explosion, le tour suivant) au lieu d’y sauter : on suit plus facilement ce qui se passe.',
+          '- Armes qui se divisent en plusieurs morceaux : la caméra suit tout le groupe, ou un morceau jusqu’au bout, au lieu de sauter de l’un à l’autre.',
+        ],
+      },
+      ja: {
+        title: 'カメラがなめらかに',
+        body: [
+          '- カメラが次の出来事（ショット、爆発、次のターン）へ飛ぶのではなく、なめらかに移動するようになりました。何が起きているか追いやすくなります。',
+          '- いくつかに分かれる武器：カメラが破片の間を行ったり来たりせず、まとまり全体か、ひとつの破片を最後まで追いかけます。',
+        ],
+      },
+    },
+  },
+  {
     id: '2026-11-13-big-screens',
     date: '2026-11-13',
     kind: 'update',

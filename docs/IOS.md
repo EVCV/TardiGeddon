@@ -175,12 +175,51 @@ is offered (Guideline 4.8).
   one lacks it.
 - Tested in `tests/accounts.test.ts` (Apple's signature check stood in for).
 
-Still to do: **revoking Apple's tokens when an Apple account is deleted**.
-Apple asks apps with Sign in with Apple to call its REST API's revoke
-endpoint on account deletion. That needs a Sign in with Apple **key** (the
-same one the website's Apple button needs) and the authorization code the
-sheet gives, exchanged for a refresh token at sign-in. Do it with the
-website's Apple sign-in. Later, the "other" provider in each app (Google on iOS,
+**Revoking Apple's tokens when an account is deleted: built** (4 Nov 2026).
+Apple asks apps with Sign in with Apple to revoke the player's tokens when
+they delete their account (`server/appleTokens.ts`):
+
+- The sheet also gives the app a one-use **authorization code**. Once signed
+  in, the app sends it to `POST /api/app/apple-code`; the server exchanges it
+  with Apple for a refresh token (only if it's for the Apple user that
+  account signed in with) and keeps it in `apple_token`.
+- Apple's web page (website, Android app): Better Auth exchanges the code
+  itself and keeps the tokens in its `account` table.
+- **Delete account** (`beforeDelete` in `server/accounts.ts`) revokes every
+  one at `https://appleid.apple.com/auth/revoke`, then the account goes
+  (whatever Apple answers: failures are logged, never the token).
+- Tested in `tests/appletokens.test.ts` and `tests/accounts.test.ts`.
+
+**To switch it on: one Sign in with Apple key** on the server (the app's
+tokens can't be exchanged without it; the website's are revoked with
+`APPLE_CLIENT_SECRET` until then):
+
+1. developer.apple.com → Certificates, Identifiers & Profiles → **Keys** → **+**.
+   Name it "TardiGeddon Sign in with Apple", tick **Sign in with Apple** →
+   **Configure** → Primary App ID **com.tardigeddon.app** → Save → Continue →
+   Register.
+2. **Download** the `.p8` file (only once: keep it safe, e.g. in the password
+   manager) and note the **Key ID** (10 characters). The **Team ID** is at the
+   top right of the developer site (Membership details).
+3. On your computer, in the folder with the file:
+
+   ```bash
+   fly secrets set -a tardigeddon-server APPLE_TEAM_ID=XXXXXXXXXX APPLE_KEY_ID=YYYYYYYYYY APPLE_PRIVATE_KEY="$(cat AuthKey_YYYYYYYYYY.p8)"
+   ```
+
+   On Windows PowerShell, use `"$(Get-Content -Raw .\AuthKey_YYYYYYYYYY.p8)"`
+   for the key (the server also copes with the key on one line). `-a` names
+   the app, so it works from any folder.
+
+4. Check: sign in with Apple in the TestFlight app, then Account → Delete
+   account. Within a minute, on the iPhone: Settings → your name → **Sign in
+   with Apple** no longer lists TardiGeddon.
+
+The same key also makes the website's client secret if you like (Better
+Auth's Apple docs), so the 6-monthly `APPLE_CLIENT_SECRET` renewal could go
+later.
+
+Later, the "other" provider in each app (Google on iOS,
 Apple on Android) opens the provider's page in the system browser and
 returns to the app. So a player who started on an iPhone with Apple can
 carry on on Android.
