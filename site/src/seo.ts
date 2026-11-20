@@ -16,6 +16,7 @@ import { SITE_URL } from './config';
 import { LEGAL_PAGES } from './legal';
 import { PROMO } from './promo';
 import { SOCIAL } from './social';
+import { PATREON_LIVE } from './patrons';
 
 const WEAPON_COUNT = PANEL_WEAPONS.filter((w) => w.id !== 'skip').length;
 
@@ -95,6 +96,14 @@ export const PAGES: Record<string, PageMeta> = {
     ...HOME_IMAGE,
     crumb: 'Press kit',
   },
+  '/patrons': {
+    title: 'TardiGeddon Patrons: Thank You for Your Support',
+    description: 'The patrons who help keep TardiGeddon free, and what each Patreon tier gets. Every perk is outside the game: patrons never get anything that helps them win.',
+    ...HOME_IMAGE,
+    crumb: 'Patrons',
+    // Out of search until the Patreon page is published.
+    noindex: !PATREON_LIVE,
+  },
   '/promo-codes': {
     title: `TardiGeddon Promo Codes: Free ${PROMO.hatName} Hat Code`,
     description: `The current TardiGeddon promo code: ${PROMO.code} unlocks the ${PROMO.hatName}, a free hat you can only get with this code. How to redeem it in the game.`,
@@ -124,6 +133,8 @@ export function pageMeta(path: string, legalTitle?: string): PageMeta {
 
 /** Pages for the sitemap: the ones search engines should list. */
 export const INDEXED_PATHS = Object.keys(PAGES);
+/** The pages listed in sitemap.xml: every page except noindex ones. */
+export const SITEMAP_PATHS = INDEXED_PATHS.filter((p) => !PAGES[p].noindex);
 
 const ORG_ID = `${SITE_URL}/#organization`;
 const SITE_ID = `${SITE_URL}/#website`;

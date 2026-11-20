@@ -23,11 +23,14 @@ import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { WEAPONS } from '../src/sim/weapons';
 import { HATS } from '../src/render/hats';
-import { BLUE, GOLD, GREEN, RED, ground, media, page, root, shot, tardi } from './social-art';
+import { BLUE, GOLD, GREEN, LOOK_CSS, LOOK_NAMES, RED, ground, lookPanel, media, page, publicPic, root, shot, tardi } from './social-art';
+import { buildGiveawayVideos } from './social/giveaway-videos';
 import { POSTS, type Category, type Post } from './social/posts';
 
 const SITE = 'https://tardigeddon.com';
 const PLAY_LINE = '▶ Play free: tardigeddon.com/play';
+/** The Giveaway series' link line, instead of PLAY_LINE (the entry page links the Official Rules). */
+const ENTER_LINE = '🏆 Enter free: tardigeddon.com/giveaway';
 const W = 1080;
 const H = 1350;
 
@@ -58,7 +61,7 @@ const HASHES = (p: Post) => ['TardiGeddon', ...(p.tags ?? [])].map((t) => `#${t}
 
 /** The post as it's published: its words, the play link, the hashtags. */
 function fullMessage(p: Post): string {
-  const parts = [p.message, ...(p.noPlayLink ? [] : [PLAY_LINE]), HASHES(p)];
+  const parts = [p.message, ...(p.noPlayLink ? [] : [p.category === 'Giveaway' ? ENTER_LINE : PLAY_LINE]), HASHES(p)];
   return parts.join(oneLine ? ' ' : '\n\n');
 }
 
@@ -68,6 +71,21 @@ function xLength(s: string): number {
   for (const ch of s.replace(/\b[a-z0-9.-]+\.(com|org)(\/[\w/-]*)?/gi, 'x'.repeat(23))) n += (ch.codePointAt(0) ?? 0) >= 0x1100 ? 2 : 1;
   return n;
 }
+
+/** Length as Bluesky counts it, assuming the safe case that emoji and Japanese count twice (limit 300). */
+const blueskyLength = (s: string) => [...s].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) >= 0x1100 ? 2 : 1), 0);
+
+/** Words the Giveaway posts must never use (docs/social/README.md, the Official Rules and the platforms' promotion rules). */
+const GIVEAWAY_BANNED: [RegExp, string][] = [
+  [/last chance|hurry|don.t miss|ending soon|running out|final call|too late|\bonly \d+ (days?|hours?)|countdown|days? left|now or never/i, 'no urgency or countdown words'],
+  [/\b(share|tag|retweet|repost|like|comment)\b[^.!?]*\bto (enter|win)|\btag (a |your )?friends?|\bshare (this|the) post/i, 'never ask people to share, tag or like to enter'],
+  [/lotter|raffle|sweepstake/i, 'say "giveaway", not lottery, raffle or sweepstake'],
+  [/\bbuy|\bbought|\bpurchas(e|ing)\b(?! needed| necessary)|\bspend\b/i, "never suggest buying helps (it doesn't)"],
+  [/guarantee|\bcash\b|\bmoney\b/i, 'no promises beyond the Official Rules'],
+];
+const GIVEAWAY_TAGS = ['giveaway', 'freegame', 'indiegame', 'browsergame', 'gaming'];
+const GIVEAWAY_OPENS = '2026-11-13 00:00';
+const GIVEAWAY_CLOSES = '2027-01-31 23:59';
 
 function check(posts: Post[]): string[] {
   const problems: string[] = [];
@@ -82,11 +100,24 @@ function check(posts: Post[]): string[] {
     if ('weapon' in art && (!WEAPONS[art.weapon] || WEAPONS[art.weapon].hidden)) problems.push(`${where} no weapon "${art.weapon}"`);
     if ('shot' in art && !existsSync(join(media, art.shot))) problems.push(`${where} no picture site/public/media/${art.shot}`);
     if ('tardis' in art) for (const t of art.tardis) if (!HATS.some((h) => h.id === t.hat)) problems.push(`${where} no hat "${t.hat}"`);
+    if ('stat' in art && art.hat && !HATS.some((h) => h.id === art.hat)) problems.push(`${where} no hat "${art.hat}"`);
+    if ('looks' in art) for (const l of art.looks) if (!LOOK_NAMES[l]) problems.push(`${where} no look "${l}" in LOOK_NAMES (scripts/social-art.ts)`);
+    if ('image' in art && !existsSync(join(root, 'site', 'public', art.image))) problems.push(`${where} no picture site/public${art.image}`);
     if (!p.title || !p.text || !p.alt) problems.push(`${where} needs a title, text and alt`);
     if (/worms/i.test(`${p.message} ${p.title} ${p.text}`)) problems.push(`${where} never mention Worms (docs/social/README.md)`);
     const msg = fullMessage(p);
     if (xLength(msg) > 280) problems.push(`${where} too long for X (${xLength(msg)} of 280)`);
-    if ([...msg].length > 300) problems.push(`${where} too long for Bluesky (${[...msg].length} of 300)`);
+    if (blueskyLength(msg) > 300) problems.push(`${where} too long for Bluesky (${blueskyLength(msg)} of 300, emoji counted twice)`);
+    if (p.video && p.video.youtubeTitle.length > 100) problems.push(`${where} the YouTube title is over 100 characters`);
+    if (p.category === 'Giveaway') {
+      if (BOARD[p.category]) problems.push(`${where} Giveaway posts must never go to Pinterest (pins outlive the giveaway): leave BOARD.Giveaway empty`);
+      if (!p.date) problems.push(`${where} Giveaway posts need a fixed date`);
+      else if (p.date < GIVEAWAY_OPENS || p.date > GIVEAWAY_CLOSES) problems.push(`${where} dated outside the giveaway (${GIVEAWAY_OPENS} to ${GIVEAWAY_CLOSES})`);
+      if (p.noPlayLink) problems.push(`${where} a Giveaway post needs the Enter free link`);
+      for (const [re, why] of GIVEAWAY_BANNED) if (re.test(`${p.message} ${p.title} ${p.text} ${p.alt}`)) problems.push(`${where} ${why}`);
+      if ((p.tags ?? []).length > 2 || (p.tags ?? []).some((t) => !GIVEAWAY_TAGS.includes(t))) problems.push(`${where} hashtags: at most two of ${GIVEAWAY_TAGS.join(', ')}`);
+      if (p.video && !/^https:\/\/tardigeddon\.com\/social\/giveaway-[\w-]+\.mp4$/.test(p.video.url)) problems.push(`${where} Giveaway videos live at tardigeddon.com/social/giveaway-<id>.mp4`);
+    }
     if (p.title.length > 100) problems.push(`${where} the title is too long for a Pin (100)`);
     if (p.alt.length > 500) problems.push(`${where} alt text over 500 characters`);
     if (p.date && !/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(p.date)) problems.push(`${where} date must be "YYYY-MM-DD HH:MM"`);
@@ -104,10 +135,11 @@ const CHIP: Record<Category, { label: string; color: string }> = {
   Community: { label: '💬 Your turn', color: '#e06aa8' },
   Play: { label: '▶ Play free', color: '#e0a020' },
   Videos: { label: '🎬 Watch', color: '#e04848' },
+  Giveaway: { label: '🏆 Giveaway', color: '#e0a020' },
 };
 
 const CARD_CSS = `
-.chip { position:absolute; left:50%; top:52px; transform:translateX(-50%); color:#fff; font-size:40px; padding:10px 34px; border:5px solid #2b1b24; border-radius:999px; box-shadow:0 6px 0 #2b1b24; white-space:nowrap; text-transform:uppercase; letter-spacing:0.04em; }
+${LOOK_CSS}.chip { position:absolute; left:50%; top:52px; transform:translateX(-50%); color:#fff; font-size:40px; padding:10px 34px; border:5px solid #2b1b24; border-radius:999px; box-shadow:0 6px 0 #2b1b24; white-space:nowrap; text-transform:uppercase; letter-spacing:0.04em; }
 .title { position:absolute; left:40px; right:40px; top:150px; height:170px; display:flex; align-items:center; justify-content:center; text-align:center; }
 .text { position:absolute; left:60px; right:60px; top:960px; background:#fff8ec; border:6px solid #2b1b24; border-radius:28px; box-shadow:0 10px 0 #2b1b24; padding:26px 34px; font-size:42px; line-height:1.25; text-align:center; }
 .tags { display:flex; gap:12px; justify-content:center; margin-top:14px; font-size:30px; }
@@ -135,10 +167,15 @@ function art(p: Post): string {
   if ('weapon' in a) {
     return `<div class="icon">${WEAPONS[a.weapon].icon}</div>${tardi(colourFor(p.id), hatFor(p.id), 'width:560px;left:500px;top:470px;transform:scaleX(-1)')}`;
   }
+  if ('looks' in a) {
+    const color = colourFor(p.id);
+    return `<div style="position:absolute;left:60px;right:60px;top:340px;height:560px;display:flex;gap:28px;justify-content:center;align-items:center">${a.looks.map((l) => lookPanel(l, color, 'max-width:640px')).join('')}</div>`;
+  }
+  if ('image' in a) return '';
   if ('stat' in a) {
     const size = a.stat.length <= 4 ? 260 : a.stat.length <= 7 ? 190 : 150;
     return `<div class="big center" style="position:absolute;left:40px;right:40px;top:350px;height:330px;font-size:${size}px;color:#fff8ec">${a.stat}</div>
-      ${tardi(colourFor(p.id), hatFor(p.id), 'width:440px;left:320px;top:600px')}`;
+      ${tardi(colourFor(p.id), a.hat ?? hatFor(p.id), 'width:440px;left:320px;top:600px')}`;
   }
   if ('question' in a) {
     return `<div class="bubble">${a.question}</div>${tardi(colourFor(p.id), hatFor(p.id), 'width:400px;left:680px;top:640px;transform:scaleX(-1)')}`;
@@ -158,7 +195,24 @@ function tagsFor(p: Post): string {
   return tags.length ? `<div class="tags">${tags.map((t) => `<b>${t}</b>`).join('')}</div>` : '';
 }
 
+/** A finished square picture (the giveaway's prize cards, with their own titles) in a frame, with the words under it. */
+function imageCard(p: Post, image: string): string {
+  const chip = CHIP[p.category];
+  return page(
+    `<style>${CARD_CSS}</style>
+    <div class="sky">
+      ${ground(150, 26)}
+      <div class="chip" style="background:${chip.color}">${chip.label}</div>
+      <div class="shot" style="left:100px;top:140px;width:880px;height:880px;transform:rotate(-1deg)"><img src="${publicPic(image)}"></div>
+      <div class="text" style="top:auto;bottom:56px">${p.text}</div>
+    </div>`,
+    W,
+    H,
+  );
+}
+
 function card(p: Post): string {
+  if ('image' in p.art) return imageCard(p, p.art.image);
   const chip = CHIP[p.category];
   const titleSize = p.title.length <= 12 ? 120 : p.title.length <= 20 ? 96 : 76;
   return page(
@@ -169,7 +223,7 @@ function card(p: Post): string {
       <div class="title"><div class="big" style="font-size:${titleSize}px">${p.title}</div></div>
       ${art(p)}
       <div class="text">${p.text}${tagsFor(p)}</div>
-      <div class="foot"><div class="logo" style="font-size:64px;-webkit-text-stroke:4px #2b1b24;text-shadow:0 5px 0 #2b1b24">Tardi<span>Geddon</span></div><div class="url">Play free · tardigeddon.com</div></div>
+      <div class="foot"><div class="logo" style="font-size:64px;-webkit-text-stroke:4px #2b1b24;text-shadow:0 5px 0 #2b1b24">Tardi<span>Geddon</span></div><div class="url">${p.category === 'Giveaway' ? 'tardigeddon.com/giveaway' : 'Play free · tardigeddon.com'}</div></div>
     </div>`,
     W,
     H,
@@ -196,6 +250,7 @@ const BOARD: Record<Category, string> = {
   Community: '', // questions aren't pinned
   Play: 'Free Browser Games',
   Videos: 'Free Browser Games',
+  Giveaway: '', // never pinned: pins outlive the giveaway (see check())
 };
 
 const imageUrl = (p: Post) => `${SITE}/social/posts/${p.id}.jpg`;
@@ -211,11 +266,11 @@ function row(p: Post): Record<(typeof COLUMNS)[number], string> {
     const [h, min] = t.split(':').map(Number);
     Object.assign(r, { 'Month(1-12)': String(m), 'Day(1-31)': String(day), Year: String(y), 'Hour(1-24)': String(h), 'Minute(0-59)': String(min) });
   }
-  r.PinTitle = p.title;
+  r.PinTitle = p.category === 'Giveaway' ? '' : p.title;
   r.PinterestBoard = BOARD[p.category];
   r.Category = p.category;
   r.AltText = p.alt;
-  r.TeamNote = `${p.id} (scripts/social/posts.ts)`;
+  r.TeamNote = `${p.id} (scripts/social/posts.ts)${p.category === 'Giveaway' ? ' · NOT for Pinterest' : ''}`;
   if (p.video) {
     Object.assign(r, {
       YouTubeTitle: p.video.youtubeTitle,
@@ -248,7 +303,7 @@ function preview(posts: Post[]): string {
   const items = posts
     .map(
       (p) => `<article><img src="../../../site/public/social/posts/${p.id}.jpg" alt="${esc(p.alt)}" loading="lazy">
-      <div><p class="meta"><b>${p.category}</b> · ${p.date ? `📅 ${p.date} (UK)` : 'queue'}${p.video ? ` · 🎬 video: ${esc(p.video.url)}` : ''} · <code>${p.id}</code></p>
+      <div><p class="meta"><b>${p.category}</b> · ${p.date ? `📅 ${p.date} (UK)` : 'queue'}${p.video ? ` · 🎬 video: ${esc(p.video.url)}` : ''}${p.category === 'Giveaway' ? ' · 🚫 not for Pinterest' : ''} · <code>${p.id}</code></p>${p.video && /\/social\/giveaway-/.test(p.video.url) ? `<video src="../../../site/public/social/${p.video.url.split('/').pop()}" controls preload="none" width="216" style="float:right;margin-left:12px"></video>` : ''}
       <pre>${esc(fullMessage(p))}</pre></div></article>`,
     )
     .join('\n');
@@ -294,6 +349,7 @@ for (const p of posts) {
   await tab.screenshot({ path: join(cardDir, `${p.id}.jpg`), type: 'jpeg', quality: 82 });
   console.log(`  ${p.id}.jpg`);
 }
+await buildGiveawayVideos(browser, posts.flatMap((p) => (p.video && /\/social\/giveaway-/.test(p.video.url) ? [p.id] : [])));
 await browser.close();
 
 writeFileSync(join(queueDir, `batch-${batch}.csv`), csv(posts));

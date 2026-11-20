@@ -352,6 +352,29 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
       100,
     ),
   })),
+  // Patreon tier pictures (docs/PATREON.md §2), 16:9; the hat gets grander each tier.
+  ...[
+    { name: 'Moss Fan', price: '£3', color: GREEN, hat: 'beanie' },
+    { name: 'Water Bear', price: '£5', color: BLUE, hat: 'tophat' },
+    { name: 'Tun Club', price: '£10', color: RED, hat: 'party' },
+    { name: 'Legend', price: '£25', color: GOLD, hat: 'crown' },
+  ].map((t) => ({
+    file: `patreon-tier-${t.name.toLowerCase().replace(' ', '-')}.png`,
+    w: 1600,
+    h: 900,
+    html: page(
+      `<div class="sky">
+        ${ground(170, 26)}
+        ${tardi(t.color, t.hat, 'width:520px;left:150px;top:338px')}
+        <div class="center" style="position:absolute;left:700px;right:80px;top:150px;height:520px">
+          <div class="big" style="font-size:150px;-webkit-text-stroke:8px #2b1b24;text-shadow:0 10px 0 #2b1b24">${t.name}</div>
+          <div class="big" style="font-size:110px;margin-top:20px;color:#ffd84a;-webkit-text-stroke:7px #2b1b24;text-shadow:0 8px 0 #2b1b24">${t.price}<span style="font-size:56px">/month</span></div>
+        </div>
+      </div>`,
+      1600,
+      900,
+    ),
+  })),
   // Facebook Page cover (shown 820×312 on computers; phones crop it to 16:9,
   // the middle 1110px here). The profile picture covers the bottom-left.
   {

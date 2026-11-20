@@ -1,8 +1,8 @@
 # Reddit: r/TardiGeddon
 
 Shared names, bios and rules are in [README.md](README.md); pictures are in
-`store/social/`. The subreddit is live, with its welcome post.
-This is everything to make it a real home, in order. Reddit's screens move
+`store/social/`. **Live since 14 Nov 2026**, set up as below (Public, rules,
+flairs, filters, three posts). Kept here so it can be rebuilt or checked. Reddit's screens move
 about: the steps name what to look for, not exact clicks.
 
 Reddit is 13+, like accounts. Like Discord, link it from the website and
@@ -33,20 +33,25 @@ other socials, **never from inside the game** (README: Kids).
   ▶ Play: tardigeddon.com/play · 📰 News: tardigeddon.com/news ·
   💬 Discord: tardigeddon.com/discord · 🎓 How to play: tardigeddon.com/how-to-play
 
-## 3. Rules (Mod tools → Rules; copy as is)
+## 3. Rules (Mod tools → Rules)
 
-1. **Be kind.** No insults, harassment or hate. Plenty of players are young.
-2. **Keep it about TardiGeddon.** Other games are fine for comparison, not for promotion.
-3. **No cheating, exploits or account selling.** Report exploits privately to support@tardigeddon.com.
-4. **Bugs:** say what happened, on which device, and how to make it happen again. Use the Bug flair.
-5. **No personal information.** Don't share your own or anyone else's email, address or real name.
-6. **No spam or self-promotion,** apart from your own TardiGeddon clips and art.
-7. **Credit other people's art and clips.**
+All apply to posts and comments. "Auto Enforce" is Reddit's AI check (posts only).
 
-Removal reasons (Mod tools → Removal reasons): one per rule, short and polite,
-e.g. "Removed: please keep posts about TardiGeddon (rule 2)."
+| # | Rule | Description | Auto Enforce |
+|---|---|---|---|
+| 1 | Be kind | No insults, harassment or hate. Plenty of players are young. | Report |
+| 2 | No spam or self-promotion | Apart from your own TardiGeddon clips and art. | Remove for review |
+| 3 | Keep it about TardiGeddon | Other games are fine for comparison, not for promotion. | Report |
+| 4 | No cheating, exploits or account selling | Report exploits privately to support@tardigeddon.com. | Report |
+| 5 | Bug reports need details | Say what happened, on which device, and how to make it happen again. Use the Bug flair. | off |
+| 6 | No personal information | Don't share your own or anyone else's email, address or real name. | Report |
+| 7 | Credit other people's art and clips | Give the artist's name or link when you share someone else's work. | off |
 
-## 4. Post flairs (Mod tools → Post flair; required on every post)
+"Remove for review" hides a post until a mod approves it in **Queues**: check
+Queues every day or two. Reddit's filters catch even our own posts while the
+account is new (they show red in mod view only; approve them).
+
+## 4. Post flairs (search tools for "flair"; Require post flair is on)
 
 | Flair | Colour | For |
 |---|---|---|
@@ -54,36 +59,39 @@ e.g. "Removed: please keep posts about TardiGeddon (rule 2)."
 | 💥 Clip | red | best shots, funny moments |
 | 🎨 Fan art | pink | drawings, edits |
 | 💡 Suggestion | green | ideas for weapons, worlds, modes |
-| 🐛 Bug | grey | problems (see rule 4) |
+| 🐛 Bug | grey | problems (see rule 5) |
 | ❓ Question | blue | how do I…? |
 | 🏆 Daily challenge | orange | scores and runs |
 
-## 5. AutoModerator (Mod tools → Automations → AutoModerator; paste as is)
+## 5. Spam and safety
+
+Reddit no longer lets new AutoModerator setups report, filter, remove or
+approve; that moved to Automations, Safety Filters and rules' Auto Enforce.
+
+**AutoModerator** (Mod tools → Automod) only adds the bug-report tip:
 
 ```yaml
-# New accounts (under 2 days) can't post links: stops most spam bots.
-type: submission
-author:
-    account_age: "< 2 days"
-domain+body (regex): ['https?://']
-action: filter
-action_reason: "New account posting a link"
----
-# Scam phrases (the same as the Discord filter).
-type: any
-title+body (includes): ["free nitro", "nitro gift", "steam gift", "steamcommunity.gift", "discord.gift", "airdrop", "onlyfans"]
-action: remove
-action_reason: "Scam phrase"
----
 # Bug reports get a reminder of what helps.
 type: submission
-flair_text: "🐛 Bug"
+flair_text (includes): ["Bug"]
 comment: |
     Thanks for the report! If you haven't already, tell us **which device** (and browser or app), **what happened**, and **how to make it happen again**. You can also email support@tardigeddon.com.
 comment_stickied: true
 ```
 
-## 6. First posts (in this order, once it's Public)
+**Automations** (Comment Guidance): *Scam Phrases* blocks comments containing
+`free nitro`, `nitro gift`, `steam gift`, `steamcommunity.gift`, `discord.gift`,
+`airdrop`, `onlyfans`; Reddit's own *link shorteners* and *PII email* templates
+are on too.
+
+**Safety Filters:** Ban evasion, Reputation, Adult content promoters,
+Harassment and Mature content on; Crowd control **off** (it would hold back
+every new fan). Hide untrusted reports on.
+
+**Settings:** AMAs mods only; Community guide on with a welcome message and
+three Resources (Play, Discord, How to play).
+
+## 6. First posts (done 14 Nov 2026)
 
 1. **Welcome (pinned, News flair):**
    > **Welcome to r/TardiGeddon!** 🐻💥
@@ -93,7 +101,7 @@ comment_stickied: true
    > Post your best shots and funniest own goals, fan art, ideas and bug reports here. Our Discord (tardigeddon.com/discord) is the place to find people to play online with.
    >
    > The rules are short: be kind, keep it about TardiGeddon, no cheating. Have fun! — the TardiGeddon team
-2. **"What should we add next?" (pinned, Suggestion flair):** ask for ideas
+2. **"What should we add next? 💡" (pinned, Suggestion flair):** ask for ideas
    for the next world and weapon, then reply to the best ones.
 3. **The trailer or teaser** (`store/social/shorts/teaser.mp4`, Clip flair).
 
@@ -130,7 +138,7 @@ days), post from the company account with "I'm the developer" said plainly,
 never ask for upvotes, and never use other accounts to boost posts. Never
 mention Worms (README: Rules).
 
-## 9. After it's live
+## 9. Linked from
 
-Add it to `SOCIAL` in `site/src/social.ts` (the website footer's Follow links
-and `sameAs`), and update the status in [README.md](README.md).
+`SOCIAL` in `site/src/social.ts` (the website footer's Follow links and
+`sameAs`) and the launch giveaway's bonus entries.

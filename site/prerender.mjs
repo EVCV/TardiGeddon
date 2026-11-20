@@ -29,7 +29,7 @@ Object.assign(globalThis, {
 globalThis.location ??= new URL('https://tardigeddon.com/');
 
 const ssr = await import(pathToFileURL(join(ssrDir, 'entry-server.js')).href);
-const { render, pageMeta, pageSchema, INDEXED_PATHS, LEGAL, NEWS, newsDay } = ssr;
+const { render, pageMeta, pageSchema, INDEXED_PATHS, SITEMAP_PATHS, LEGAL, NEWS, newsDay } = ssr;
 const SITE = 'https://tardigeddon.com';
 
 const template = readFileSync(join(out, 'index.html'), 'utf8');
@@ -108,7 +108,7 @@ write(
   'sitemap.xml',
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${INDEXED_PATHS.map((p) => `  <url><loc>${SITE}${p}</loc><lastmod>${today}</lastmod></url>`).join('\n')}
+${SITEMAP_PATHS.map((p) => `  <url><loc>${SITE}${p}</loc><lastmod>${today}</lastmod></url>`).join('\n')}
   <url><loc>${SITE}/play/</loc><lastmod>${today}</lastmod></url>
 </urlset>
 `,
