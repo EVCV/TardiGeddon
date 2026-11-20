@@ -6,6 +6,7 @@ import { Mascot } from './Mascot';
 import { PLAY_URL } from '../config';
 import { LEGAL_PAGES } from '../legal';
 import { SOCIAL } from '../social';
+import { PATREON_LIVE } from '../patrons';
 import { holdScroll } from '../motion/SmoothScroll';
 import { RopeSwinger } from './RopeSwinger';
 import { appsLine } from './AppStores';
@@ -198,6 +199,11 @@ export function Layout({ children }: { children: ReactNode }) {
               <li>
                 <Link to="/press">Press kit</Link>
               </li>
+              {PATREON_LIVE && (
+                <li>
+                  <Link to="/patrons">Support us on Patreon</Link>
+                </li>
+              )}
               <li>
                 <a href="mailto:support@tardigeddon.com">support@tardigeddon.com</a>
               </li>

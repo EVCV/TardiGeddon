@@ -15,11 +15,11 @@ share: names, the bios, the voice and the rules.
 | Threads | [@tardigeddon](https://www.threads.net/@tardigeddon) | Live | |
 | X | [@TardiGeddon](https://x.com/TardiGeddon) | Live | |
 | Twitch | [tardigeddon](https://www.twitch.tv/tardigeddon) | Live | |
-| Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Name kept; not set up yet | [REDDIT.md](REDDIT.md) |
+| Reddit | [r/TardiGeddon](https://www.reddit.com/r/TardiGeddon) | Live (14 Nov 2026) | [REDDIT.md](REDDIT.md) |
 | itch.io | [tardigeddon.itch.io/tardigeddon](https://tardigeddon.itch.io/tardigeddon) | Live (links out to the game) | |
 | IGDB | [igdb.com/games/tardigeddon](https://www.igdb.com/games/tardigeddon) | Submitted | |
 | Pinterest | (pinterest.com/tardigeddon) | Not set up yet | [PROFILES.md](PROFILES.md) |
-| Patreon | (patreon.com/tardigeddon) | Plan, not started | [../PATREON.md](../PATREON.md), [PROFILES.md](PROFILES.md) |
+| Patreon | (patreon.com/tardigeddon) | Being set up; public in January | [../PATREON.md](../PATREON.md), [PROFILES.md](PROFILES.md) |
 | Steam | — | Plan, not started (no account yet) | [../STEAM.md](../STEAM.md) |
 
 **Profile text** (bios, names, About) for Pinterest, Patreon, Instagram, Threads, X, Facebook, Twitch, itch.io and LinkedIn: [PROFILES.md](PROFILES.md).

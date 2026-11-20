@@ -1,6 +1,8 @@
 # Patreon plan
 
-Status: **plan, not started** (4 Nov 2026). Decisions are in §8.
+Status: **set up, unpublished** (14 Nov 2026): page, tiers (with pictures
+`store/social/patreon-tier-*.png`), benefits and Discord roles are done;
+payouts/tax and the website side (§5) are left. Goes public in January. Decisions are in §8.
 
 A Patreon is a way for fans to support TardiGeddon every month. The game stays
 free, and **patrons get nothing inside the game**: every perk lives on the
@@ -29,10 +31,10 @@ memory: check them on patreon.com as you set up.
 
 | Tier | £/month | Perks |
 |---|---|---|
-| **Moss Fan** | £2 | Name on tardigeddon.com/patrons; Patron role and channel in Discord; a thank-you in each update's credits |
+| **Moss Fan** | £3 | Name on tardigeddon.com/patrons; Patron role and channel in Discord; a thank-you in each update's credits |
 | **Water Bear** | £5 | + monthly dev diary (what's being built, sketches, GIFs); votes on what comes next; wallpapers and Discord emoji each season |
 | **Tun Club** | £10 | + early web previews of new features (a private link); a monthly voice Q&A or "play with the dev" online session; soundtrack downloads |
-| **Legend** | £25, 10 places | + once a year, a hat designed with you (it goes in the shop for everyone, credited to you), or your name on a CPU team |
+| **Legend** | £25, 10 places | + once a year, a hat designed with you (it goes in the shop for everyone, credited to you) |
 
 Start with these four and don't add more until the page has 20 patrons.
 Each tier includes everything below it.
@@ -67,22 +69,35 @@ Each tier includes everything below it.
 5. **Page:** the text in §6; banner and avatar from `store/social/` (use
    `youtube-banner.png` and `youtube-avatar.png` until there's a Patreon one).
 6. **Tiers:** the four in §2, with the perk text from §6.
-7. **Discord:** connect Patreon to the TardiGeddon Discord (Patreon's own
-   Discord integration). Patrons then get the **Patron** role automatically;
-   create the role and a `#patrons` channel only that role can see.
+7. **Discord** (done): Patreon → Settings → Apps → Discord. Roles **Patron**
+   (all tiers) and **Tun Club** (Tun Club, Legend); the bot's **Patreon** role
+   sits just below Moderator so it can hand them out. Private category
+   💛 PATRONS: `#patrons` (chat), `#patron-news` (read-only for patrons) and
+   the voice channel **Play with the dev** (Tun Club only).
+   Patreon now starts pages as free: payouts stay locked ("Become a creator")
+   until **Start a paid membership** is done on the dashboard. The lowest tier
+   price Patreon allows is £3.
 8. **Age:** Patreon has its own age rules for members; our page needs no
    extra checks because nothing is sold to children inside the game.
 
-## 5. The website side (to build when we start)
+## 5. The website side (built, switched off)
 
-- **tardigeddon.com/patrons**: names grouped by tier, from a file
-  (`site/src/patrons.ts`) you update by hand each month. Only names patrons
-  agree to show: Patreon lets members hide their name, and the page should
-  offer "Anonymous" otherwise.
-- **"Support us on Patreon"** link in the website footer, on the News page
-  and on the Support page. **Not** in the apps.
-- **Privacy Policy:** add that we show patrons' chosen names on the Patrons
-  page, and that Patreon handles payments as its own controller.
+- `site/src/patrons.ts`: the tiers, the patrons list (`PATRONS`, updated by
+  hand each month: only names patrons show on Patreon, else "Anonymous") and
+  **`PATREON_LIVE`**, false until launch.
+- **tardigeddon.com/patrons** (`site/src/pages/Patrons.tsx`): the tiers and,
+  once live, the names by tier. While off it says "opens in January" and is
+  noindex and out of the sitemap.
+- Once live: "Support us on Patreon" in the footer, on News and in Help &
+  support's FAQ, and Patreon in the footer's Follow list and `sameAs`
+  (`site/src/social.ts`). **Never in the game or the apps** (they don't import
+  these files).
+- **Privacy Policy** v2.15: §2.9 (Patreon as its own controller, what we see,
+  the Patrons page, Discord roles), §3.0.7B, §3.1.2C, §4.0.4C, §5.1.10.
+
+**Launch day:** publish the Patreon page, set `PATREON_LIVE = true`, add a
+News post (all six languages), open a PR; after it's merged and deployed,
+check /patrons and the footer link.
 
 ## 6. Page text (ready to paste)
 
@@ -101,7 +116,7 @@ Each tier includes everything below it.
 > behind the scenes, and a seat at our monthly play sessions.
 
 **Tier blurbs:**
-- **Moss Fan (£2):** Your name on our Patrons page and in the credits of every
+- **Moss Fan (£3):** Your name on our Patrons page and in the credits of every
   update, and the Patron role in our Discord.
 - **Water Bear (£5):** Everything above, plus a monthly dev diary, votes on
   what we build next, and wallpapers and Discord emoji each season.
@@ -116,9 +131,10 @@ Not before the launch (1 December): launch week needs all the time there is.
 A good moment is **January**, with the first dev diary written in advance and
 the Patrons page ready. Announce it in a News post, on Discord and on socials.
 
-## 8. Decisions for the owner
+## 8. Decisions (owner, 14 Nov 2026)
 
-1. Tiers and prices (§2), and whether to have the Legend tier at all.
-2. Start date (January suggested).
-3. Whether the "name on a CPU team" perk is in (a grey area with Apple; the
-   hat-for-everyone perk is safer).
+1. **Tiers:** all four in §2, Legend capped at 10 places. Moss Fan is £3, not £2:
+   Patreon's minimum tier price is £3.
+2. **Launch:** set up now, unpublished; go public in **January**.
+3. **No "name on a CPU team" perk** (a grey area with Apple): the Legend tier
+   gets the hat-for-everyone perk only.

@@ -10,7 +10,7 @@ import { PageFor } from './routes';
 import { markPlaceholders, renderedLegal } from './pages/Legal';
 import { LEGAL_PAGES, loadLegal } from './legal';
 
-export { pageMeta, pageSchema, INDEXED_PATHS, PAGES } from './seo';
+export { pageMeta, pageSchema, INDEXED_PATHS, SITEMAP_PATHS, PAGES } from './seo';
 // The news posts, for /news.json (the game and the apps read it) and the /news.xml RSS feed.
 export { NEWS } from '../../src/news/news';
 export { newsDay } from './pages/News';
