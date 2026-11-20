@@ -13,7 +13,12 @@ const SCREENS = /(foldable|tablet)\.spec\.ts$/;
 export default defineConfig({
   testDir: 'e2e',
   timeout: 60_000,
-  use: { baseURL: 'http://localhost:4173' },
+  use: {
+    baseURL: 'http://localhost:4173',
+    // "Don't remind me again" on the "get the app" reminder (src/ui/getApp.ts): phone
+    // browsers would see it over the menu now the apps are out, in the way of every tap.
+    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tardigeddon.appNudge', value: '1' }] }] },
+  },
   webServer: [
     {
       command: 'npm run build && npx vite preview --port 4173 --strictPort',

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { NEWS } from '../src/news/news';
+import { shippedIds } from '../src/news/roadmap';
 import { NO_STATS } from '../server/store';
 
 // The News page (src/ui/news.ts): release notes, what's coming and what's
@@ -36,7 +37,10 @@ test("shows what's new, what's coming and what's being fixed, with a dot until i
   const latest = NEWS.filter((p) => p.kind === 'update').sort((a, b) => b.date.localeCompare(a.date))[0];
   await expect(page.locator('.news-post').first().locator('.card-title')).toHaveText(latest.text.en.title);
   await page.locator('.news-pills .seg-btn', { hasText: 'Coming soon' }).click();
-  await expect(page.locator('.news-post[data-kind=coming]').first()).toBeVisible();
+  // Shipped items leave Coming soon (they show as Shipped on the Roadmap); with none left, it says so.
+  const shipped = shippedIds(NEWS);
+  if (NEWS.some((p) => p.kind === 'coming' && !shipped.has(p.id))) await expect(page.locator('.news-post[data-kind=coming]').first()).toBeVisible();
+  else await expect(page.locator('.news-empty')).toContainText('Nothing announced just now');
   await page.locator('.news-pills .seg-btn', { hasText: 'Being fixed' }).click();
   await expect(page.locator('.page-news')).toContainText('support@tardigeddon.com');
   // Read: no dot once back in the lobby, nor next visit.
@@ -96,7 +100,19 @@ test('on a phone the News page fits the screen in every language, with no text s
 
 // ---- The Roadmap view (src/ui/roadmap.ts): votes, ideas, and Cloudflare Turnstile ----
 
-const LAUNCH = NEWS.find((p) => p.kind === 'coming')!;
+// The roadmap tests use an item of their own, so they don't change as the real roadmap ships.
+const t6 = (title: string) => ({ title, body: ['- A test item.'] });
+const ITEM = {
+  id: '2099-01-01-roadmap-test',
+  date: '2099-01-01',
+  kind: 'coming',
+  stage: 'now',
+  text: { en: t6('Bigger maps'), es: t6('Mapas más grandes'), 'pt-BR': t6('Mapas maiores'), de: t6('Größere Karten'), fr: t6('Cartes plus grandes'), ja: t6('もっと広いマップ') },
+} as const;
+/** Serve the website's list with the test item in it (the game fetches it as it starts). */
+async function roadmapNews(page: Page): Promise<void> {
+  await page.route('**/news.json', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ v: 1, posts: [...NEWS, ITEM] }) }));
+}
 const SERVER = 'http://localhost:8787';
 const CORS = { 'access-control-allow-origin': 'http://localhost:4173', 'access-control-allow-credentials': 'true', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS', vary: 'origin' };
 
@@ -122,7 +138,7 @@ async function signedInServer(page: Page, me: Record<string, unknown> = {}) {
     if (path === '/api/me') {
       return json(200, { user: { id: 'u', name: 'Sam', email: 's@example.com', emailVerified: true, createdAt: '2026-01-01' }, owned: [], wallet: { coins: 0, slime: 0 }, stats: NO_STATS, shop: false, providers: [], turnstile: { web: 'site-web', app: 'site-app' }, ...me });
     }
-    if (path === '/api/roadmap/votes') return json(200, { votes: { [LAUNCH.id]: state.votes }, mine: state.mine ? [LAUNCH.id] : [] });
+    if (path === '/api/roadmap/votes') return json(200, { votes: { [ITEM.id]: state.votes }, mine: state.mine ? [ITEM.id] : [] });
     if (path === '/api/roadmap/vote' || path === '/api/suggestions') {
       const body = req.postDataJSON() as Record<string, unknown>;
       sent.push({ path, body });
@@ -180,10 +196,11 @@ test('the Roadmap shows what is now, next and later, with nothing to vote with w
   const asked: string[] = [];
   page.on('request', (r) => r.url().includes('challenges.cloudflare.com') && asked.push(r.url()));
   // No accounts on this server: the roadmap is still there to read.
+  await roadmapNews(page);
   await page.goto('/');
   await openRoadmap(page);
   await expect(page.locator('.roadmap-col')).toHaveCount(3);
-  await expect(page.locator('.roadmap-col[data-stage=now] .roadmap-item .card-title')).toHaveText(LAUNCH.text.en.title);
+  await expect(page.locator('.roadmap-col[data-stage=now] .roadmap-item .card-title')).toHaveText(ITEM.text.en.title);
   await expect(page.locator('.roadmap-col[data-stage=next] .roadmap-empty')).toBeVisible();
   await expect(page.locator('.roadmap-col[data-stage=later] .roadmap-empty')).toBeVisible();
   await expect(page.locator('.roadmap-vote')).toHaveCount(0);
@@ -202,9 +219,10 @@ test('signed-out players see the votes and are asked to sign in, without Cloudfl
     const json = (body: unknown) => route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
     if (path === '/api/me') return json({ user: null, owned: [], wallet: { coins: 0, slime: 0 }, stats: NO_STATS, shop: false, providers: [] });
-    if (path === '/api/roadmap/votes') return json({ votes: { [LAUNCH.id]: 7 } });
+    if (path === '/api/roadmap/votes') return json({ votes: { [ITEM.id]: 7 } });
     return route.fallback();
   });
+  await roadmapNews(page);
   await page.goto('/');
   await openRoadmap(page);
   await expect(page.locator('.roadmap-item .roadmap-count')).toHaveText('Votes: 7');
@@ -219,11 +237,12 @@ test('signed-out players see the votes and are asked to sign in, without Cloudfl
 test('signed-in players vote and send ideas, each with a fresh Turnstile token that is reset afterwards', async ({ page }) => {
   const server = await signedInServer(page);
   await pretendTurnstile(page);
+  await roadmapNews(page);
   await page.goto('/?lang=de');
   await openRoadmap(page);
 
   // The script loads now; nothing is drawn until a check is asked for.
-  const item = page.locator('.roadmap-item', { hasText: LAUNCH.text.de.title });
+  const item = page.locator('.roadmap-item', { hasText: ITEM.text.de.title });
   await expect(item.locator('.roadmap-count')).toHaveText('Stimmen: 3');
   await expect.poll(() => page.evaluate(() => !!(window as unknown as { __ts?: TsLog }).__ts)).toBe(true);
   expect((await tsLog(page)).rendered).toEqual([]);
@@ -233,7 +252,7 @@ test('signed-in players vote and send ideas, each with a fresh Turnstile token t
   await vote.click();
   await expect(vote).toHaveAttribute('aria-pressed', 'true');
   await expect(item.locator('.roadmap-count')).toHaveText('Stimmen: 4');
-  expect(server.sent[0]).toEqual({ path: '/api/roadmap/vote', body: { itemId: LAUNCH.id, on: true, platform: 'web', turnstileToken: 'tok-1' } });
+  expect(server.sent[0]).toEqual({ path: '/api/roadmap/vote', body: { itemId: ITEM.id, on: true, platform: 'web', turnstileToken: 'tok-1' } });
   // Drawn once, for this action, in the player's language, invisible unless it needs them, and run only when asked.
   expect((await tsLog(page)).rendered).toEqual([{ sitekey: 'site-web', action: 'roadmap_vote', theme: 'light', language: 'de', appearance: 'interaction-only', execution: 'execute' }]);
 
@@ -277,6 +296,7 @@ test('without a confirmed email the idea box asks for it, and if the security ch
   const server = await signedInServer(page, { user: { id: 'u', name: 'Sam', email: 's@example.com', emailVerified: false, createdAt: '2026-01-01' } });
   // Cloudflare unreachable (blocked, or offline).
   await page.route('https://challenges.cloudflare.com/**', (route) => route.abort());
+  await roadmapNews(page);
   await page.goto('/');
   await openRoadmap(page);
   await expect(page.locator('.roadmap-suggest')).toContainText('Confirm your email');
@@ -290,6 +310,7 @@ test('uses the dark Turnstile widget in dark mode, and the roadmap is readable',
   await page.addInitScript(() => localStorage.setItem('tardigeddon.access', JSON.stringify({ dark: 'on' })));
   await signedInServer(page);
   await pretendTurnstile(page);
+  await roadmapNews(page);
   await page.goto('/');
   await openRoadmap(page);
   await expect(page.locator('html')).toHaveClass(/dark/);
@@ -303,6 +324,7 @@ test('uses the dark Turnstile widget in dark mode, and the roadmap is readable',
 });
 
 test('on a phone the Roadmap fits the screen in every language, with no text spilling out of buttons', async ({ page }, info) => {
+  await roadmapNews(page);
   test.skip(info.project.name !== 'phone', 'phones only');
   await signedInServer(page);
   await pretendTurnstile(page);
