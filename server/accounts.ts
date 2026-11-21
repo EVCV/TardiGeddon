@@ -39,8 +39,8 @@ import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForStoreProduct, packTotal, promoFor, shopItem, supporterPack, supporterPackForStore, supporterSaleOn, type CoinPack, type SupporterPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
-import { japanAlertEmail, newsConfirmEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
-import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, newsAsked, newsletterCounts, newsletterCsv, purgeNewsletter, setAccountNews, unsubscribeNews } from './newsletter';
+import { japanAlertEmail, newsConfirmEmail, newsReconfirmEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
+import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, newsAsked, newsletterCounts, newsletterCsv, purgeNewsletter, reconfirmAccountNews, setAccountNews, unsubscribeNews } from './newsletter';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 import { NEWS } from '../src/news/news';
 import { comingIds } from '../src/news/roadmap';
@@ -317,6 +317,20 @@ export async function createAccounts(
   await migrateRewards(db);
   await migratePrizes(db);
   await migrateNewsletter(db);
+  // Once: accounts subscribed by the old rule confirm by email like everyone else (needs email to send).
+  if (mailer) {
+    const reconfirm = await reconfirmAccountNews(db);
+    // One at a time, a second apart, so the email service isn't flooded; not awaited, so start-up isn't held up.
+    void (async () => {
+      for (const r of reconfirm) {
+        await mailer(newsReconfirmEmail(r.email, gameLink('subscribe', r.token))).catch((e: unknown) =>
+          console.error(`mail: news re-confirm not sent: ${(e instanceof Error ? e.message : String(e)).replace(/\S+@\S+/g, '<address>')}`),
+        );
+        await new Promise((ok) => setTimeout(ok, 1000).unref());
+      }
+      if (reconfirm.length) console.log(`newsletter: asked ${reconfirm.length} account(s) to re-confirm`);
+    })();
+  }
   await migrateAppleTokens(db);
   await migrateRoadmap(db);
   const auth = betterAuth(options);

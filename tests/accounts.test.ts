@@ -19,7 +19,8 @@ import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import { earlyBirdRule, founderRule, grantEarlyBird, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
 import { SUPPORTER_PACKS, supporterSaleOn } from '../src/shop/catalog';
 import { CREATOR_INVITE_COINS, EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FAN_ITEMS, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
-import type { Mail } from '../server/mail';
+import { newsReconfirmEmail, type Mail } from '../server/mail';
+import { reconfirmAccountNews } from '../server/newsletter';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
 import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
@@ -845,6 +846,31 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const gone = await (await fetch(base + '/api/admin/newsletter?list=unsubscribed', { headers: { cookie: boss } })).text();
     expect(gone).toContain('reader@example.com');
     expect(await (await fetch(base + '/api/admin/newsletter', { headers: { cookie: boss } })).json()).toMatchObject({ subscribed: 1, unsubscribed: 1 });
+  });
+
+  it('asks accounts subscribed under the old rule to confirm by email, once', async () => {
+    const { cookie, id } = await signUp('old-rule@example.com');
+    // Subscribed the old way (no link clicked), and an address-only sign-up that did click.
+    await accounts.db.query(
+      `INSERT INTO newsletter (email, user_id, status, source, wording, token, confirmed_at) VALUES
+         ('old-rule@example.com', $1, 'subscribed', 'prompt', 'words', 'old-rule-token', now()),
+         ('clicked@example.com', NULL, 'subscribed', 'website', 'words', 'clicked-token', now())`,
+      [id],
+    );
+    await accounts.db.query(`DELETE FROM done_once WHERE name = 'newsletter_reconfirm_accounts'`);
+    const asked = await reconfirmAccountNews(accounts.db);
+    expect(asked.map((a) => a.email)).toContain('old-rule@example.com');
+    expect(asked.map((a) => a.email)).not.toContain('clicked@example.com');
+    expect((await me(cookie)).newsletter).toEqual({ status: 'pending', asked: true });
+    const clicked = await accounts.db.query(`SELECT status FROM newsletter WHERE email = 'clicked@example.com'`);
+    expect(clicked.rows[0].status).toBe('subscribed');
+    // The email's link subscribes them again; and it never runs twice.
+    expect(await (await post('/api/newsletter/confirm', { token: asked.find((a) => a.email === 'old-rule@example.com')!.token })).json()).toEqual({ ok: true });
+    expect((await me(cookie)).newsletter).toEqual({ status: 'subscribed', asked: true });
+    expect(await reconfirmAccountNews(accounts.db)).toEqual([]);
+    const mail = newsReconfirmEmail('old-rule@example.com', 'https://tardigeddon.com/play/?subscribe=x');
+    expect(mail.subject).toMatch(/still want TardiGeddon news/);
+    expect(mail.text).toContain('?subscribe=x');
   });
 
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {

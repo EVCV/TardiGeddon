@@ -151,6 +151,40 @@ export async function newsAsked(db: Pool, userId: string): Promise<void> {
 }
 
 /**
+ * Once ever: accounts subscribed under the old rule (a confirmed account email
+ * was enough) go back to waiting, so they join only by clicking the link in a
+ * new email, like everyone else. Returns who to email (the caller sends it).
+ * Every account row counts, since the old rule can't be told apart from a
+ * click; an address-only sign-up (no account) always clicked, so it stays.
+ */
+export async function reconfirmAccountNews(db: Pool): Promise<{ email: string; token: string }[]> {
+  const c = await db.connect();
+  try {
+    await c.query('BEGIN');
+    await c.query(`CREATE TABLE IF NOT EXISTS done_once (name text PRIMARY KEY, at timestamptz NOT NULL DEFAULT now())`);
+    await c.query("SELECT pg_advisory_xact_lock(hashtext('newsletter_reconfirm_accounts'))");
+    const done = await c.query(`SELECT 1 FROM done_once WHERE name = 'newsletter_reconfirm_accounts'`);
+    let rows: { email: string; token: string }[] = [];
+    if (!done.rowCount) {
+      rows = (
+        await c.query<{ email: string; token: string }>(
+          `UPDATE newsletter SET status = 'pending', confirmed_at = NULL, asked_at = now()
+            WHERE status = 'subscribed' AND user_id IS NOT NULL RETURNING email, token`,
+        )
+      ).rows;
+      await c.query(`INSERT INTO done_once (name) VALUES ('newsletter_reconfirm_accounts')`);
+    }
+    await c.query('COMMIT');
+    return rows;
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+/**
  * What the Privacy Policy (5.1.4A) promises: sign-ups never confirmed go after
  * 30 days; for people who unsubscribed over 2 years ago, only the address and
  * the date stay (the "do not email" list), not the consent record.
