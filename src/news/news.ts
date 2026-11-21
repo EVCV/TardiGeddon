@@ -46,6 +46,74 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
+    id: '2026-12-01-apps-out',
+    date: '2026-12-01',
+    kind: 'update',
+    ships: '2026-12-01-launch',
+    text: {
+      en: {
+        title: 'TardiGeddon is out: now on iPhone, iPad and Android',
+        body: [
+          'Launch day! TardiGeddon is open to everyone: in your browser, and as a free app on the App Store and Google Play.',
+          '- Your account, stats, friends and coins are the same everywhere: sign in on the app and carry on.',
+          '- Room invites and friend links now open straight in the app when it’s installed.',
+          '- Playing in your phone’s browser? The game tells you about the app once, and you can say no for good.',
+          '- Fixed: the room code was hard to read in dark mode.',
+        ],
+      },
+      es: {
+        title: 'TardiGeddon ya está aquí: en iPhone, iPad y Android',
+        body: [
+          '¡Día de lanzamiento! TardiGeddon está abierto para todo el mundo: en tu navegador y como app gratuita en App Store y Google Play.',
+          '- Tu cuenta, estadísticas, amigos y monedas son los mismos en todas partes: inicia sesión en la app y sigue jugando.',
+          '- Las invitaciones a salas y los enlaces de amigos ahora se abren directamente en la app si la tienes instalada.',
+          '- ¿Juegas en el navegador del móvil? El juego te habla de la app una vez, y puedes decir que no para siempre.',
+          '- Corregido: el código de sala se leía mal en modo oscuro.',
+        ],
+      },
+      'pt-BR': {
+        title: 'O TardiGeddon chegou: agora no iPhone, iPad e Android',
+        body: [
+          'Dia de lançamento! O TardiGeddon está aberto para todos: no seu navegador e como app grátis na App Store e no Google Play.',
+          '- Sua conta, estatísticas, amigos e moedas são os mesmos em todo lugar: entre no app e continue jogando.',
+          '- Convites para salas e links de amigos agora abrem direto no app quando ele está instalado.',
+          '- Jogando no navegador do celular? O jogo avisa sobre o app uma vez, e você pode recusar de vez.',
+          '- Corrigido: o código da sala era difícil de ler no modo escuro.',
+        ],
+      },
+      de: {
+        title: 'TardiGeddon ist da: jetzt auf iPhone, iPad und Android',
+        body: [
+          'Starttag! TardiGeddon ist für alle offen: im Browser und als kostenlose App im App Store und bei Google Play.',
+          '- Dein Konto, deine Statistiken, Freunde und Münzen sind überall dieselben: in der App anmelden und weiterspielen.',
+          '- Raumeinladungen und Freundeslinks öffnen sich jetzt direkt in der App, wenn sie installiert ist.',
+          '- Du spielst im Browser auf dem Handy? Das Spiel erzählt dir einmal von der App, und du kannst für immer Nein sagen.',
+          '- Behoben: Der Raumcode war im dunklen Modus schwer zu lesen.',
+        ],
+      },
+      fr: {
+        title: 'TardiGeddon est sorti : sur iPhone, iPad et Android',
+        body: [
+          'Jour de lancement ! TardiGeddon est ouvert à tout le monde : dans ton navigateur, et en appli gratuite sur l’App Store et Google Play.',
+          '- Ton compte, tes stats, tes amis et tes pièces sont les mêmes partout : connecte-toi dans l’appli et continue.',
+          '- Les invitations de salon et les liens d’amis s’ouvrent maintenant directement dans l’appli quand elle est installée.',
+          '- Tu joues dans le navigateur de ton téléphone ? Le jeu te parle de l’appli une fois, et tu peux refuser pour de bon.',
+          '- Corrigé : le code du salon était difficile à lire en mode sombre.',
+        ],
+      },
+      ja: {
+        title: 'TardiGeddonリリース！iPhone・iPad・Androidでも',
+        body: [
+          'リリース日です！TardiGeddonがみんなに公開されました。ブラウザでも、App StoreとGoogle Playの無料アプリでも遊べます。',
+          '- アカウント、成績、フレンド、コインはどこでも同じ。アプリでサインインして、そのまま続けられます。',
+          '- ルームへの招待やフレンドのリンクは、アプリが入っていればアプリで直接開くようになりました。',
+          '- スマホのブラウザで遊んでいる？アプリのお知らせは一度だけ。今後表示しないこともできます。',
+          '- 修正：ダークモードでルームコードが読みにくかった問題。',
+        ],
+      },
+    },
+  },
+  {
     id: '2026-11-20-lighter-rain',
     date: '2026-11-20',
     kind: 'update',
