@@ -661,7 +661,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-family: var(--title);
   font-size: 46px;
   letter-spacing: 10px;
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent);
   border: 3px solid var(--ink);
   border-radius: 16px;

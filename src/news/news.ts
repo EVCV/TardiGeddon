@@ -56,6 +56,7 @@ export const NEWS: NewsPost[] = [
           '- Rain and storms are lighter and see-through, so they no longer hide the game. Lightning flashes are softer too.',
           '- Phones run cooler: the game draws fewer frames while nothing is moving, and full speed again as soon as you touch the screen.',
           '- Deleting an account that has a password now always asks for that password.',
+          '- Fixed: the room code was hard to read in dark mode.',
         ],
       },
       es: {
@@ -64,6 +65,7 @@ export const NEWS: NewsPost[] = [
           '- La lluvia y las tormentas son más ligeras y transparentes, así que ya no tapan el juego. Los relámpagos también son más suaves.',
           '- Los móviles se calientan menos: el juego dibuja menos imágenes mientras nada se mueve, y vuelve a toda velocidad en cuanto tocas la pantalla.',
           '- Eliminar una cuenta que tiene contraseña ahora siempre pide esa contraseña.',
+          '- Corregido: el código de sala se leía mal en modo oscuro.',
         ],
       },
       'pt-BR': {
@@ -72,6 +74,7 @@ export const NEWS: NewsPost[] = [
           '- A chuva e as tempestades estão mais leves e transparentes, então não escondem mais o jogo. Os relâmpagos também estão mais suaves.',
           '- Os celulares esquentam menos: o jogo desenha menos quadros enquanto nada se mexe, e volta à velocidade total assim que você toca na tela.',
           '- Apagar uma conta que tem senha agora sempre pede essa senha.',
+          '- Corrigido: o código da sala era difícil de ler no modo escuro.',
         ],
       },
       de: {
@@ -80,6 +83,7 @@ export const NEWS: NewsPost[] = [
           '- Regen und Gewitter sind leichter und durchsichtig, sie verdecken das Spiel nicht mehr. Auch die Blitze sind sanfter.',
           '- Handys bleiben kühler: Solange sich nichts bewegt, zeichnet das Spiel weniger Bilder, und sobald du den Bildschirm berührst, wieder mit voller Geschwindigkeit.',
           '- Wer ein Konto mit Passwort löscht, wird jetzt immer nach diesem Passwort gefragt.',
+          '- Behoben: Der Raumcode war im dunklen Modus schwer zu lesen.',
         ],
       },
       fr: {
@@ -88,6 +92,7 @@ export const NEWS: NewsPost[] = [
           '- La pluie et les orages sont plus légers et transparents : ils ne cachent plus le jeu. Les éclairs sont aussi plus doux.',
           '- Les téléphones chauffent moins : le jeu dessine moins d’images quand rien ne bouge, et repasse à pleine vitesse dès que tu touches l’écran.',
           '- Supprimer un compte qui a un mot de passe demande maintenant toujours ce mot de passe.',
+          '- Corrigé : le code du salon était difficile à lire en mode sombre.',
         ],
       },
       ja: {
@@ -96,6 +101,7 @@ export const NEWS: NewsPost[] = [
           '- 雨と嵐が軽く、透けて見えるようになり、ゲームが見えにくくなることはもうありません。稲妻の光もやわらかくなりました。',
           '- スマホが熱くなりにくくなりました：何も動いていない間は描くフレームを減らし、画面に触れるとすぐに元の速さに戻ります。',
           '- パスワードのあるアカウントを削除するときは、必ずそのパスワードを入力するようになりました。',
+          '- 修正：ダークモードでルームコードが読みにくかった問題。',
         ],
       },
     },

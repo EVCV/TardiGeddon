@@ -3,6 +3,7 @@
 
 import { Capacitor, SystemBars } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { WEB_GAME } from './apps';
 
 /** Running inside the Android or iOS app. */
 export function isNativeApp(): boolean {
@@ -21,7 +22,11 @@ export function platform(): 'web' | 'android' | 'ios' {
  */
 export function webGameUrl(): string {
   const env = import.meta.env.VITE_WEB_URL as string | undefined;
-  return env && isNativeApp() ? env : `${location.origin}${location.pathname}`;
+  if (env && isNativeApp()) return env;
+  // On our website, always the address the apps claim (src/apps.ts): a link
+  // shared from www. or /play/index.html wouldn't open the app.
+  if (/^(www\.)?tardigeddon\.com$/.test(location.hostname)) return WEB_GAME;
+  return `${location.origin}${location.pathname}`;
 }
 
 /** The link that opened the app (an app link, or the sign-in return), if one did. */

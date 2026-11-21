@@ -423,6 +423,12 @@ export class Match {
 
   private frame(): void {
     const now = performance.now();
+    // Pixi sizes the canvas once, a frame after each resize event. A phone
+    // being opened or rotated can still report the old size at that moment,
+    // which would leave the game stuck at the wrong size until the next resize:
+    // catch up here instead (two comparisons a frame).
+    const { width, height } = this.app.screen;
+    if (width !== innerWidth || height !== innerHeight) this.app.resize();
     if (touchMode) {
       // Phones: 30 frames a second while nothing flies, burns or is touched
       // (the sim still runs at its own 50 ticks a second), full speed otherwise.
