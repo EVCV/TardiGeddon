@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective Date:** 3 November 2026
-**Last Modified:** 15 November 2026
-**Document Version:** v2.15
+**Last Modified:** 21 November 2026
+**Document Version:** v2.16
 **Applies To:** https://tardigeddon.com, the TardiGeddon game (including https://tardigeddon.com/play), its online game server (server.tardigeddon.com), and any associated subdomains, applications, and services (together, the "Website" or "Services")
 
 ---
@@ -101,7 +101,7 @@ This Privacy Policy explains what information TardiGeddon uses, why, and the rig
 
 2.2.5 Account emails. We send you an email with a link to confirm your email address when you create an account (and again if you ask), and an email with a link to choose a new password if you use "Forgot password?". These are service emails needed to keep your account secure, not marketing, and we only send them when you sign up or ask for one. Each email contains your player name and a one-time link. A password reset link works once, for one hour; we store its code until it is used or expires, then delete it. An email confirmation link works for 24 hours and is not stored by us. If you did not ask for an email, you can ignore it.
 
-2.2.6 Email news (only if you ask for it). If you tick "Email me TardiGeddon news" (when you create an account, on the Account or News page, or when the game asks you once), or sign up on our Website with your email address, we send you news about TardiGeddon: new updates, events and offers, a few times a month at most. Nobody is signed up without asking, and the box is never ticked for you. With an account, the news goes to your account's email address once it is confirmed; without one, we first send a single email with a link, and only that link signs you up. You must be 13 or over. We keep, as a record of your consent: your email address, your player name if you have an account, when and where you signed up, the words you agreed to, your language, and when you confirmed or unsubscribed. You can unsubscribe at any time, straight away, with the link in every news email or on the Account or News page.
+2.2.6 Email news (only if you ask for it). If you tick "Email me TardiGeddon news" (when you create an account, on the Account or News page, or when the game asks you once), or sign up on our Website with your email address, we send you news about TardiGeddon: new updates, events and offers, a few times a month at most. Nobody is signed up without asking, and the box is never ticked for you. Whether or not you have an account, we first send a single email to the address with a link, and only that link signs you up ("double opt-in"); if you don't click it, you aren't signed up and the request is deleted after 30 days. You must be 13 or over. We keep, as a record of your consent: your email address, your player name if you have an account, when and where you signed up, the words you agreed to, your language, and when you confirmed or unsubscribed. You can unsubscribe at any time, straight away, with the link in every news email or on the Account or News page.
 
 ### 2.3 Purchases
 

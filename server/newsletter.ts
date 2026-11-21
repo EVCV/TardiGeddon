@@ -1,12 +1,14 @@
 // Email news (Privacy Policy §8): only for people who ask for it, and only
-// once they've shown the address is theirs. Two ways in:
+// once they've clicked the link in our confirmation email: double opt-in,
+// every time, however they asked.
 //
 //  - Account holders tick "Email me news" (at sign-up, on the Account page, on
-//    the News page, or the one-time question in the game). A confirmed account
-//    email is subscribed at once; an unconfirmed one waits until the account's
-//    email is confirmed (nothing extra is sent).
-//  - Anyone on the website or the News page types an address: we send one
-//    email with a link, and only that link subscribes it (double opt-in).
+//    the News page, or the one-time question in the game). We email the
+//    account's address a link, and only that link subscribes it, even when the
+//    account's email is already confirmed (that proved the address is theirs,
+//    not that they want news).
+//  - Anyone on the website or the News page types an address: the same email
+//    with a link.
 //
 // Every row keeps the proof of consent: when, where and the exact words agreed
 // to. Unsubscribing is one click and immediate. The owner sends the news from
@@ -99,43 +101,44 @@ export async function unsubscribeNews(db: Pool, token: unknown): Promise<boolean
   return r.rowCount === 1;
 }
 
-/** An account's news setting: on (with its confirmed email, or once it's confirmed) or off. */
+/**
+ * An account's news setting: off at once, or on, which (like any sign-up)
+ * only asks. Returns the token to email the account's address a confirm link,
+ * or null if there's nothing to send (off, or already subscribed).
+ */
 export async function setAccountNews(
   db: Pool,
-  user: { id: string; email: string; emailVerified?: boolean },
+  user: { id: string; email: string },
   on: boolean,
   source: unknown,
   lang: unknown,
-): Promise<void> {
+): Promise<string | null> {
   const email = cleanEmail(user.email);
-  if (!email) return;
+  if (!email) return null;
   await db.query(`INSERT INTO newsletter_asked (user_id) VALUES ($1) ON CONFLICT DO NOTHING`, [user.id]);
   if (!on) {
     await db.query(`UPDATE newsletter SET status = 'unsubscribed', unsubscribed_at = now() WHERE email = $1 OR user_id = $2`, [email, user.id]);
-    return;
+    return null;
   }
-  const status = user.emailVerified ? 'subscribed' : 'pending';
-  await db.query(
-    `INSERT INTO newsletter (email, user_id, status, source, wording, lang, token, confirmed_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $3 = 'subscribed' THEN now() END)
-     ON CONFLICT (email) DO UPDATE SET user_id = EXCLUDED.user_id, status = EXCLUDED.status, source = EXCLUDED.source,
-       wording = EXCLUDED.wording, lang = coalesce(EXCLUDED.lang, newsletter.lang), asked_at = now(),
-       confirmed_at = CASE WHEN EXCLUDED.status = 'subscribed' THEN coalesce(newsletter.confirmed_at, now()) ELSE newsletter.confirmed_at END,
-       unsubscribed_at = NULL`,
-    [email, user.id, status, cleanSource(source), NEWSLETTER_WORDING, cleanLang(lang), newToken()],
+  const r = await db.query<{ token: string; status: string }>(
+    `INSERT INTO newsletter (email, user_id, status, source, wording, lang, token) VALUES ($1, $2, 'pending', $3, $4, $5, $6)
+     ON CONFLICT (email) DO UPDATE SET
+       user_id = EXCLUDED.user_id,
+       status = CASE WHEN newsletter.status = 'subscribed' THEN 'subscribed' ELSE 'pending' END,
+       source = CASE WHEN newsletter.status = 'subscribed' THEN newsletter.source ELSE EXCLUDED.source END,
+       wording = CASE WHEN newsletter.status = 'subscribed' THEN newsletter.wording ELSE EXCLUDED.wording END,
+       lang = coalesce(EXCLUDED.lang, newsletter.lang),
+       asked_at = CASE WHEN newsletter.status = 'subscribed' THEN newsletter.asked_at ELSE now() END,
+       unsubscribed_at = CASE WHEN newsletter.status = 'subscribed' THEN newsletter.unsubscribed_at ELSE NULL END
+     RETURNING token, status`,
+    [email, user.id, cleanSource(source), NEWSLETTER_WORDING, cleanLang(lang), newToken()],
   );
+  return r.rows[0].status === 'subscribed' ? null : r.rows[0].token;
 }
 
-/** What the game shows an account: subscribed, waiting for the email to be confirmed, or not; and whether it's been asked. */
-export async function accountNews(db: Pool, user: { id: string; email: string; emailVerified?: boolean }): Promise<{ status: 'subscribed' | 'pending' | 'no'; asked: boolean }> {
+/** What the game shows an account: subscribed, waiting for the link in our email to be clicked, or not; and whether it's been asked. */
+export async function accountNews(db: Pool, user: { id: string; email: string }): Promise<{ status: 'subscribed' | 'pending' | 'no'; asked: boolean }> {
   const email = cleanEmail(user.email) ?? '';
-  // Asked with an unconfirmed email, now confirmed: subscribed now (that was the wait).
-  if (user.emailVerified) {
-    await db.query(
-      `UPDATE newsletter SET status = 'subscribed', confirmed_at = now() WHERE user_id = $1 AND email = $2 AND status = 'pending'`,
-      [user.id, email],
-    );
-  }
   const r = await db.query<{ status: string }>(`SELECT status FROM newsletter WHERE email = $1`, [email]);
   const asked = (await db.query('SELECT 1 FROM newsletter_asked WHERE user_id = $1', [user.id])).rowCount === 1;
   const s = r.rows[0]?.status;

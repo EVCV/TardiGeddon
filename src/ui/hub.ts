@@ -370,7 +370,7 @@ let inviteWelcomed = false;
 /** The email news question: once a visit at most (and never again once answered). */
 let newsAskedThisVisit = false;
 
-/** "Want TardiGeddon news by email?": yes subscribes the account's email; "not now" doesn't ask again. */
+/** "Want TardiGeddon news by email?": yes emails the account's address a link that subscribes it; "not now" doesn't ask again. */
 function askAboutNews(): void {
   if (document.querySelector('.reward-overlay, .checkout-overlay, .editor-overlay')) return;
   showRewardPop({
@@ -378,7 +378,11 @@ function askAboutNews(): void {
     title: t('Want the news by email?'),
     text: newsWording(),
     button: t('📬 Yes please'),
-    go: () => void setNews(true, 'prompt').catch(() => {}),
+    go: () =>
+      void setNews(true, 'prompt').then(
+        () => showRewardPop({ badge: '📨', title: t('Check your inbox'), text: t('Check your inbox: click the link in our email to start getting the news.'), button: t('Got it') }),
+        () => {},
+      ),
     other: { label: t('Not now'), go: () => void newsAsked().catch(() => {}) },
   });
 }

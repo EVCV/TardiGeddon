@@ -1,8 +1,17 @@
 # Email news (sent from Utobo)
 
 Only people who ask get news emails (Privacy Policy §2.2.6 and §8): the box is
-never ticked for anyone, and an address without an account only joins after
-clicking the link in our confirmation email (double opt-in). 13+ only.
+never ticked for anyone, and **every** sign-up is double opt-in: an address
+only joins after clicking the link in our confirmation email, with or without
+an account (even a confirmed account email, or one from Apple or Google: that
+proved the address, not that they want news). Waiting sign-ups can send the
+link again from the Account or News page. 13+ only.
+
+**Utobo:** import only the **subscribed** list from the Sales page (everyone
+on it has clicked the link). Don't add a Utobo sign-up form or import
+addresses from anywhere else: they wouldn't have confirmed. If Utobo offers
+its own "send a confirmation email on import", leave it off; these people
+already confirmed.
 
 **Where people sign up**
 

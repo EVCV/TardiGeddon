@@ -1,6 +1,7 @@
 // "Keep up to date by email" (server/newsletter.ts): on the News page and the
-// Account page. Signed in, it's a switch for the account's email; signed
-// out, an address and a 13+ tick, and we email a link that subscribes it.
+// Account page. Signed in, it's for the account's email; signed out, an
+// address and a 13+ tick. Either way we email a link, and only that link
+// subscribes (double opt-in, server/newsletter.ts).
 // Never ticked for anyone: news only goes to people who ask for it.
 
 import { account, askForNews, setNews, type NewsSource } from '../account/session';
@@ -32,14 +33,20 @@ export function newsSignupBox(ctx: HubContext, source: NewsSource): HTMLElement 
       el('p', 'news-signup-text', status === 'subscribed'
         ? t('You get TardiGeddon news at {email}.', { email: me.user.email })
         : status === 'pending'
-          ? t('Nearly there: confirm your email (the link is in your inbox) and the news starts coming to {email}.', { email: me.user.email })
+          ? t('Nearly there: click the link in the email we sent to {email} to start getting the news.', { email: me.user.email })
           : t('New updates, events and offers, a few times a month at most, to {email}.', { email: me.user.email })),
     );
-    const b = el('button', status === 'no' ? 'big-btn news-signup-go' : 'hud-btn news-signup-go', status === 'no' ? t('📬 Yes, email me the news') : t('Stop emailing me the news'));
+    // Not subscribed: ask (we email the link). Waiting: send the link again. Subscribed: stop.
+    const on = status !== 'subscribed';
+    const b = el(
+      'button',
+      status === 'no' ? 'big-btn news-signup-go' : 'hud-btn news-signup-go',
+      status === 'no' ? t('📬 Yes, email me the news') : status === 'pending' ? t('Send the link again') : t('Stop emailing me the news'),
+    );
     b.disabled = ctx.busy;
     b.onclick = () => ctx.run(async () => {
-      await setNews(status === 'no', source);
-      ctx.notify(status === 'no' ? t('Done! TardiGeddon news is on its way.') : t('Done: no more news emails. (We still email you about your account.)'));
+      await setNews(on, source);
+      ctx.notify(on ? t('Check your inbox: click the link in our email to start getting the news.') : t('Done: no more news emails. (We still email you about your account.)'));
     });
     box.append(b, note);
     if (status === 'no') box.append(el('p', 'account-note', t('You can stop at any time, here or with the link in any email.')));

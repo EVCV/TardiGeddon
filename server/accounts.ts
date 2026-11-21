@@ -686,7 +686,19 @@ export async function createAccounts(
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     if (path === '/api/newsletter/account') {
-      await setAccountNews(db, user, body?.on === true, body?.source, body?.lang);
+      // On: the same confirm email as any sign-up (double opt-in), so the same limit and the same need for email.
+      const on = body?.on === true;
+      if (on) {
+        const now = Date.now();
+        const key = `user:${user.id}`;
+        const recent = (newsTries.get(key) ?? []).filter((t) => now - t < 60_000);
+        if (recent.length >= 3) return json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+        newsTries.set(key, [...recent, now]);
+        if (!mailer) return json(res, 503, { error: tk('Email news isn’t available just now. Please try again later.') });
+      }
+      const token = await setAccountNews(db, user, on, body?.source, body?.lang);
+      const email = cleanEmail(user.email);
+      if (token && email) send(newsConfirmEmail(email, gameLink('subscribe', token)));
       return json(res, 200, { newsletter: await accountNews(db, user) });
     }
     if (path === '/api/newsletter/asked') {
