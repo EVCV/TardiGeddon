@@ -138,6 +138,10 @@ days), post from the company account with "I'm the developer" said plainly,
 never ask for upvotes, and never use other accounts to boost posts. Never
 mention Worms (README: Rules).
 
+**Ready-made posts for these subs** (sharing the promo code, with pictures
+and dates): `store/social/reddit/promo/`, explained in
+[PROMO_CODES.md](PROMO_CODES.md) along with the non-Reddit places.
+
 ## 9. Linked from
 
 `SOCIAL` in `site/src/social.ts` (the website footer's Follow links and
