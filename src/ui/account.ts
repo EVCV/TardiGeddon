@@ -406,7 +406,7 @@ function signInForm(me: MeResponse, ctx: HubContext, state: SignInState): HTMLEl
     }
     ctx.run(async () => {
       await (signup ? signUp(name!.value.trim(), email.value.trim(), pw.value) : signIn(email.value.trim(), pw.value));
-      // Asked for email news: it starts once the email is confirmed.
+      // Asked for email news: we email a link, and it starts once they click it (double opt-in).
       if (signup && draft.news === '1') await setNews(true, 'signup').catch(() => {});
       // Signing out later shows "Sign in", not "Create account".
       state.mode = 'signin';

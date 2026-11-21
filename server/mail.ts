@@ -116,6 +116,24 @@ export function newsConfirmEmail(to: string, url: string): Mail {
 }
 
 /**
+ * Once, to accounts that were signed up for news by ticking the box alone
+ * (before every sign-up needed the link): please confirm, or nothing more is sent.
+ */
+export function newsReconfirmEmail(to: string, url: string): Mail {
+  return {
+    to,
+    subject: 'Do you still want TardiGeddon news?',
+    ...layout(
+      'there',
+      'You asked for TardiGeddon news in the game. We now ask everyone to confirm by email before we send any, so please click below if you’d like it: new updates, events and offers, a few times a month at most. You can unsubscribe from any of our emails with one click.',
+      'Yes, send me the news',
+      url,
+      "If you don't click, you won't get any news emails from us, and this is the last you'll hear about it. Emails about your account carry on as usual.",
+    ),
+  };
+}
+
+/**
  * To the owner: the unspent paid coins of players in Japan are getting close
  * to the Payment Services Act's ¥10 million limit (src/shop/japan.ts).
  */

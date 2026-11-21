@@ -1,8 +1,27 @@
 # Email news (sent from Utobo)
 
 Only people who ask get news emails (Privacy Policy §2.2.6 and §8): the box is
-never ticked for anyone, and an address without an account only joins after
-clicking the link in our confirmation email (double opt-in). 13+ only.
+never ticked for anyone, and **every** sign-up is double opt-in: an address
+only joins after clicking the link in our confirmation email, with or without
+an account (even a confirmed account email, or one from Apple or Google: that
+proved the address, not that they want news). Waiting sign-ups can send the
+link again from the Account or News page. 13+ only.
+
+**Re-confirming the old sign-ups (once, November 2026).** Before that rule, a
+signed-in player with a confirmed email was subscribed by the tick alone. The
+first server start with this change moves every subscribed **account** back
+to waiting and emails each one "Do you still want TardiGeddon news?" (one a
+second; `reconfirmAccountNews`, run once via `done_once`). Only those who
+click stay on the list; the rest are deleted after 30 days like any
+unconfirmed sign-up. Address-only sign-ups always clicked, so they're left
+alone. The server log says how many were asked. Re-import the subscribed
+list into Utobo after the dust settles, and remove anyone no longer on it.
+
+**Utobo:** import only the **subscribed** list from the Sales page (everyone
+on it has clicked the link). Don't add a Utobo sign-up form or import
+addresses from anywhere else: they wouldn't have confirmed. If Utobo offers
+its own "send a confirmation email on import", leave it off; these people
+already confirmed.
 
 **Where people sign up**
 

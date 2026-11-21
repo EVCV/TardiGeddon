@@ -39,8 +39,8 @@ import { getMigrations } from 'better-auth/db/migration';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import { CURRENCY, GIFTS_PER_DAY, GIFT_MIN_ACCOUNT_HOURS, bundle, coinPack, formatNumber, giftable, packForStoreProduct, packTotal, promoFor, shopItem, supporterPack, supporterPackForStore, supporterSaleOn, type CoinPack, type SupporterPack } from '../src/shop/catalog';
 import type { MeResponse } from '../src/account/session';
-import { japanAlertEmail, newsConfirmEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
-import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, newsAsked, newsletterCounts, newsletterCsv, purgeNewsletter, setAccountNews, unsubscribeNews } from './newsletter';
+import { japanAlertEmail, newsConfirmEmail, newsReconfirmEmail, resetEmail, smtpMailer, verifyEmail, type MailEnv, type Mailer, type Mail } from './mail';
+import { accountNews, askForNews, cleanEmail, confirmNews, migrateNewsletter, newsAsked, newsletterCounts, newsletterCsv, purgeNewsletter, reconfirmAccountNews, setAccountNews, unsubscribeNews } from './newsletter';
 import { DEFAULT_JPY_PER_GBP, JAPAN_LIMIT_YEN } from '../src/shop/japan';
 import { NEWS } from '../src/news/news';
 import { comingIds } from '../src/news/roadmap';
@@ -317,6 +317,20 @@ export async function createAccounts(
   await migrateRewards(db);
   await migratePrizes(db);
   await migrateNewsletter(db);
+  // Once: accounts subscribed by the old rule confirm by email like everyone else (needs email to send).
+  if (mailer) {
+    const reconfirm = await reconfirmAccountNews(db);
+    // One at a time, a second apart, so the email service isn't flooded; not awaited, so start-up isn't held up.
+    void (async () => {
+      for (const r of reconfirm) {
+        await mailer(newsReconfirmEmail(r.email, gameLink('subscribe', r.token))).catch((e: unknown) =>
+          console.error(`mail: news re-confirm not sent: ${(e instanceof Error ? e.message : String(e)).replace(/\S+@\S+/g, '<address>')}`),
+        );
+        await new Promise((ok) => setTimeout(ok, 1000).unref());
+      }
+      if (reconfirm.length) console.log(`newsletter: asked ${reconfirm.length} account(s) to re-confirm`);
+    })();
+  }
   await migrateAppleTokens(db);
   await migrateRoadmap(db);
   const auth = betterAuth(options);
@@ -686,7 +700,19 @@ export async function createAccounts(
     const user = await userFrom(req.headers);
     if (!user) return json(res, 401, { error: tk('Please sign in first.') });
     if (path === '/api/newsletter/account') {
-      await setAccountNews(db, user, body?.on === true, body?.source, body?.lang);
+      // On: the same confirm email as any sign-up (double opt-in), so the same limit and the same need for email.
+      const on = body?.on === true;
+      if (on) {
+        const now = Date.now();
+        const key = `user:${user.id}`;
+        const recent = (newsTries.get(key) ?? []).filter((t) => now - t < 60_000);
+        if (recent.length >= 3) return json(res, 429, { error: tk('Too many tries. Wait a minute and try again.') });
+        newsTries.set(key, [...recent, now]);
+        if (!mailer) return json(res, 503, { error: tk('Email news isn’t available just now. Please try again later.') });
+      }
+      const token = await setAccountNews(db, user, on, body?.source, body?.lang);
+      const email = cleanEmail(user.email);
+      if (token && email) send(newsConfirmEmail(email, gameLink('subscribe', token)));
       return json(res, 200, { newsletter: await accountNews(db, user) });
     }
     if (path === '/api/newsletter/asked') {

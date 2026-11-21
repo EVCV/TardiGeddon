@@ -19,7 +19,8 @@ import { migrate, revokePurchase, unspentCoins } from '../server/store';
 import { earlyBirdRule, founderRule, grantEarlyBird, isEarlyBird, isFounder, signupNumber } from '../server/rewards';
 import { SUPPORTER_PACKS, supporterSaleOn } from '../src/shop/catalog';
 import { CREATOR_INVITE_COINS, EARLY_BIRD_COINS, EARLY_BIRD_ITEMS, EARLY_BIRD_MAX, FAN_ITEMS, FOUNDER_COINS, FOUNDER_ITEMS, INVITE_COINS, INVITE_MAX } from '../src/shop/rewards';
-import type { Mail } from '../server/mail';
+import { newsReconfirmEmail, type Mail } from '../server/mail';
+import { reconfirmAccountNews } from '../server/newsletter';
 import { BUNDLES, bundlePrice } from '../src/shop/catalog';
 import { defaultControls, type Controls } from '../src/input/controls';
 import { playAccountTag, type PlayApi, type ProductPurchase, type VoidedPurchase } from '../server/googlePlay';
@@ -806,13 +807,17 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     row = await accounts.db.query(`SELECT status FROM newsletter WHERE email = 'reader@example.com'`);
     expect(row.rows[0].status).toBe('unsubscribed');
 
-    // An account: never on unless asked; with an unconfirmed email, it waits for the confirmation.
+    // An account: never on unless asked, and double opt-in too: even a confirmed
+    // account email only joins through the link in the news email.
     const { cookie, id } = await signUp('news-account@example.com');
     expect((await me(cookie)).newsletter).toEqual({ status: 'no', asked: false });
     expect((await post('/api/newsletter/account', { on: true, source: 'signup' })).status).toBe(401);
     expect((await post('/api/newsletter/account', { on: true, source: 'signup' }, cookie)).status).toBe(200);
     expect((await me(cookie)).newsletter).toEqual({ status: 'pending', asked: true });
     await accounts.db.query('UPDATE "user" SET "emailVerified" = true WHERE id = $1', [id]);
+    expect((await me(cookie)).newsletter).toEqual({ status: 'pending', asked: true });
+    const accountToken = linkToken(await mailTo('news-account@example.com', /TardiGeddon news/), 'subscribe');
+    expect(await (await post('/api/newsletter/confirm', { token: accountToken })).json()).toEqual({ ok: true });
     expect((await me(cookie)).newsletter).toEqual({ status: 'subscribed', asked: true });
     // Off from the Account page.
     await post('/api/newsletter/account', { on: false, source: 'account' }, cookie);
@@ -826,14 +831,46 @@ describe.skipIf(!DB)('accounts and shop (Postgres)', () => {
     const signInAs = async (email: string) => (await post('/api/auth/sign-in/email', { email, password: 'correct horse' })).headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
     const boss = await signInAs('boss@example.com');
     expect((await fetch(base + '/api/admin/newsletter?list=subscribed', { headers: { cookie } })).status).toBe(404);
+    // Back on from the Account page: waiting again until the new email's link is clicked.
+    const mailsBefore = sent.length;
     await post('/api/newsletter/account', { on: true, source: 'account' }, cookie);
-    const csv = await (await fetch(base + '/api/admin/newsletter?list=subscribed', { headers: { cookie: boss } })).text();
+    expect((await me(cookie)).newsletter).toEqual({ status: 'pending', asked: true });
+    await new Promise((r) => setTimeout(r, 50));
+    const again = sent.slice(mailsBefore).find((m) => m.to === 'news-account@example.com' && /TardiGeddon news/.test(m.subject));
+    expect(again).toBeDefined();
+    expect(await (await post('/api/newsletter/confirm', { token: linkToken(again!, 'subscribe') })).json()).toEqual({ ok: true });
+    const csv =await (await fetch(base + '/api/admin/newsletter?list=subscribed', { headers: { cookie: boss } })).text();
     expect(csv.split('\n')[0]).toBe('email,name,source,language,subscribed_at,unsubscribed_at,consent_wording');
     expect(csv).toContain('news-account@example.com');
     expect(csv).not.toContain('reader@example.com');
     const gone = await (await fetch(base + '/api/admin/newsletter?list=unsubscribed', { headers: { cookie: boss } })).text();
     expect(gone).toContain('reader@example.com');
     expect(await (await fetch(base + '/api/admin/newsletter', { headers: { cookie: boss } })).json()).toMatchObject({ subscribed: 1, unsubscribed: 1 });
+  });
+
+  it('asks accounts subscribed under the old rule to confirm by email, once', async () => {
+    const { cookie, id } = await signUp('old-rule@example.com');
+    // Subscribed the old way (no link clicked), and an address-only sign-up that did click.
+    await accounts.db.query(
+      `INSERT INTO newsletter (email, user_id, status, source, wording, token, confirmed_at) VALUES
+         ('old-rule@example.com', $1, 'subscribed', 'prompt', 'words', 'old-rule-token', now()),
+         ('clicked@example.com', NULL, 'subscribed', 'website', 'words', 'clicked-token', now())`,
+      [id],
+    );
+    await accounts.db.query(`DELETE FROM done_once WHERE name = 'newsletter_reconfirm_accounts'`);
+    const asked = await reconfirmAccountNews(accounts.db);
+    expect(asked.map((a) => a.email)).toContain('old-rule@example.com');
+    expect(asked.map((a) => a.email)).not.toContain('clicked@example.com');
+    expect((await me(cookie)).newsletter).toEqual({ status: 'pending', asked: true });
+    const clicked = await accounts.db.query(`SELECT status FROM newsletter WHERE email = 'clicked@example.com'`);
+    expect(clicked.rows[0].status).toBe('subscribed');
+    // The email's link subscribes them again; and it never runs twice.
+    expect(await (await post('/api/newsletter/confirm', { token: asked.find((a) => a.email === 'old-rule@example.com')!.token })).json()).toEqual({ ok: true });
+    expect((await me(cookie)).newsletter).toEqual({ status: 'subscribed', asked: true });
+    expect(await reconfirmAccountNews(accounts.db)).toEqual([]);
+    const mail = newsReconfirmEmail('old-rule@example.com', 'https://tardigeddon.com/play/?subscribe=x');
+    expect(mail.subject).toMatch(/still want TardiGeddon news/);
+    expect(mail.text).toContain('?subscribe=x');
   });
 
   it('keeps control settings on the account, cleaned, for signed-in players only', async () => {
