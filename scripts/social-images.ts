@@ -15,6 +15,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { BLUE, GOLD, GREEN, RED, ground, media, page, root, shot, tardi } from './social-art';
+import { PROMOS, PROMO_ITEMS, promoFor } from '../src/shop/catalog';
 
 const out = join(root, 'store', 'social');
 
@@ -54,6 +55,77 @@ const shortFrame = (caption: string) =>
     1080,
     1920,
   );
+
+// ── The promo code pictures: the code and its hat come from the game (src/shop/catalog.ts PROMOS) ──
+const promo = PROMOS.find((p) => promoFor(p.code)) ?? PROMOS[PROMOS.length - 1];
+const promoHat = PROMO_ITEMS.find((i) => i.id === promo.items[0])!;
+const codeBox = (size: number) =>
+  `<div style="display:inline-block;background:#fff8ec;border:8px dashed #2b1b24;border-radius:28px;padding:${size * 0.18}px ${size * 0.5}px;font-family:'Luckiest Guy';font-size:${size}px;letter-spacing:0.08em;color:#e04848;box-shadow:0 12px 0 #2b1b24">${promo.code}</div>`;
+const hatLine = (size: number) =>
+  `<div style="font-size:${size}px;margin-top:${size * 0.9}px">Free <span style="color:#e04848">${promoHat.name}</span> hat · only with this code</div>`;
+const howTo = (size: number) =>
+  `<div style="font-size:${size}px;margin-top:${size * 0.5}px">Sign in → Shop → 🎀 Gifts → type the code</div>`;
+
+function promoSquare() {
+  return page(
+    `<div class="sky">
+      ${ground(170, 28)}
+      ${tardi(BLUE, promoHat.ref, 'width:440px;left:380px;top:690px')}
+      <div class="center" style="position:absolute;left:0;right:0;top:70px">
+        <div class="logo" style="font-size:110px">Tardi<span>Geddon</span></div>
+        <div class="big" style="font-size:96px;margin-top:46px">Free hat code</div>
+        <div style="margin-top:40px">${codeBox(110)}</div>
+        ${hatLine(40)}
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:46px;text-align:center;font-size:44px;color:#fff8ec">tardigeddon.com/promo-codes</div>
+    </div>`,
+    1200,
+    1200,
+  );
+}
+
+function promoWide() {
+  return page(
+    `<div class="sky">
+      ${ground(150, 26)}
+      ${shot('shot-crater.webp', 'left:70px;top:330px;width:620px;height:349px;transform:rotate(-4deg)')}
+      ${shot('shot-aim.webp', 'left:1230px;top:330px;width:620px;height:349px;transform:rotate(4deg)')}
+      ${tardi(BLUE, promoHat.ref, 'width:250px;left:835px;top:690px')}
+      <div class="center" style="position:absolute;left:0;right:0;top:50px">
+        <div class="logo" style="font-size:120px">Tardi<span>Geddon</span></div>
+        <div style="font-size:44px;margin-top:22px">Free turn-based artillery, starring tardigrades</div>
+      </div>
+      <div class="center" style="position:absolute;left:660px;width:600px;top:330px">
+        ${codeBox(84)}
+        <div style="font-size:34px;margin-top:26px;text-align:center">Free ${promoHat.name}<br>Shop → 🎀 Gifts</div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:40px;text-align:center;font-family:'Luckiest Guy';font-size:64px;color:#fff8ec;-webkit-text-stroke:3px #2b1b24;paint-order:stroke fill">Play free in your browser · tardigeddon.com</div>
+    </div>`,
+    1920,
+    1080,
+  );
+}
+
+function promoPhone() {
+  return page(
+    `<div class="sky">
+      ${ground(150, 26)}
+      <div class="center" style="position:absolute;left:0;right:0;top:60px">
+        <div class="logo" style="font-size:112px">Tardi<span>Geddon</span></div>
+        <div style="font-size:40px;margin-top:20px">Free on Android, iPhone, iPad &amp; browser</div>
+      </div>
+      ${shot('shot-phone.webp', 'left:90px;top:300px;width:900px;height:506px;transform:rotate(-2deg)')}
+      <div class="center" style="position:absolute;left:0;right:0;top:850px">
+        ${codeBox(92)}
+        ${howTo(36)}
+      </div>
+      ${tardi(BLUE, promoHat.ref, 'width:150px;left:465px;top:1078px')}
+      <div style="position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:40px;color:#fff8ec">Free ${promoHat.name} · no purchase needed</div>
+    </div>`,
+    1080,
+    1350,
+  );
+}
 
 const IMAGES: { file: string; html: string; w: number; h: number; transparent?: boolean }[] = [
   // YouTube channel banner. Desktop shows only the middle 2560×423 strip; every
@@ -408,11 +480,16 @@ const IMAGES: { file: string; html: string; w: number; h: number; transparent?: 
   { file: 'emoji/tardi_pirate.png', w: 128, h: 128, transparent: true, html: emoji(RED, 'pirate') },
   { file: 'emoji/tardi_dev.png', w: 128, h: 128, transparent: true, html: emoji(BLUE, 'hardhat') },
   { file: 'emoji/tardi_ninja.png', w: 128, h: 128, transparent: true, html: emoji(GREEN, 'ninja') },
+  // Reddit posts sharing the promo code (store/social/reddit/promo/, docs/social/PROMO_CODES.md).
+  { file: 'reddit/promo-square.png', w: 1200, h: 1200, html: promoSquare() },
+  { file: 'reddit/promo-wide.png', w: 1920, h: 1080, html: promoWide() },
+  { file: 'reddit/promo-phone.png', w: 1080, h: 1350, html: promoPhone() },
   ...SHORT.map((sh, i) => ({ file: `shorts/frame-${i}.png`, w: 1080, h: 1920, transparent: true, html: shortFrame(sh.caption) })),
 ];
 
 mkdirSync(join(out, 'emoji'), { recursive: true });
 mkdirSync(join(out, 'shorts'), { recursive: true });
+mkdirSync(join(out, 'reddit'), { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
 const only = process.argv.slice(2);
 for (const img of IMAGES.filter((i) => !only.length || only.includes(i.file))) {

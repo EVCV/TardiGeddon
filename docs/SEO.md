@@ -81,7 +81,7 @@ the game with a link back. Use the press kit's descriptions and media.
   some want exclusive builds or ads, which may not suit us.
 - **AlternativeTo** and **Slant**: add TardiGeddon as a free alternative to
   similar games. Describe it truthfully; don't use other games' artwork.
-- **Coupon and code sites** (gaming code roundups): email them the
+- **Coupon and code sites** (gaming code roundups): see [social/PROMO_CODES.md](social/PROMO_CODES.md); email them the
   `/promo-codes` page when a new code goes up.
 
 ### Communities (be a person, not an advert)
