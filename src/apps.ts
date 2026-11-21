@@ -9,8 +9,8 @@
 export type AppOs = 'ios' | 'android';
 
 export const APPS: Record<AppOs, { live: boolean; store: string; url: string }> = {
-  ios: { live: false, store: 'App Store', url: 'https://apps.apple.com/app/id6826841030' },
-  android: { live: false, store: 'Google Play', url: 'https://play.google.com/store/apps/details?id=com.tardigeddon.app' },
+  ios: { live: true, store: 'App Store', url: 'https://apps.apple.com/app/id6826841030' },
+  android: { live: true, store: 'Google Play', url: 'https://play.google.com/store/apps/details?id=com.tardigeddon.app' },
 };
 
 /** The App Store's number for the app (Safari's "Open in the app" banner). */
