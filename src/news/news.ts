@@ -46,6 +46,37 @@ export const NEWS_LANGS: Lang[] = ['en', 'es', 'pt-BR', 'de', 'fr', 'ja'];
 
 export const NEWS: NewsPost[] = [
   {
+    id: '2026-11-27-site-menu-scroll',
+    date: '2026-11-27',
+    kind: 'update',
+    text: {
+      en: {
+        title: 'Website menu scrolls again',
+        body: ['- Fixed: on phones and short screens, the menu on tardigeddon.com would not scroll, so the links at the bottom were out of reach.'],
+      },
+      es: {
+        title: 'El menú de la web vuelve a desplazarse',
+        body: ['- Corregido: en móviles y pantallas bajas, el menú de tardigeddon.com no se desplazaba, así que no se llegaba a los enlaces de abajo.'],
+      },
+      'pt-BR': {
+        title: 'O menu do site volta a rolar',
+        body: ['- Corrigido: em celulares e telas baixas, o menu de tardigeddon.com não rolava, então não dava para chegar aos links de baixo.'],
+      },
+      de: {
+        title: 'Das Website-Menü scrollt wieder',
+        body: ['- Behoben: Auf Handys und niedrigen Bildschirmen ließ sich das Menü auf tardigeddon.com nicht scrollen, die unteren Links waren nicht erreichbar.'],
+      },
+      fr: {
+        title: 'Le menu du site défile à nouveau',
+        body: ['- Corrigé : sur téléphone et sur les écrans peu hauts, le menu de tardigeddon.com ne défilait pas, et les liens du bas étaient hors de portée.'],
+      },
+      ja: {
+        title: 'サイトのメニューがスクロールできるように',
+        body: ['- 修正：スマホや縦の短い画面で、tardigeddon.com のメニューがスクロールできず、下のリンクに届かない問題を直しました。'],
+      },
+    },
+  },
+  {
     id: '2026-11-20-lighter-rain',
     date: '2026-11-20',
     kind: 'update',

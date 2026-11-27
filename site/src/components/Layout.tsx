@@ -106,6 +106,9 @@ function MobileMenu() {
         aria-modal="true"
         aria-label="Menu"
         hidden={!open}
+        // Lenis is stopped while the menu is open, and a stopped Lenis cancels every swipe and wheel
+        // on the page: this lets the menu's own list scroll on short screens.
+        data-lenis-prevent=""
       >
         <button className="menu-close" aria-label="Close the menu" onClick={() => setOpen(false)}>
           ✕

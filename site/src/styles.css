@@ -179,6 +179,7 @@ h1, h2, h3 { line-height: 1.1; }
   flex-direction: column;
   gap: 14px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .menu-panel[hidden] { display: none; }
 .menu-panel.open { animation: menu-in 0.22s ease-out; }
