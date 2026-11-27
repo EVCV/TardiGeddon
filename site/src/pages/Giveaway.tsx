@@ -103,32 +103,59 @@ function WinnerList({ g }: { g: Contest }) {
 }
 
 /**
- * The Sociamonials entry form, loaded only when the visitor asks for it:
- * it's a third-party page that sets its own cookie, and the rest of the site
- * sets none (Cookie & Storage Policy 4.0.3).
+ * The Sociamonials entry form.
+ *
+ * On phones and tablets it is a button to the form's own page instead of an
+ * embed: inside a fixed-height frame the form scrolled on its own, jumped
+ * when the keyboard opened and fought the page's scrolling. Which one shows is
+ * decided by CSS (`.giveaway-embed` / `.giveaway-direct` in styles.css), so
+ * the prerendered page is right from the first paint.
+ *
+ * On desktop the embed loads only when the visitor asks for it: it's a
+ * third-party page that sets its own cookie, and the rest of the site sets none
+ * (Cookie & Storage Policy 4.0.3).
  */
 function EntryForm({ url, title }: { url: string; title: string }) {
   const [shown, setShown] = useState(false);
-  if (shown) {
-    return (
-      <div className="giveaway-frame paper">
-        <iframe src={url} title={`${title}: entry form`} />
-      </div>
-    );
-  }
+  const policies = (
+    <>
+      (see our <Link to="/legal/cookie-policy">Cookie &amp; Storage Policy</Link> and{' '}
+      <Link to="/legal/privacy-policy">Privacy Policy</Link>, Section 2.7)
+    </>
+  );
   return (
-    <div className="giveaway-consent paper">
-      <p>
-        The entry form is run for us by Sociamonials, our giveaway service. Opening it here loads their page, which sets its own
-        cookie to keep your entry together (see our <Link to="/legal/cookie-policy">Cookie &amp; Storage Policy</Link> and{' '}
-        <Link to="/legal/privacy-policy">Privacy Policy</Link>, Section 2.7).
-      </p>
-      <p>
-        <button type="button" className="btn btn-play" onClick={() => setShown(true)}>
-          Show the entry form
-        </button>
-      </p>
-    </div>
+    <>
+      <div className="giveaway-direct paper">
+        <p>
+          <a className="btn btn-play giveaway-direct-btn" href={url} target="_blank" rel="noopener noreferrer">
+            Open the entry form
+          </a>
+        </p>
+        <p className="small">
+          It opens in a new tab on the page of Sociamonials, our giveaway service, which sets its own cookie to keep your
+          entry together {policies}. Come back here any time.
+        </p>
+      </div>
+      <div className="giveaway-embed">
+        {shown ? (
+          <div className="giveaway-frame paper">
+            <iframe src={url} title={`${title}: entry form`} />
+          </div>
+        ) : (
+          <div className="giveaway-consent paper">
+            <p>
+              The entry form is run for us by Sociamonials, our giveaway service. Opening it here loads their page, which
+              sets its own cookie to keep your entry together {policies}.
+            </p>
+            <p>
+              <button type="button" className="btn btn-play" onClick={() => setShown(true)}>
+                Show the entry form
+              </button>
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -179,9 +206,9 @@ export function Giveaway() {
           </h2>
           {status === 'open' && (
             <>
-              <p>It’s free to enter. Fill in the form below, then use the bonus entries to boost your chances.</p>
+              <p>It’s free to enter. Fill in the entry form, then use the bonus entries to boost your chances.</p>
               <EntryForm url={current.entryUrl} title={current.title} />
-              <p className="giveaway-trouble">
+              <p className="giveaway-trouble giveaway-embed">
                 Trouble with the form?{' '}
                 <a href={current.entryUrl} target="_blank" rel="noopener noreferrer">
                   Enter on the giveaway page
